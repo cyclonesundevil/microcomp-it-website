@@ -17,6 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
         container.classList.add('chatbot-hidden');
     });
 
+    window.openChatbot = function () {
+        container.classList.remove('chatbot-hidden');
+        document.getElementById('chat-input-field').focus();
+    };
+
     // --- Chat Logic ---
     const inputField = document.getElementById('chat-input-field');
     const sendBtn = document.getElementById('chat-send-btn');
@@ -103,4 +108,12 @@ document.addEventListener('DOMContentLoaded', () => {
     inputField.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
     });
+
+    window.startQuote = function () {
+        window.openChatbot();
+        if (chatHistory.length === 0) {
+            inputField.value = "I would like to get a quote for IT services.";
+            sendMessage();
+        }
+    };
 });

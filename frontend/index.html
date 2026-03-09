@@ -23,7 +23,7 @@
         <nav>
             <a href="#services">Services</a>
             <a href="#about">About</a>
-            <a href="#contact" class="btn-primary">Get a Quote</a>
+            <a href="#" class="btn-primary" onclick="window.startQuote(); return false;">Get a Quote</a>
         </nav>
     </header>
 
@@ -34,9 +34,11 @@
             <p>From 24/7 Managed Services to advanced Cybersecurity and Cloud Migrations. We keep your business running
                 smoothly so you can focus on growth.</p>
             <div class="hero-buttons">
-                <button class="btn-primary" onclick="document.getElementById('chatbot-toggle').click()">Talk to an
+                <button class="btn-primary" onclick="window.openChatbot()">Talk to an
                     Engineer</button>
-                <button class="btn-secondary">View Services</button>
+                <button class="btn-secondary"
+                    onclick="document.getElementById('services').scrollIntoView({behavior: 'smooth'})">View
+                    Services</button>
             </div>
         </div>
         <div class="hero-graphic">

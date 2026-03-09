@@ -7,5 +7,10 @@ __pycache__/
 # Environment Variables
 backend/.env
 
+# Google API Credentials
+backend/credentials.json
+backend/token.json
+backend/credentials.json_old
+
 # MacOS
 .DS_Store
