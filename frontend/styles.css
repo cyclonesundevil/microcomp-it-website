@@ -47,6 +47,7 @@ h3 {
 .gradient-text {
     background: linear-gradient(to right, #60a5fa, #a78bfa);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -212,6 +213,12 @@ nav a:hover:not(.btn-primary) {
     bottom: 20%;
     left: 20%;
     animation-delay: 4s;
+}
+
+.el-4 {
+    top: 5%;
+    right: 20%;
+    animation-delay: 3s;
 }
 
 @keyframes float {
