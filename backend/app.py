@@ -112,6 +112,8 @@ Our Core IT Services:
 3. Cybersecurity Solutions (Firewalls, Antivirus, Audits)
 4. Cloud Migration & Management (AWS, Azure, Microsoft 365)
 5. Data Backup & Disaster Recovery
+6. AI & Automation (Chatbots, Recruitment Pipelines)
+7. Custom Web Applications (Web Servers, Deployment Pipelines)
 
 Guidelines:
 - Keep responses concise (1-2 short paragraphs maximum).
