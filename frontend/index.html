@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MicroComp IT Solutions</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="navbar">
+        <div class="logo">
+            <i class="fa-solid fa-server"></i> MicroComp IT
+        </div>
+        <nav>
+            <a href="#services">Services</a>
+            <a href="#about">About</a>
+            <a href="#contact" class="btn-primary">Get a Quote</a>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Enterprise IT Solutions for <span class="gradient-text">Small Businesses</span></h1>
+            <p>From 24/7 Managed Services to advanced Cybersecurity and Cloud Migrations. We keep your business running
+                smoothly so you can focus on growth.</p>
+            <div class="hero-buttons">
+                <button class="btn-primary" onclick="document.getElementById('chatbot-toggle').click()">Talk to an
+                    Engineer</button>
+                <button class="btn-secondary">View Services</button>
+            </div>
+        </div>
+        <div class="hero-graphic">
+            <div class="floating-element glass-card el-1"><i class="fa-solid fa-shield-halved"></i> Threat Prevented
+            </div>
+            <div class="floating-element glass-card el-2"><i class="fa-solid fa-cloud-arrow-up"></i> Cloud Synced</div>
+            <div class="floating-element glass-card el-3"><i class="fa-solid fa-wifi"></i> 99.9% Uptime</div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="services-section">
+        <h2>Our Core Capabilities</h2>
+        <div class="services-grid">
+            <div class="service-card">
+                <div class="icon-wrapper"><i class="fa-solid fa-headset"></i></div>
+                <h3>Managed IT Support</h3>
+                <p>24/7 proactive monitoring and helpdesk support for your entire team. We fix issues before you even
+                    know they exist.</p>
+            </div>
+            <div class="service-card">
+                <div class="icon-wrapper"><i class="fa-solid fa-network-wired"></i></div>
+                <h3>Network Infrastructure</h3>
+                <p>Enterprise-grade Wi-Fi, structured cabling, and secure routing designed for speed and absolute
+                    reliability.</p>
+            </div>
+            <div class="service-card">
+                <div class="icon-wrapper"><i class="fa-solid fa-lock"></i></div>
+                <h3>Cybersecurity</h3>
+                <p>Next-gen firewalls, zero-trust architecture, and employee training to protect your data from modern
+                    threats.</p>
+            </div>
+            <div class="service-card">
+                <div class="icon-wrapper"><i class="fa-solid fa-cloud"></i></div>
+                <h3>Cloud Migration</h3>
+                <p>Seamless transition to Microsoft 365, AWS, or Azure. We modernize your workflow without the downtime.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Chatbot Widget -->
+    <div id="chatbot-container" class="chatbot-hidden">
+        <div class="chatbot-header">
+            <div class="chatbot-title">
+                <div class="status-dot"></div>
+                TechBot Assistant
+            </div>
+            <button id="chatbot-close"><i class="fa-solid fa-times"></i></button>
+        </div>
+        <div id="chatbot-messages" class="chatbot-messages">
+            <div class="message bot">
+                Hello! I'm a virtual IT engineer with MicroComp IT. Are you currently experiencing an IT issue, or are
+                you looking to upgrade your business infrastructure?
+            </div>
+        </div>
+        <div class="chatbot-input">
+            <input type="text" id="chat-input-field" placeholder="Type your computing issue here...">
+            <button id="chat-send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- Floating Chat Toggle -->
+    <button id="chatbot-toggle" class="chatbot-toggle">
+        <i class="fa-solid fa-message"></i>
+    </button>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
