@@ -1,11 +1,12 @@
 :root {
-    --bg-dark: #0f111a;
-    --accent-blue: #3b82f6;
-    --accent-glow: rgba(59, 130, 246, 0.4);
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --glass-bg: rgba(255, 255, 255, 0.05);
-    --glass-border: rgba(255, 255, 255, 0.1);
+    --bg-dark: #03050a;
+    --accent-blue: #00f0ff;
+    --accent-glow: rgba(0, 240, 255, 0.6);
+    --accent-purple: #ff00ff;
+    --text-primary: #ffffff;
+    --text-secondary: #a0aec0;
+    --glass-bg: rgba(10, 15, 30, 0.4);
+    --glass-border: rgba(0, 240, 255, 0.2);
 }
 
 * {
@@ -41,23 +42,25 @@ h3 {
     font-size: 1.5rem;
     font-weight: 600;
     margin-bottom: 1rem;
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .gradient-text {
-    background: linear-gradient(to right, #60a5fa, #a78bfa);
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
 }
 
 /* Glassmorphism Classes */
 .glass-card {
     background: var(--glass-bg);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     border-radius: 16px;
+    box-shadow: 0 8px 32px 0 rgba(0, 240, 255, 0.1), inset 0 0 20px rgba(255, 0, 255, 0.05);
 }
 
 /* Header */
@@ -70,7 +73,7 @@ h3 {
     width: 100%;
     top: 0;
     z-index: 100;
-    background: rgba(15, 17, 26, 0.8);
+    background: rgba(3, 5, 10, 0.7);
     backdrop-filter: blur(15px);
     border-bottom: 1px solid var(--glass-border);
 }
@@ -149,13 +152,39 @@ nav a:hover:not(.btn-primary) {
     position: absolute;
     width: 600px;
     height: 600px;
-    background: var(--accent-blue);
-    filter: blur(150px);
-    border-radius: 50%;
-    opacity: 0.15;
+    background: radial-gradient(circle, var(--accent-blue) 0%, transparent 70%);
+    filter: blur(100px);
+    opacity: 0.3;
     top: -100px;
     right: -100px;
     z-index: -1;
+    animation: pulse-glow 8s ease-in-out infinite alternate;
+}
+
+.hero::after {
+    content: '';
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, var(--accent-purple) 0%, transparent 70%);
+    filter: blur(120px);
+    opacity: 0.2;
+    bottom: -100px;
+    left: -100px;
+    z-index: -1;
+    animation: pulse-glow 10s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes pulse-glow {
+    0% {
+        opacity: 0.2;
+        transform: scale(0.9);
+    }
+
+    100% {
+        opacity: 0.4;
+        transform: scale(1.1);
+    }
 }
 
 .hero-content {
@@ -194,7 +223,8 @@ nav a:hover:not(.btn-primary) {
 
 .floating-element i {
     font-size: 1.2rem;
-    color: #a78bfa;
+    color: var(--accent-blue);
+    filter: drop-shadow(0 0 8px var(--accent-blue));
 }
 
 .el-1 {
@@ -238,7 +268,8 @@ nav a:hover:not(.btn-primary) {
 /* Services */
 .services-section {
     padding: 5rem 5%;
-    background: linear-gradient(180deg, var(--bg-dark) 0%, #0a0c10 100%);
+    background: linear-gradient(180deg, var(--bg-dark) 0%, #050814 100%);
+    position: relative;
 }
 
 .services-grid {
@@ -307,12 +338,13 @@ nav a:hover:not(.btn-primary) {
     display: flex;
     align-items: center;
     gap: 1.5rem;
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(10, 15, 30, 0.4);
     border: 1px solid var(--glass-border);
     padding: 2rem;
     border-radius: 12px;
     margin: 3rem 0;
     text-align: left;
+    box-shadow: 0 4px 20px rgba(0, 240, 255, 0.05);
 }
 
 .founder-icon {
@@ -395,7 +427,7 @@ nav a:hover:not(.btn-primary) {
     right: 30px;
     width: 380px;
     height: 500px;
-    background: rgba(15, 17, 26, 0.95);
+    background: rgba(3, 5, 10, 0.85);
     backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     border-radius: 16px;
@@ -403,7 +435,7 @@ nav a:hover:not(.btn-primary) {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
     transition: all 0.3s ease;
     opacity: 1;
     transform: translateY(0);
@@ -417,7 +449,7 @@ nav a:hover:not(.btn-primary) {
 
 .chatbot-header {
     padding: 1.25rem;
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(10, 15, 30, 0.6);
     border-bottom: 1px solid var(--glass-border);
     display: flex;
     justify-content: space-between;
@@ -473,6 +505,8 @@ nav a:hover:not(.btn-primary) {
 
 .message.user {
     background: var(--accent-blue);
+    color: var(--bg-dark);
+    font-weight: 500;
     align-self: flex-end;
     border-bottom-right-radius: 4px;
 }
@@ -482,7 +516,7 @@ nav a:hover:not(.btn-primary) {
     border-top: 1px solid var(--glass-border);
     display: flex;
     gap: 0.5rem;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(3, 5, 10, 0.5);
 }
 
 .chatbot-input input {
