@@ -278,6 +278,95 @@ nav a:hover:not(.btn-primary) {
     font-size: 0.95rem;
 }
 
+/* About Section */
+.about-section {
+    padding: 5rem 5%;
+    background: var(--bg-dark);
+    display: flex;
+    justify-content: center;
+}
+
+.about-content {
+    max-width: 900px;
+    padding: 4rem;
+    text-align: center;
+}
+
+.about-content h2 {
+    margin-bottom: 2rem;
+}
+
+.about-content p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.8;
+}
+
+.founder-bio {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    padding: 2rem;
+    border-radius: 12px;
+    margin: 3rem 0;
+    text-align: left;
+}
+
+.founder-icon {
+    font-size: 3rem;
+    color: var(--accent-blue);
+    background: rgba(59, 130, 246, 0.1);
+    width: 80px;
+    height: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.bio-quote {
+    font-style: italic;
+    color: var(--text-primary) !important;
+    font-size: 1.05rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.bio-name {
+    color: var(--text-secondary) !important;
+    font-size: 0.95rem !important;
+    margin-bottom: 0 !important;
+}
+
+.stats-container {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 3rem;
+    flex-wrap: wrap;
+    gap: 2rem;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-number {
+    font-size: 3rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
 /* Chatbot UI */
 .chatbot-toggle {
     position: fixed;
