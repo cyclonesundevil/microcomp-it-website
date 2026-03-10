@@ -114,6 +114,7 @@ Our Core IT Services:
 5. Data Backup & Disaster Recovery
 6. AI & Automation (Chatbots, Recruitment Pipelines)
 7. Custom Web Applications (Web Servers, Deployment Pipelines)
+8. Software Architecture Design (Strategic Planning, Custom System Design, Architecture Consulting)
 
 Guidelines:
 - Keep responses concise (1-2 short paragraphs maximum).
