@@ -231,7 +231,7 @@ async def voice_chat():
         await websocket.close(code=1008, reason="API Key not configured")
         return
     
-    persona = request.args.get("persona", "it")
+    persona = websocket.args.get("persona", "it")
 
     client = genai.Client(api_key=GEMINI_API_KEY)
 
@@ -240,14 +240,19 @@ async def voice_chat():
             while True:
                 data = await websocket.receive()
                 if isinstance(data, bytes):
-                    await session.send(input={"data": data, "mime_type": "audio/pcm;rate=16000"})
+                    await session.send(input=types.LiveClientRealtimeInput(
+                        media_chunks=[types.Blob(data=data, mime_type="audio/pcm;rate=16000")]
+                    ))
                 else:
-                    await session.send(input={"text": data})
+                    await session.send(input=data)
         except Exception as e:
-            print(f"Error sending to Gemini: {e}")
+            import traceback
+            with open("ws_debug.log", "a") as f:
+                f.write(f"CRITICAL SEND ERROR: {e}\n{traceback.format_exc()}\n")
 
     async def receive_from_gemini(session):
         try:
+            app.logger.info("Starting receive_from_gemini loop")
             while True:
                 async for response in session.receive():
                     server_content = response.server_content
@@ -257,15 +262,39 @@ async def voice_chat():
                             for part in model_turn.parts:
                                 if part.inline_data is not None:
                                     await websocket.send(part.inline_data.data)
+        except asyncio.CancelledError:
+            with open("ws_debug.log", "a") as f:
+                f.write("Receive cancelled\n")
         except Exception as e:
-            print(f"Error receiving from Gemini: {e}")
+            import traceback
+            with open("ws_debug.log", "a") as f:
+                f.write(f"CRITICAL RECV ERROR: {e}\n{traceback.format_exc()}\n")
 
     system_prompt = get_system_prompt(persona=persona, is_voice=True)
+
+    book_consultation_tool = types.Tool(
+        function_declarations=[
+            types.FunctionDeclaration(
+                name="book_consultation",
+                description="Books an IT consultation on the calendar.",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "name": types.Schema(type="STRING", description="Name of the client."),
+                        "email": types.Schema(type="STRING", description="Email address of the client."),
+                        "datetime_str": types.Schema(type="STRING", description="Date and time for the consultation in ISO format (e.g. '2026-03-15T10:00:00')."),
+                        "description": types.Schema(type="STRING", description="A brief description of the IT issue. Use 'IT Consultation' if not specified.")
+                    },
+                    required=["name", "email", "datetime_str", "description"]
+                )
+            )
+        ]
+    )
 
     config = types.LiveConnectConfig(
         response_modalities=["AUDIO"],
         system_instruction=types.Content(parts=[types.Part.from_text(text=system_prompt)]),
-        tools=[book_consultation]
+        tools=[book_consultation_tool]
     )
 
     try:
@@ -274,9 +303,15 @@ async def voice_chat():
             send_task = asyncio.create_task(send_to_gemini(session))
             recv_task = asyncio.create_task(receive_from_gemini(session))
             await asyncio.gather(send_task, recv_task)
+            with open("ws_debug.log", "a") as f:
+                f.write("GATHER RETURNED NATURALLY!\n")
     except Exception as e:
-        print(f"Live API error: {e}")
+        import traceback
+        with open("ws_debug.log", "a") as f:
+            f.write(f"OUTER WS EXCEPTION: {e}\n{traceback.format_exc()}\n")
         await websocket.close(code=1011, reason="Internal Server Error")
+    with open("ws_debug.log", "a") as f:
+        f.write("WS ROUTE FINISHED AND CLOSED.\n")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
