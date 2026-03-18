@@ -71,8 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // 3. Show typing
         showTypingIndicator();
 
-        // 4. Fetch from API
         try {
+            const persona = document.getElementById('persona-selector').value;
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {
@@ -80,7 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({
                     message: text,
-                    history: chatHistory.slice(0, -1) // Send all history except the one we just added
+                    history: chatHistory.slice(0, -1), // Send all history except the one we just added
+                    persona: persona
                 })
             });
 
@@ -132,7 +133,8 @@ document.addEventListener('DOMContentLoaded', () => {
             nextPlayTime = audioContext.currentTime;
 
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/api/voice-chat`;
+            const persona = document.getElementById('persona-selector').value;
+            const wsUrl = `${protocol}//${window.location.host}/api/voice-chat?persona=${persona}`;
             ws = new WebSocket(wsUrl);
             ws.binaryType = "arraybuffer";
 
