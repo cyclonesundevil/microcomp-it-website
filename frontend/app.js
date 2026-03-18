@@ -116,4 +116,119 @@ document.addEventListener('DOMContentLoaded', () => {
             sendMessage();
         }
     };
+
+    // --- Voice Logic (Gemini Live API) ---
+    const micBtn = document.getElementById('mic-btn');
+    let ws = null;
+    let audioContext = null;
+    let mediaStream = null;
+    let scriptProcessor = null;
+    let nextPlayTime = 0;
+
+    async function startVoiceSession() {
+        try {
+            mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+            nextPlayTime = audioContext.currentTime;
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/api/voice-chat`;
+            ws = new WebSocket(wsUrl);
+            ws.binaryType = "arraybuffer";
+
+            ws.onopen = () => {
+                micBtn.classList.add('active');
+                addMessageToDOM("Voice session connected. Start speaking... 🎙️ (Note: Audio responses may take up to 5 seconds to process, please be patient.)", 'bot');
+                
+                const source = audioContext.createMediaStreamSource(mediaStream);
+                scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+                
+                scriptProcessor.onaudioprocess = (e) => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        const inputData = e.inputBuffer.getChannelData(0);
+                        const pcmData = new Int16Array(inputData.length);
+                        for (let i = 0; i < inputData.length; i++) {
+                            let s = Math.max(-1, Math.min(1, inputData[i]));
+                            pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                        }
+                        ws.send(pcmData.buffer);
+                    }
+                };
+
+                source.connect(scriptProcessor);
+                scriptProcessor.connect(audioContext.destination);
+            };
+
+            ws.onmessage = async (event) => {
+                let arrayBuffer;
+                if (event.data instanceof ArrayBuffer) {
+                    arrayBuffer = event.data;
+                } else if (event.data instanceof Blob) {
+                    arrayBuffer = await event.data.arrayBuffer();
+                }
+
+                if (arrayBuffer) {
+                    try {
+                        const pcmData = new Int16Array(arrayBuffer);
+                        const sampleRate = 24000;
+                        const audioBuffer = audioContext.createBuffer(1, pcmData.length, sampleRate);
+                        const channelData = audioBuffer.getChannelData(0);
+                        
+                        for (let i = 0; i < pcmData.length; i++) {
+                            channelData[i] = pcmData[i] / 32768.0;
+                        }
+
+                        const source = audioContext.createBufferSource();
+                        source.buffer = audioBuffer;
+                        source.connect(audioContext.destination);
+                            
+                        const startTime = Math.max(nextPlayTime, audioContext.currentTime);
+                        source.start(startTime);
+                        nextPlayTime = startTime + audioBuffer.duration;
+                    } catch (e) {
+                        console.error("Audio playback error", e);
+                    }
+                }
+            };
+
+            ws.onclose = () => {
+                stopVoiceSession();
+                addMessageToDOM("Voice session ended.", 'bot');
+            };
+
+        } catch (err) {
+            console.error("Voice init error:", err);
+            addMessageToDOM("Error accessing microphone.", 'bot');
+            stopVoiceSession();
+        }
+    }
+
+    function stopVoiceSession() {
+        if (micBtn) micBtn.classList.remove('active');
+        if (scriptProcessor) {
+            scriptProcessor.disconnect();
+            scriptProcessor = null;
+        }
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            mediaStream = null;
+        }
+        if (ws) {
+            ws.close();
+            ws = null;
+        }
+        if (audioContext) {
+            nextPlayTime = 0;
+        }
+    }
+
+    if (micBtn) {
+        micBtn.addEventListener('click', () => {
+            if (micBtn.classList.contains('active')) {
+                stopVoiceSession();
+            } else {
+                startVoiceSession();
+            }
+        });
+    }
 });

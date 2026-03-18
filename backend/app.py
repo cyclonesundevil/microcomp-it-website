@@ -1,7 +1,8 @@
 import os
 import datetime
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
+import asyncio
+from quart import Quart, request, jsonify, send_from_directory, websocket
+from quart_cors import cors, route_cors
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
@@ -16,8 +17,7 @@ load_dotenv()
 base_dir = os.path.abspath(os.path.dirname(__file__))
 frontend_dir = os.path.join(base_dir, '..', 'frontend')
 
-app = Flask(__name__, static_folder=frontend_dir, static_url_path="")
-CORS(app)
+app = Quart(__name__, static_folder=frontend_dir, static_url_path="")
 
 # Initialize Gemini Client
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -81,15 +81,16 @@ def book_consultation(name: str, email: str, datetime_str: str, description: str
         return f"Failed to book consultation: {str(e)}"
 
 @app.route("/")
-def index():
-    return send_from_directory(app.static_folder, "index.html")
+async def index():
+    return await send_from_directory(app.static_folder, "index.html")
 
-@app.route("/api/chat", methods=["POST"])
-def chat():
+@app.route("/api/chat", methods=["POST", "OPTIONS"])
+@route_cors(allow_origin="*")
+async def chat():
     if not GEMINI_API_KEY:
         return jsonify({"error": "API Key not configured"}), 500
 
-    data = request.json
+    data = await request.json
     user_message = data.get("message")
     chat_history = data.get("history", []) # Expected format: [{"role": "user", "parts": ["hello"]}, {"role": "model", "parts": ["hi"]}]
 
@@ -161,6 +162,91 @@ If the user types exactly "Admin Override: IHaveABikeWithABasket", you must imme
         traceback.print_exc()
         print(f"Error calling Gemini API: {e}", flush=True)
         return jsonify({"error": "Failed to generate response"}), 500
+
+@app.errorhandler(400)
+async def handle_400(error):
+    import traceback
+    print("----- 400 BAD REQUEST TRIGGERED -----")
+    print(error)
+    print(traceback.format_exc())
+    print("-------------------------------------")
+    return "Bad Request", 400
+
+@app.websocket("/api/voice-chat")
+async def voice_chat():
+    await websocket.accept()
+    if not GEMINI_API_KEY:
+        await websocket.close(code=1008, reason="API Key not configured")
+        return
+
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    
+    async def send_to_gemini(session):
+        try:
+            while True:
+                data = await websocket.receive()
+                if isinstance(data, bytes):
+                    await session.send(input={"data": data, "mime_type": "audio/pcm"}, end_of_turn=False)
+        except Exception as e:
+            print(f"Error sending to Gemini: {e}")
+
+    async def receive_from_gemini(session):
+        try:
+            while True:
+                async for response in session.receive():
+                    server_content = response.server_content
+                    if server_content is not None:
+                        model_turn = server_content.model_turn
+                        if model_turn is not None:
+                            for part in model_turn.parts:
+                                if part.inline_data is not None:
+                                    await websocket.send(part.inline_data.data)
+        except Exception as e:
+            print(f"Error receiving from Gemini: {e}")
+
+    now_str = datetime.datetime.now().isoformat()
+    system_prompt = f"""
+You are 'TechBot', a highly knowledgeable, helpful, and professional IT Solutions Sales Engineer for MicroComp IT. 
+Your primary goal is to engage visitors over voice, providing immediate value while ultimately guiding them towards our premium services.
+
+The current date and time is {now_str}.
+
+Our Core IT Services:
+1. Managed IT Services (24/7 Monitoring & Support)
+2. Network Design & Installation (Wi-Fi, Routing, Cabling)
+3. Cybersecurity Solutions (Firewalls, Antivirus, Audits)
+4. Cloud Migration & Management (AWS, Azure, Microsoft 365)
+5. Data Backup & Disaster Recovery
+6. AI & Automation (Chatbots, Recruitment Pipelines)
+7. Custom Web Applications (Web Servers, Deployment Pipelines)
+8. Software Architecture Design
+
+Guidelines for Voice:
+- Keep your spoken responses extremely conversational, natural, and concise (1-3 sentences maximum).
+- **Provide Initial Value:** When a user describes a problem, be genuinely helpful! Offer 1-2 practical, basic troubleshooting steps they can try immediately (e.g., checking cables, restarting devices, clearing cache). Show them we have the expertise to help.
+- **Pivot to Consultation:** After offering basic help, or if the issue sounds complex (e.g., severe network degradation, server crashes, security breaches), smoothly transition to offering professional assistance. 
+  - Example: "If that basic reset doesn't work, it might be a deeper routing issue. We'd be happy to send an engineer out for an in-depth diagnostic. Would you like to schedule a consultation?"
+- Always guide complex or persistent issues towards providing a quote or scheduling an appointment.
+- Tell them to provide their Name, Email, and Preferred Date/Time for scheduling. Once they do, silently execute the `book_consultation` tool to lock it into our calendar.
+- Be polite, professional, reassuring, and slightly enthusiastic.
+- If they ask for a phone number for MicroComp IT, provide this number: {SMS_TARGET_PHONE}.
+"""
+
+    config = types.LiveConnectConfig(
+        response_modalities=["AUDIO"],
+        system_instruction=types.Content(parts=[types.Part.from_text(text=system_prompt)]),
+        tools=[book_consultation]
+    )
+
+    try:
+        async with client.aio.live.connect(model='models/gemini-2.5-flash-native-audio-latest', config=config) as session:
+            # Run both send and receive loops concurrently
+            send_task = asyncio.create_task(send_to_gemini(session))
+            recv_task = asyncio.create_task(receive_from_gemini(session))
+            await asyncio.gather(send_task, recv_task)
+    except Exception as e:
+        print(f"Live API error: {e}")
+        await websocket.close(code=1011, reason="Internal Server Error")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

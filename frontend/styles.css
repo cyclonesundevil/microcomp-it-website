@@ -599,11 +599,22 @@ nav a:hover:not(.btn-primary) {
     border-radius: 8px;
     width: 45px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
 .chatbot-input button:hover {
     background: #2563eb;
+}
+
+#mic-btn.active {
+    background: var(--accent-purple);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 255, 0.7); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(255, 0, 255, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 255, 0); }
 }
 
 /* Typing Indicator */
