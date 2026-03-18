@@ -1,6 +1,6 @@
 quart==0.20.0
 quart-cors==0.8.0
-google-genai==0.3.0
+google-genai==1.68.0
 python-dotenv==1.0.0
 google-api-python-client
 google-auth-httplib2
