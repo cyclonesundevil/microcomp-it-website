@@ -80,6 +80,79 @@ def book_consultation(name: str, email: str, datetime_str: str, description: str
     except Exception as e:
         return f"Failed to book consultation: {str(e)}"
 
+@app.route("/api/track", methods=["POST"])
+async def track_visitor():
+    try:
+        data = await request.get_data(as_text=True)
+        if data:
+            import json
+            import sqlite3
+            req_data = json.loads(data)
+            
+            ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+            if ip_address:
+                ip_address = ip_address.split(',')[0].strip()
+            
+            db_path = os.path.join(base_dir, 'analytics.db')
+            conn = sqlite3.connect(db_path)
+            c = conn.cursor()
+            c.execute('''CREATE TABLE IF NOT EXISTS visitors
+                         (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                          session_id TEXT,
+                          path TEXT,
+                          time_spent_seconds INTEGER,
+                          ip_address TEXT,
+                          timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+                          
+            try:
+                c.execute("ALTER TABLE visitors ADD COLUMN ip_address TEXT")
+            except sqlite3.OperationalError:
+                pass
+                          
+            c.execute("INSERT INTO visitors (session_id, path, time_spent_seconds, ip_address) VALUES (?, ?, ?, ?)",
+                      (req_data.get('sessionId'), req_data.get('path'), req_data.get('timeSpentSeconds'), ip_address))
+            conn.commit()
+            conn.close()
+    except Exception as e:
+        print(f"Tracking error: {e}")
+    return "OK", 200
+
+@app.route("/api/analytics/download")
+async def download_analytics():
+    # Simple security check using an admin secret
+    secret = request.args.get("secret")
+    if secret != os.getenv("ADMIN_SECRET", "microcomp-admin"):
+        return "Unauthorized", 401
+        
+    db_path = os.path.join(base_dir, 'analytics.db')
+    if not os.path.exists(db_path):
+        return "No data found", 404
+        
+    import sqlite3
+    import csv
+    import io
+    from quart import Response
+    
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    c.execute("SELECT * FROM visitors ORDER BY timestamp DESC")
+    rows = c.fetchall()
+    
+    col_names = [description[0] for description in c.description]
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(col_names)
+    writer.writerows(rows)
+    
+    conn.close()
+    
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment;filename=analytics.csv"}
+    )
+
 @app.route("/")
 async def index():
     return await send_from_directory(app.static_folder, "index.html")

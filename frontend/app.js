@@ -1,5 +1,21 @@
 document.addEventListener('DOMContentLoaded', () => {
 
+    // --- Analytics Tracking ---
+    const sessionStartTime = Date.now();
+    const sessionId = Math.random().toString(36).substring(2, 15);
+    
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden') {
+            const timeSpentMs = Date.now() - sessionStartTime;
+            const data = JSON.stringify({
+                sessionId: sessionId,
+                path: window.location.pathname,
+                timeSpentSeconds: Math.floor(timeSpentMs / 1000)
+            });
+            navigator.sendBeacon('/api/track', data);
+        }
+    });
+
     // --- UI Interactions ---
     const toggleBtn = document.getElementById('chatbot-toggle');
     const closeBtn = document.getElementById('chatbot-close');
