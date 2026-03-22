@@ -104,7 +104,7 @@ def call_doctor(patient_name: str, callback_number: str, summary: str) -> str:
         
         # Force space between every character to guarantee it is read digit-by-digit
         spoken_number = ' '.join(list(callback_number.replace('-', '').replace(' ', '')))
-        twiml_msg = f"Hello Doctor. This is the Micro Comp I. T. Assistant. A patient named {patient_name} has a post-surgery question. Their summary is: {summary}. Please call them back at: {spoken_number}. I will now repeat this message. "
+        twiml_msg = f"Hello Doctor. This is the Micro Comp Eye Tee Assistant. A patient named {patient_name} has a post-surgery question. Their summary is: {summary}. Please call them back at: {spoken_number}. I will now repeat this message. "
         twiml = f"<Response><Say voice='alice' loop='5'>{twiml_msg}</Say></Response>"
         
         call = client.calls.create(
