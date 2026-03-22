@@ -421,10 +421,9 @@ async def voice_chat():
                             )
                         
                         app.logger.info(f"Sending tool responses: {function_responses}")
-                        # DISABLED TO PREVENT 1008 POLICY VIOLATION ON NATIVE AUDIO BIDI
-                        # await session.send(input=types.LiveClientToolResponse(
-                        #     function_responses=function_responses
-                        # ))
+                        await session.send_tool_response(
+                            function_responses=function_responses
+                        )
         except asyncio.CancelledError:
             with open("ws_debug.log", "a") as f:
                 f.write("Receive cancelled\n")
