@@ -478,6 +478,9 @@ async def voice_chat():
 
     try:
         async with client.aio.live.connect(model='models/gemini-2.5-flash-native-audio-latest', config=config) as session:
+            # Send text trigger AND end the turn so the model responds immediately
+            await session.send(input="Hi, I just connected. Please verbally introduce yourself and greet me to start the conversation.", end_of_turn=True)
+            
             # Run both send and receive loops concurrently
             send_task = asyncio.create_task(send_to_gemini(session))
             recv_task = asyncio.create_task(receive_from_gemini(session))

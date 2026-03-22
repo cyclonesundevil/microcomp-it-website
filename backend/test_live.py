@@ -1,26 +1,22 @@
-import os
-import asyncio
-from google import genai
-from google.genai import types
-from dotenv import load_dotenv
+import requests
+import json
 
-load_dotenv()
+url = "https://microcompit.com/api/chat"
 
-async def test_live():
-    # Testing default client API
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-    
-    config = types.LiveConnectConfig(
-        response_modalities=["AUDIO"]
-    )
-    
-    models_to_test = ["gemini-2.0-flash", "models/gemini-2.5-flash-native-audio-latest", "gemini-2.0-flash-exp"]
-    
-    for model in models_to_test:
-        try:
-            async with client.aio.live.connect(model=model, config=config) as session:
-                print(f"SUCCESS connecting to {model} via v1alpha")
-        except Exception:
-            pass
+payload = {
+    "message": "I have an emergency post-surgery question. My name is John Doe. My callback number is 480-209-3709. The summary is: my knee is swelling. Please call the doctor.",
+    "persona": "podiatry",
+    "history": []
+}
 
-asyncio.run(test_live())
+headers = {
+    "Content-Type": "application/json"
+}
+
+try:
+    response = requests.post(url, json=payload, headers=headers)
+    print("Status Code:", response.status_code)
+    print("Response JSON:")
+    print(json.dumps(response.json(), indent=2))
+except Exception as e:
+    print("Error:", e)
