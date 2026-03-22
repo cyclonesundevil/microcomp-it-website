@@ -1,0 +1,57 @@
+Receive cancelled
+Receive cancelled
+CRITICAL RECV ERROR: 1008 None. Operation is not implemented, or supported, or enabled.
+Traceback (most recent call last):
+  File "C:\Users\cyclo\AppData\Local\Programs\Python\Python313\Lib\site-packages\google\genai\live.py", line 535, in _receive
+    raw_response = await self._ws.recv(decode=False)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\cyclo\AppData\Local\Programs\Python\Python313\Lib\site-packages\websockets\asyncio\connection.py", line 313, in recv
+    raise self.protocol.close_exc from self.recv_exc
+websockets.exceptions.ConnectionClosedError: received 1008 (policy violation) Operation is not implemented, or supported, or enabled.; then sent 1008 (policy violation) Operation is not implemented, or supported, or enabled.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\cyclo\.gemini\antigravity\scratch\it-solutions-website\backend\app.py", line 367, in receive_from_gemini
+    async for response in session.receive():
+    ...<6 lines>...
+                        await websocket.send(part.inline_data.data)
+  File "C:\Users\cyclo\AppData\Local\Programs\Python\Python313\Lib\site-packages\google\genai\live.py", line 454, in receive
+    while result := await self._receive():
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\cyclo\AppData\Local\Programs\Python\Python313\Lib\site-packages\google\genai\live.py", line 545, in _receive
+    errors.APIError.raise_error(code, reason, None)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\cyclo\AppData\Local\Programs\Python\Python313\Lib\site-packages\google\genai\errors.py", line 163, in raise_error
+    raise cls(status_code, response_json, response)
+google.genai.errors.APIError: 1008 None. Operation is not implemented, or supported, or enabled.
+
+CRITICAL SEND ERROR: received 1008 (policy violation) Operation is not implemented, or supported, or enabled.; then sent 1008 (policy violation) Operation is not implemented, or supported, or enabled.
+Traceback (most recent call last):
+  File "C:\Users\cyclo\.gemini\antigravity\scratch\it-solutions-website\backend\app.py", line 353, in send_to_gemini
+    await session.send(input=types.LiveClientRealtimeInput(
+        media_chunks=[types.Blob(data=data, mime_type="audio/pcm;rate=16000")]
+    ))
+  File "C:\Users\cyclo\AppData\Local\Programs\Python\Python313\Lib\site-packages\google\genai\live.py", line 149, in send
+    await self._ws.send(json.dumps(client_message))
+  File "C:\Users\cyclo\AppData\Local\Programs\Python\Python313\Lib\site-packages\websockets\asyncio\connection.py", line 458, in send
+    async with self.send_context():
+               ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\cyclo\AppData\Local\Programs\Python\Python313\Lib\contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\cyclo\AppData\Local\Programs\Python\Python313\Lib\site-packages\websockets\asyncio\connection.py", line 934, in send_context
+    raise self.protocol.close_exc from original_exc
+websockets.exceptions.ConnectionClosedError: received 1008 (policy violation) Operation is not implemented, or supported, or enabled.; then sent 1008 (policy violation) Operation is not implemented, or supported, or enabled.
+
+GATHER RETURNED NATURALLY!
+WS ROUTE FINISHED AND CLOSED.
+CRITICAL RECV ERROR: 'LiveServerContent' object has no attribute 'tool_call'
+Traceback (most recent call last):
+  File "C:\Users\cyclo\.gemini\antigravity\scratch\it-solutions-website\backend\app.py", line 376, in receive_from_gemini
+    tool_call = server_content.tool_call
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\cyclo\AppData\Local\Programs\Python\Python313\Lib\site-packages\pydantic\main.py", line 991, in __getattr__
+    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
+AttributeError: 'LiveServerContent' object has no attribute 'tool_call'
+

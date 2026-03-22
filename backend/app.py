@@ -80,6 +80,42 @@ def book_consultation(name: str, email: str, datetime_str: str, description: str
     except Exception as e:
         return f"Failed to book consultation: {str(e)}"
 
+def call_doctor(patient_name: str, callback_number: str, summary: str) -> str:
+    """Calls the doctor using Twilio regarding a post-surgery question.
+    
+    Args:
+        patient_name: Name of the patient.
+        callback_number: The patient's phone number for the doctor to call back.
+        summary: A brief summary of the post-surgery question.
+    Returns:
+        A string indicating success or failure of placing the call.
+    """
+    account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+    auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+    from_number = os.getenv("TWILIO_PHONE_NUMBER")
+    doctor_number = "+14802316231" # The doctor's hardcoded number
+    
+    if not all([account_sid, auth_token, from_number]):
+        return "Error: Twilio credentials not configured. Please tell the user to manually call 480-231-6231."
+        
+    try:
+        from twilio.rest import Client as TwilioClient
+        client = TwilioClient(account_sid, auth_token)
+        
+        # Force space between every character to guarantee it is read digit-by-digit
+        spoken_number = ' '.join(list(callback_number.replace('-', '').replace(' ', '')))
+        twiml_msg = f"Hello Doctor. This is the Micro Comp I. T. Assistant. A patient named {patient_name} has a post-surgery question. Their summary is: {summary}. Please call them back at: {spoken_number}. I will now repeat this message. "
+        twiml = f"<Response><Say voice='alice' loop='5'>{twiml_msg}</Say></Response>"
+        
+        call = client.calls.create(
+            twiml=twiml,
+            to=doctor_number,
+            from_=from_number
+        )
+        return f"Successfully placed call to the doctor (Call SID: {call.sid}). Tell the patient the doctor has been notified and will call them back at {callback_number}."
+    except Exception as e:
+        return f"Failed to call the doctor: {str(e)}"
+
 @app.route("/api/track", methods=["POST"])
 async def track_visitor():
     try:
@@ -171,6 +207,9 @@ Guidelines:
 - Be supportive and patient: Do not rush to book an appointment. Provide value and helpful insights first.
 - Natural transition to care: Only after fully exploring their symptoms and offering possible causes, gently suggest that a proper diagnosis requires an in-person visit.
 - If they agree to an appointment, ask for their Name, Email, and Preferred Date/Time. Once provided, silently execute the `book_consultation` tool to lock it into the clinic's calendar.
+- EMERGENCIES: If the user describes any severe medical emergency (e.g., severe bleeding, suspected fractures, extreme swelling, or any life-threatening symptoms), instantly stop all other assessments and firmly direct the user to call 911 immediately.
+- POST-SURGERY: For any non-emergency, post-surgery related questions, collect the patient's Name, Callback Phone Number, and a brief Summary of their question.
+- CRITICAL TOOL INSTRUCTION: Once you have successfully collected the Name, Phone Number, and Summary, you MUST IMMEDIATELY pause the conversation and execute the `call_doctor` tool. Do not simply say you will call the doctor; you must physically execute the tool call payload so the backend python script runs.
 - IMPORTANT: You are for demonstrative purposes only. DO NOT give definitive medical advice or formal diagnoses. Remind them that only a doctor can diagnose conditions.
 """
         if is_voice:
@@ -261,7 +300,7 @@ async def chat():
         config = types.GenerateContentConfig(
             system_instruction=system_prompt,
             temperature=0.7,
-            tools=[book_consultation]
+            tools=[book_consultation, call_doctor]
         )
 
         # Reconstruct chat session history
@@ -330,6 +369,14 @@ async def voice_chat():
             app.logger.info("Starting receive_from_gemini loop")
             while True:
                 async for response in session.receive():
+                    with open("ws_debug.log", "a") as f:
+                        f.write(f"RECV: {type(response)} -> ")
+                        if hasattr(response, 'server_content') and response.server_content:
+                            f.write("Has server_content | ")
+                        if hasattr(response, 'tool_call') and response.tool_call:
+                            f.write("Has tool_call | ")
+                        f.write("\n")
+                        
                     server_content = response.server_content
                     if server_content is not None:
                         model_turn = server_content.model_turn
@@ -337,6 +384,47 @@ async def voice_chat():
                             for part in model_turn.parts:
                                 if part.inline_data is not None:
                                     await websocket.send(part.inline_data.data)
+                    
+                    tool_call = response.tool_call
+                    if tool_call is not None:
+                        function_responses = []
+                        for function_call in tool_call.function_calls:
+                            name = function_call.name
+                            args = function_call.args
+                            
+                            with open("ws_debug.log", "a") as f:
+                                f.write(f"\nEXECUTING TOOL: {name} | ARGS: {args}\n")
+                            
+                            result_str = ""
+                            if name == "book_consultation":
+                                try:
+                                    result_str = book_consultation(**args)
+                                except Exception as e:
+                                    result_str = str(e)
+                                    with open("ws_debug.log", "a") as f: f.write(f"TOOL ERROR: {e}\n")
+                            elif name == "call_doctor":
+                                try:
+                                    result_str = call_doctor(**args)
+                                except Exception as e:
+                                    result_str = str(e)
+                                    with open("ws_debug.log", "a") as f: f.write(f"TOOL ERROR: {e}\n")
+                            else:
+                                result_str = f"Unknown tool: {name}"
+                            
+                            with open("ws_debug.log", "a") as f: f.write(f"TOOL RESULT: {result_str}\n")
+                            function_responses.append(
+                                types.FunctionResponse(
+                                    name=name,
+                                    id=function_call.id,
+                                    response={"result": result_str}
+                                )
+                            )
+                        
+                        app.logger.info(f"Sending tool responses: {function_responses}")
+                        # DISABLED TO PREVENT 1008 POLICY VIOLATION ON NATIVE AUDIO BIDI
+                        # await session.send(input=types.LiveClientToolResponse(
+                        #     function_responses=function_responses
+                        # ))
         except asyncio.CancelledError:
             with open("ws_debug.log", "a") as f:
                 f.write("Receive cancelled\n")
@@ -351,16 +439,33 @@ async def voice_chat():
         function_declarations=[
             types.FunctionDeclaration(
                 name="book_consultation",
-                description="Books an IT consultation on the calendar.",
+                description="Books an appointment.",
                 parameters=types.Schema(
                     type="OBJECT",
                     properties={
-                        "name": types.Schema(type="STRING", description="Name of the client."),
-                        "email": types.Schema(type="STRING", description="Email address of the client."),
-                        "datetime_str": types.Schema(type="STRING", description="Date and time for the consultation in ISO format (e.g. '2026-03-15T10:00:00')."),
-                        "description": types.Schema(type="STRING", description="A brief description of the IT issue. Use 'IT Consultation' if not specified.")
+                        "name": types.Schema(type="STRING", description="The patient's or user's full name"),
+                        "email": types.Schema(type="STRING", description="The user's email address"),
+                        "preferred_time": types.Schema(type="STRING", description="Requested date and time")
                     },
-                    required=["name", "email", "datetime_str", "description"]
+                    required=["name", "email", "preferred_time"]
+                )
+            )
+        ]
+    )
+    
+    call_doctor_tool = types.Tool(
+        function_declarations=[
+            types.FunctionDeclaration(
+                name="call_doctor",
+                description="CRITICAL: You MUST use this tool IMMEDIATELY the second the user gives you their Name, Phone Number, and Summary of their post-surgery question. Do not answer verbally until this tool is actively executed.",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "patient_name": types.Schema(type="STRING", description="Name of the patient."),
+                        "callback_number": types.Schema(type="STRING", description="The patient's phone number for the doctor to call back."),
+                        "summary": types.Schema(type="STRING", description="A brief summary of the post-surgery question.")
+                    },
+                    required=["patient_name", "callback_number", "summary"]
                 )
             )
         ]
@@ -369,7 +474,7 @@ async def voice_chat():
     config = types.LiveConnectConfig(
         response_modalities=["AUDIO"],
         system_instruction=types.Content(parts=[types.Part.from_text(text=system_prompt)]),
-        tools=[book_consultation_tool]
+        tools=[book_consultation_tool, call_doctor_tool]
     )
 
     try:
