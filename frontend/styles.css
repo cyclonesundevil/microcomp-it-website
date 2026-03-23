@@ -457,6 +457,91 @@ nav a:hover:not(.btn-primary) {
     border-color: rgba(0, 240, 255, 0.5);
 }
 
+/* Contact Form */
+.contact-section {
+    padding: 2rem 5% 6rem;
+    display: flex;
+    justify-content: center;
+    background: var(--bg-dark);
+}
+
+.contact-card {
+    max-width: 600px;
+    width: 100%;
+    padding: 3rem;
+}
+
+.contact-card h2 {
+    margin-bottom: 1rem;
+}
+
+.contact-card > p {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.form-group input,
+.form-group textarea {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    color: white;
+    font-family: inherit;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+}
+
+.w-100 {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.contact-response-msg {
+    margin-top: 1.5rem;
+    text-align: center;
+    padding: 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.contact-response-msg.hidden {
+    display: none;
+}
+
+.contact-response-msg.success {
+    background: rgba(34, 197, 94, 0.1);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.contact-response-msg.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
 /* Chatbot UI */
 .chatbot-toggle {
     position: fixed;

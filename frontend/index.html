@@ -4,7 +4,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MicroComp IT Solutions</title>
+    
+    <!-- Primary Meta Tags -->
+    <title>MicroComp IT Solutions | Enterprise Tech for Small Biz</title>
+    <meta name="title" content="MicroComp IT Solutions | Enterprise Tech for Small Biz">
+    <meta name="description" content="MicroComp IT provides 24/7 Managed Services, Custom AI Automation, and Cybersecurity for small businesses looking for enterprise technology.">
+    <meta name="keywords" content="IT Support, Managed Services, Cybersecurity, AI Automation, Web Applications, Cloud Migration">
+    <meta name="theme-color" content="#03050a">
+    
+    <!-- Open Graph / Facebook / LinkedIn / iMessage -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://microcompit.com/">
+    <meta property="og:title" content="MicroComp IT Solutions">
+    <meta property="og:description" content="Enterprise IT Solutions for Small Businesses. We keep your business running smoothly so you can focus on growth.">
+    <meta property="og:image" content="https://microcompit.com/og-image.png">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://microcompit.com/">
+    <meta property="twitter:title" content="MicroComp IT Solutions">
+    <meta property="twitter:description" content="Enterprise IT Solutions for Small Businesses. We keep your business running smoothly so you can focus on growth.">
+    <meta property="twitter:image" content="https://microcompit.com/og-image.png">
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -146,6 +166,30 @@
                 appointments 24/7. We can build the same competitive advantage for your business.</p>
             <button class="btn-primary" onclick="window.startQuote(); return false;"><i class="fa-solid fa-robot"></i>
                 Build My Custom AI</button>
+        </div>
+    </section>
+
+    <!-- Contact Form Section -->
+    <section id="contact" class="contact-section">
+        <div class="glass-card contact-card">
+            <h2>Get in Touch</h2>
+            <p>Send us a message directly and our engineers will reach out immediately.</p>
+            <form id="contact-form" class="contact-form">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="contact-name" name="name" required placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email address</label>
+                    <input type="email" id="contact-email" name="email" required placeholder="john@company.com">
+                </div>
+                <div class="form-group">
+                    <label for="message">How can we help?</label>
+                    <textarea id="contact-message" name="message" rows="4" required placeholder="Describe your IT needs..."></textarea>
+                </div>
+                <button type="submit" class="btn-primary w-100" id="contact-submit-btn">Send Message <i class="fa-solid fa-paper-plane"></i></button>
+                <div id="contact-response" class="contact-response-msg hidden"></div>
+            </form>
         </div>
     </section>
 

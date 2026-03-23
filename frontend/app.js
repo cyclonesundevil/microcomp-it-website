@@ -249,4 +249,51 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // --- Contact Form Logic ---
+    const contactForm = document.getElementById('contact-form');
+    if (contactForm) {
+        contactForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('contact-submit-btn');
+            const responseMsg = document.getElementById('contact-response');
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+            
+            const data = {
+                name: document.getElementById('contact-name').value,
+                email: document.getElementById('contact-email').value,
+                message: document.getElementById('contact-message').value
+            };
+            
+            try {
+                const res = await fetch('/api/contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await res.json();
+                responseMsg.classList.remove('hidden');
+                
+                if (result.success) {
+                    responseMsg.className = 'contact-response-msg success';
+                    responseMsg.innerText = "Message sent successfully! We will be in touch shortly.";
+                    contactForm.reset();
+                } else {
+                    responseMsg.className = 'contact-response-msg error';
+                    responseMsg.innerText = "Error sending message. Please try again.";
+                }
+            } catch (err) {
+                responseMsg.classList.remove('hidden');
+                responseMsg.className = 'contact-response-msg error';
+                responseMsg.innerText = "Network error. Please try again later.";
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Send Message <i class="fa-solid fa-paper-plane"></i>';
+            }
+        });
+    }
 });

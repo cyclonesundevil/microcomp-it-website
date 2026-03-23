@@ -116,6 +116,35 @@ def call_doctor(patient_name: str, callback_number: str, summary: str) -> str:
     except Exception as e:
         return f"Failed to call the doctor: {str(e)}"
 
+@app.route("/api/contact", methods=["POST"])
+async def contact_form():
+    try:
+        data = await request.get_json()
+        name = data.get("name", "Unknown")
+        email = data.get("email", "Unknown")
+        message = data.get("message", "No message provided.")
+        
+        discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
+        if discord_webhook:
+            import requests
+            payload = {
+                "embeds": [{
+                    "title": "🚨 New Website Lead",
+                    "color": 3447003,
+                    "fields": [
+                        {"name": "Name", "value": name, "inline": True},
+                        {"name": "Email", "value": email, "inline": True},
+                        {"name": "Message", "value": message}
+                    ]
+                }]
+            }
+            requests.post(discord_webhook, json=payload)
+            
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"Contact form error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @app.route("/api/track", methods=["POST"])
 async def track_visitor():
     try:
@@ -188,6 +217,80 @@ async def download_analytics():
         mimetype="text/csv",
         headers={"Content-Disposition": "attachment;filename=analytics.csv"}
     )
+
+@app.route("/admin")
+async def admin_dashboard():
+    secret = request.args.get("secret")
+    if secret != os.getenv("ADMIN_SECRET", "microcomp-admin"):
+        return "Unauthorized. Add ?secret=YOUR_SECRET to the URL.", 401
+        
+    db_path = os.path.join(base_dir, 'analytics.db')
+    import sqlite3
+    import json
+    
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    c.execute("SELECT timestamp, path, time_spent_seconds FROM visitors ORDER BY timestamp ASC")
+    rows = c.fetchall()
+    conn.close()
+    
+    # Process data for chart
+    dates = {}
+    paths = {}
+    for row in rows:
+        ts, path, seconds = row
+        date = ts.split(" ")[0]
+        dates[date] = dates.get(date, 0) + 1
+        paths[path] = paths.get(path, 0) + 1
+        
+    labels = list(dates.keys())
+    data = list(dates.values())
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Admin Dashboard</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #03050a; color: #fff; padding: 2rem; }}
+            .card {{ background: #0a0f1e; padding: 2rem; border-radius: 8px; border: 1px solid rgba(0, 240, 255, 0.2); margin-bottom: 2rem; box-shadow: 0 4px 20px rgba(0, 240, 255, 0.05); }}
+            h1, h2 {{ color: #fff; }}
+        </style>
+    </head>
+    <body>
+        <h1><i class="fa-solid fa-server"></i> MicroComp IT Analytics</h1>
+        <div class="card">
+            <h2>Daily Page Views</h2>
+            <canvas id="viewsChart" height="100"></canvas>
+        </div>
+        <script>
+            const ctx = document.getElementById('viewsChart').getContext('2d');
+            new Chart(ctx, {{
+                type: 'line',
+                data: {{
+                    labels: {json.dumps(labels)},
+                    datasets: [{{
+                        label: 'Page Views',
+                        data: {json.dumps(data)},
+                        borderColor: '#00f0ff',
+                        backgroundColor: 'rgba(0, 240, 255, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }}]
+                }},
+                options: {{
+                    scales: {{
+                        y: {{ beginAtZero: true, grid: {{ color: 'rgba(255,255,255,0.05)' }} }},
+                        x: {{ grid: {{ color: 'rgba(255,255,255,0.05)' }} }}
+                    }}
+                }}
+            }});
+        </script>
+    </body>
+    </html>
+    """
+    return html
 
 @app.route("/")
 async def index():
