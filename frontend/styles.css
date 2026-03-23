@@ -680,6 +680,7 @@ nav a:hover:not(.btn-primary) {
     .navbar {
         flex-direction: column;
         padding: 1rem;
+        position: absolute;
     }
 
     nav {
