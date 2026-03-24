@@ -230,39 +230,90 @@ async def admin_dashboard():
     
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
-    c.execute("SELECT timestamp, path, time_spent_seconds FROM visitors ORDER BY timestamp ASC")
+    c.execute("SELECT timestamp, path, time_spent_seconds, ip_address FROM visitors ORDER BY timestamp ASC")
     rows = c.fetchall()
+    
+    # Get unique IP count
+    c.execute("SELECT COUNT(DISTINCT ip_address) FROM visitors")
+    unique_ips_count = c.fetchone()[0]
+    
+    # Get recent visitors
+    c.execute("SELECT ip_address, path, timestamp FROM visitors ORDER BY timestamp DESC LIMIT 15")
+    recent_visitors = c.fetchall()
     conn.close()
     
     # Process data for chart
     dates = {}
-    paths = {}
     for row in rows:
-        ts, path, seconds = row
+        ts, path, seconds, ip = row
         date = ts.split(" ")[0]
         dates[date] = dates.get(date, 0) + 1
-        paths[path] = paths.get(path, 0) + 1
         
     labels = list(dates.keys())
     data = list(dates.values())
+    
+    # Format recent visitors table
+    visitors_html = ""
+    for ip, path, ts in recent_visitors:
+        visitors_html += f"<tr><td>{ts}</td><td>{ip}</td><td>{path}</td></tr>"
     
     html = f"""
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Admin Dashboard</title>
+        <title>Admin Dashboard | MicroComp IT</title>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <style>
             body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #03050a; color: #fff; padding: 2rem; }}
+            .container {{ max-width: 1200px; margin: 0 auto; }}
             .card {{ background: #0a0f1e; padding: 2rem; border-radius: 8px; border: 1px solid rgba(0, 240, 255, 0.2); margin-bottom: 2rem; box-shadow: 0 4px 20px rgba(0, 240, 255, 0.05); }}
-            h1, h2 {{ color: #fff; }}
+            h1, h2 {{ color: #fff; margin-bottom: 1.5rem; }}
+            .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }}
+            .stat-card {{ background: rgba(0, 240, 255, 0.05); padding: 1.5rem; border-radius: 8px; border: 1px solid rgba(0, 240, 255, 0.1); text-align: center; }}
+            .stat-number {{ font-size: 2.5rem; font-weight: 800; color: #00f0ff; }}
+            .stat-label {{ color: #a0aec0; font-size: 0.9rem; text-transform: uppercase; margin-top: 0.5rem; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 1rem; }}
+            th, td {{ text-align: left; padding: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; }}
+            th {{ color: #00f0ff; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }}
+            tr:hover {{ background: rgba(255,255,255,0.02); }}
         </style>
     </head>
     <body>
-        <h1><i class="fa-solid fa-server"></i> MicroComp IT Analytics</h1>
-        <div class="card">
-            <h2>Daily Page Views</h2>
-            <canvas id="viewsChart" height="100"></canvas>
+        <div class="container">
+            <h1><i class="fa-solid fa-gauge-high"></i> Admin Dashboard</h1>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">{len(rows)}</div>
+                    <div class="stat-label">Total Hits</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{unique_ips_count}</div>
+                    <div class="stat-label">Unique Visitors</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><i class="fa-solid fa-chart-line"></i> Daily Traffic</h2>
+                <canvas id="viewsChart" height="100"></canvas>
+            </div>
+
+            <div class="card">
+                <h2><i class="fa-solid fa-list"></i> Recent Activity</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>IP Address</th>
+                            <th>Page Path</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {visitors_html}
+                    </tbody>
+                </table>
+            </div>
         </div>
         <script>
             const ctx = document.getElementById('viewsChart').getContext('2d');
@@ -280,9 +331,13 @@ async def admin_dashboard():
                     }}]
                 }},
                 options: {{
+                    responsive: true,
                     scales: {{
                         y: {{ beginAtZero: true, grid: {{ color: 'rgba(255,255,255,0.05)' }} }},
                         x: {{ grid: {{ color: 'rgba(255,255,255,0.05)' }} }}
+                    }},
+                    plugins: {{
+                        legend: {{ display: false }}
                     }}
                 }}
             }});
