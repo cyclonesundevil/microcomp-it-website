@@ -40,13 +40,26 @@ def book_consultation(name: str, email: str, datetime_str: str, description: str
         A string indicating success or failure.
     """
     creds = None
+    token_env = os.getenv("GOOGLE_CALENDAR_TOKEN")
+    
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    elif token_env:
+        import json
+        try:
+            creds_data = json.loads(token_env)
+            creds = Credentials.from_authorized_user_info(creds_data, SCOPES)
+        except Exception as e:
+            print(f"Error loading credentials from GOOGLE_CALENDAR_TOKEN: {e}")
+
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
+            try:
+                creds.refresh(Request())
+            except Exception as e:
+                return f"Error: Token refresh failed: {e}. Tell the user to regenerate token."
         else:
-            return "Error: Calendar not authenticated. Tell the user we cannot book right now."
+            return "Error: Calendar not authenticated (no token.json and no GOOGLE_CALENDAR_TOKEN). Tell the user we cannot book right now."
             
     try:
         service = build('calendar', 'v3', credentials=creds)
