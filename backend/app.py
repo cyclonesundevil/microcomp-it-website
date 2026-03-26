@@ -21,11 +21,10 @@ app = Quart(__name__, static_folder=frontend_dir, static_url_path="")
 
 @app.before_request
 async def log_request_info():
-    print(f"DEBUG: Incoming Request: {request.method} {request.path} from {request.remote_addr}", flush=True)
+    pass
 
 @app.route("/api/health")
 async def health_check():
-    print("DEBUG: Health check hit", flush=True)
     webhook_status = "SET" if os.getenv("DISCORD_WEBHOOK_URL") else "MISSING"
     return jsonify({
         "status": "ok", 
@@ -145,13 +144,13 @@ def call_doctor(patient_name: str, callback_number: str, summary: str) -> str:
 
 @app.route("/api/contact", methods=["POST"])
 async def contact_form():
-    print("DEBUG: Contact form route hit!", flush=True)
     try:
         data = await request.get_json()
-        print(f"DEBUG: Received contact data: {data}", flush=True)
+        name = data.get("name", "Unknown")
+        email = data.get("email", "Unknown")
+        message = data.get("message", "No message provided.")
         
         discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
-        print(f"DEBUG: Webhook lookup: {'FOUND' if discord_webhook else 'NOT FOUND'}", flush=True)
         if discord_webhook:
             import requests
             payload = {
