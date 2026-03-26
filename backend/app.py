@@ -19,6 +19,14 @@ frontend_dir = os.path.join(base_dir, '..', 'frontend')
 
 app = Quart(__name__, static_folder=frontend_dir, static_url_path="")
 
+@app.before_request
+async def log_request_info():
+    app.logger.info(f"Incoming Request: {request.method} {request.path} from {request.remote_addr}")
+
+@app.route("/api/health")
+async def health_check():
+    return jsonify({"status": "ok", "environment": os.environ.get("RENDER_SERVICE_ID", "local")})
+
 # Initialize Gemini Client
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 SMS_TARGET_PHONE = os.getenv("SMS_TARGET_PHONE", "Not available")
