@@ -10,7 +10,9 @@ backend/.env
 # Google API Credentials
 backend/credentials.json
 backend/token.json
+backend/token.json.broken
 backend/credentials.json_old
+backend/verify_calendar.py
 
 # MacOS
 .DS_Store

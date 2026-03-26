@@ -93,10 +93,10 @@ def call_doctor(patient_name: str, callback_number: str, summary: str) -> str:
     account_sid = os.getenv("TWILIO_ACCOUNT_SID")
     auth_token = os.getenv("TWILIO_AUTH_TOKEN")
     from_number = os.getenv("TWILIO_PHONE_NUMBER")
-    doctor_number = "+14802316231" # The doctor's hardcoded number
+    doctor_number = os.getenv("DOCTOR_PHONE_NUMBER", "+14802316231")
     
     if not all([account_sid, auth_token, from_number]):
-        return "Error: Twilio credentials not configured. Please tell the user to manually call 480-231-6231."
+        return f"Error: Twilio credentials not configured. Please tell the user to manually call {doctor_number}."
         
     try:
         from twilio.rest import Client as TwilioClient
@@ -635,7 +635,8 @@ async def voice_chat():
     )
 
     try:
-        async with client.aio.live.connect(model='models/gemini-2.5-flash-native-audio-latest', config=config) as session:
+        model_id = os.getenv("VOICE_MODEL_ID", "models/gemini-2.5-flash-native-audio-latest")
+        async with client.aio.live.connect(model=model_id, config=config) as session:
             # Send text trigger AND end the turn so the model responds immediately
             await session.send(input="Hi, I just connected. Please verbally introduce yourself and greet me to start the conversation.", end_of_turn=True)
             
