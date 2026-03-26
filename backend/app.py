@@ -21,12 +21,17 @@ app = Quart(__name__, static_folder=frontend_dir, static_url_path="")
 
 @app.before_request
 async def log_request_info():
-    print(f"DEBUG: Incoming Request: {request.method} {request.path} from {request.remote_addr}")
+    print(f"DEBUG: Incoming Request: {request.method} {request.path} from {request.remote_addr}", flush=True)
 
 @app.route("/api/health")
 async def health_check():
-    print("DEBUG: Health check hit")
-    return jsonify({"status": "ok", "environment": os.environ.get("RENDER_SERVICE_ID", "local")})
+    print("DEBUG: Health check hit", flush=True)
+    webhook_status = "SET" if os.getenv("DISCORD_WEBHOOK_URL") else "MISSING"
+    return jsonify({
+        "status": "ok", 
+        "environment": os.environ.get("RENDER_SERVICE_ID", "local"),
+        "discord_webhook": webhook_status
+    })
 
 # Initialize Gemini Client
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -140,12 +145,13 @@ def call_doctor(patient_name: str, callback_number: str, summary: str) -> str:
 
 @app.route("/api/contact", methods=["POST"])
 async def contact_form():
-    print("DEBUG: Contact form route hit!")
+    print("DEBUG: Contact form route hit!", flush=True)
     try:
         data = await request.get_json()
-        print(f"DEBUG: Received contact data: {data}")
+        print(f"DEBUG: Received contact data: {data}", flush=True)
         
         discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
+        print(f"DEBUG: Webhook lookup: {'FOUND' if discord_webhook else 'NOT FOUND'}", flush=True)
         if discord_webhook:
             import requests
             payload = {
