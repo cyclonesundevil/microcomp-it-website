@@ -21,10 +21,11 @@ app = Quart(__name__, static_folder=frontend_dir, static_url_path="")
 
 @app.before_request
 async def log_request_info():
-    app.logger.info(f"Incoming Request: {request.method} {request.path} from {request.remote_addr}")
+    print(f"DEBUG: Incoming Request: {request.method} {request.path} from {request.remote_addr}")
 
 @app.route("/api/health")
 async def health_check():
+    print("DEBUG: Health check hit")
     return jsonify({"status": "ok", "environment": os.environ.get("RENDER_SERVICE_ID", "local")})
 
 # Initialize Gemini Client
@@ -139,11 +140,10 @@ def call_doctor(patient_name: str, callback_number: str, summary: str) -> str:
 
 @app.route("/api/contact", methods=["POST"])
 async def contact_form():
+    print("DEBUG: Contact form route hit!")
     try:
         data = await request.get_json()
-        name = data.get("name", "Unknown")
-        email = data.get("email", "Unknown")
-        message = data.get("message", "No message provided.")
+        print(f"DEBUG: Received contact data: {data}")
         
         discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
         if discord_webhook:
