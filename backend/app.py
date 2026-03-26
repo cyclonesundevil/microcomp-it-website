@@ -151,7 +151,13 @@ async def contact_form():
                     ]
                 }]
             }
-            requests.post(discord_webhook, json=payload)
+            try:
+                resp = requests.post(discord_webhook, json=payload, timeout=10)
+                print(f"Discord Webhook Response: {resp.status_code} - {resp.text}")
+            except Exception as e:
+                print(f"FAILED to send to Discord: {e}")
+        else:
+            print("WARNING: DISCORD_WEBHOOK_URL not set in environment.")
             
         return jsonify({"success": True})
     except Exception as e:
