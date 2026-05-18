@@ -11,6 +11,16 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import requests
+import json
+import sqlite3
+import csv
+import io
+import traceback
+from quart import Response
 
 load_dotenv()
 
@@ -145,14 +155,13 @@ def call_doctor(patient_name: str, callback_number: str, summary: str) -> str:
 @app.route("/api/contact", methods=["POST"])
 async def contact_form():
     try:
-        data = await request.get_json()
+        data = await request.get_json() or {}
         name = data.get("name", "Unknown")
         email = data.get("email", "Unknown")
         message = data.get("message", "No message provided.")
         
         discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
         if discord_webhook:
-            import requests
             payload = {
                 "embeds": [{
                     "title": "🚨 New Website Lead",
@@ -171,6 +180,34 @@ async def contact_form():
                 print(f"FAILED to send to Discord: {e}")
         else:
             print("WARNING: DISCORD_WEBHOOK_URL not set in environment.")
+
+        # --- Email Sending Logic ---
+        smtp_email = os.getenv("SMTP_EMAIL")
+        smtp_password = os.getenv("SMTP_PASSWORD")
+        # Default to sending the email to the same address used for SMTP if receiver is not specified
+        receiver_email = os.getenv("CONTACT_EMAIL_RECEIVER", smtp_email)
+
+        if smtp_email and smtp_password and receiver_email:
+            msg = MIMEMultipart()
+            msg['From'] = smtp_email
+            msg['To'] = receiver_email
+            msg['Subject'] = f"New Website Lead: {name}"
+
+            body = f"You have received a new contact form submission from the website.\n\nName: {name}\nEmail: {email}\n\nMessage:\n{message}"
+            msg.attach(MIMEText(body, 'plain'))
+
+            try:
+                # Using Gmail's SMTP server
+                server = smtplib.SMTP('smtp.gmail.com', 587)
+                server.starttls()
+                server.login(smtp_email, smtp_password)
+                server.send_message(msg)
+                server.quit()
+                print("Email notification successfully sent.")
+            except Exception as e:
+                print(f"FAILED to send email notification: {e}")
+        else:
+            print("WARNING: SMTP_EMAIL and/or SMTP_PASSWORD not set in environment. Email not sent.")
             
         return jsonify({"success": True})
     except Exception as e:
@@ -182,8 +219,6 @@ async def track_visitor():
     try:
         data = await request.get_data(as_text=True)
         if data:
-            import json
-            import sqlite3
             req_data = json.loads(data)
             
             ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
