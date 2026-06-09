@@ -258,14 +258,19 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const submitBtn = document.getElementById('contact-submit-btn');
             const responseMsg = document.getElementById('contact-response');
+
+            if (!contactForm.checkValidity()) {
+                contactForm.reportValidity();
+                return;
+            }
             
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
             
             const data = {
-                name: document.getElementById('contact-name').value,
-                email: document.getElementById('contact-email').value,
-                message: document.getElementById('contact-message').value
+                name: document.getElementById('contact-name').value.trim(),
+                email: document.getElementById('contact-email').value.trim(),
+                message: document.getElementById('contact-message').value.trim()
             };
             
             try {
@@ -284,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     contactForm.reset();
                 } else {
                     responseMsg.className = 'contact-response-msg error';
-                    responseMsg.innerText = "Error sending message. Please try again.";
+                    responseMsg.innerText = result.error || "Error sending message. Please try again.";
                 }
             } catch (err) {
                 responseMsg.classList.remove('hidden');

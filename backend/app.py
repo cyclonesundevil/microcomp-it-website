@@ -20,6 +20,7 @@ import sqlite3
 import csv
 import io
 import traceback
+import re
 from quart import Response
 
 load_dotenv()
@@ -28,6 +29,12 @@ base_dir = os.path.abspath(os.path.dirname(__file__))
 frontend_dir = os.path.join(base_dir, '..', 'frontend')
 
 app = Quart(__name__, static_folder=frontend_dir, static_url_path="")
+
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def is_valid_email(email: str) -> bool:
+    return bool(email and len(email) <= 254 and EMAIL_RE.match(email))
 
 @app.before_request
 async def log_request_info():
@@ -156,9 +163,21 @@ def call_doctor(patient_name: str, callback_number: str, summary: str) -> str:
 async def contact_form():
     try:
         data = await request.get_json() or {}
-        name = data.get("name", "Unknown")
-        email = data.get("email", "Unknown")
-        message = data.get("message", "No message provided.")
+        name = str(data.get("name", "")).strip()
+        email = str(data.get("email", "")).strip()
+        message = str(data.get("message", "")).strip()
+
+        if not name or not email or not message:
+            return jsonify({"success": False, "error": "All fields are required."}), 400
+
+        if len(name) > 100:
+            return jsonify({"success": False, "error": "Name must be 100 characters or fewer."}), 400
+
+        if not is_valid_email(email):
+            return jsonify({"success": False, "error": "Please enter a valid email address."}), 400
+
+        if len(message) > 5000:
+            return jsonify({"success": False, "error": "Message must be 5000 characters or fewer."}), 400
         
         discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
         if discord_webhook:
