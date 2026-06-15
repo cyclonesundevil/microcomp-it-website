@@ -43,10 +43,12 @@ async def log_request_info():
 @app.route("/api/health")
 async def health_check():
     webhook_status = "SET" if os.getenv("DISCORD_WEBHOOK_URL") else "MISSING"
+    smtp_status = "SET" if os.getenv("SMTP_EMAIL") and os.getenv("SMTP_PASSWORD") else "MISSING"
     return jsonify({
         "status": "ok", 
         "environment": os.environ.get("RENDER_SERVICE_ID", "local"),
-        "discord_webhook": webhook_status
+        "discord_webhook": webhook_status,
+        "smtp": smtp_status
     })
 
 # Initialize Gemini Client
@@ -179,6 +181,12 @@ async def contact_form():
         if len(message) > 5000:
             return jsonify({"success": False, "error": "Message must be 5000 characters or fewer."}), 400
         
+        delivery_results = {
+            "discord": False,
+            "email": False
+        }
+        delivery_errors = []
+
         discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
         if discord_webhook:
             payload = {
@@ -195,8 +203,13 @@ async def contact_form():
             try:
                 resp = requests.post(discord_webhook, json=payload, timeout=10)
                 print(f"Discord Webhook Response: {resp.status_code} - {resp.text}")
+                if 200 <= resp.status_code < 300:
+                    delivery_results["discord"] = True
+                else:
+                    delivery_errors.append(f"Discord returned HTTP {resp.status_code}.")
             except Exception as e:
                 print(f"FAILED to send to Discord: {e}")
+                delivery_errors.append("Discord notification failed.")
         else:
             print("WARNING: DISCORD_WEBHOOK_URL not set in environment.")
 
@@ -210,25 +223,39 @@ async def contact_form():
             msg = MIMEMultipart()
             msg['From'] = smtp_email
             msg['To'] = receiver_email
+            msg['Reply-To'] = email
             msg['Subject'] = f"New Website Lead: {name}"
 
             body = f"You have received a new contact form submission from the website.\n\nName: {name}\nEmail: {email}\n\nMessage:\n{message}"
             msg.attach(MIMEText(body, 'plain'))
 
             try:
-                # Using Gmail's SMTP server
-                server = smtplib.SMTP('smtp.gmail.com', 587)
-                server.starttls()
-                server.login(smtp_email, smtp_password)
-                server.send_message(msg)
-                server.quit()
+                with smtplib.SMTP('smtp.gmail.com', 587) as server:
+                    server.starttls()
+                    server.login(smtp_email, smtp_password)
+                    server.send_message(msg)
+                delivery_results["email"] = True
                 print("Email notification successfully sent.")
             except Exception as e:
                 print(f"FAILED to send email notification: {e}")
+                delivery_errors.append("Email notification failed.")
         else:
             print("WARNING: SMTP_EMAIL and/or SMTP_PASSWORD not set in environment. Email not sent.")
             
-        return jsonify({"success": True})
+        if delivery_results["discord"] or delivery_results["email"]:
+            return jsonify({"success": True, "delivered": delivery_results})
+
+        if not discord_webhook and not (smtp_email and smtp_password and receiver_email):
+            return jsonify({
+                "success": False,
+                "error": "Contact delivery is not configured. Please try again later."
+            }), 503
+
+        return jsonify({
+            "success": False,
+            "error": "Message received, but notification delivery failed. Please try again later.",
+            "delivery_errors": delivery_errors
+        }), 502
     except Exception as e:
         print(f"Contact form error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
