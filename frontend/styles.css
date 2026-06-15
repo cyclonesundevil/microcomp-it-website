@@ -45,6 +45,21 @@ h3 {
     color: var(--text-primary);
 }
 
+.section-heading {
+    max-width: 780px;
+    margin: 0 auto 3rem;
+    text-align: center;
+}
+
+.section-heading h2 {
+    margin-bottom: 1rem;
+}
+
+.section-heading p {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+}
+
 .gradient-text {
     background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
     -webkit-background-clip: text;
@@ -198,9 +213,86 @@ nav a:hover:not(.btn-primary) {
     margin-bottom: 2rem;
 }
 
+.hero-content .hero-proof {
+    color: var(--text-primary);
+    font-size: 0.98rem;
+    font-weight: 600;
+    padding-left: 1rem;
+    border-left: 3px solid var(--accent-blue);
+    margin-bottom: 2rem;
+}
+
 .hero-buttons {
     display: flex;
     gap: 1rem;
+}
+
+/* Service Snapshot */
+.snapshot-section {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    padding: 0 5% 3rem;
+    margin-top: -3rem;
+    position: relative;
+    z-index: 2;
+}
+
+.snapshot-item {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1.5rem;
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(10, 15, 30, 0.78);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.snapshot-item i {
+    color: var(--accent-blue);
+    font-size: 1.25rem;
+    margin-top: 0.15rem;
+}
+
+.snapshot-item h3 {
+    font-size: 1rem;
+    margin-bottom: 0.35rem;
+}
+
+.snapshot-item p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+/* Trust Bar */
+.trust-bar {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1.25rem 5%;
+    background: rgba(10, 15, 30, 0.78);
+    border-top: 1px solid var(--glass-border);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.trust-bar span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-primary);
+    font-size: 0.92rem;
+    font-weight: 600;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid rgba(0, 240, 255, 0.14);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.trust-bar i {
+    color: var(--accent-blue);
 }
 
 /* Hero Graphics / Animations */
@@ -309,6 +401,71 @@ nav a:hover:not(.btn-primary) {
     font-size: 0.95rem;
 }
 
+/* Outcomes */
+.outcomes-section {
+    padding: 5rem 5%;
+    background: #050814;
+}
+
+.outcomes-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.5rem;
+}
+
+.outcome-item {
+    padding: 2rem;
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.outcome-item i {
+    color: var(--accent-blue);
+    font-size: 1.6rem;
+    margin-bottom: 1.25rem;
+}
+
+.outcome-item p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+/* Process */
+.process-section {
+    padding: 5rem 5%;
+    background: var(--bg-dark);
+}
+
+.process-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.process-step {
+    padding: 2.25rem;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    background: rgba(10, 15, 30, 0.5);
+}
+
+.step-number {
+    display: inline-block;
+    color: var(--accent-blue);
+    font-weight: 800;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    letter-spacing: 0;
+}
+
+.process-step p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
 /* About Section */
 .about-section {
     padding: 5rem 5%;
@@ -397,6 +554,39 @@ nav a:hover:not(.btn-primary) {
     color: var(--text-primary);
     font-weight: 600;
     font-size: 1.1rem;
+}
+
+/* Industries */
+.industries-section {
+    padding: 5rem 5%;
+    background: #050814;
+}
+
+.industries-list {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 1rem;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.industries-list div {
+    min-height: 92px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    text-align: center;
+    padding: 1rem;
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.industries-list i {
+    color: var(--accent-blue);
 }
 
 /* CTA Section */
@@ -564,6 +754,10 @@ nav a:hover:not(.btn-primary) {
     transform: scale(1.1);
 }
 
+.mobile-sticky-cta {
+    display: none;
+}
+
 #chatbot-container {
     position: fixed;
     bottom: 100px;
@@ -691,6 +885,47 @@ nav a:hover:not(.btn-primary) {
     background: #2563eb;
 }
 
+/* Footer */
+.site-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 2rem 5%;
+    border-top: 1px solid var(--glass-border);
+    background: rgba(3, 5, 10, 0.92);
+}
+
+.footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-weight: 800;
+}
+
+.footer-brand i {
+    color: var(--accent-blue);
+}
+
+.footer-details {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.footer-details a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.footer-details a:hover {
+    color: var(--accent-blue);
+}
+
 #mic-btn.active {
     background: var(--accent-purple);
     animation: pulse 1.5s infinite;
@@ -745,7 +980,12 @@ nav a:hover:not(.btn-primary) {
 /* Mobile Responsiveness */
 @media (max-width: 480px) {
     h1 {
-        font-size: 2.5rem;
+        font-size: 2.25rem;
+    }
+
+    h2 {
+        font-size: 1.8rem;
+        margin-bottom: 2rem;
     }
 
     .hero-graphic {
@@ -753,8 +993,18 @@ nav a:hover:not(.btn-primary) {
     }
 
     .hero-content {
-        margin-top: 5rem;
+        margin-top: 7.5rem;
         text-align: center;
+    }
+
+    .hero-content p {
+        font-size: 1rem;
+    }
+
+    .hero-content .hero-proof {
+        text-align: left;
+        margin: 0 auto 2rem;
+        max-width: 320px;
     }
 
     .hero-buttons {
@@ -762,21 +1012,86 @@ nav a:hover:not(.btn-primary) {
         flex-direction: column;
     }
 
-    .navbar {
+    .snapshot-section {
+        grid-template-columns: 1fr;
+        margin-top: 0;
+        padding: 2rem 5%;
+    }
+
+    .snapshot-item {
+        padding: 1.25rem;
+    }
+
+    .trust-bar {
+        justify-content: flex-start;
+    }
+
+    .trust-bar span {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .outcomes-grid,
+    .process-steps,
+    .industries-list {
+        grid-template-columns: 1fr;
+    }
+
+    .about-content,
+    .cta-content,
+    .contact-card {
+        padding: 1.5rem;
+    }
+
+    .services-section,
+    .outcomes-section,
+    .process-section,
+    .about-section,
+    .industries-section,
+    .cta-section {
+        padding-top: 3.5rem;
+        padding-bottom: 3.5rem;
+    }
+
+    .founder-bio {
         flex-direction: column;
-        padding: 1rem;
-        position: absolute;
+        text-align: center;
+    }
+
+    .site-footer {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .footer-details {
+        justify-content: center;
+    }
+
+    .navbar {
+        flex-direction: row;
+        padding: 0.9rem 1rem;
+        position: fixed;
     }
 
     nav {
-        margin-top: 1rem;
         display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
+        align-items: center;
     }
 
     nav a {
+        display: none;
         margin-left: 0;
+    }
+
+    nav a.btn-primary {
+        display: inline-flex;
+        padding: 0.65rem 0.9rem;
+        font-size: 0.9rem;
+        white-space: nowrap;
+    }
+
+    .logo {
+        font-size: 1.05rem;
     }
 
     #chatbot-container {
@@ -789,7 +1104,30 @@ nav a:hover:not(.btn-primary) {
     }
 
     .chatbot-toggle {
-        bottom: 20px;
+        bottom: 82px;
         right: 20px;
+    }
+
+    .mobile-sticky-cta {
+        position: fixed;
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
+        z-index: 998;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        min-height: 48px;
+        color: var(--bg-dark);
+        background: var(--accent-blue);
+        border: none;
+        border-radius: 8px;
+        font-weight: 800;
+        box-shadow: 0 0 18px var(--accent-glow);
+    }
+
+    .site-footer {
+        padding-bottom: 5.5rem;
     }
 }
