@@ -41,6 +41,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Chat Logic ---
     const inputField = document.getElementById('chat-input-field');
     const sendBtn = document.getElementById('chat-send-btn');
+    const personaSelector = document.getElementById('persona-selector');
+
+    const personaIntroductions = {
+        it: {
+            message: "Hello! I'm a virtual IT engineer with MicroComp IT. Are you currently experiencing an IT issue, or are you looking to upgrade your business infrastructure?",
+            placeholder: "Type your computing issue here..."
+        },
+        career: {
+            message: "Hello. I can answer employer-focused questions about Jose C. Ramirez's technology background, engineering experience, and professional fit.",
+            placeholder: "Ask about Jose's technology background..."
+        },
+        podiatry: {
+            message: "Hello! This demo shows how an AI assistant can help a podiatry practice answer common questions and collect appointment details.",
+            placeholder: "Ask a podiatry demo question..."
+        }
+    };
+
+    function resetChatForPersona(persona) {
+        const intro = personaIntroductions[persona] || personaIntroductions.it;
+        chatHistory = [];
+        msgContainer.innerHTML = '';
+        addMessageToDOM(intro.message, 'bot');
+        inputField.placeholder = intro.placeholder;
+    }
 
     // Manage conversation history for Gemini logic
     let chatHistory = [];
@@ -88,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showTypingIndicator();
 
         try {
-            const persona = document.getElementById('persona-selector').value;
+            const persona = personaSelector.value;
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {
@@ -149,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
             nextPlayTime = audioContext.currentTime;
 
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const persona = document.getElementById('persona-selector').value;
+            const persona = personaSelector.value;
             const wsUrl = `${protocol}//${window.location.host}/api/voice-chat?persona=${persona}`;
             ws = new WebSocket(wsUrl);
             ws.binaryType = "arraybuffer";
@@ -248,6 +272,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 startVoiceSession();
             }
         });
+    }
+
+    if (personaSelector) {
+        personaSelector.addEventListener('change', () => {
+            resetChatForPersona(personaSelector.value);
+        });
+        resetChatForPersona(personaSelector.value);
     }
 
     // --- Contact Form Logic ---
