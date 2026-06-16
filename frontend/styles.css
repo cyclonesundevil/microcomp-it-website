@@ -439,9 +439,9 @@ nav a:hover:not(.btn-primary) {
 
 .process-steps {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1.5rem;
-    max-width: 1100px;
+    max-width: 1200px;
     margin: 0 auto;
 }
 
@@ -914,6 +914,11 @@ nav a:hover:not(.btn-primary) {
     flex-wrap: wrap;
     color: var(--text-secondary);
     font-size: 0.95rem;
+}
+
+.build-stamp {
+    color: rgba(160, 174, 192, 0.72);
+    font-size: 0.85rem;
 }
 
 .footer-details a {
