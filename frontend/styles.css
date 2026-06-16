@@ -227,6 +227,194 @@ nav a:hover:not(.btn-primary) {
     gap: 1rem;
 }
 
+/* Scientific Demo */
+.science-page {
+    background: #03050a;
+}
+
+.science-hero {
+    min-height: 78vh;
+    padding: 9rem 5% 4rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    align-items: center;
+    gap: 3rem;
+    background:
+        linear-gradient(135deg, rgba(0, 240, 255, 0.08), transparent 34%),
+        radial-gradient(circle at 82% 20%, rgba(255, 0, 255, 0.18), transparent 32%),
+        #03050a;
+}
+
+.science-hero h1 {
+    max-width: 900px;
+    font-size: 3rem;
+}
+
+.science-hero p {
+    color: var(--text-secondary);
+    font-size: 1.08rem;
+    max-width: 760px;
+}
+
+.science-kicker {
+    color: var(--accent-blue) !important;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0;
+    margin-bottom: 1rem;
+}
+
+.science-paper-card {
+    padding: 2rem;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    background: rgba(10, 15, 30, 0.68);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+}
+
+.science-paper-card h2 {
+    text-align: left;
+    font-size: 1.55rem;
+    margin-bottom: 1rem;
+}
+
+.science-paper-card p {
+    margin-bottom: 1.5rem;
+}
+
+.science-paper-card a {
+    color: var(--accent-blue);
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.paper-label {
+    display: inline-block;
+    color: var(--text-primary);
+    font-size: 0.82rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid rgba(0, 240, 255, 0.18);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.science-lab {
+    padding: 5rem 5%;
+    background: #050814;
+}
+
+.science-panel {
+    max-width: 1240px;
+    margin: 0 auto;
+}
+
+.demo-layout {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: stretch;
+}
+
+.control-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.5rem;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    background: rgba(10, 15, 30, 0.62);
+}
+
+.control-panel label {
+    display: grid;
+    gap: 0.6rem;
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 0.92rem;
+}
+
+.control-panel span {
+    color: var(--accent-blue);
+    font-size: 0.88rem;
+}
+
+.control-panel input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent-blue);
+}
+
+.canvas-panel {
+    padding: 1rem;
+    border: 1px solid rgba(0, 240, 255, 0.18);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.22);
+}
+
+#phase-canvas {
+    display: block;
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.legend-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+}
+
+.legend-row span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.legend-swatch {
+    width: 14px;
+    height: 4px;
+    border-radius: 999px;
+    display: inline-block;
+}
+
+.legend-swatch.gravity {
+    background: var(--accent-blue);
+}
+
+.legend-swatch.plasma {
+    background: var(--accent-purple);
+}
+
+.science-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem;
+    padding: 5rem 5%;
+    background: var(--bg-dark);
+}
+
+.science-summary div {
+    padding: 2rem;
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.science-summary i {
+    color: var(--accent-blue);
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.science-summary p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
 /* Service Snapshot */
 .snapshot-section {
     display: grid;
@@ -1021,6 +1209,30 @@ nav a:hover:not(.btn-primary) {
         grid-template-columns: 1fr;
         margin-top: 0;
         padding: 2rem 5%;
+    }
+
+    .science-hero {
+        grid-template-columns: 1fr;
+        min-height: auto;
+        padding: 8rem 5% 3rem;
+    }
+
+    .science-hero h1 {
+        font-size: 2.1rem;
+    }
+
+    .science-paper-card {
+        padding: 1.5rem;
+    }
+
+    .demo-layout,
+    .science-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .science-lab,
+    .science-summary {
+        padding: 3.5rem 5%;
     }
 
     .snapshot-item {

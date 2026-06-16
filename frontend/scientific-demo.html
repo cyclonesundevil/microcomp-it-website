@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scientific Signal Processing Demo | MicroComp IT</title>
+    <meta name="description" content="Interactive scientific processing demo inspired by weak gravitational phase structure in coherent radio transients.">
+    <meta name="theme-color" content="#03050a">
+    <link rel="stylesheet" href="styles.css?v=1.3">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="science-page">
+    <header class="navbar">
+        <div class="logo">
+            <i class="fa-solid fa-server"></i> MicroComp IT
+        </div>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="https://rxiverse.org/abs/2606.0030?ref=19728762" target="_blank" rel="noopener">View Paper</a>
+            <a href="index.html#contact" class="btn-primary">Contact</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="science-hero">
+            <div class="science-hero-content">
+                <p class="science-kicker">Scientific Processing Demo</p>
+                <h1>Weak Gravitational Phase Structure in Coherent Radio Transients</h1>
+                <p>
+                    An interactive signal-processing sketch inspired by Jose C. Ramirez's rxiVerse paper on
+                    phase-dependent wave-optics signatures in fast radio bursts, pulsars, and VLBI observations.
+                </p>
+            </div>
+            <div class="science-paper-card">
+                <span class="paper-label">rxiVerse:2606.0030</span>
+                <h2>Core Distinction</h2>
+                <p>Gravitational time delay is achromatic, while the measured phase shift grows linearly with observing frequency.</p>
+                <a href="https://rxiverse.org/abs/2606.0030?ref=19728762" target="_blank" rel="noopener">
+                    Read the paper <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                </a>
+            </div>
+        </section>
+
+        <section class="science-lab">
+            <div class="science-panel">
+                <div class="section-heading">
+                    <h2>Phase-Screen Processing Model</h2>
+                    <p>
+                        Adjust the toy model to compare a weak gravitational phase screen against a dispersive plasma signature.
+                    </p>
+                </div>
+
+                <div class="demo-layout">
+                    <div class="control-panel">
+                        <label>
+                            Gravitational delay amplitude
+                            <span id="delay-value">30 ps</span>
+                            <input id="delay-slider" type="range" min="5" max="120" value="30">
+                        </label>
+                        <label>
+                            Observing frequency
+                            <span id="frequency-value">1.4 GHz</span>
+                            <input id="frequency-slider" type="range" min="600" max="3000" value="1400">
+                        </label>
+                        <label>
+                            Bandwidth
+                            <span id="bandwidth-value">400 MHz</span>
+                            <input id="bandwidth-slider" type="range" min="100" max="900" value="400">
+                        </label>
+                        <label>
+                            Plasma dispersion strength
+                            <span id="plasma-value">35%</span>
+                            <input id="plasma-slider" type="range" min="0" max="100" value="35">
+                        </label>
+                        <label>
+                            Output zoom
+                            <span id="zoom-value">1.0x</span>
+                            <input id="zoom-slider" type="range" min="50" max="220" value="100">
+                        </label>
+                    </div>
+
+                    <div class="canvas-panel">
+                        <canvas id="phase-canvas" width="920" height="520" aria-label="Simulated dynamic spectrum"></canvas>
+                        <div class="legend-row">
+                            <span><i class="legend-swatch gravity"></i> gravitational phase residual</span>
+                            <span><i class="legend-swatch plasma"></i> plasma dispersion trend</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="science-summary">
+            <div>
+                <i class="fa-solid fa-wave-square"></i>
+                <h3>Coherent Signals</h3>
+                <p>FRBs and pulsars preserve phase information that can expose subtle line-of-sight structure.</p>
+            </div>
+            <div>
+                <i class="fa-solid fa-filter"></i>
+                <h3>Discriminator</h3>
+                <p>The demo separates a frequency-linear gravitational phase term from a plasma-like dispersive curve.</p>
+            </div>
+            <div>
+                <i class="fa-solid fa-chart-line"></i>
+                <h3>Detection Strategy</h3>
+                <p>Stacking residual structure across dynamic spectra can turn weak signatures into measurable statistics.</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-brand">
+            <i class="fa-solid fa-server"></i>
+            <span>MicroComp IT Solutions</span>
+        </div>
+        <div class="footer-details">
+            <span>Scientific processing demo</span>
+            <span class="build-stamp">Site updated: June 16, 2026 16:45:49 MST</span>
+            <a href="index.html">Home</a>
+        </div>
+    </footer>
+
+    <script src="scientific-demo.js?v=1.1"></script>
+</body>
+
+</html>
