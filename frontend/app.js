@@ -42,17 +42,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputField = document.getElementById('chat-input-field');
     const sendBtn = document.getElementById('chat-send-btn');
     const personaSelector = document.getElementById('persona-selector');
+    const chatbotTitleText = document.getElementById('chatbot-title-text');
 
     const personaIntroductions = {
         it: {
+            title: "TechBot Assistant",
             message: "Hello! I'm a virtual IT engineer with MicroComp IT. Are you currently experiencing an IT issue, or are you looking to upgrade your business infrastructure?",
             placeholder: "Type your computing issue here..."
         },
         career: {
+            title: "Career Profile Assistant",
             message: "Hello. I can answer employer-focused questions about Jose C. Ramirez's technology background, engineering experience, and professional fit.",
             placeholder: "Ask about Jose's technology background..."
         },
         podiatry: {
+            title: "Podiatry Demo Assistant",
             message: "Hello! This demo shows how an AI assistant can help a podiatry practice answer common questions and collect appointment details.",
             placeholder: "Ask a podiatry demo question..."
         }
@@ -64,6 +68,9 @@ document.addEventListener('DOMContentLoaded', () => {
         msgContainer.innerHTML = '';
         addMessageToDOM(intro.message, 'bot');
         inputField.placeholder = intro.placeholder;
+        if (chatbotTitleText) {
+            chatbotTitleText.textContent = intro.title;
+        }
     }
 
     // Manage conversation history for Gemini logic

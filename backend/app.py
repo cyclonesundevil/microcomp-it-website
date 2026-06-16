@@ -30,6 +30,16 @@ frontend_dir = os.path.join(base_dir, '..', 'frontend')
 
 app = Quart(__name__, static_folder=frontend_dir, static_url_path="")
 
+
+@app.after_request
+async def add_cache_headers(response):
+    if request.path == "/" or request.path.endswith((".html", ".css", ".js")):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
+
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
