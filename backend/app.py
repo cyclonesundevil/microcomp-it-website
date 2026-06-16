@@ -43,6 +43,37 @@ async def add_cache_headers(response):
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
+def get_analytics_db_path():
+    """Resolve analytics DB path, favoring persistent storage in production."""
+    configured_path = os.getenv("ANALYTICS_DB_PATH")
+    if configured_path:
+        db_path = configured_path
+    elif os.path.isdir("/data"):
+        db_path = "/data/analytics.db"
+    else:
+        db_path = os.path.join(base_dir, "analytics.db")
+
+    db_dir = os.path.dirname(os.path.abspath(db_path))
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+    return db_path
+
+
+def ensure_analytics_schema(conn):
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS visitors
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  session_id TEXT,
+                  path TEXT,
+                  time_spent_seconds INTEGER,
+                  ip_address TEXT,
+                  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+    try:
+        c.execute("ALTER TABLE visitors ADD COLUMN ip_address TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+
 def is_valid_email(email: str) -> bool:
     return bool(email and len(email) <= 254 and EMAIL_RE.match(email))
 
@@ -281,21 +312,10 @@ async def track_visitor():
             if ip_address:
                 ip_address = ip_address.split(',')[0].strip()
             
-            db_path = os.path.join(base_dir, 'analytics.db')
+            db_path = get_analytics_db_path()
             conn = sqlite3.connect(db_path)
             c = conn.cursor()
-            c.execute('''CREATE TABLE IF NOT EXISTS visitors
-                         (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                          session_id TEXT,
-                          path TEXT,
-                          time_spent_seconds INTEGER,
-                          ip_address TEXT,
-                          timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
-                          
-            try:
-                c.execute("ALTER TABLE visitors ADD COLUMN ip_address TEXT")
-            except sqlite3.OperationalError:
-                pass
+            ensure_analytics_schema(conn)
                           
             c.execute("INSERT INTO visitors (session_id, path, time_spent_seconds, ip_address) VALUES (?, ?, ?, ?)",
                       (req_data.get('sessionId'), req_data.get('path'), req_data.get('timeSpentSeconds'), ip_address))
@@ -312,7 +332,7 @@ async def download_analytics():
     if secret != os.getenv("ADMIN_SECRET", "microcomp-admin"):
         return "Unauthorized", 401
         
-    db_path = os.path.join(base_dir, 'analytics.db')
+    db_path = get_analytics_db_path()
     if not os.path.exists(db_path):
         return "No data found", 404
         
@@ -322,6 +342,7 @@ async def download_analytics():
     from quart import Response
     
     conn = sqlite3.connect(db_path)
+    ensure_analytics_schema(conn)
     c = conn.cursor()
     c.execute("SELECT * FROM visitors ORDER BY timestamp DESC")
     rows = c.fetchall()
@@ -347,11 +368,12 @@ async def admin_dashboard():
     if secret != os.getenv("ADMIN_SECRET", "microcomp-admin"):
         return "Unauthorized. Add ?secret=YOUR_SECRET to the URL.", 401
         
-    db_path = os.path.join(base_dir, 'analytics.db')
+    db_path = get_analytics_db_path()
     import sqlite3
     import json
     
     conn = sqlite3.connect(db_path)
+    ensure_analytics_schema(conn)
     c = conn.cursor()
     c.execute("SELECT timestamp, path, time_spent_seconds, ip_address FROM visitors ORDER BY timestamp ASC")
     rows = c.fetchall()
