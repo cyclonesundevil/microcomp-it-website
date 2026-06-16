@@ -56,9 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
             placeholder: "Ask about Jose's technology background..."
         },
         podiatry: {
-            title: "Podiatry Demo Assistant",
-            message: "Hello! This demo shows how an AI assistant can help a podiatry practice answer common questions and collect appointment details.",
-            placeholder: "Ask a podiatry demo question..."
+            title: "Medical Office Demo",
+            message: "Hello! This demo shows how an AI assistant can help a medical office answer general patient questions, collect appointment details, and route urgent concerns appropriately.",
+            placeholder: "Ask a medical office demo question..."
         }
     };
 
