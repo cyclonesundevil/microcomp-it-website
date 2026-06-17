@@ -1,4 +1,31 @@
 document.addEventListener('DOMContentLoaded', () => {
+    function updateBuildStamp() {
+        const stampElements = document.querySelectorAll('[data-build-stamp]');
+        if (!stampElements.length) return;
+
+        const modifiedDate = new Date(document.lastModified);
+        if (Number.isNaN(modifiedDate.getTime())) return;
+
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/Phoenix',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+
+        const parts = Object.fromEntries(formatter.formatToParts(modifiedDate).map((part) => [part.type, part.value]));
+        const formatted = `${parts.month} ${parts.day}, ${parts.year} ${parts.hour}:${parts.minute}:${parts.second} MST`;
+        stampElements.forEach((element) => {
+            element.textContent = `Site updated: ${formatted}`;
+        });
+    }
+
+    updateBuildStamp();
+
     const canvas = document.getElementById('phase-canvas');
     const ctx = canvas.getContext('2d');
 
