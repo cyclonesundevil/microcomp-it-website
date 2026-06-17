@@ -313,6 +313,14 @@ document.addEventListener('DOMContentLoaded', () => {
             resetChatForPersona(personaSelector.value);
         });
         resetChatForPersona(personaSelector.value);
+
+        const requestedPersona = sessionStorage.getItem('microcompRequestedPersona');
+        if (requestedPersona && personaIntroductions[requestedPersona]) {
+            sessionStorage.removeItem('microcompRequestedPersona');
+            personaSelector.value = requestedPersona;
+            resetChatForPersona(requestedPersona);
+            window.openChatbot();
+        }
     }
 
     // --- Contact Form Logic ---
