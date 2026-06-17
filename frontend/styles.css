@@ -305,6 +305,10 @@ nav a:hover:not(.btn-primary) {
     background: #050814;
 }
 
+.science-mobile-notice {
+    display: none;
+}
+
 .science-panel {
     max-width: 1240px;
     margin: 0 auto;
@@ -1223,6 +1227,42 @@ nav a:hover:not(.btn-primary) {
 
     .science-paper-card {
         padding: 1.5rem;
+    }
+
+    .science-mobile-notice {
+        display: block;
+        margin: 0 5% 3rem;
+        padding: 1.5rem;
+        text-align: center;
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        background: rgba(10, 15, 30, 0.72);
+    }
+
+    .science-mobile-notice i {
+        color: var(--accent-blue);
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+    }
+
+    .science-mobile-notice h2 {
+        font-size: 1.45rem;
+        margin-bottom: 1rem;
+    }
+
+    .science-mobile-notice p {
+        color: var(--text-secondary);
+        margin-bottom: 1.5rem;
+    }
+
+    .science-mobile-notice .btn-primary {
+        display: inline-flex;
+        justify-content: center;
+    }
+
+    .science-lab,
+    .science-summary {
+        display: none;
     }
 
     .demo-layout,
