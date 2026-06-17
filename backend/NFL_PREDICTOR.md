@@ -82,9 +82,31 @@ It also supports all-team matchup projections:
 Supported query values:
 
 - `seasons`: `5` or `10`
-- `model`: `baseline` or `enhanced`
+- `model`: `baseline`, `enhanced`, `rothstein`, or `rothstein_plus`
 - `spread_line`: home-team spread line, where negative means the home team is favored
 - `total_line`: market over/under line
+
+## Rothstein Algorithm
+
+The Rothstein profile uses same-season rolling team scoring averages:
+
+- `pf1`: team 1 rolling points for
+- `pa1`: team 1 rolling points against
+- `pf2`: team 2 rolling points for
+- `pa2`: team 2 rolling points against
+
+For a matchup:
+
+```text
+T1outcome = (pf1 + pa2) / 2
+T2outcome = (pf2 + pa1) / 2
+RothSpread = home outcome - away outcome
+RothTotal = home outcome + away outcome
+```
+
+Spread picks are made when the model spread differs from the published spread by more than 2 points. Total picks are made when `RothTotal` differs from the published total by more than 4 points.
+
+Before a team has played in the current season, the model seeds its rolling scoring averages with the current league scoring average.
 
 ## Current Baseline Results
 
@@ -100,6 +122,27 @@ The baseline model shows useful separation on spreads when it strongly disagrees
 The enhanced model currently exists for research comparison. Its weather, venue, recent-form, and divisional features slightly reduced margin error, but did not improve spread-pick performance, so the public demo defaults to `baseline`.
 
 The current baseline keeps the model simple, lowers rest-day influence, updates team margin ratings faster, and only issues spread picks when the model differs from the line by at least 6 points.
+
+First Rothstein results with the specified 2-point spread and 4-point total thresholds:
+
+- 5-year spread picks: 48.6%
+- 10-year spread picks: 48.6%
+- 5-year totals picks: 46.0%
+- 10-year totals picks: 46.4%
+
+## Rothstein+
+
+Rothstein+ keeps the same Rothstein scoring formula but adds two filters that improved the historical spread signal:
+
+- only consider matchups where both teams have played 8 or 9 games entering the game
+- skip games where either team's current starting quarterback does not match its recent primary quarterback
+
+Rothstein+ is treated as a spread-only model. The totals signal did not improve enough to include.
+
+First Rothstein+ results:
+
+- 5-year spread picks: 64.4%
+- 10-year spread picks: 61.6%
 
 ## Next Steps
 

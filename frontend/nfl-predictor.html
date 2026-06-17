@@ -45,11 +45,13 @@
                 <h2>Current Model</h2>
                 <p>
                     The public demo defaults to the baseline profile because it outperformed the experimental enhanced
-                    model on conservative spread picks.
+                    and Rothstein models on conservative spread picks.
                 </p>
                 <div class="model-toggle" aria-label="Model profile">
                     <button class="active" data-model="baseline">Baseline</button>
                     <button data-model="enhanced">Enhanced</button>
+                    <button data-model="rothstein">Rothstein</button>
+                    <button data-model="rothstein_plus">Rothstein+</button>
                 </div>
             </div>
         </section>
@@ -110,6 +112,37 @@
                         </div>
                     </div>
                     <small id="matchup-note">The model trains through the latest completed season in the local dataset.</small>
+                </div>
+            </div>
+
+            <div class="history-panel">
+                <div class="history-heading">
+                    <h3>Historical Casino Lines</h3>
+                    <p id="history-note">Select a matchup to view prior regular-season meetings.</p>
+                </div>
+                <div class="nfl-table-wrap">
+                    <table class="nfl-table history-table">
+                        <thead>
+                            <tr>
+                                <th>Season</th>
+                                <th>Week</th>
+                                <th>Matchup</th>
+                                <th>Home Spread</th>
+                                <th>Selected Home Line</th>
+                                <th>Published O/U</th>
+                                <th>O/U Result</th>
+                                <th>Favorite Result</th>
+                                <th>Algo Spread</th>
+                                <th>Algo O/U</th>
+                                <th>Final</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body">
+                            <tr>
+                                <td colspan="11">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </section>
@@ -179,8 +212,8 @@
             </div>
             <div>
                 <i class="fa-solid fa-chart-simple"></i>
-                <h3>Research Mode</h3>
-                <p>The enhanced profile tests extra features such as recent form, venue, weather, and divisional games.</p>
+                <h3>Research Modes</h3>
+                <p>Enhanced tests venue and recent-form features. Rothstein+ adds a midseason and QB-continuity filter.</p>
             </div>
         </section>
     </main>
@@ -197,7 +230,7 @@
         </div>
     </footer>
 
-    <script src="nfl-predictor.js?v=1.1"></script>
+    <script src="nfl-predictor.js?v=1.6"></script>
 </body>
 
 </html>

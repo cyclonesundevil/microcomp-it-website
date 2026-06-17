@@ -26,6 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const spreadPick = document.getElementById('spread-pick');
     const totalPick = document.getElementById('total-pick');
     const matchupNote = document.getElementById('matchup-note');
+    const historyNote = document.getElementById('history-note');
+    const historyTableBody = document.getElementById('history-table-body');
 
     function pct(value) {
         if (value === null || value === undefined) return 'n/a';
@@ -35,6 +37,46 @@ document.addEventListener('DOMContentLoaded', () => {
     function num(value) {
         if (value === null || value === undefined) return '--';
         return Number(value).toFixed(2);
+    }
+
+    function line(value) {
+        if (value === null || value === undefined) return '--';
+        const number = Number(value);
+        if (number > 0) return `+${number.toFixed(1)}`;
+        return number.toFixed(1);
+    }
+
+    function totalResult(game) {
+        const margin = Number(game.actual_total) - Number(game.total_line);
+        if (Math.abs(margin) < 0.001) return { label: 'Push', className: 'result-push' };
+        if (margin > 0) return { label: 'Over', className: 'result-over' };
+        return { label: 'Under', className: 'result-under' };
+    }
+
+    function favoriteResult(game) {
+        const spread = Number(game.home_spread);
+        const homeMargin = Number(game.home_margin);
+        if (Math.abs(spread) < 0.001) return { label: 'Pick em', className: 'result-push' };
+
+        const coverMargin = homeMargin - spread;
+        if (Math.abs(coverMargin) < 0.001) return { label: 'Push', className: 'result-push' };
+
+        const homeFavorite = spread < 0;
+        const favoriteCovered = homeFavorite ? coverMargin > 0 : coverMargin < 0;
+        return favoriteCovered
+            ? { label: 'Covered', className: 'result-covered' }
+            : { label: 'Not covered', className: 'result-not-covered' };
+    }
+
+    function algorithmResult(result, pick, type) {
+        if (!pick) return { label: 'No pick', className: 'result-push' };
+        const pickLabel = type === 'spread'
+            ? (pick === 'home' ? 'Home' : 'Away')
+            : (pick === 'over' ? 'Over' : 'Under');
+        if (result === 'correct') return { label: `${pickLabel} correct`, className: 'result-covered' };
+        if (result === 'wrong') return { label: `${pickLabel} wrong`, className: 'result-not-covered' };
+        if (result === 'push') return { label: `${pickLabel} push`, className: 'result-push' };
+        return { label: 'No pick', className: 'result-push' };
     }
 
     function setLoading() {
@@ -86,6 +128,36 @@ document.addEventListener('DOMContentLoaded', () => {
         matchupNote.textContent = `Trained through ${prediction.latest_training_season}. Spread edge ${prediction.spread_edge.toFixed(1)}, total edge ${prediction.total_edge.toFixed(1)}.`;
     }
 
+    function renderHistory(data) {
+        historyNote.textContent = `${data.games.length} historical regular-season meeting${data.games.length === 1 ? '' : 's'} for ${data.away_team} and ${data.home_team}. Spreads, over/unders, and ${data.model} results are shown by year.`;
+        if (!data.games.length) {
+            historyTableBody.innerHTML = '<tr><td colspan="11">No historical regular-season meetings found.</td></tr>';
+            return;
+        }
+
+        historyTableBody.innerHTML = data.games.map((game) => {
+            const ou = totalResult(game);
+            const favorite = favoriteResult(game);
+            const algoSpread = algorithmResult(game.spread_result, game.spread_pick, 'spread');
+            const algoTotal = algorithmResult(game.total_result, game.total_pick, 'total');
+            return `
+                <tr>
+                    <td>${game.season}</td>
+                    <td>${game.week}</td>
+                    <td>${game.away_team} at ${game.home_team}</td>
+                    <td>${game.home_team} ${line(game.home_spread)}</td>
+                    <td>${data.home_team} ${line(game.selected_home_spread)}</td>
+                    <td>${line(game.total_line)}</td>
+                    <td><span class="result-pill ${ou.className}">${ou.label}</span></td>
+                    <td><span class="result-pill ${favorite.className}">${favorite.label}</span></td>
+                    <td><span class="result-pill ${algoSpread.className}">${algoSpread.label}</span></td>
+                    <td><span class="result-pill ${algoTotal.className}">${algoTotal.label}</span></td>
+                    <td>${game.away_team} ${Number(game.away_score).toFixed(0)}, ${game.home_team} ${Number(game.home_score).toFixed(0)}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
     async function loadTeams() {
         const response = await fetch(`${apiBase}/api/nfl/teams`);
         const data = await response.json();
@@ -119,6 +191,22 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPrediction(data.prediction);
     }
 
+    async function loadHistory() {
+        historyNote.textContent = 'Loading historical casino lines...';
+        historyTableBody.innerHTML = '<tr><td colspan="11">Loading...</td></tr>';
+        const params = new URLSearchParams({
+            away_team: awayTeam.value,
+            home_team: homeTeam.value,
+            model: state.model
+        });
+        const response = await fetch(`${apiBase}/api/nfl/history?${params.toString()}`);
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Unable to load matchup history');
+        }
+        renderHistory(data);
+    }
+
     async function loadBacktest() {
         setLoading();
         try {
@@ -143,12 +231,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (awayTeam.value && homeTeam.value) {
             try {
                 await loadPrediction();
+                await loadHistory();
             } catch (error) {
                 matchupLabel.textContent = `Unable to predict matchup: ${error.message}`;
                 matchupMargin.textContent = '--';
                 matchupTotal.textContent = 'Projected total: --';
                 spreadPick.textContent = '--';
                 totalPick.textContent = '--';
+                historyNote.textContent = `Unable to load historical lines: ${error.message}`;
+                historyTableBody.innerHTML = '<tr><td colspan="11">No history available.</td></tr>';
             }
         }
     }
@@ -175,8 +266,10 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         try {
             await loadPrediction();
+            await loadHistory();
         } catch (error) {
             matchupLabel.textContent = `Unable to predict matchup: ${error.message}`;
+            historyNote.textContent = `Unable to load historical lines: ${error.message}`;
         }
     });
 

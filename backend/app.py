@@ -22,7 +22,7 @@ import io
 import traceback
 import re
 from quart import Response
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, list_teams, load_games, predict_matchup, run_backtest, summarize_by_season
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, default_spread_threshold, default_total_threshold, list_teams, load_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
 
 load_dotenv()
 
@@ -390,10 +390,10 @@ async def nfl_backtest():
 
         model = request.args.get("model", "baseline")
         if model not in MODEL_PROFILES:
-            return jsonify({"success": False, "error": "model must be baseline or enhanced"}), 400
+            return jsonify({"success": False, "error": f"model must be one of: {', '.join(MODEL_PROFILES)}"}), 400
 
-        spread_threshold = float(request.args.get("spread_threshold", "6.0"))
-        total_threshold = float(request.args.get("total_threshold", "1.5"))
+        spread_threshold = float(request.args.get("spread_threshold", str(default_spread_threshold(model))))
+        total_threshold = float(request.args.get("total_threshold", str(default_total_threshold(model))))
 
         games = await asyncio.to_thread(load_games)
         summary, records = await asyncio.to_thread(
@@ -459,7 +459,7 @@ async def nfl_predict():
 
         model = request.args.get("model", "baseline")
         if model not in MODEL_PROFILES:
-            return jsonify({"success": False, "error": "model must be baseline or enhanced"}), 400
+            return jsonify({"success": False, "error": f"model must be one of: {', '.join(MODEL_PROFILES)}"}), 400
 
         spread_line = float(request.args.get("spread_line", "0"))
         total_line = float(request.args.get("total_line", "44.5"))
@@ -489,6 +489,39 @@ async def nfl_predict():
         return jsonify({"success": True, "prediction": prediction})
     except ValueError as e:
         return jsonify({"success": False, "error": str(e)}), 400
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/nfl/history")
+async def nfl_history():
+    try:
+        away_team = (request.args.get("away_team") or "").strip().upper()
+        home_team = (request.args.get("home_team") or "").strip().upper()
+        if not away_team or not home_team:
+            return jsonify({"success": False, "error": "away_team and home_team are required"}), 400
+        if away_team == home_team:
+            return jsonify({"success": False, "error": "away_team and home_team must be different"}), 400
+        model = request.args.get("model", "baseline")
+        if model not in MODEL_PROFILES:
+            return jsonify({"success": False, "error": f"model must be one of: {', '.join(MODEL_PROFILES)}"}), 400
+
+        games = await asyncio.to_thread(load_games)
+        teams = set(list_teams(games))
+        if away_team not in teams:
+            return jsonify({"success": False, "error": f"Unknown away_team: {away_team}"}), 400
+        if home_team not in teams:
+            return jsonify({"success": False, "error": f"Unknown home_team: {home_team}"}), 400
+
+        rows = matchup_history(games, away_team, home_team, model_profile=model)
+        return jsonify({
+            "success": True,
+            "away_team": away_team,
+            "home_team": home_team,
+            "model": model,
+            "games": rows,
+        })
     except Exception as e:
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
