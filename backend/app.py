@@ -22,6 +22,7 @@ import io
 import traceback
 import re
 from quart import Response
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, list_teams, load_games, predict_matchup, run_backtest, summarize_by_season
 
 load_dotenv()
 
@@ -37,6 +38,8 @@ async def add_cache_headers(response):
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
+    if request.path.startswith("/api/nfl/"):
+        response.headers["Access-Control-Allow-Origin"] = "*"
     return response
 
 
@@ -361,6 +364,134 @@ async def download_analytics():
         mimetype="text/csv",
         headers={"Content-Disposition": "attachment;filename=analytics.csv"}
     )
+
+def _json_summary(summary):
+    return {
+        "games": summary["games"],
+        "spread_bets": summary["spread_bets"],
+        "spread_wins": summary["spread_wins"],
+        "spread_pushes": summary["spread_pushes"],
+        "spread_win_rate": summary["spread_win_rate"],
+        "total_bets": summary["total_bets"],
+        "total_wins": summary["total_wins"],
+        "total_pushes": summary["total_pushes"],
+        "total_win_rate": summary["total_win_rate"],
+        "margin_mae": summary["margin_mae"],
+        "total_mae": summary["total_mae"],
+    }
+
+
+@app.route("/api/nfl/backtest")
+async def nfl_backtest():
+    try:
+        seasons = int(request.args.get("seasons", "10"))
+        if seasons not in {5, 10}:
+            return jsonify({"success": False, "error": "seasons must be 5 or 10"}), 400
+
+        model = request.args.get("model", "baseline")
+        if model not in MODEL_PROFILES:
+            return jsonify({"success": False, "error": "model must be baseline or enhanced"}), 400
+
+        spread_threshold = float(request.args.get("spread_threshold", "5.0"))
+        total_threshold = float(request.args.get("total_threshold", "1.5"))
+
+        games = await asyncio.to_thread(load_games)
+        summary, records = await asyncio.to_thread(
+            run_backtest,
+            games,
+            seasons,
+            spread_threshold,
+            total_threshold,
+            model,
+        )
+
+        season_rows = []
+        for season, season_summary in summarize_by_season(records):
+            season_rows.append({
+                "season": season,
+                **_json_summary(season_summary),
+            })
+
+        return jsonify({
+            "success": True,
+            "source": GAMES_URL,
+            "model": model,
+            "seasons": seasons,
+            "available_seasons": {
+                "start": min(g["season"] for g in games),
+                "end": max(g["season"] for g in games),
+            },
+            "thresholds": {
+                "spread": spread_threshold,
+                "total": total_threshold,
+            },
+            "summary": _json_summary(summary),
+            "by_season": season_rows,
+        })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/nfl/teams")
+async def nfl_teams():
+    try:
+        games = await asyncio.to_thread(load_games)
+        return jsonify({
+            "success": True,
+            "teams": list_teams(games, current_only=True),
+            "available_seasons": {
+                "start": min(g["season"] for g in games),
+                "end": max(g["season"] for g in games),
+            },
+        })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/nfl/predict")
+async def nfl_predict():
+    try:
+        away_team = (request.args.get("away_team") or "").strip().upper()
+        home_team = (request.args.get("home_team") or "").strip().upper()
+        if not away_team or not home_team:
+            return jsonify({"success": False, "error": "away_team and home_team are required"}), 400
+
+        model = request.args.get("model", "baseline")
+        if model not in MODEL_PROFILES:
+            return jsonify({"success": False, "error": "model must be baseline or enhanced"}), 400
+
+        spread_line = float(request.args.get("spread_line", "0"))
+        total_line = float(request.args.get("total_line", "44.5"))
+        home_rest = float(request.args.get("home_rest", "7"))
+        away_rest = float(request.args.get("away_rest", "7"))
+        div_game = str(request.args.get("div_game", "false")).lower() in {"1", "true", "yes"}
+        roof = (request.args.get("roof") or "").strip().lower()
+        temp = request.args.get("temp")
+        wind = request.args.get("wind")
+
+        games = await asyncio.to_thread(load_games)
+        prediction = await asyncio.to_thread(
+            predict_matchup,
+            games,
+            away_team,
+            home_team,
+            spread_line,
+            total_line,
+            model,
+            home_rest,
+            away_rest,
+            div_game,
+            roof,
+            float(temp) if temp else None,
+            float(wind) if wind else None,
+        )
+        return jsonify({"success": True, "prediction": prediction})
+    except ValueError as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/admin")
 async def admin_dashboard():

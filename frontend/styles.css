@@ -419,6 +419,303 @@ nav a:hover:not(.btn-primary) {
     font-size: 0.95rem;
 }
 
+/* NFL Predictor Demo */
+.nfl-page {
+    background: #03050a;
+}
+
+.nfl-hero {
+    min-height: 72vh;
+    padding: 9rem 5% 4rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    align-items: center;
+    gap: 3rem;
+    background:
+        linear-gradient(135deg, rgba(0, 240, 255, 0.08), transparent 34%),
+        radial-gradient(circle at 78% 18%, rgba(255, 0, 255, 0.15), transparent 30%),
+        #03050a;
+}
+
+.nfl-hero h1 {
+    max-width: 860px;
+    font-size: 3rem;
+}
+
+.nfl-hero p {
+    color: var(--text-secondary);
+    font-size: 1.08rem;
+    max-width: 760px;
+}
+
+.nfl-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.nfl-actions .active,
+.model-toggle .active {
+    outline: 2px solid rgba(0, 240, 255, 0.45);
+    outline-offset: 3px;
+}
+
+.nfl-status-card {
+    padding: 2rem;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    background: rgba(10, 15, 30, 0.68);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+}
+
+.nfl-status-card h2 {
+    text-align: left;
+    font-size: 1.55rem;
+    margin-bottom: 1rem;
+}
+
+.model-toggle {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.model-toggle button {
+    min-height: 42px;
+    border: 1px solid rgba(0, 240, 255, 0.24);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.model-toggle button:hover {
+    border-color: var(--accent-blue);
+}
+
+.nfl-results-section {
+    padding: 5rem 5%;
+    background: #050814;
+}
+
+.nfl-predict-section {
+    padding: 5rem 5%;
+    background: #03050a;
+}
+
+.matchup-tool {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+    gap: 1.5rem;
+    align-items: stretch;
+}
+
+.matchup-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(10, 15, 30, 0.62);
+}
+
+.matchup-form label {
+    display: grid;
+    gap: 0.45rem;
+    color: var(--text-primary);
+    font-weight: 800;
+    font-size: 0.9rem;
+}
+
+.matchup-form select,
+.matchup-form input {
+    min-height: 44px;
+    width: 100%;
+    border: 1px solid rgba(0, 240, 255, 0.24);
+    border-radius: 8px;
+    background: rgba(3, 5, 10, 0.76);
+    color: var(--text-primary);
+    padding: 0.7rem 0.8rem;
+    font: inherit;
+}
+
+.matchup-form .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+}
+
+.matchup-form .checkbox-row input {
+    min-height: auto;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent-blue);
+}
+
+.matchup-form button {
+    min-height: 44px;
+    align-self: end;
+}
+
+.matchup-result {
+    padding: 1.75rem;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    background: rgba(10, 15, 30, 0.72);
+}
+
+.matchup-result > span {
+    color: var(--text-secondary);
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 0.82rem;
+}
+
+.matchup-result > strong {
+    display: block;
+    margin: 0.5rem 0;
+    color: var(--accent-blue);
+    font-size: 2.2rem;
+    line-height: 1.1;
+}
+
+.matchup-result p,
+.matchup-result small {
+    color: var(--text-secondary);
+}
+
+.matchup-picks {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.matchup-picks div {
+    padding: 1rem;
+    border: 1px solid rgba(0, 240, 255, 0.14);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.matchup-picks span {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    margin-bottom: 0.35rem;
+}
+
+.matchup-picks b {
+    color: var(--text-primary);
+}
+
+.nfl-message {
+    max-width: 980px;
+    margin: 0 auto 1.5rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.nfl-metrics {
+    max-width: 1100px;
+    margin: 0 auto 2rem;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.nfl-metric {
+    min-height: 150px;
+    padding: 1.35rem;
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.nfl-metric span {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.nfl-metric strong {
+    display: block;
+    margin: 0.45rem 0;
+    color: var(--accent-blue);
+    font-size: 2rem;
+    line-height: 1.1;
+}
+
+.nfl-metric small {
+    color: var(--text-secondary);
+}
+
+.nfl-table-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    overflow-x: auto;
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(10, 15, 30, 0.62);
+}
+
+.nfl-table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: collapse;
+}
+
+.nfl-table th,
+.nfl-table td {
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    text-align: left;
+}
+
+.nfl-table th {
+    color: var(--accent-blue);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+
+.nfl-table td {
+    color: var(--text-primary);
+}
+
+.nfl-method-section {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem;
+    padding: 5rem 5%;
+    background: var(--bg-dark);
+}
+
+.nfl-method-section div {
+    padding: 2rem;
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.nfl-method-section i {
+    color: var(--accent-blue);
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.nfl-method-section p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
 /* Service Snapshot */
 .snapshot-section {
     display: grid;
@@ -1273,6 +1570,53 @@ nav a:hover:not(.btn-primary) {
     .science-lab,
     .science-summary {
         padding: 3.5rem 5%;
+    }
+
+    .nfl-hero {
+        grid-template-columns: 1fr;
+        min-height: auto;
+        padding: 8rem 5% 3rem;
+    }
+
+    .nfl-hero h1 {
+        font-size: 2.1rem;
+    }
+
+    .nfl-actions {
+        flex-direction: column;
+    }
+
+    .nfl-actions .btn-primary,
+    .nfl-actions .btn-secondary {
+        width: 100%;
+    }
+
+    .nfl-status-card {
+        padding: 1.5rem;
+    }
+
+    .nfl-predict-section,
+    .nfl-results-section,
+    .nfl-method-section {
+        padding: 3.5rem 5%;
+    }
+
+    .matchup-tool,
+    .matchup-form {
+        grid-template-columns: 1fr;
+    }
+
+    .matchup-picks {
+        grid-template-columns: 1fr;
+    }
+
+    .nfl-metrics,
+    .nfl-method-section {
+        grid-template-columns: 1fr;
+    }
+
+    .nfl-metric {
+        min-height: 128px;
     }
 
     .snapshot-item {

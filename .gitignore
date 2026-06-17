@@ -18,3 +18,4 @@ backend/verify_calendar.py
 .DS_Store
 backend/analytics.db
 backend/ws_debug.log
+backend/data/

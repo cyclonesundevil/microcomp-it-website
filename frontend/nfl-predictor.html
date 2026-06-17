@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFL Predictor Demo | MicroComp IT</title>
+    <meta name="description" content="NFL spread and over/under predictor demo using historical nflverse data and chronological backtesting.">
+    <meta name="theme-color" content="#03050a">
+    <link rel="stylesheet" href="styles.css?v=1.4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="nfl-page">
+    <header class="navbar">
+        <div class="logo">
+            <i class="fa-solid fa-server"></i> MicroComp IT
+        </div>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="scientific-demo.html" target="_blank" rel="noopener">Science Demo</a>
+            <a href="index.html#contact" class="btn-primary">Contact</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="nfl-hero">
+            <div class="nfl-hero-content">
+                <p class="science-kicker">Sports Analytics Demo</p>
+                <h1>NFL Spread and Over/Under Predictor</h1>
+                <p>
+                    A chronological model that trains through historical NFL seasons, then backtests against closing
+                    spreads and totals without looking ahead.
+                </p>
+                <div class="nfl-actions">
+                    <button class="btn-primary" data-window="5">Run 5-Year Backtest</button>
+                    <button class="btn-secondary" data-window="10">Run 10-Year Backtest</button>
+                </div>
+            </div>
+            <div class="nfl-status-card">
+                <span class="paper-label">nflverse historical data</span>
+                <h2>Current Model</h2>
+                <p>
+                    The public demo defaults to the baseline profile because it outperformed the experimental enhanced
+                    model on conservative spread picks.
+                </p>
+                <div class="model-toggle" aria-label="Model profile">
+                    <button class="active" data-model="baseline">Baseline</button>
+                    <button data-model="enhanced">Enhanced</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="nfl-predict-section">
+            <div class="section-heading">
+                <h2>Matchup Predictor</h2>
+                <p>Select any two teams, enter a market spread and total, and compare the model projection.</p>
+            </div>
+
+            <div class="matchup-tool">
+                <form id="matchup-form" class="matchup-form">
+                    <label>
+                        Away team
+                        <select id="away-team" required></select>
+                    </label>
+                    <label>
+                        Home team
+                        <select id="home-team" required></select>
+                    </label>
+                    <label>
+                        Home spread line
+                        <input id="spread-line" type="number" step="0.5" value="0">
+                    </label>
+                    <label>
+                        Game total line
+                        <input id="total-line" type="number" step="0.5" value="44.5">
+                    </label>
+                    <label>
+                        Roof
+                        <select id="roof-type">
+                            <option value="">Default</option>
+                            <option value="outdoors">Outdoors</option>
+                            <option value="dome">Dome</option>
+                            <option value="closed">Closed roof</option>
+                            <option value="open">Open roof</option>
+                        </select>
+                    </label>
+                    <label class="checkbox-row">
+                        <input id="division-game" type="checkbox">
+                        Division game
+                    </label>
+                    <button type="submit" class="btn-primary">Predict Matchup</button>
+                </form>
+
+                <div class="matchup-result" aria-live="polite">
+                    <span id="matchup-label">Select a matchup</span>
+                    <strong id="matchup-margin">--</strong>
+                    <p id="matchup-total">Projected total: --</p>
+                    <div class="matchup-picks">
+                        <div>
+                            <span>Spread lean</span>
+                            <b id="spread-pick">--</b>
+                        </div>
+                        <div>
+                            <span>Total lean</span>
+                            <b id="total-pick">--</b>
+                        </div>
+                    </div>
+                    <small id="matchup-note">The model trains through the latest completed season in the local dataset.</small>
+                </div>
+            </div>
+        </section>
+
+        <section class="nfl-results-section">
+            <div class="section-heading">
+                <h2>Backtest Results</h2>
+                <p>Results are graded only when the model has a clear enough edge over the published line.</p>
+            </div>
+
+            <div id="nfl-message" class="nfl-message">Loading 10-year baseline backtest...</div>
+
+            <div class="nfl-metrics" aria-live="polite">
+                <div class="nfl-metric">
+                    <span>Spread Win Rate</span>
+                    <strong id="spread-rate">--</strong>
+                    <small id="spread-detail">--</small>
+                </div>
+                <div class="nfl-metric">
+                    <span>Total Win Rate</span>
+                    <strong id="total-rate">--</strong>
+                    <small id="total-detail">--</small>
+                </div>
+                <div class="nfl-metric">
+                    <span>Margin Error</span>
+                    <strong id="margin-mae">--</strong>
+                    <small>Mean absolute error</small>
+                </div>
+                <div class="nfl-metric">
+                    <span>Total Error</span>
+                    <strong id="total-mae">--</strong>
+                    <small>Mean absolute error</small>
+                </div>
+            </div>
+
+            <div class="nfl-table-wrap">
+                <table class="nfl-table">
+                    <thead>
+                        <tr>
+                            <th>Season</th>
+                            <th>Games</th>
+                            <th>Spread Picks</th>
+                            <th>Spread Win</th>
+                            <th>Total Picks</th>
+                            <th>Total Win</th>
+                        </tr>
+                    </thead>
+                    <tbody id="season-table-body">
+                        <tr>
+                            <td colspan="6">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="nfl-method-section">
+            <div>
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <h3>Chronological Backtest</h3>
+                <p>Games update the model in order, so future results never influence earlier predictions.</p>
+            </div>
+            <div>
+                <i class="fa-solid fa-scale-balanced"></i>
+                <h3>Market Comparison</h3>
+                <p>Spread and total picks are made only when the model differs from the betting line by a set threshold.</p>
+            </div>
+            <div>
+                <i class="fa-solid fa-chart-simple"></i>
+                <h3>Research Mode</h3>
+                <p>The enhanced profile tests extra features such as recent form, venue, weather, and divisional games.</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-brand">
+            <i class="fa-solid fa-server"></i>
+            <span>MicroComp IT Solutions</span>
+        </div>
+        <div class="footer-details">
+            <span>NFL analytics demo</span>
+            <span class="build-stamp" data-build-stamp>Site updated: June 16, 2026 16:45:49 MST</span>
+            <a href="index.html">Home</a>
+        </div>
+    </footer>
+
+    <script src="nfl-predictor.js?v=1.1"></script>
+</body>
+
+</html>
