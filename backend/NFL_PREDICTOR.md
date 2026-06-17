@@ -86,18 +86,20 @@ Supported query values:
 - `spread_line`: home-team spread line, where negative means the home team is favored
 - `total_line`: market over/under line
 
-## First Baseline Results
+## Current Baseline Results
 
-With the conservative default spread threshold of 5 points:
+With the conservative default spread threshold of 6 points:
 
-- 5-year spread picks: 54.0%
-- 10-year spread picks: 55.0%
+- 5-year spread picks: 56.8%
+- 10-year spread picks: 58.3%
 - 5-year totals picks: 50.9%
 - 10-year totals picks: 49.6%
 
-The first model shows useful separation on spreads when it strongly disagrees with the market. Totals need more work before they should be treated as a meaningful signal.
+The baseline model shows useful separation on spreads when it strongly disagrees with the market. Totals need more work before they should be treated as a meaningful signal.
 
 The enhanced model currently exists for research comparison. Its weather, venue, recent-form, and divisional features slightly reduced margin error, but did not improve spread-pick performance, so the public demo defaults to `baseline`.
+
+The current baseline keeps the model simple, lowers rest-day influence, updates team margin ratings faster, and only issues spread picks when the model differs from the line by at least 6 points.
 
 ## Next Steps
 

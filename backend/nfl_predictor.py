@@ -232,6 +232,8 @@ class OnlineNFLModel:
 def create_model(profile: str) -> OnlineNFLModel:
     if profile == "baseline":
         return OnlineNFLModel(
+            rest_weight=0.04,
+            margin_lr=0.065,
             split_weight=0.0,
             recent_margin_weight=0.0,
             recent_total_weight=0.0,
@@ -379,7 +381,7 @@ def summarize_by_season(records: List[dict]) -> List[Tuple[int, dict]]:
 def run_backtest(
     games: List[dict],
     seasons_to_test: int,
-    spread_threshold: float = 1.5,
+    spread_threshold: float = 6.0,
     total_threshold: float = 1.5,
     model_profile: str = "baseline",
 ) -> Tuple[dict, List[dict]]:
@@ -533,7 +535,7 @@ def main() -> None:
     parser.add_argument("--refresh", action="store_true", help="Re-download nflverse games.csv")
     parser.add_argument("--seasons", type=int, nargs="+", default=[5, 10], help="Backtest windows to run")
     parser.add_argument("--model", choices=MODEL_PROFILES, default="baseline", help="Model profile to backtest")
-    parser.add_argument("--spread-threshold", type=float, default=5.0)
+    parser.add_argument("--spread-threshold", type=float, default=6.0)
     parser.add_argument("--total-threshold", type=float, default=1.5)
     parser.add_argument("--by-season", action="store_true", help="Print per-season results for each window")
     parser.add_argument("--sweep", action="store_true", help="Print a threshold sweep for 5- and 10-year windows")

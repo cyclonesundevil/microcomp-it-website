@@ -392,7 +392,7 @@ async def nfl_backtest():
         if model not in MODEL_PROFILES:
             return jsonify({"success": False, "error": "model must be baseline or enhanced"}), 400
 
-        spread_threshold = float(request.args.get("spread_threshold", "5.0"))
+        spread_threshold = float(request.args.get("spread_threshold", "6.0"))
         total_threshold = float(request.args.get("total_threshold", "1.5"))
 
         games = await asyncio.to_thread(load_games)
