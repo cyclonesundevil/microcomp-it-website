@@ -1225,6 +1225,49 @@ nav a:hover:not(.btn-primary) {
     margin-bottom: 0 !important;
 }
 
+.career-agent-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    border: 1px solid rgba(0, 240, 255, 0.18);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+    text-align: left;
+}
+
+.career-agent-panel span {
+    display: block;
+    color: var(--accent-blue);
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 0.45rem;
+}
+
+.career-agent-panel h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.45rem;
+}
+
+.career-agent-panel p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 0;
+}
+
+.career-agent-panel .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
 .stats-container {
     display: flex;
     justify-content: space-around;
@@ -1900,6 +1943,16 @@ nav a:hover:not(.btn-primary) {
     .founder-bio {
         flex-direction: column;
         text-align: center;
+    }
+
+    .career-agent-panel {
+        align-items: stretch;
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .career-agent-panel .btn-primary {
+        width: 100%;
     }
 
     .site-footer {

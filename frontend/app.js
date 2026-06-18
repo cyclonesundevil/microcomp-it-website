@@ -103,6 +103,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Manage conversation history for Gemini logic
     let chatHistory = [];
 
+    window.openCareerAgent = function () {
+        if (personaSelector) {
+            personaSelector.value = 'career';
+            resetChatForPersona('career');
+        }
+        window.openChatbot();
+    };
+
     function addMessageToDOM(text, sender) {
         const msgDiv = document.createElement('div');
         msgDiv.classList.add('message', sender);
