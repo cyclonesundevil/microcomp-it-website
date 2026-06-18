@@ -21,6 +21,7 @@ import csv
 import io
 import traceback
 import re
+import uuid
 from quart import Response
 from nfl_predictor import GAMES_URL, MODEL_PROFILES, default_spread_threshold, default_total_threshold, list_teams, load_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
 
@@ -40,6 +41,10 @@ async def add_cache_headers(response):
         response.headers["Expires"] = "0"
     if request.path.startswith("/api/nfl/"):
         response.headers["Access-Control-Allow-Origin"] = "*"
+    if should_track_pageview(response):
+        visitor_id = request.cookies.get("mc_visitor_id") or str(uuid.uuid4())
+        record_pageview(visitor_id)
+        response.set_cookie("mc_visitor_id", visitor_id, max_age=60 * 60 * 24 * 365, httponly=True, samesite="Lax")
     return response
 
 
@@ -70,11 +75,46 @@ def ensure_analytics_schema(conn):
                   path TEXT,
                   time_spent_seconds INTEGER,
                   ip_address TEXT,
+                  event_type TEXT DEFAULT 'time_spent',
                   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
     try:
         c.execute("ALTER TABLE visitors ADD COLUMN ip_address TEXT")
     except sqlite3.OperationalError:
         pass
+    try:
+        c.execute("ALTER TABLE visitors ADD COLUMN event_type TEXT DEFAULT 'time_spent'")
+    except sqlite3.OperationalError:
+        pass
+
+
+def should_track_pageview(response) -> bool:
+    if request.method != "GET":
+        return False
+    if response.status_code >= 400:
+        return False
+    if request.path == "/admin" or request.path.startswith("/api/"):
+        return False
+    return request.path == "/" or request.path.endswith(".html")
+
+
+def record_pageview(visitor_id: str) -> None:
+    try:
+        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+        if ip_address:
+            ip_address = ip_address.split(',')[0].strip()
+
+        db_path = get_analytics_db_path()
+        conn = sqlite3.connect(db_path)
+        ensure_analytics_schema(conn)
+        c = conn.cursor()
+        c.execute(
+            "INSERT INTO visitors (session_id, path, time_spent_seconds, ip_address, event_type) VALUES (?, ?, ?, ?, ?)",
+            (visitor_id, request.path, 0, ip_address, "pageview")
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Pageview tracking error: {e}")
 
 
 def is_valid_email(email: str) -> bool:
@@ -320,8 +360,8 @@ async def track_visitor():
             c = conn.cursor()
             ensure_analytics_schema(conn)
                           
-            c.execute("INSERT INTO visitors (session_id, path, time_spent_seconds, ip_address) VALUES (?, ?, ?, ?)",
-                      (req_data.get('sessionId'), req_data.get('path'), req_data.get('timeSpentSeconds'), ip_address))
+            c.execute("INSERT INTO visitors (session_id, path, time_spent_seconds, ip_address, event_type) VALUES (?, ?, ?, ?, ?)",
+                      (req_data.get('sessionId'), req_data.get('path'), req_data.get('timeSpentSeconds'), ip_address, "time_spent"))
             conn.commit()
             conn.close()
     except Exception as e:
@@ -539,15 +579,15 @@ async def admin_dashboard():
     conn = sqlite3.connect(db_path)
     ensure_analytics_schema(conn)
     c = conn.cursor()
-    c.execute("SELECT timestamp, path, time_spent_seconds, ip_address FROM visitors ORDER BY timestamp ASC")
+    c.execute("SELECT timestamp, path, time_spent_seconds, ip_address FROM visitors WHERE event_type = 'pageview' ORDER BY timestamp ASC")
     rows = c.fetchall()
     
     # Get unique IP count
-    c.execute("SELECT COUNT(DISTINCT ip_address) FROM visitors")
+    c.execute("SELECT COUNT(DISTINCT ip_address) FROM visitors WHERE event_type = 'pageview'")
     unique_ips_count = c.fetchone()[0]
     
     # Get recent visitors
-    c.execute("SELECT ip_address, path, timestamp FROM visitors ORDER BY timestamp DESC LIMIT 15")
+    c.execute("SELECT ip_address, path, timestamp FROM visitors WHERE event_type = 'pageview' ORDER BY timestamp DESC LIMIT 15")
     recent_visitors = c.fetchall()
     conn.close()
     
