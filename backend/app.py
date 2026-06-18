@@ -405,6 +405,46 @@ async def download_analytics():
         headers={"Content-Disposition": "attachment;filename=analytics.csv"}
     )
 
+
+@app.route("/api/analytics/status")
+async def analytics_status():
+    secret = request.args.get("secret")
+    if secret != os.getenv("ADMIN_SECRET", "microcomp-admin"):
+        return "Unauthorized", 401
+
+    db_path = get_analytics_db_path()
+    db_exists = os.path.exists(db_path)
+    pageviews = 0
+    time_spent_events = 0
+    total_events = 0
+
+    if db_exists:
+        conn = sqlite3.connect(db_path)
+        ensure_analytics_schema(conn)
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM visitors")
+        total_events = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM visitors WHERE event_type = 'pageview'")
+        pageviews = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM visitors WHERE event_type = 'time_spent'")
+        time_spent_events = c.fetchone()[0]
+        conn.close()
+
+    data_dir = os.path.dirname(os.path.abspath(db_path))
+    return jsonify({
+        "status": "ok",
+        "analytics_db_path": db_path,
+        "analytics_db_exists": db_exists,
+        "analytics_db_directory": data_dir,
+        "analytics_db_directory_exists": os.path.isdir(data_dir),
+        "data_mount_exists": os.path.isdir("/data"),
+        "configured_analytics_db_path": os.getenv("ANALYTICS_DB_PATH"),
+        "environment": os.environ.get("RENDER_SERVICE_ID", "local"),
+        "pageviews": pageviews,
+        "time_spent_events": time_spent_events,
+        "total_events": total_events,
+    })
+
 def _json_summary(summary):
     return {
         "games": summary["games"],
