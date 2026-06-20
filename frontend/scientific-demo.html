@@ -7,7 +7,7 @@
     <title>Scientific Signal Processing Demo | MicroComp IT</title>
     <meta name="description" content="Interactive scientific processing demo inspired by weak gravitational phase structure in coherent radio transients.">
     <meta name="theme-color" content="#03050a">
-    <link rel="stylesheet" href="styles.css?v=1.4">
+    <link rel="stylesheet" href="styles.css?v=1.8">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -108,6 +108,23 @@
             </div>
         </section>
 
+        <section class="science-3d-section" aria-label="3D phase-screen toy model">
+            <div class="science-3d-copy">
+                <p class="science-kicker">3D Toy Model</p>
+                <h2>Wavefront Through a Weak Phase Screen</h2>
+                <p>
+                    A simplified spatial view of a coherent signal crossing a weak phase structure before reaching an
+                    observer plane. The same controls above influence the motion, curvature, and camera distance.
+                </p>
+            </div>
+            <div id="phase-3d-scene" class="phase-3d-scene" aria-label="Animated 3D phase-screen toy model"></div>
+            <div class="science-3d-legend" aria-label="3D model legend">
+                <span><i class="legend-swatch gravity"></i> phase screen</span>
+                <span><i class="legend-swatch plasma"></i> dispersive path</span>
+                <span><i class="legend-dot"></i> observer plane</span>
+            </div>
+        </section>
+
         <section class="science-summary">
             <div>
                 <i class="fa-solid fa-wave-square"></i>
@@ -140,6 +157,7 @@
     </footer>
 
     <script src="scientific-demo.js?v=1.2"></script>
+    <script type="module" src="scientific-demo-3d.js?v=1.0"></script>
 </body>
 
 </html>
