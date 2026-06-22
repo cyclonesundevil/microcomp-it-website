@@ -25,7 +25,7 @@
     <meta property="twitter:title" content="MicroComp IT Solutions">
     <meta property="twitter:description" content="Enterprise IT Solutions for Small Businesses. We keep your business running smoothly so you can focus on growth.">
     <meta property="twitter:image" content="https://microcompit.com/og-image.png">
-    <link rel="stylesheet" href="styles.css?v=1.6">
+    <link rel="stylesheet" href="styles.css?v=1.9">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -326,6 +326,11 @@
             <h2>Get in Touch</h2>
             <p>Send us a message directly and our engineers will reach out immediately.</p>
             <form id="contact-form" class="contact-form">
+                <div class="form-group bot-trap" aria-hidden="true">
+                    <label for="contact-website">Website</label>
+                    <input type="text" id="contact-website" name="website" tabindex="-1" autocomplete="off">
+                </div>
+                <input type="hidden" id="contact-started-at" name="started_at">
                 <div class="form-group">
                     <label for="contact-name">Name</label>
                     <input type="text" id="contact-name" name="name" required maxlength="100" autocomplete="name" placeholder="John Doe">
@@ -398,7 +403,7 @@
         </div>
     </footer>
 
-    <script src="app.js?v=1.6"></script>
+    <script src="app.js?v=1.7"></script>
 </body>
 
 </html>

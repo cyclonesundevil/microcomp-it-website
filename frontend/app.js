@@ -36,8 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const timeSpentMs = Date.now() - sessionStartTime;
             const data = JSON.stringify({
                 sessionId: sessionId,
-                path: window.location.pathname,
-                timeSpentSeconds: Math.floor(timeSpentMs / 1000)
+                path: `${window.location.pathname}${window.location.search}`,
+                timeSpentSeconds: Math.floor(timeSpentMs / 1000),
+                referrer: document.referrer,
+                userAgent: navigator.userAgent
             });
             navigator.sendBeacon('/api/track', data);
         }
@@ -334,6 +336,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Contact Form Logic ---
     const contactForm = document.getElementById('contact-form');
     if (contactForm) {
+        const startedAtField = document.getElementById('contact-started-at');
+        const refreshContactStartedAt = () => {
+            if (startedAtField) {
+                startedAtField.value = String(Date.now());
+            }
+        };
+
+        refreshContactStartedAt();
+
         contactForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -351,7 +362,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = {
                 name: document.getElementById('contact-name').value.trim(),
                 email: document.getElementById('contact-email').value.trim(),
-                message: document.getElementById('contact-message').value.trim()
+                message: document.getElementById('contact-message').value.trim(),
+                website: document.getElementById('contact-website')?.value.trim() || '',
+                started_at: startedAtField?.value || ''
             };
             
             try {
@@ -368,6 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     responseMsg.className = 'contact-response-msg success';
                     responseMsg.innerText = "Message sent successfully! We will be in touch shortly.";
                     contactForm.reset();
+                    refreshContactStartedAt();
                 } else {
                     responseMsg.className = 'contact-response-msg error';
                     responseMsg.innerText = result.error || "Error sending message. Please try again.";

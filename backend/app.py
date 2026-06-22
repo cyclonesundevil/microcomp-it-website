@@ -22,6 +22,8 @@ import io
 import traceback
 import re
 import uuid
+import html as html_lib
+from urllib.parse import parse_qs, urlparse
 from quart import Response
 from nfl_predictor import GAMES_URL, MODEL_PROFILES, default_spread_threshold, default_total_threshold, list_teams, load_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
 
@@ -49,6 +51,210 @@ async def add_cache_headers(response):
 
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+CONTACT_RATE_LIMIT = {}
+CONTACT_RATE_LIMIT_WINDOW_SECONDS = 60 * 60
+CONTACT_RATE_LIMIT_MAX = 6
+CONTACT_MIN_SUBMIT_SECONDS = 2
+CONTACT_MAX_SUBMIT_SECONDS = 60 * 60 * 24
+CONTACT_BLOCKED_USER_AGENTS = ("curl", "python-requests", "wget", "httpclient", "libwww-perl")
+ANALYTICS_GEO_CACHE = {}
+ANALYTICS_BOT_RE = re.compile(
+    r"bot|crawl|spider|slurp|bingpreview|facebookexternalhit|preview|validator|monitor|uptime",
+    re.IGNORECASE
+)
+
+
+def client_ip():
+    ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
+    if ip_address:
+        return ip_address.split(",")[0].strip()
+    return "unknown"
+
+
+def contact_rate_limited(ip_address):
+    now = datetime.datetime.now(datetime.UTC).timestamp()
+    recent = [
+        timestamp
+        for timestamp in CONTACT_RATE_LIMIT.get(ip_address, [])
+        if now - timestamp < CONTACT_RATE_LIMIT_WINDOW_SECONDS
+    ]
+    if len(recent) >= CONTACT_RATE_LIMIT_MAX:
+        CONTACT_RATE_LIMIT[ip_address] = recent
+        return True
+    recent.append(now)
+    CONTACT_RATE_LIMIT[ip_address] = recent
+    return False
+
+
+def silent_contact_success():
+    return jsonify({"success": True})
+
+
+def is_suspicious_contact_submission(data, message):
+    honeypot = str(data.get("website", "")).strip()
+    if honeypot:
+        return True
+
+    user_agent = request.headers.get("User-Agent", "").lower()
+    if not user_agent or any(blocked in user_agent for blocked in CONTACT_BLOCKED_USER_AGENTS):
+        return True
+
+    started_at = str(data.get("started_at", "")).strip()
+    try:
+        started_ms = int(float(started_at))
+        elapsed_seconds = (datetime.datetime.now(datetime.UTC).timestamp() * 1000 - started_ms) / 1000
+    except (TypeError, ValueError):
+        return True
+
+    if elapsed_seconds < CONTACT_MIN_SUBMIT_SECONDS or elapsed_seconds > CONTACT_MAX_SUBMIT_SECONDS:
+        return True
+
+    lowered_message = message.lower()
+    if len(message) < 8:
+        return True
+
+    if len(re.findall(r"https?://|www\.", lowered_message)) > 2:
+        return True
+
+    if len(set(message)) < 5:
+        return True
+
+    return False
+
+
+def add_column_if_missing(cursor, table_name, column_name, column_type):
+    try:
+        cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
+    except sqlite3.OperationalError:
+        pass
+
+
+def is_private_or_local_ip(ip_address):
+    if not ip_address:
+        return True
+    return (
+        ip_address in ("unknown", "<local>", "127.0.0.1", "::1")
+        or ip_address.startswith("10.")
+        or ip_address.startswith("192.168.")
+        or ip_address.startswith("172.16.")
+        or ip_address.startswith("172.17.")
+        or ip_address.startswith("172.18.")
+        or ip_address.startswith("172.19.")
+        or ip_address.startswith("172.2")
+        or ip_address.startswith("172.30.")
+        or ip_address.startswith("172.31.")
+    )
+
+
+def parse_user_agent(user_agent):
+    ua = user_agent or ""
+    lower_ua = ua.lower()
+    is_bot = bool(ANALYTICS_BOT_RE.search(ua))
+
+    if is_bot:
+        device_type = "bot"
+    elif "ipad" in lower_ua or "tablet" in lower_ua:
+        device_type = "tablet"
+    elif "mobile" in lower_ua or "iphone" in lower_ua or ("android" in lower_ua and "mobile" in lower_ua):
+        device_type = "mobile"
+    else:
+        device_type = "desktop"
+
+    if "edg/" in lower_ua:
+        browser = "Edge"
+    elif "opr/" in lower_ua or "opera" in lower_ua:
+        browser = "Opera"
+    elif "chrome/" in lower_ua and "chromium" not in lower_ua:
+        browser = "Chrome"
+    elif "firefox/" in lower_ua:
+        browser = "Firefox"
+    elif "safari/" in lower_ua and "chrome/" not in lower_ua:
+        browser = "Safari"
+    elif is_bot:
+        browser = "Bot"
+    else:
+        browser = "Unknown"
+
+    if "windows" in lower_ua:
+        os_name = "Windows"
+    elif "iphone" in lower_ua or "ipad" in lower_ua:
+        os_name = "iOS"
+    elif "android" in lower_ua:
+        os_name = "Android"
+    elif "mac os x" in lower_ua or "macintosh" in lower_ua:
+        os_name = "macOS"
+    elif "linux" in lower_ua:
+        os_name = "Linux"
+    elif is_bot:
+        os_name = "Bot"
+    else:
+        os_name = "Unknown"
+
+    return {
+        "user_agent": ua[:500],
+        "browser": browser,
+        "os": os_name,
+        "device_type": device_type,
+        "is_bot": 1 if is_bot else 0
+    }
+
+
+def utm_values_from_path(path):
+    parsed = urlparse(path or "")
+    query = parse_qs(parsed.query)
+    return {
+        "utm_source": (query.get("utm_source", [""])[0] or "")[:120],
+        "utm_medium": (query.get("utm_medium", [""])[0] or "")[:120],
+        "utm_campaign": (query.get("utm_campaign", [""])[0] or "")[:160]
+    }
+
+
+def lookup_ip_geo(ip_address):
+    if is_private_or_local_ip(ip_address):
+        return {}
+    if ip_address in ANALYTICS_GEO_CACHE:
+        return ANALYTICS_GEO_CACHE[ip_address]
+
+    lookup_url = os.getenv("ANALYTICS_GEO_LOOKUP_URL")
+    ipinfo_token = os.getenv("IPINFO_TOKEN")
+    if lookup_url:
+        url = lookup_url.format(ip=ip_address)
+    elif ipinfo_token:
+        url = f"https://ipinfo.io/{ip_address}/json?token={ipinfo_token}"
+    else:
+        return {}
+
+    try:
+        response = requests.get(url, timeout=2)
+        response.raise_for_status()
+        payload = response.json()
+        geo = {
+            "country": str(payload.get("country", ""))[:80],
+            "region": str(payload.get("region", payload.get("regionName", "")))[:120],
+            "city": str(payload.get("city", ""))[:120],
+            "timezone": str(payload.get("timezone", payload.get("time_zone", "")))[:120]
+        }
+        ANALYTICS_GEO_CACHE[ip_address] = geo
+        return geo
+    except Exception as e:
+        print(f"Analytics geo lookup failed for {ip_address}: {e}")
+        ANALYTICS_GEO_CACHE[ip_address] = {}
+        return {}
+
+
+def analytics_metadata(ip_address, client_payload=None):
+    client_payload = client_payload or {}
+    path = client_payload.get("path") or request.full_path.rstrip("?") or request.path
+    referrer = client_payload.get("referrer") or request.headers.get("Referer", "")
+    user_agent = client_payload.get("userAgent") or request.headers.get("User-Agent", "")
+
+    metadata = {
+        "referrer": str(referrer)[:500],
+        **parse_user_agent(user_agent),
+        **utm_values_from_path(path),
+        **lookup_ip_geo(ip_address)
+    }
+    return metadata
 
 
 def get_analytics_db_path():
@@ -85,6 +291,22 @@ def ensure_analytics_schema(conn):
         c.execute("ALTER TABLE visitors ADD COLUMN event_type TEXT DEFAULT 'time_spent'")
     except sqlite3.OperationalError:
         pass
+    for column_name, column_type in (
+        ("user_agent", "TEXT"),
+        ("referrer", "TEXT"),
+        ("browser", "TEXT"),
+        ("os", "TEXT"),
+        ("device_type", "TEXT"),
+        ("is_bot", "INTEGER DEFAULT 0"),
+        ("country", "TEXT"),
+        ("region", "TEXT"),
+        ("city", "TEXT"),
+        ("timezone", "TEXT"),
+        ("utm_source", "TEXT"),
+        ("utm_medium", "TEXT"),
+        ("utm_campaign", "TEXT"),
+    ):
+        add_column_if_missing(c, "visitors", column_name, column_type)
 
 
 def should_track_pageview(response) -> bool:
@@ -99,17 +321,28 @@ def should_track_pageview(response) -> bool:
 
 def record_pageview(visitor_id: str) -> None:
     try:
-        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
-        if ip_address:
-            ip_address = ip_address.split(',')[0].strip()
+        ip_address = client_ip()
+        metadata = analytics_metadata(ip_address)
+        path = request.full_path.rstrip("?") or request.path
 
         db_path = get_analytics_db_path()
         conn = sqlite3.connect(db_path)
         ensure_analytics_schema(conn)
         c = conn.cursor()
         c.execute(
-            "INSERT INTO visitors (session_id, path, time_spent_seconds, ip_address, event_type) VALUES (?, ?, ?, ?, ?)",
-            (visitor_id, request.path, 0, ip_address, "pageview")
+            """INSERT INTO visitors (
+                session_id, path, time_spent_seconds, ip_address, event_type,
+                user_agent, referrer, browser, os, device_type, is_bot,
+                country, region, city, timezone, utm_source, utm_medium, utm_campaign
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                visitor_id, path, 0, ip_address, "pageview",
+                metadata.get("user_agent"), metadata.get("referrer"), metadata.get("browser"),
+                metadata.get("os"), metadata.get("device_type"), metadata.get("is_bot"),
+                metadata.get("country"), metadata.get("region"), metadata.get("city"),
+                metadata.get("timezone"), metadata.get("utm_source"), metadata.get("utm_medium"),
+                metadata.get("utm_campaign")
+            )
         )
         conn.commit()
         conn.close()
@@ -253,6 +486,17 @@ async def contact_form():
         email = str(data.get("email", "")).strip()
         message = str(data.get("message", "")).strip()
 
+        if is_suspicious_contact_submission(data, message):
+            print(f"Filtered suspicious contact submission from {client_ip()}.")
+            return silent_contact_success()
+
+        if contact_rate_limited(client_ip()):
+            print(f"Rate limited contact submission from {client_ip()}.")
+            return jsonify({
+                "success": False,
+                "error": "Too many messages were sent from this connection. Please try again later."
+            }), 429
+
         if not name or not email or not message:
             return jsonify({"success": False, "error": "All fields are required."}), 400
 
@@ -350,18 +594,29 @@ async def track_visitor():
         data = await request.get_data(as_text=True)
         if data:
             req_data = json.loads(data)
-            
-            ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
-            if ip_address:
-                ip_address = ip_address.split(',')[0].strip()
+            ip_address = client_ip()
+            metadata = analytics_metadata(ip_address, req_data)
             
             db_path = get_analytics_db_path()
             conn = sqlite3.connect(db_path)
             c = conn.cursor()
             ensure_analytics_schema(conn)
                           
-            c.execute("INSERT INTO visitors (session_id, path, time_spent_seconds, ip_address, event_type) VALUES (?, ?, ?, ?, ?)",
-                      (req_data.get('sessionId'), req_data.get('path'), req_data.get('timeSpentSeconds'), ip_address, "time_spent"))
+            c.execute(
+                """INSERT INTO visitors (
+                    session_id, path, time_spent_seconds, ip_address, event_type,
+                    user_agent, referrer, browser, os, device_type, is_bot,
+                    country, region, city, timezone, utm_source, utm_medium, utm_campaign
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    req_data.get('sessionId'), req_data.get('path'), req_data.get('timeSpentSeconds'), ip_address, "time_spent",
+                    metadata.get("user_agent"), metadata.get("referrer"), metadata.get("browser"),
+                    metadata.get("os"), metadata.get("device_type"), metadata.get("is_bot"),
+                    metadata.get("country"), metadata.get("region"), metadata.get("city"),
+                    metadata.get("timezone"), metadata.get("utm_source"), metadata.get("utm_medium"),
+                    metadata.get("utm_campaign")
+                )
+            )
             conn.commit()
             conn.close()
     except Exception as e:
@@ -625,9 +880,22 @@ async def admin_dashboard():
     # Get unique IP count
     c.execute("SELECT COUNT(DISTINCT ip_address) FROM visitors WHERE event_type = 'pageview'")
     unique_ips_count = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM visitors WHERE event_type = 'pageview' AND is_bot = 1")
+    bot_hits_count = c.fetchone()[0]
+
+    c.execute("SELECT COUNT(*) FROM visitors WHERE event_type = 'pageview' AND device_type = 'mobile'")
+    mobile_hits_count = c.fetchone()[0]
     
     # Get recent visitors
-    c.execute("SELECT ip_address, path, timestamp FROM visitors WHERE event_type = 'pageview' ORDER BY timestamp DESC LIMIT 15")
+    c.execute("""
+        SELECT ip_address, path, timestamp, browser, os, device_type, is_bot,
+               country, region, city, referrer, utm_source, utm_campaign
+        FROM visitors
+        WHERE event_type = 'pageview'
+        ORDER BY timestamp DESC
+        LIMIT 25
+    """)
     recent_visitors = c.fetchall()
     conn.close()
     
@@ -643,8 +911,23 @@ async def admin_dashboard():
     
     # Format recent visitors table
     visitors_html = ""
-    for ip, path, ts in recent_visitors:
-        visitors_html += f"<tr><td>{ts}</td><td>{ip}</td><td>{path}</td></tr>"
+    for ip, path, ts, browser, os_name, device_type, is_bot, country, region, city, referrer, utm_source, utm_campaign in recent_visitors:
+        location = ", ".join(part for part in (city, region, country) if part) or "Unknown"
+        source = utm_source or referrer or "Direct"
+        campaign = utm_campaign or ""
+        visitors_html += (
+            "<tr>"
+            f"<td>{html_lib.escape(str(ts or ''))}</td>"
+            f"<td>{html_lib.escape(str(ip or ''))}</td>"
+            f"<td>{html_lib.escape(str(path or ''))}</td>"
+            f"<td>{html_lib.escape(str(device_type or 'Unknown'))}</td>"
+            f"<td>{html_lib.escape(str(browser or 'Unknown'))} / {html_lib.escape(str(os_name or 'Unknown'))}</td>"
+            f"<td>{'Yes' if is_bot else 'No'}</td>"
+            f"<td>{html_lib.escape(location)}</td>"
+            f"<td>{html_lib.escape(str(source))}</td>"
+            f"<td>{html_lib.escape(str(campaign))}</td>"
+            "</tr>"
+        )
     
     html = f"""
     <!DOCTYPE html>
@@ -666,6 +949,7 @@ async def admin_dashboard():
             th, td {{ text-align: left; padding: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; }}
             th {{ color: #00f0ff; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }}
             tr:hover {{ background: rgba(255,255,255,0.02); }}
+            .table-wrap {{ overflow-x: auto; }}
         </style>
     </head>
     <body>
@@ -681,6 +965,14 @@ async def admin_dashboard():
                     <div class="stat-number">{unique_ips_count}</div>
                     <div class="stat-label">Unique Visitors</div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-number">{mobile_hits_count}</div>
+                    <div class="stat-label">Mobile Hits</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{bot_hits_count}</div>
+                    <div class="stat-label">Likely Bots</div>
+                </div>
             </div>
 
             <div class="card">
@@ -690,18 +982,26 @@ async def admin_dashboard():
 
             <div class="card">
                 <h2><i class="fa-solid fa-list"></i> Recent Activity</h2>
+                <div class="table-wrap">
                 <table>
                     <thead>
                         <tr>
                             <th>Time</th>
                             <th>IP Address</th>
                             <th>Page Path</th>
+                            <th>Device</th>
+                            <th>Browser / OS</th>
+                            <th>Bot</th>
+                            <th>Location</th>
+                            <th>Source</th>
+                            <th>Campaign</th>
                         </tr>
                     </thead>
                     <tbody>
                         {visitors_html}
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
         <script>
