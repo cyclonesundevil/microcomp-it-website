@@ -51,6 +51,33 @@ async def add_cache_headers(response):
 
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+BLOCKED_EMAIL_DOMAINS = {
+    "example.com",
+    "example.net",
+    "example.org",
+    "test.com",
+    "test.net",
+    "test.org",
+    "invalid.com",
+    "invalid.net",
+    "invalid.org",
+    "localhost",
+    "mailinator.com",
+    "guerrillamail.com",
+    "guerrillamail.net",
+    "10minutemail.com",
+    "tempmail.com",
+    "temp-mail.org",
+    "yopmail.com",
+    "throwawaymail.com",
+    "fakeinbox.com",
+}
+BLOCKED_EMAIL_DOMAIN_SUFFIXES = (
+    ".example",
+    ".invalid",
+    ".localhost",
+    ".test",
+)
 CONTACT_RATE_LIMIT = {}
 CONTACT_RATE_LIMIT_WINDOW_SECONDS = 60 * 60
 CONTACT_RATE_LIMIT_MAX = 6
@@ -351,7 +378,29 @@ def record_pageview(visitor_id: str) -> None:
 
 
 def is_valid_email(email: str) -> bool:
-    return bool(email and len(email) <= 254 and EMAIL_RE.match(email))
+    if not email or len(email) > 254 or not EMAIL_RE.match(email):
+        return False
+
+    local_part, domain = email.rsplit("@", 1)
+    domain = domain.lower().strip(".")
+    if not local_part or not domain:
+        return False
+
+    if domain in BLOCKED_EMAIL_DOMAINS:
+        return False
+
+    if any(domain.endswith(suffix) for suffix in BLOCKED_EMAIL_DOMAIN_SUFFIXES):
+        return False
+
+    domain_parts = domain.split(".")
+    if len(domain_parts) < 2 or any(not part for part in domain_parts):
+        return False
+
+    top_level_domain = domain_parts[-1]
+    if len(top_level_domain) < 2 or not top_level_domain.isalpha():
+        return False
+
+    return True
 
 @app.before_request
 async def log_request_info():
