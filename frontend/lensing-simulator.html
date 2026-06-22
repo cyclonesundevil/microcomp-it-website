@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gravitational Lensing Simulator | MicroComp IT</title>
+    <meta name="description" content="Interactive toy model for gravitational lensing, Einstein rings, magnification, time delay, and geometric versus wave optics.">
+    <meta name="theme-color" content="#03050a">
+    <link rel="stylesheet" href="styles.css?v=2.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="lensing-page">
+    <header class="navbar">
+        <div class="logo">
+            <i class="fa-solid fa-server"></i> MicroComp IT
+        </div>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="demo-lab.html">Demo Lab</a>
+            <a href="scientific-demo.html">Science Demo</a>
+            <a href="index.html#contact" class="btn-primary">Contact</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="lensing-hero">
+            <div>
+                <p class="science-kicker">Scientific Computing Demo</p>
+                <h1>Gravitational Lensing Simulator</h1>
+                <p>
+                    A visual toy model for exploring how mass, distance, alignment, and observing frequency influence
+                    light bending, Einstein rings, magnification, and relative time delay.
+                </p>
+            </div>
+            <div class="lensing-mode-panel">
+                <span class="paper-label">Interactive optics model</span>
+                <h2>Geometric Optics ↔ Wave Optics</h2>
+                <p>
+                    Switch between ray-path intuition and interference-style structure to see why coherent signals can
+                    carry more information than a brightness-only view.
+                </p>
+            </div>
+        </section>
+
+        <section class="lensing-workbench">
+            <div class="lensing-controls" aria-label="Lensing simulator controls">
+                <div class="lensing-toggle" role="group" aria-label="Optics mode">
+                    <button type="button" class="active" data-mode="geometric">Geometric Optics</button>
+                    <button type="button" data-mode="wave">Wave Optics</button>
+                </div>
+
+                <label>
+                    Lens mass
+                    <span id="lens-mass-value">45 solar masses</span>
+                    <input id="lens-mass" type="range" min="10" max="120" value="45">
+                </label>
+                <label>
+                    Source distance
+                    <span id="source-distance-value">6.0 kpc</span>
+                    <input id="source-distance" type="range" min="30" max="100" value="60">
+                </label>
+                <label>
+                    Observer distance
+                    <span id="observer-distance-value">4.0 kpc</span>
+                    <input id="observer-distance" type="range" min="20" max="90" value="40">
+                </label>
+                <label>
+                    Alignment
+                    <span id="alignment-value">0.32 arcsec</span>
+                    <input id="alignment" type="range" min="0" max="100" value="32">
+                </label>
+                <label>
+                    Observing frequency
+                    <span id="lens-frequency-value">1.4 GHz</span>
+                    <input id="lens-frequency" type="range" min="600" max="3000" value="1400">
+                </label>
+            </div>
+
+            <div class="lensing-stage">
+                <canvas id="lensing-canvas" width="1120" height="720" aria-label="Gravitational lensing toy model visualization"></canvas>
+                <div class="lensing-readout">
+                    <div>
+                        <span>Einstein radius</span>
+                        <strong id="einstein-readout">0.74 arcsec</strong>
+                    </div>
+                    <div>
+                        <span>Magnification</span>
+                        <strong id="magnification-readout">2.4x</strong>
+                    </div>
+                    <div>
+                        <span>Relative delay</span>
+                        <strong id="delay-readout">18.2 ms</strong>
+                    </div>
+                    <div>
+                        <span>Image split</span>
+                        <strong id="split-readout">1.7 arcsec</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="lensing-notes">
+            <div>
+                <i class="fa-solid fa-circle-nodes"></i>
+                <h3>Alignment Matters</h3>
+                <p>Near-perfect alignment produces ring-like symmetry. Offset sources split into brighter and dimmer apparent images.</p>
+            </div>
+            <div>
+                <i class="fa-solid fa-arrows-to-eye"></i>
+                <h3>Mass Changes Curvature</h3>
+                <p>Higher lens mass increases bending strength, magnification, apparent separation, and relative path delay.</p>
+            </div>
+            <div>
+                <i class="fa-solid fa-water"></i>
+                <h3>Wave View Adds Texture</h3>
+                <p>The wave optics mode emphasizes interference-style structure useful for thinking about coherent signals.</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-brand">
+            <i class="fa-solid fa-server"></i>
+            <span>MicroComp IT Solutions</span>
+        </div>
+        <div class="footer-details">
+            <span>Gravitational lensing simulator</span>
+            <span class="build-stamp" data-build-stamp>Site updated: June 16, 2026 16:45:49 MST</span>
+            <a href="demo-lab.html">Demo Lab</a>
+        </div>
+    </footer>
+
+    <script src="lensing-simulator.js?v=1.0"></script>
+</body>
+
+</html>

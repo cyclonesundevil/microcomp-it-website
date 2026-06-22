@@ -635,6 +635,175 @@ nav a:hover:not(.btn-primary) {
     font-size: 0.95rem;
 }
 
+/* Gravitational Lensing Simulator */
+.lensing-page {
+    background: #03050a;
+}
+
+.lensing-hero {
+    min-height: 72vh;
+    padding: 9rem 5% 4rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    align-items: center;
+    gap: 3rem;
+    background:
+        linear-gradient(135deg, rgba(0, 240, 255, 0.08), transparent 34%),
+        radial-gradient(circle at 78% 18%, rgba(255, 0, 255, 0.14), transparent 30%),
+        #03050a;
+}
+
+.lensing-hero h1 {
+    max-width: 900px;
+    font-size: 3rem;
+}
+
+.lensing-hero p {
+    color: var(--text-secondary);
+    font-size: 1.08rem;
+    max-width: 760px;
+}
+
+.lensing-mode-panel {
+    padding: 2rem;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    background: rgba(10, 15, 30, 0.68);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+}
+
+.lensing-mode-panel h2 {
+    text-align: left;
+    font-size: 1.55rem;
+    margin-bottom: 1rem;
+}
+
+.lensing-workbench {
+    display: grid;
+    grid-template-columns: 330px minmax(0, 1fr);
+    gap: 1.25rem;
+    padding: 4rem 5%;
+    background: #050814;
+}
+
+.lensing-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+    align-self: start;
+    padding: 1.4rem;
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(10, 15, 30, 0.66);
+}
+
+.lensing-controls label {
+    display: grid;
+    gap: 0.55rem;
+    color: var(--text-primary);
+    font-weight: 800;
+    font-size: 0.92rem;
+}
+
+.lensing-controls label span {
+    color: var(--accent-blue);
+    font-size: 0.86rem;
+}
+
+.lensing-controls input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent-blue);
+}
+
+.lensing-toggle {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+}
+
+.lensing-toggle button {
+    min-height: 42px;
+    border: 1px solid rgba(0, 240, 255, 0.22);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.lensing-toggle button.active,
+.lensing-toggle button:hover {
+    border-color: var(--accent-blue);
+    background: rgba(0, 240, 255, 0.11);
+}
+
+.lensing-stage {
+    min-width: 0;
+}
+
+#lensing-canvas {
+    display: block;
+    width: 100%;
+    min-height: 440px;
+    border: 1px solid rgba(0, 240, 255, 0.18);
+    border-radius: 8px;
+    background: #02040a;
+}
+
+.lensing-readout {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin-top: 1rem;
+}
+
+.lensing-readout div {
+    padding: 1rem;
+    border: 1px solid rgba(0, 240, 255, 0.14);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.lensing-readout span {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 0.35rem;
+}
+
+.lensing-readout strong {
+    color: var(--text-primary);
+    font-size: 1.12rem;
+}
+
+.lensing-notes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem;
+    padding: 5rem 5%;
+    background: var(--bg-dark);
+}
+
+.lensing-notes div {
+    padding: 1.6rem;
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.lensing-notes i {
+    color: var(--accent-blue);
+    font-size: 1.45rem;
+    margin-bottom: 1rem;
+}
+
+.lensing-notes p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
 /* NFL Predictor Demo */
 .nfl-page {
     background: #03050a;
@@ -1959,6 +2128,42 @@ nav a:hover:not(.btn-primary) {
     .demo-card,
     .demo-preview-grid a {
         min-height: auto;
+    }
+
+    .lensing-hero {
+        grid-template-columns: 1fr;
+        min-height: auto;
+        padding: 8rem 5% 3rem;
+    }
+
+    .lensing-hero h1 {
+        font-size: 2.1rem;
+    }
+
+    .lensing-mode-panel {
+        padding: 1.5rem;
+    }
+
+    .lensing-workbench {
+        grid-template-columns: 1fr;
+        padding: 3.5rem 5%;
+    }
+
+    .lensing-controls {
+        padding: 1.25rem;
+    }
+
+    #lensing-canvas {
+        min-height: 440px;
+    }
+
+    .lensing-readout {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .lensing-notes {
+        grid-template-columns: 1fr;
+        padding: 3.5rem 5%;
     }
 
     .nfl-hero {
