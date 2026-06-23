@@ -25,7 +25,7 @@ import uuid
 import html as html_lib
 from urllib.parse import parse_qs, urlparse
 from quart import Response
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, default_spread_threshold, default_total_threshold, list_teams, load_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, dashboard_snapshot, default_spread_threshold, default_total_threshold, list_teams, load_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
 
 load_dotenv()
 
@@ -828,6 +828,24 @@ async def nfl_teams():
                 "end": max(g["season"] for g in games),
             },
         })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/nfl/dashboard")
+async def nfl_dashboard():
+    try:
+        model = request.args.get("model", "baseline")
+        if model not in MODEL_PROFILES:
+            return jsonify({"success": False, "error": f"model must be one of: {', '.join(MODEL_PROFILES)}"}), 400
+        playoff_mode = str(request.args.get("playoff_mode", "false")).lower() in {"1", "true", "yes"}
+        injury_team = (request.args.get("injury_team") or "").strip().upper()
+        injury_impact = float(request.args.get("injury_impact", "0") or 0)
+
+        games = await asyncio.to_thread(load_games)
+        snapshot = await asyncio.to_thread(dashboard_snapshot, games, model, playoff_mode, injury_team, injury_impact)
+        return jsonify({"success": True, "dashboard": snapshot})
     except Exception as e:
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500

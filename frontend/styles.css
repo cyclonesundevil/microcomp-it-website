@@ -881,6 +881,7 @@ nav a:hover:not(.btn-primary) {
     border-color: var(--accent-blue);
 }
 
+.nfl-dashboard-section,
 .nfl-results-section {
     padding: 5rem 5%;
     background: #050814;
@@ -889,6 +890,184 @@ nav a:hover:not(.btn-primary) {
 .nfl-predict-section {
     padding: 5rem 5%;
     background: #03050a;
+}
+
+.dashboard-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    max-width: 1180px;
+    margin: 0 auto 1.25rem;
+}
+
+.dashboard-controls {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    margin: 0 auto 1.25rem;
+}
+
+.dashboard-controls button {
+    min-height: 42px;
+    border: 1px solid rgba(0, 240, 255, 0.24);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+    font-weight: 800;
+    padding: 0 1rem;
+    cursor: pointer;
+}
+
+.dashboard-controls button.active,
+.dashboard-controls button:hover {
+    border-color: var(--accent-blue);
+    background: rgba(0, 240, 255, 0.11);
+}
+
+.dashboard-notes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.65rem;
+    max-width: 1180px;
+    margin: -0.35rem auto 1.25rem;
+}
+
+.dashboard-notes span {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.4rem 0.65rem;
+    border: 1px solid rgba(0, 240, 255, 0.14);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.injury-controls {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.8fr) minmax(260px, 1fr);
+    gap: 1rem;
+    max-width: 780px;
+    margin: 0 auto 1.25rem;
+    padding: 1rem;
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(10, 15, 30, 0.58);
+}
+
+.injury-controls label {
+    display: grid;
+    gap: 0.45rem;
+    color: var(--text-primary);
+    font-weight: 800;
+    font-size: 0.88rem;
+}
+
+.field-label-with-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.info-bubble {
+    width: 18px;
+    height: 18px;
+    border: 1px solid rgba(0, 240, 255, 0.5);
+    border-radius: 50%;
+    background: rgba(0, 240, 255, 0.1);
+    color: var(--accent-blue);
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1;
+    cursor: help;
+}
+
+.injury-controls label > span:not(.field-label-with-info) {
+    color: var(--accent-blue);
+    font-size: 0.84rem;
+}
+
+.injury-controls select,
+.injury-controls input[type="range"] {
+    width: 100%;
+}
+
+.injury-controls select {
+    min-height: 42px;
+    border: 1px solid rgba(0, 240, 255, 0.24);
+    border-radius: 8px;
+    background: rgba(3, 5, 10, 0.76);
+    color: var(--text-primary);
+    padding: 0.65rem 0.75rem;
+}
+
+.injury-controls input[type="range"] {
+    accent-color: var(--accent-blue);
+}
+
+.dashboard-top-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    max-width: 1180px;
+    margin: 0 auto 1.25rem;
+}
+
+.dashboard-card {
+    min-height: 170px;
+    padding: 1.2rem;
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(10, 15, 30, 0.62);
+}
+
+.dashboard-card span {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 0.35rem;
+}
+
+.dashboard-card strong {
+    color: var(--text-primary);
+    font-size: 2rem;
+}
+
+.dashboard-bars {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.dashboard-bars label {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.dashboard-bars div {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-bars i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+}
+
+.loading-card {
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
 }
 
 .matchup-tool {
@@ -2190,9 +2369,27 @@ nav a:hover:not(.btn-primary) {
     }
 
     .nfl-predict-section,
+    .nfl-dashboard-section,
     .nfl-results-section,
     .nfl-method-section {
         padding: 3.5rem 5%;
+    }
+
+    .dashboard-summary,
+    .dashboard-top-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-controls {
+        flex-direction: column;
+    }
+
+    .dashboard-controls button {
+        width: 100%;
+    }
+
+    .injury-controls {
+        grid-template-columns: 1fr;
     }
 
     .matchup-tool,

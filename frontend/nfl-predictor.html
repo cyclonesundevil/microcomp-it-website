@@ -7,7 +7,7 @@
     <title>NFL Predictor Demo | MicroComp IT</title>
     <meta name="description" content="NFL spread and over/under predictor demo using historical nflverse data and chronological backtesting.">
     <meta name="theme-color" content="#03050a">
-    <link rel="stylesheet" href="styles.css?v=1.4">
+    <link rel="stylesheet" href="styles.css?v=2.1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -53,6 +53,88 @@
                     <button data-model="rothstein">Rothstein</button>
                     <button data-model="rothstein_plus">Rothstein+</button>
                 </div>
+            </div>
+        </section>
+
+        <section class="nfl-dashboard-section">
+            <div class="section-heading">
+                <h2>NFL Prediction Dashboard</h2>
+                <p>Current model state across all teams: strength ratings, expected points, win probability, and model playoff odds.</p>
+            </div>
+
+            <div class="dashboard-controls" aria-label="Dashboard mode">
+                <button type="button" class="active" data-dashboard-mode="regular">Regular Season</button>
+                <button type="button" data-dashboard-mode="playoff">Playoff Mode</button>
+            </div>
+
+            <div class="injury-controls" aria-label="High-impact injury adjustment">
+                <label>
+                    High-impact injury team
+                    <select id="injury-team">
+                        <option value="">No injury adjustment</option>
+                    </select>
+                </label>
+                <label>
+                    <span class="field-label-with-info">
+                        Impact adjustment
+                        <button type="button" class="info-bubble" aria-label="Injury adjustment information" title="Applies only to the selected team: lowers expected points and strength, raises expected allowed. Other teams move only because rankings are recalculated.">i</button>
+                    </span>
+                    <span id="injury-impact-value">0.0 points</span>
+                    <input id="injury-impact" type="range" min="0" max="10" step="0.5" value="0">
+                </label>
+            </div>
+
+            <div id="dashboard-message" class="nfl-message">Loading model dashboard...</div>
+            <div id="dashboard-notes" class="dashboard-notes"></div>
+
+            <div class="dashboard-summary" aria-live="polite">
+                <div class="nfl-metric">
+                    <span>Tracked Teams</span>
+                    <strong id="dashboard-team-count">--</strong>
+                    <small id="dashboard-season">--</small>
+                </div>
+                <div class="nfl-metric">
+                    <span>Avg Expected Points</span>
+                    <strong id="dashboard-avg-points">--</strong>
+                    <small>Per team projection baseline</small>
+                </div>
+                <div class="nfl-metric">
+                    <span>Top Strength</span>
+                    <strong id="dashboard-top-team">--</strong>
+                    <small id="dashboard-top-rating">--</small>
+                </div>
+                <div class="nfl-metric">
+                    <span>Best Playoff Odds</span>
+                    <strong id="dashboard-top-playoff">--</strong>
+                    <small>Model-derived, not official odds</small>
+                </div>
+            </div>
+
+            <div class="dashboard-top-grid" id="dashboard-top-grid">
+                <div class="dashboard-card loading-card">Loading team ratings...</div>
+            </div>
+
+            <div class="nfl-table-wrap">
+                <table class="nfl-table dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Team</th>
+                            <th>Strength</th>
+                            <th>Expected Pts</th>
+                            <th>Allowed Pts</th>
+                            <th>Win Prob</th>
+                            <th>Model Playoff Odds</th>
+                            <th>Injury Adj</th>
+                            <th>Recent Margin</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboard-table-body">
+                        <tr>
+                            <td colspan="9">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </section>
 
@@ -230,7 +312,7 @@
         </div>
     </footer>
 
-    <script src="nfl-predictor.js?v=1.6"></script>
+    <script src="nfl-predictor.js?v=1.7"></script>
 </body>
 
 </html>
