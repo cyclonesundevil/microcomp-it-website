@@ -53,8 +53,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const modeButtons = document.querySelectorAll('[data-mode]');
 
     let mode = 'geometric';
-    let animationId = null;
-    let lastDraw = 0;
+    let animationTimer = null;
+    let lastWaveFrame = 0;
+    const waveCanvas = document.createElement('canvas');
+    const waveCtx = waveCanvas.getContext('2d');
 
     function model() {
         const mass = Number(controls.mass.value);
@@ -139,16 +141,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function drawWaveField(bounds, lens, state, time) {
-        const image = ctx.createImageData(bounds.w, bounds.h);
+        const quality = window.devicePixelRatio > 1 ? 0.42 : 0.5;
+        const scaledBounds = {
+            w: Math.max(240, Math.floor(bounds.w * quality)),
+            h: Math.max(180, Math.floor(bounds.h * quality))
+        };
+
+        if (waveCanvas.width !== scaledBounds.w || waveCanvas.height !== scaledBounds.h) {
+            waveCanvas.width = scaledBounds.w;
+            waveCanvas.height = scaledBounds.h;
+        }
+
+        const image = waveCtx.createImageData(scaledBounds.w, scaledBounds.h);
         const pixels = image.data;
         const freqScale = state.frequency / 1400;
         const bend = state.einstein * 0.72;
         let index = 0;
 
-        for (let y = 0; y < bounds.h; y += 1) {
-            for (let x = 0; x < bounds.w; x += 1) {
-                const dx = (x + bounds.x - lens.x) / bounds.w;
-                const dy = (y + bounds.y - lens.y) / bounds.h;
+        for (let y = 0; y < scaledBounds.h; y += 1) {
+            for (let x = 0; x < scaledBounds.w; x += 1) {
+                const canvasX = bounds.x + (x / scaledBounds.w) * bounds.w;
+                const canvasY = bounds.y + (y / scaledBounds.h) * bounds.h;
+                const dx = (canvasX - lens.x) / bounds.w;
+                const dy = (canvasY - lens.y) / bounds.h;
                 const radius = Math.sqrt(dx * dx + dy * dy) + 0.002;
                 const angle = Math.atan2(dy, dx);
                 const ring = Math.sin(radius * (58 + freqScale * 28) - time * 0.004 + bend * 7);
@@ -163,11 +178,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        ctx.putImageData(image, bounds.x, bounds.y);
+        waveCtx.putImageData(image, 0, 0);
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(waveCanvas, bounds.x, bounds.y, bounds.w, bounds.h);
+    }
+
+    function stopWaveAnimation() {
+        if (animationTimer) {
+            window.clearTimeout(animationTimer);
+            animationTimer = null;
+        }
     }
 
     function draw(time) {
-        lastDraw = time || lastDraw;
         const state = model();
         const width = canvas.clientWidth || 1120;
         const height = canvas.clientHeight || 720;
@@ -214,12 +237,14 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.stroke();
         }
 
-        if (mode === 'wave') {
+        const shouldUpdateWave = mode === 'wave' && time - lastWaveFrame > 80;
+        if (mode === 'wave' && shouldUpdateWave) {
+            lastWaveFrame = time;
             drawWaveField({
-                x: Math.floor(width * 0.18),
-                y: Math.floor(height * 0.16),
-                w: Math.floor(width * 0.64),
-                h: Math.floor(height * 0.68)
+                x: 0,
+                y: 0,
+                w: Math.floor(width),
+                h: Math.floor(height)
             }, lens, state, time || 0);
         }
 
@@ -290,14 +315,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (mode === 'wave') {
-            animationId = requestAnimationFrame(draw);
+            stopWaveAnimation();
+            animationTimer = window.setTimeout(() => {
+                requestAnimationFrame(draw);
+            }, 90);
         } else {
-            animationId = null;
+            stopWaveAnimation();
         }
     }
 
     function requestDraw() {
-        if (animationId && mode === 'wave') return;
+        stopWaveAnimation();
         draw(performance.now());
     }
 
@@ -309,8 +337,8 @@ document.addEventListener('DOMContentLoaded', () => {
         button.addEventListener('click', () => {
             mode = button.dataset.mode;
             modeButtons.forEach((item) => item.classList.toggle('active', item === button));
-            if (animationId) cancelAnimationFrame(animationId);
-            animationId = null;
+            stopWaveAnimation();
+            lastWaveFrame = 0;
             draw(performance.now());
         });
     });
