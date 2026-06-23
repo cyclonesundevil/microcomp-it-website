@@ -945,9 +945,9 @@ nav a:hover:not(.btn-primary) {
 
 .injury-controls {
     display: grid;
-    grid-template-columns: minmax(220px, 0.8fr) minmax(260px, 1fr);
+    grid-template-columns: minmax(180px, 0.85fr) minmax(220px, 1fr) minmax(260px, 1fr);
     gap: 1rem;
-    max-width: 780px;
+    max-width: 1020px;
     margin: 0 auto 1.25rem;
     padding: 1rem;
     border: 1px solid rgba(0, 240, 255, 0.16);

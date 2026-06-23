@@ -75,9 +75,22 @@
                     </select>
                 </label>
                 <label>
+                    Player type
+                    <select id="injury-position">
+                        <option value="general" data-impact="3.0">General high-impact player</option>
+                        <option value="qb" data-impact="7.0">Starting quarterback</option>
+                        <option value="skill" data-impact="4.0">RB / WR / TE</option>
+                        <option value="ol" data-impact="4.5">Offensive line</option>
+                        <option value="pass_rush" data-impact="4.5">Pass rush / defensive line</option>
+                        <option value="coverage" data-impact="4.0">Coverage / secondary</option>
+                        <option value="linebacker" data-impact="3.5">Linebacker / run defense</option>
+                        <option value="special" data-impact="2.0">Kicker / specialist</option>
+                    </select>
+                </label>
+                <label>
                     <span class="field-label-with-info">
                         Impact adjustment
-                        <button type="button" class="info-bubble" aria-label="Injury adjustment information" title="Applies only to the selected team: lowers expected points and strength, raises expected allowed. Other teams move only because rankings are recalculated.">i</button>
+                        <button type="button" class="info-bubble" aria-label="Injury adjustment information" title="Dashboard only: applies to the selected team's ratings, expected points, win probability, and playoff odds. It does not change the matchup predictor spread/margin below.">i</button>
                     </span>
                     <span id="injury-impact-value">0.0 points</span>
                     <input id="injury-impact" type="range" min="0" max="10" step="0.5" value="0">

@@ -12,6 +12,64 @@ from typing import Dict, List, Optional, Tuple
 GAMES_URL = "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv"
 DEFAULT_CACHE_PATH = os.path.join(os.path.dirname(__file__), "data", "nfl_games.csv")
 MODEL_PROFILES = ("baseline", "enhanced", "rothstein", "rothstein_plus")
+INJURY_PROFILES = {
+    "general": {
+        "label": "General high-impact player",
+        "default_impact": 3.0,
+        "offense_factor": 0.55,
+        "allowed_factor": 0.18,
+        "strength_factor": 1.0,
+    },
+    "qb": {
+        "label": "Starting quarterback",
+        "default_impact": 7.0,
+        "offense_factor": 0.85,
+        "allowed_factor": 0.05,
+        "strength_factor": 1.15,
+    },
+    "skill": {
+        "label": "RB / WR / TE",
+        "default_impact": 4.0,
+        "offense_factor": 0.65,
+        "allowed_factor": 0.05,
+        "strength_factor": 1.0,
+    },
+    "ol": {
+        "label": "Offensive line",
+        "default_impact": 4.5,
+        "offense_factor": 0.55,
+        "allowed_factor": 0.08,
+        "strength_factor": 1.0,
+    },
+    "pass_rush": {
+        "label": "Pass rush / defensive line",
+        "default_impact": 4.5,
+        "offense_factor": 0.10,
+        "allowed_factor": 0.55,
+        "strength_factor": 1.0,
+    },
+    "coverage": {
+        "label": "Coverage / secondary",
+        "default_impact": 4.0,
+        "offense_factor": 0.05,
+        "allowed_factor": 0.50,
+        "strength_factor": 0.95,
+    },
+    "linebacker": {
+        "label": "Linebacker / run defense",
+        "default_impact": 3.5,
+        "offense_factor": 0.05,
+        "allowed_factor": 0.42,
+        "strength_factor": 0.85,
+    },
+    "special": {
+        "label": "Kicker / specialist",
+        "default_impact": 2.0,
+        "offense_factor": 0.25,
+        "allowed_factor": 0.10,
+        "strength_factor": 0.55,
+    },
+}
 
 
 def _to_float(value: str) -> Optional[float]:
@@ -387,6 +445,7 @@ def dashboard_snapshot(
     playoff_mode: bool = False,
     injury_team: Optional[str] = None,
     injury_impact: float = 0.0,
+    injury_position: str = "general",
 ) -> dict:
     if model_profile in {"rothstein", "rothstein_plus"}:
         model_profile = "baseline"
@@ -398,6 +457,10 @@ def dashboard_snapshot(
     teams = list_teams(games, current_only=True)
     injury_team = (injury_team or "").strip().upper()
     injury_impact = max(0.0, min(10.0, injury_impact))
+    injury_position = (injury_position or "general").strip().lower()
+    injury_profile = INJURY_PROFILES.get(injury_position, INJURY_PROFILES["general"])
+    if injury_position not in INJURY_PROFILES:
+        injury_position = "general"
     if injury_team not in teams:
         injury_team = None
 
@@ -411,8 +474,8 @@ def dashboard_snapshot(
         stability = min(1.0, state.games / 17)
         injury_adjustment = injury_impact if injury_team == team else 0.0
         if injury_adjustment:
-            expected_points = max(8.0, expected_points - injury_adjustment * 0.55)
-            expected_allowed = min(42.0, expected_allowed + injury_adjustment * 0.18)
+            expected_points = max(8.0, expected_points - injury_adjustment * injury_profile["offense_factor"])
+            expected_allowed = min(42.0, expected_allowed + injury_adjustment * injury_profile["allowed_factor"])
             expected_point_edge = expected_points - expected_allowed
 
         if playoff_mode:
@@ -424,7 +487,7 @@ def dashboard_snapshot(
             )
         else:
             strength = state.margin_rating + 0.55 * recent_margin + 0.22 * (state.offense - state.defense_allowed)
-        strength -= injury_adjustment
+        strength -= injury_adjustment * injury_profile["strength_factor"]
         neutral_win_probability = 1 / (1 + math.exp(-strength / 6.5))
         rows.append({
             "team": team,
@@ -437,6 +500,8 @@ def dashboard_snapshot(
             "expected_point_edge": expected_point_edge,
             "stability": stability,
             "injury_adjustment": injury_adjustment,
+            "injury_position": injury_position if injury_adjustment else None,
+            "injury_label": injury_profile["label"] if injury_adjustment else None,
             "expected_points": expected_points,
             "expected_allowed": expected_allowed,
             "neutral_win_probability": neutral_win_probability,
@@ -452,6 +517,11 @@ def dashboard_snapshot(
             "injury": {
                 "team": injury_team,
                 "impact": injury_impact,
+                "position": injury_position,
+                "label": injury_profile["label"],
+                "offense_factor": injury_profile["offense_factor"],
+                "allowed_factor": injury_profile["allowed_factor"],
+                "strength_factor": injury_profile["strength_factor"],
                 "applied": bool(injury_team and injury_impact),
             },
             "teams": [],
@@ -484,6 +554,11 @@ def dashboard_snapshot(
         "injury": {
             "team": injury_team,
             "impact": injury_impact,
+            "position": injury_position,
+            "label": injury_profile["label"],
+            "offense_factor": injury_profile["offense_factor"],
+            "allowed_factor": injury_profile["allowed_factor"],
+            "strength_factor": injury_profile["strength_factor"],
             "applied": bool(injury_team and injury_impact),
         },
         "teams": rows,

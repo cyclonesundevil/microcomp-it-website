@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dashboardTopGrid = document.getElementById('dashboard-top-grid');
     const dashboardTableBody = document.getElementById('dashboard-table-body');
     const injuryTeam = document.getElementById('injury-team');
+    const injuryPosition = document.getElementById('injury-position');
     const injuryImpact = document.getElementById('injury-impact');
     const injuryImpactValue = document.getElementById('injury-impact-value');
     const matchupLabel = document.getElementById('matchup-label');
@@ -159,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ? `${dashboard.season} playoff mode after week ${dashboard.completed_week}. Neutral-site, recent-form, and expected-point-edge weights are emphasized.`
             : `${dashboard.season} model dashboard after week ${dashboard.completed_week}. Playoff odds are model-derived, not official league odds.`;
         const injuryNote = dashboard.injury?.applied
-            ? [`High-impact injury adjustment: ${dashboard.injury.team} -${Number(dashboard.injury.impact).toFixed(1)} strength points`]
+            ? [`Injury adjustment: ${dashboard.injury.team} ${dashboard.injury.label}, ${Number(dashboard.injury.impact).toFixed(1)} impact points`]
             : [];
         dashboardNotes.innerHTML = [...(dashboard.mode_notes || []), ...injuryNote].map((note) => `<span>${note}</span>`).join('');
         dashboardTeamCount.textContent = String(dashboard.league.team_count || teams.length);
@@ -305,7 +306,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 model: state.model,
                 playoff_mode: state.playoffMode ? 'true' : 'false',
                 injury_team: injuryTeam.value || '',
-                injury_impact: injuryImpact.value || '0'
+                injury_impact: injuryImpact.value || '0',
+                injury_position: injuryPosition.value || 'general'
             });
             const response = await fetch(`${apiBase}/api/nfl/dashboard?${params.toString()}`);
             const data = await response.json();
@@ -370,7 +372,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    injuryTeam.addEventListener('change', loadDashboard);
+    injuryTeam.addEventListener('change', () => {
+        if (injuryTeam.value && Number(injuryImpact.value) === 0) {
+            const selected = injuryPosition.selectedOptions[0];
+            const defaultImpact = Number(selected?.dataset.impact || 3);
+            injuryImpact.value = String(defaultImpact);
+            injuryImpactValue.textContent = `${defaultImpact.toFixed(1)} points`;
+        }
+        loadDashboard();
+    });
+    injuryPosition.addEventListener('change', () => {
+        const selected = injuryPosition.selectedOptions[0];
+        const defaultImpact = Number(selected?.dataset.impact || 3);
+        if (injuryTeam.value) {
+            injuryImpact.value = String(defaultImpact);
+            injuryImpactValue.textContent = `${defaultImpact.toFixed(1)} points`;
+        }
+        loadDashboard();
+    });
     injuryImpact.addEventListener('input', () => {
         injuryImpactValue.textContent = `${Number(injuryImpact.value).toFixed(1)} points`;
         scheduleDashboardLoad();

@@ -874,9 +874,10 @@ async def nfl_dashboard():
         playoff_mode = str(request.args.get("playoff_mode", "false")).lower() in {"1", "true", "yes"}
         injury_team = (request.args.get("injury_team") or "").strip().upper()
         injury_impact = float(request.args.get("injury_impact", "0") or 0)
+        injury_position = (request.args.get("injury_position") or "general").strip().lower()
 
         games = await asyncio.to_thread(load_games)
-        snapshot = await asyncio.to_thread(dashboard_snapshot, games, model, playoff_mode, injury_team, injury_impact)
+        snapshot = await asyncio.to_thread(dashboard_snapshot, games, model, playoff_mode, injury_team, injury_impact, injury_position)
         return jsonify({"success": True, "dashboard": snapshot})
     except Exception as e:
         traceback.print_exc()
