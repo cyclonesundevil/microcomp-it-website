@@ -24,6 +24,7 @@ import re
 import uuid
 import html as html_lib
 from urllib.parse import parse_qs, urlparse
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from quart import Response
 from nfl_predictor import GAMES_URL, MODEL_PROFILES, dashboard_snapshot, default_spread_threshold, default_total_threshold, list_teams, load_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
 
@@ -31,6 +32,10 @@ load_dotenv()
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
 frontend_dir = os.path.join(base_dir, '..', 'frontend')
+try:
+    ARIZONA_TZ = ZoneInfo("America/Phoenix")
+except ZoneInfoNotFoundError:
+    ARIZONA_TZ = datetime.timezone(datetime.timedelta(hours=-7), name="MST")
 
 app = Quart(__name__, static_folder=frontend_dir, static_url_path="")
 
@@ -298,6 +303,33 @@ def get_analytics_db_path():
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
     return db_path
+
+
+def parse_utc_timestamp(timestamp):
+    if not timestamp:
+        return None
+    try:
+        normalized = str(timestamp).replace("Z", "+00:00")
+        parsed = datetime.datetime.fromisoformat(normalized)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=datetime.UTC)
+        return parsed.astimezone(ARIZONA_TZ)
+    except ValueError:
+        return None
+
+
+def format_arizona_timestamp(timestamp):
+    local_time = parse_utc_timestamp(timestamp)
+    if not local_time:
+        return str(timestamp or "")
+    return local_time.strftime("%Y-%m-%d %H:%M:%S MST")
+
+
+def arizona_date_label(timestamp):
+    local_time = parse_utc_timestamp(timestamp)
+    if not local_time:
+        return str(timestamp or "").split(" ")[0]
+    return local_time.strftime("%Y-%m-%d")
 
 
 def ensure_analytics_schema(conn):
@@ -970,7 +1002,7 @@ async def admin_dashboard():
     dates = {}
     for row in rows:
         ts, path, seconds, ip = row
-        date = ts.split(" ")[0]
+        date = arizona_date_label(ts)
         dates[date] = dates.get(date, 0) + 1
         
     labels = list(dates.keys())
@@ -982,9 +1014,10 @@ async def admin_dashboard():
         location = ", ".join(part for part in (city, region, country) if part) or "Unknown"
         source = utm_source or referrer or "Direct"
         campaign = utm_campaign or ""
+        local_ts = format_arizona_timestamp(ts)
         visitors_html += (
             "<tr>"
-            f"<td>{html_lib.escape(str(ts or ''))}</td>"
+            f"<td>{html_lib.escape(local_ts)}</td>"
             f"<td>{html_lib.escape(str(ip or ''))}</td>"
             f"<td>{html_lib.escape(str(path or ''))}</td>"
             f"<td>{html_lib.escape(str(device_type or 'Unknown'))}</td>"
@@ -1012,6 +1045,7 @@ async def admin_dashboard():
             .stat-card {{ background: rgba(0, 240, 255, 0.05); padding: 1.5rem; border-radius: 8px; border: 1px solid rgba(0, 240, 255, 0.1); text-align: center; }}
             .stat-number {{ font-size: 2.5rem; font-weight: 800; color: #00f0ff; }}
             .stat-label {{ color: #a0aec0; font-size: 0.9rem; text-transform: uppercase; margin-top: 0.5rem; }}
+            .timezone-note {{ color: #a0aec0; margin: -0.75rem 0 1.5rem; }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 1rem; }}
             th, td {{ text-align: left; padding: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; }}
             th {{ color: #00f0ff; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }}
@@ -1022,6 +1056,7 @@ async def admin_dashboard():
     <body>
         <div class="container">
             <h1><i class="fa-solid fa-gauge-high"></i> Admin Dashboard</h1>
+            <p class="timezone-note">Times displayed in Arizona local time (MST, UTC-7). Analytics are stored internally in UTC.</p>
             
             <div class="stats-grid">
                 <div class="stat-card">
