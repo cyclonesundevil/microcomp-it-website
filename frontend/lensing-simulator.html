@@ -7,7 +7,7 @@
     <title>Gravitational Lensing Simulator | MicroComp IT</title>
     <meta name="description" content="Interactive toy model for gravitational lensing, Einstein rings, magnification, time delay, and geometric versus wave optics.">
     <meta name="theme-color" content="#03050a">
-    <link rel="stylesheet" href="styles.css?v=2.0">
+    <link rel="stylesheet" href="styles.css?v=2.2">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -104,6 +104,23 @@
             </div>
         </section>
 
+        <section class="lensing-3d-section" aria-label="Three dimensional gravitational lensing viewer">
+            <div class="lensing-3d-copy">
+                <p class="science-kicker">3D Web Viewer</p>
+                <h2>Rotatable Lensing Geometry</h2>
+                <p>
+                    Orbit the source, lens, observer, curved light paths, and wavefronts as a true 3D scene. The sliders
+                    above also update this viewer.
+                </p>
+            </div>
+            <div id="lensing-3d-scene" class="lensing-3d-scene" aria-label="Interactive 3D gravitational lensing model"></div>
+            <div class="lensing-3d-legend">
+                <span><i class="legend-swatch gravity"></i> dominant path</span>
+                <span><i class="legend-swatch plasma"></i> secondary path</span>
+                <span><i class="legend-dot"></i> lens plane</span>
+            </div>
+        </section>
+
         <section class="lensing-notes">
             <div>
                 <i class="fa-solid fa-circle-nodes"></i>
@@ -136,6 +153,15 @@
     </footer>
 
     <script src="lensing-simulator.js?v=1.5"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module" src="lensing-simulator-3d.js?v=1.0"></script>
 </body>
 
 </html>
