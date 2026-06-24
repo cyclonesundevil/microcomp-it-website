@@ -635,6 +635,182 @@ nav a:hover:not(.btn-primary) {
     font-size: 0.95rem;
 }
 
+/* Black Hole Playground */
+.black-hole-page {
+    background: #03050a;
+}
+
+.black-hole-hero {
+    min-height: 68vh;
+    padding: 9rem 5% 3rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+    align-items: center;
+    gap: 3rem;
+    background:
+        radial-gradient(circle at 70% 20%, rgba(255, 75, 120, 0.16), transparent 30%),
+        linear-gradient(135deg, rgba(0, 240, 255, 0.08), transparent 34%),
+        #03050a;
+}
+
+.black-hole-hero h1 {
+    max-width: 900px;
+    font-size: 3rem;
+}
+
+.black-hole-hero p {
+    color: var(--text-secondary);
+    font-size: 1.08rem;
+    max-width: 760px;
+}
+
+.black-hole-readouts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+.black-hole-readouts div {
+    padding: 1.15rem;
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(10, 15, 30, 0.68);
+}
+
+.black-hole-readouts span {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+}
+
+.black-hole-readouts strong {
+    color: var(--text-primary);
+    font-size: 1.28rem;
+}
+
+.black-hole-playground {
+    position: relative;
+    min-height: 84vh;
+    overflow: hidden;
+    background: #02040a;
+    border-top: 1px solid rgba(0, 240, 255, 0.12);
+    border-bottom: 1px solid rgba(0, 240, 255, 0.12);
+}
+
+.black-hole-controls {
+    position: absolute;
+    top: 3rem;
+    left: 5%;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+    width: min(330px, 28vw);
+    padding: 1.4rem;
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(10, 15, 30, 0.74);
+}
+
+.black-hole-mode-toggle {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+}
+
+.black-hole-mode-toggle button {
+    min-height: 38px;
+    border: 1px solid rgba(0, 240, 255, 0.22);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.black-hole-mode-toggle button.active,
+.black-hole-mode-toggle button:hover {
+    border-color: var(--accent-blue);
+    background: rgba(0, 240, 255, 0.12);
+}
+
+.black-hole-controls label {
+    display: grid;
+    gap: 0.55rem;
+    color: var(--text-primary);
+    font-weight: 800;
+    font-size: 0.92rem;
+}
+
+.black-hole-controls label span {
+    color: var(--accent-blue);
+    font-size: 0.86rem;
+}
+
+.black-hole-controls input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent-blue);
+}
+
+.black-hole-scene {
+    width: 100%;
+    height: 84vh;
+    min-height: 620px;
+}
+
+.black-hole-scene canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.black-hole-legend {
+    position: absolute;
+    left: 5%;
+    bottom: 2rem;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+}
+
+.black-hole-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.black-hole-notes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem;
+    padding: 5rem 5%;
+    background: var(--bg-dark);
+}
+
+.black-hole-notes div {
+    padding: 1.6rem;
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.black-hole-notes i {
+    color: var(--accent-blue);
+    font-size: 1.45rem;
+    margin-bottom: 1rem;
+}
+
+.black-hole-notes p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
 /* Gravitational Lensing Simulator */
 .lensing-page {
     background: #03050a;
@@ -806,6 +982,16 @@ nav a:hover:not(.btn-primary) {
 .lensing-3d-copy p:not(.science-kicker) {
     color: var(--text-secondary);
     font-size: 1.02rem;
+}
+
+.lensing-controls-3d {
+    position: absolute;
+    top: 4.5rem;
+    right: 5%;
+    z-index: 3;
+    width: min(330px, 28vw);
+    max-height: calc(82vh - 8rem);
+    overflow: auto;
 }
 
 .lensing-3d-scene {
@@ -2375,6 +2561,50 @@ nav a:hover:not(.btn-primary) {
         padding: 1.5rem;
     }
 
+    .black-hole-hero {
+        grid-template-columns: 1fr;
+        min-height: auto;
+        padding: 8rem 5% 3rem;
+    }
+
+    .black-hole-hero h1 {
+        font-size: 2.1rem;
+    }
+
+    .black-hole-readouts {
+        grid-template-columns: 1fr;
+    }
+
+    .black-hole-playground {
+        min-height: auto;
+        padding-top: 1.5rem;
+    }
+
+    .black-hole-controls {
+        position: relative;
+        top: auto;
+        left: auto;
+        width: auto;
+        margin: 0 5% 1.25rem;
+    }
+
+    .black-hole-scene {
+        height: 480px;
+        min-height: 480px;
+    }
+
+    .black-hole-legend {
+        position: relative;
+        left: auto;
+        bottom: auto;
+        padding: 1rem 5% 1.5rem;
+    }
+
+    .black-hole-notes {
+        grid-template-columns: 1fr;
+        padding: 3.5rem 5%;
+    }
+
     .demo-directory,
     .demo-preview-section,
     .technology-approach {
@@ -2434,6 +2664,15 @@ nav a:hover:not(.btn-primary) {
         left: auto;
         max-width: none;
         padding: 0 5% 1.25rem;
+    }
+
+    .lensing-controls-3d {
+        position: relative;
+        top: auto;
+        right: auto;
+        width: auto;
+        max-height: none;
+        margin: 0 5% 1.25rem;
     }
 
     .lensing-3d-copy h2 {

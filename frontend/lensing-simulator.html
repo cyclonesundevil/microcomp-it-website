@@ -56,28 +56,28 @@
 
                 <label>
                     Lens mass
-                    <span id="lens-mass-value">45 solar masses</span>
-                    <input id="lens-mass" type="range" min="10" max="120" value="45">
+                    <span id="lens-mass-value" data-lensing-value="mass">45 solar masses</span>
+                    <input id="lens-mass" data-lensing-control="mass" type="range" min="10" max="120" value="45">
                 </label>
                 <label>
                     Source distance
-                    <span id="source-distance-value">6.0 kpc</span>
-                    <input id="source-distance" type="range" min="30" max="100" value="60">
+                    <span id="source-distance-value" data-lensing-value="sourceDistance">6.0 kpc</span>
+                    <input id="source-distance" data-lensing-control="sourceDistance" type="range" min="30" max="100" value="60">
                 </label>
                 <label>
                     Observer distance
-                    <span id="observer-distance-value">4.0 kpc</span>
-                    <input id="observer-distance" type="range" min="20" max="90" value="40">
+                    <span id="observer-distance-value" data-lensing-value="observerDistance">4.0 kpc</span>
+                    <input id="observer-distance" data-lensing-control="observerDistance" type="range" min="20" max="90" value="40">
                 </label>
                 <label>
                     Alignment
-                    <span id="alignment-value">0.32 arcsec</span>
-                    <input id="alignment" type="range" min="0" max="100" value="32">
+                    <span id="alignment-value" data-lensing-value="alignment">0.32 arcsec</span>
+                    <input id="alignment" data-lensing-control="alignment" type="range" min="0" max="100" value="32">
                 </label>
                 <label>
                     Observing frequency
-                    <span id="lens-frequency-value">1.4 GHz</span>
-                    <input id="lens-frequency" type="range" min="600" max="3000" value="1400">
+                    <span id="lens-frequency-value" data-lensing-value="frequency">1.4 GHz</span>
+                    <input id="lens-frequency" data-lensing-control="frequency" type="range" min="600" max="3000" value="1400">
                 </label>
             </div>
 
@@ -109,9 +109,40 @@
                 <p class="science-kicker">3D Web Viewer</p>
                 <h2>Rotatable Lensing Geometry</h2>
                 <p>
-                    Orbit the source, lens, observer, curved light paths, and wavefronts as a true 3D scene. The sliders
-                    above also update this viewer.
+                    Orbit the source, lens, observer, curved light paths, and wavefronts as a true 3D scene.
                 </p>
+            </div>
+            <div class="lensing-controls lensing-controls-3d" aria-label="3D lensing viewer controls">
+                <div class="lensing-toggle" role="group" aria-label="Optics mode">
+                    <button type="button" class="active" data-mode="geometric">Geometric Optics</button>
+                    <button type="button" data-mode="wave">Wave Optics</button>
+                </div>
+
+                <label>
+                    Lens mass
+                    <span data-lensing-value="mass">45 solar masses</span>
+                    <input data-lensing-control="mass" type="range" min="10" max="120" value="45">
+                </label>
+                <label>
+                    Source distance
+                    <span data-lensing-value="sourceDistance">6.0 kpc</span>
+                    <input data-lensing-control="sourceDistance" type="range" min="30" max="100" value="60">
+                </label>
+                <label>
+                    Observer distance
+                    <span data-lensing-value="observerDistance">4.0 kpc</span>
+                    <input data-lensing-control="observerDistance" type="range" min="20" max="90" value="40">
+                </label>
+                <label>
+                    Alignment
+                    <span data-lensing-value="alignment">0.32 arcsec</span>
+                    <input data-lensing-control="alignment" type="range" min="0" max="100" value="32">
+                </label>
+                <label>
+                    Observing frequency
+                    <span data-lensing-value="frequency">1.4 GHz</span>
+                    <input data-lensing-control="frequency" type="range" min="600" max="3000" value="1400">
+                </label>
             </div>
             <div id="lensing-3d-scene" class="lensing-3d-scene" aria-label="Interactive 3D gravitational lensing model"></div>
             <div class="lensing-3d-legend">

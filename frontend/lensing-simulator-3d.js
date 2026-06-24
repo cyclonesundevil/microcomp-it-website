@@ -5,12 +5,13 @@ const container = document.getElementById('lensing-3d-scene');
 
 if (container) {
     const sliders = {
-        mass: document.getElementById('lens-mass'),
-        sourceDistance: document.getElementById('source-distance'),
-        observerDistance: document.getElementById('observer-distance'),
-        alignment: document.getElementById('alignment'),
-        frequency: document.getElementById('lens-frequency')
+        mass: document.querySelector('[data-lensing-control="mass"]'),
+        sourceDistance: document.querySelector('[data-lensing-control="sourceDistance"]'),
+        observerDistance: document.querySelector('[data-lensing-control="observerDistance"]'),
+        alignment: document.querySelector('[data-lensing-control="alignment"]'),
+        frequency: document.querySelector('[data-lensing-control="frequency"]')
     };
+    const allSliders = Array.from(document.querySelectorAll('[data-lensing-control]'));
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x02040a);
@@ -260,9 +261,10 @@ if (container) {
         requestAnimationFrame(animate);
     }
 
-    Object.values(sliders).forEach((slider) => {
-        slider?.addEventListener('input', updateScene);
+    allSliders.forEach((slider) => {
+        slider.addEventListener('input', updateScene);
     });
+    window.addEventListener('lensing-controls-change', updateScene);
 
     window.addEventListener('resize', resize);
     resize();

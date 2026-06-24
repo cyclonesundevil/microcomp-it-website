@@ -30,19 +30,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
+    const controlGroups = {
+        mass: Array.from(document.querySelectorAll('[data-lensing-control="mass"]')),
+        sourceDistance: Array.from(document.querySelectorAll('[data-lensing-control="sourceDistance"]')),
+        observerDistance: Array.from(document.querySelectorAll('[data-lensing-control="observerDistance"]')),
+        alignment: Array.from(document.querySelectorAll('[data-lensing-control="alignment"]')),
+        frequency: Array.from(document.querySelectorAll('[data-lensing-control="frequency"]'))
+    };
     const controls = {
-        mass: document.getElementById('lens-mass'),
-        sourceDistance: document.getElementById('source-distance'),
-        observerDistance: document.getElementById('observer-distance'),
-        alignment: document.getElementById('alignment'),
-        frequency: document.getElementById('lens-frequency')
+        mass: controlGroups.mass[0],
+        sourceDistance: controlGroups.sourceDistance[0],
+        observerDistance: controlGroups.observerDistance[0],
+        alignment: controlGroups.alignment[0],
+        frequency: controlGroups.frequency[0]
     };
     const values = {
-        mass: document.getElementById('lens-mass-value'),
-        sourceDistance: document.getElementById('source-distance-value'),
-        observerDistance: document.getElementById('observer-distance-value'),
-        alignment: document.getElementById('alignment-value'),
-        frequency: document.getElementById('lens-frequency-value')
+        mass: Array.from(document.querySelectorAll('[data-lensing-value="mass"]')),
+        sourceDistance: Array.from(document.querySelectorAll('[data-lensing-value="sourceDistance"]')),
+        observerDistance: Array.from(document.querySelectorAll('[data-lensing-value="observerDistance"]')),
+        alignment: Array.from(document.querySelectorAll('[data-lensing-value="alignment"]')),
+        frequency: Array.from(document.querySelectorAll('[data-lensing-value="frequency"]'))
     };
     const readouts = {
         einstein: document.getElementById('einstein-readout'),
@@ -196,11 +203,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const height = canvas.clientHeight || 720;
         ctx.clearRect(0, 0, width, height);
 
-        values.mass.textContent = `${state.mass} solar masses`;
-        values.sourceDistance.textContent = `${state.sourceDistance.toFixed(1)} kpc`;
-        values.observerDistance.textContent = `${state.observerDistance.toFixed(1)} kpc`;
-        values.alignment.textContent = `${(state.beta * 0.28).toFixed(2)} arcsec`;
-        values.frequency.textContent = `${(state.frequency / 1000).toFixed(1)} GHz`;
+        values.mass.forEach((value) => { value.textContent = `${state.mass} solar masses`; });
+        values.sourceDistance.forEach((value) => { value.textContent = `${state.sourceDistance.toFixed(1)} kpc`; });
+        values.observerDistance.forEach((value) => { value.textContent = `${state.observerDistance.toFixed(1)} kpc`; });
+        values.alignment.forEach((value) => { value.textContent = `${(state.beta * 0.28).toFixed(2)} arcsec`; });
+        values.frequency.forEach((value) => { value.textContent = `${(state.frequency / 1000).toFixed(1)} GHz`; });
 
         readouts.einstein.textContent = `${state.einstein.toFixed(2)} arcsec`;
         readouts.magnification.textContent = `${state.magnification.toFixed(1)}x`;
@@ -327,19 +334,35 @@ document.addEventListener('DOMContentLoaded', () => {
     function requestDraw() {
         stopWaveAnimation();
         draw(performance.now());
+        window.dispatchEvent(new CustomEvent('lensing-controls-change'));
     }
 
-    Object.values(controls).forEach((control) => {
-        control.addEventListener('input', requestDraw);
+    function syncControlSet(sourceControl) {
+        const key = sourceControl.dataset.lensingControl;
+        if (!key || !controlGroups[key]) return;
+
+        controlGroups[key].forEach((control) => {
+            if (control !== sourceControl) {
+                control.value = sourceControl.value;
+            }
+        });
+    }
+
+    Object.values(controlGroups).flat().forEach((control) => {
+        control.addEventListener('input', () => {
+            syncControlSet(control);
+            requestDraw();
+        });
     });
 
     modeButtons.forEach((button) => {
         button.addEventListener('click', () => {
             mode = button.dataset.mode;
-            modeButtons.forEach((item) => item.classList.toggle('active', item === button));
+            modeButtons.forEach((item) => item.classList.toggle('active', item.dataset.mode === mode));
             stopWaveAnimation();
             lastWaveFrame = 0;
             draw(performance.now());
+            window.dispatchEvent(new CustomEvent('lensing-controls-change'));
         });
     });
 
