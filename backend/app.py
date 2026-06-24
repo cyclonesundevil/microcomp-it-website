@@ -26,7 +26,8 @@ import html as html_lib
 from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from quart import Response
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, dashboard_snapshot, default_spread_threshold, default_total_threshold, list_teams, load_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
+from nfl_live_data import live_scoreboard
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, dashboard_snapshot, default_spread_threshold, default_total_threshold, games_cache_info, list_teams, load_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
 
 load_dotenv()
 
@@ -88,6 +89,19 @@ CONTACT_RATE_LIMIT_WINDOW_SECONDS = 60 * 60
 CONTACT_RATE_LIMIT_MAX = 6
 CONTACT_MIN_SUBMIT_SECONDS = 2
 CONTACT_MAX_SUBMIT_SECONDS = 60 * 60 * 24
+
+
+def request_bool(name, default=False):
+    value = request.args.get(name)
+    if value is None:
+        return default
+    return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+async def load_nfl_games_for_request():
+    refresh = request_bool("refresh", False)
+    games = await asyncio.to_thread(load_games, refresh=refresh)
+    return games, games_cache_info()
 CONTACT_BLOCKED_USER_AGENTS = ("curl", "python-requests", "wget", "httpclient", "libwww-perl")
 ANALYTICS_GEO_CACHE = {}
 ANALYTICS_BOT_RE = re.compile(
@@ -811,7 +825,7 @@ async def nfl_backtest():
         spread_threshold = float(request.args.get("spread_threshold", str(default_spread_threshold(model))))
         total_threshold = float(request.args.get("total_threshold", str(default_total_threshold(model))))
 
-        games = await asyncio.to_thread(load_games)
+        games, cache = await load_nfl_games_for_request()
         summary, records = await asyncio.to_thread(
             run_backtest,
             games,
@@ -831,6 +845,7 @@ async def nfl_backtest():
         return jsonify({
             "success": True,
             "source": GAMES_URL,
+            "cache": cache,
             "model": model,
             "seasons": seasons,
             "available_seasons": {
@@ -851,9 +866,11 @@ async def nfl_backtest():
 @app.route("/api/nfl/teams")
 async def nfl_teams():
     try:
-        games = await asyncio.to_thread(load_games)
+        games, cache = await load_nfl_games_for_request()
         return jsonify({
             "success": True,
+            "source": GAMES_URL,
+            "cache": cache,
             "teams": list_teams(games, current_only=True),
             "available_seasons": {
                 "start": min(g["season"] for g in games),
@@ -876,9 +893,9 @@ async def nfl_dashboard():
         injury_impact = float(request.args.get("injury_impact", "0") or 0)
         injury_position = (request.args.get("injury_position") or "general").strip().lower()
 
-        games = await asyncio.to_thread(load_games)
+        games, cache = await load_nfl_games_for_request()
         snapshot = await asyncio.to_thread(dashboard_snapshot, games, model, playoff_mode, injury_team, injury_impact, injury_position)
-        return jsonify({"success": True, "dashboard": snapshot})
+        return jsonify({"success": True, "source": GAMES_URL, "cache": cache, "dashboard": snapshot})
     except Exception as e:
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
@@ -905,7 +922,7 @@ async def nfl_predict():
         temp = request.args.get("temp")
         wind = request.args.get("wind")
 
-        games = await asyncio.to_thread(load_games)
+        games, cache = await load_nfl_games_for_request()
         prediction = await asyncio.to_thread(
             predict_matchup,
             games,
@@ -921,7 +938,7 @@ async def nfl_predict():
             float(temp) if temp else None,
             float(wind) if wind else None,
         )
-        return jsonify({"success": True, "prediction": prediction})
+        return jsonify({"success": True, "source": GAMES_URL, "cache": cache, "prediction": prediction})
     except ValueError as e:
         return jsonify({"success": False, "error": str(e)}), 400
     except Exception as e:
@@ -942,7 +959,7 @@ async def nfl_history():
         if model not in MODEL_PROFILES:
             return jsonify({"success": False, "error": f"model must be one of: {', '.join(MODEL_PROFILES)}"}), 400
 
-        games = await asyncio.to_thread(load_games)
+        games, cache = await load_nfl_games_for_request()
         teams = set(list_teams(games))
         if away_team not in teams:
             return jsonify({"success": False, "error": f"Unknown away_team: {away_team}"}), 400
@@ -952,6 +969,8 @@ async def nfl_history():
         rows = matchup_history(games, away_team, home_team, model_profile=model)
         return jsonify({
             "success": True,
+            "source": GAMES_URL,
+            "cache": cache,
             "away_team": away_team,
             "home_team": home_team,
             "model": model,
@@ -960,6 +979,18 @@ async def nfl_history():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/nfl/live")
+async def nfl_live():
+    try:
+        data = await asyncio.to_thread(live_scoreboard)
+        status = 200 if data.get("success", False) else 400
+        return jsonify(data), status
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"success": False, "enabled": False, "events": [], "error": str(e)}), 500
+
 
 @app.route("/admin")
 async def admin_dashboard():

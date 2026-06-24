@@ -1129,6 +1129,18 @@ nav a:hover:not(.btn-primary) {
     margin-bottom: 1rem;
 }
 
+.nfl-data-status {
+    margin: 0.65rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.86rem;
+    line-height: 1.45;
+}
+
+.nfl-data-status strong {
+    color: var(--accent-blue);
+    font-weight: 700;
+}
+
 .model-toggle {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));

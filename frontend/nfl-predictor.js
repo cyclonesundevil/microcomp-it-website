@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const marginMae = document.getElementById('margin-mae');
     const totalMae = document.getElementById('total-mae');
     const tableBody = document.getElementById('season-table-body');
+    const dataStatus = document.getElementById('nfl-data-status');
+    const liveStatus = document.getElementById('nfl-live-status');
     const matchupForm = document.getElementById('matchup-form');
     const awayTeam = document.getElementById('away-team');
     const homeTeam = document.getElementById('home-team');
@@ -68,6 +70,23 @@ document.addEventListener('DOMContentLoaded', () => {
         return number >= 0 ? `+${number.toFixed(1)}` : number.toFixed(1);
     }
 
+    function ageLabel(seconds) {
+        if (seconds === null || seconds === undefined) return 'not cached yet';
+        const hours = seconds / 3600;
+        if (hours < 1) return `${Math.max(1, Math.round(seconds / 60))} minutes ago`;
+        if (hours < 48) return `${hours.toFixed(1)} hours ago`;
+        return `${(hours / 24).toFixed(1)} days ago`;
+    }
+
+    function updateDataStatus(payload) {
+        if (!dataStatus || !payload?.cache) return;
+        const cache = payload.cache;
+        const seasons = payload.available_seasons
+            ? ` ${payload.available_seasons.start}-${payload.available_seasons.end}`
+            : '';
+        dataStatus.textContent = `nflverse cache refreshed ${ageLabel(cache.age_seconds)}; model data covers${seasons || ' available seasons'}.`;
+    }
+
     function totalResult(game) {
         const margin = Number(game.actual_total) - Number(game.total_line);
         if (Math.abs(margin) < 0.001) return { label: 'Push', className: 'result-push' };
@@ -108,6 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function render(data) {
         const summary = data.summary;
+        updateDataStatus(data);
         message.textContent = `${data.seasons}-year ${data.model} profile, spread edge ${data.thresholds.spread} points, total edge ${data.thresholds.total} points.`;
         spreadRate.textContent = pct(summary.spread_win_rate);
         spreadDetail.textContent = `${summary.spread_wins} wins, ${summary.spread_pushes} pushes, ${summary.spread_bets} picks`;
@@ -234,6 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!response.ok || !data.success) {
             throw new Error(data.error || 'Unable to load teams');
         }
+        updateDataStatus(data);
 
         const options = data.teams.map((team) => `<option value="${team}">${team}</option>`).join('');
         awayTeam.innerHTML = options;
@@ -259,6 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!response.ok || !data.success) {
             throw new Error(data.error || 'Unable to predict matchup');
         }
+        updateDataStatus(data);
         renderPrediction(data.prediction);
     }
 
@@ -275,6 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!response.ok || !data.success) {
             throw new Error(data.error || 'Unable to load matchup history');
         }
+        updateDataStatus(data);
         renderHistory(data);
     }
 
@@ -314,6 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok || !data.success) {
                 throw new Error(data.error || 'Dashboard failed');
             }
+            updateDataStatus(data);
             renderDashboard(data);
         } catch (error) {
             dashboardMessage.textContent = `Unable to load the NFL dashboard: ${error.message}`;
@@ -327,8 +351,28 @@ document.addEventListener('DOMContentLoaded', () => {
         dashboardRefreshTimer = window.setTimeout(loadDashboard, 180);
     }
 
+    async function loadLiveStatus() {
+        if (!liveStatus) return;
+        try {
+            const response = await fetch(`${apiBase}/api/nfl/live`);
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || data.message || 'Live adapter unavailable');
+            }
+            if (!data.enabled) {
+                liveStatus.textContent = 'Live scoreboard adapter is configured off; predictions use refreshed nflverse final-score data.';
+                return;
+            }
+            const liveGames = (data.events || []).filter((event) => event.state === 'in');
+            const scheduledGames = (data.events || []).filter((event) => event.state === 'pre');
+            liveStatus.textContent = `${data.provider.toUpperCase()} live scoreboard enabled: ${liveGames.length} live, ${scheduledGames.length} upcoming. Odds and injuries still require a separate feed.`;
+        } catch (error) {
+            liveStatus.textContent = `Live scoreboard adapter unavailable: ${error.message}`;
+        }
+    }
+
     async function refreshAll() {
-        await Promise.all([loadBacktest(), loadDashboard()]);
+        await Promise.all([loadBacktest(), loadDashboard(), loadLiveStatus()]);
         if (awayTeam.value && homeTeam.value) {
             try {
                 await loadPrediction();

@@ -8,6 +8,14 @@ The script downloads `games.csv` from nflverse and caches it locally in `backend
 
 The dataset includes regular-season scores, teams, rest days, closing spread lines, and closing total lines. The model only grades games with a final score, spread line, and total line.
 
+The website API automatically refreshes the nflverse cache when it gets stale. The default cache TTL is 6 hours and can be changed with:
+
+```powershell
+$env:NFL_GAMES_CACHE_TTL_SECONDS="21600"
+```
+
+During the season, this makes the public dashboard suitable for post-game/current-season updates as nflverse publishes new final-score data. It is not an in-game feed; games without final scores are excluded from model training.
+
 ## Model
 
 `nfl_predictor.py` uses an online team-rating model:
@@ -58,6 +66,12 @@ cd backend
 .\venv\Scripts\python.exe nfl_predictor.py --refresh
 ```
 
+Force-refresh the website API cache from a browser or script:
+
+```text
+/api/nfl/backtest?seasons=10&model=baseline&refresh=true
+```
+
 ## Website Demo
 
 The website exposes a demo page at:
@@ -77,6 +91,7 @@ It also supports all-team matchup projections:
 ```text
 /api/nfl/teams
 /api/nfl/predict?away_team=KC&home_team=PHI&spread_line=0&total_line=44.5&model=baseline
+/api/nfl/live
 ```
 
 Supported query values:
@@ -85,6 +100,24 @@ Supported query values:
 - `model`: `baseline`, `enhanced`, `rothstein`, or `rothstein_plus`
 - `spread_line`: home-team spread line, where negative means the home team is favored
 - `total_line`: market over/under line
+
+## Live Data
+
+The model continues to use nflverse as the canonical historical and current-season training source.
+
+An optional live scoreboard adapter is available for display/status purposes:
+
+```powershell
+$env:NFL_LIVE_PROVIDER="espn"
+```
+
+When enabled, `/api/nfl/live` fetches the current ESPN scoreboard and returns live/upcoming/completed game status. This adapter does not feed odds, injuries, or in-game state into the prediction model. Keep `NFL_LIVE_PROVIDER` unset or set to `off` for the stable default demo.
+
+Recommended source split:
+
+- nflverse: model training, historical scores, schedules, closing lines, post-game updates
+- ESPN/live scoreboard adapter: current live score/status display
+- paid or contracted odds/injury provider: current spreads, totals, depth chart changes, and injury status
 
 ## Rothstein Algorithm
 

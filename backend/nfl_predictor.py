@@ -3,7 +3,9 @@ import csv
 import os
 import math
 import statistics
+import time
 import urllib.request
+from datetime import datetime, timezone
 from collections import Counter
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
@@ -100,9 +102,50 @@ def _mean(values: List[float], default: float = 0.0) -> float:
     return statistics.mean(values)
 
 
-def download_games(cache_path: str = DEFAULT_CACHE_PATH, refresh: bool = False) -> str:
+def _cache_age_seconds(cache_path: str = DEFAULT_CACHE_PATH) -> Optional[float]:
+    if not os.path.exists(cache_path):
+        return None
+    return max(0.0, time.time() - os.path.getmtime(cache_path))
+
+
+def default_cache_ttl_seconds() -> int:
+    try:
+        return int(os.getenv("NFL_GAMES_CACHE_TTL_SECONDS", str(6 * 60 * 60)))
+    except ValueError:
+        return 6 * 60 * 60
+
+
+def games_cache_info(cache_path: str = DEFAULT_CACHE_PATH, ttl_seconds: Optional[int] = None) -> dict:
+    ttl_seconds = default_cache_ttl_seconds() if ttl_seconds is None else ttl_seconds
+    exists = os.path.exists(cache_path)
+    modified_at = None
+    age_seconds = None
+    if exists:
+        modified_timestamp = os.path.getmtime(cache_path)
+        modified_at = datetime.fromtimestamp(modified_timestamp, tz=timezone.utc).isoformat()
+        age_seconds = max(0.0, time.time() - modified_timestamp)
+
+    return {
+        "path": cache_path,
+        "exists": exists,
+        "source": GAMES_URL,
+        "last_updated_utc": modified_at,
+        "age_seconds": age_seconds,
+        "ttl_seconds": ttl_seconds,
+        "stale": (age_seconds is None) or (ttl_seconds > 0 and age_seconds > ttl_seconds),
+    }
+
+
+def download_games(
+    cache_path: str = DEFAULT_CACHE_PATH,
+    refresh: bool = False,
+    ttl_seconds: Optional[int] = None,
+) -> str:
+    ttl_seconds = default_cache_ttl_seconds() if ttl_seconds is None else ttl_seconds
     os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-    if refresh or not os.path.exists(cache_path):
+    age_seconds = _cache_age_seconds(cache_path)
+    should_refresh = refresh or age_seconds is None or (ttl_seconds > 0 and age_seconds > ttl_seconds)
+    if should_refresh:
         with urllib.request.urlopen(GAMES_URL, timeout=60) as response:
             content = response.read()
         with open(cache_path, "wb") as f:
@@ -110,8 +153,12 @@ def download_games(cache_path: str = DEFAULT_CACHE_PATH, refresh: bool = False) 
     return cache_path
 
 
-def load_games(cache_path: str = DEFAULT_CACHE_PATH, refresh: bool = False) -> List[dict]:
-    path = download_games(cache_path=cache_path, refresh=refresh)
+def load_games(
+    cache_path: str = DEFAULT_CACHE_PATH,
+    refresh: bool = False,
+    ttl_seconds: Optional[int] = None,
+) -> List[dict]:
+    path = download_games(cache_path=cache_path, refresh=refresh, ttl_seconds=ttl_seconds)
     with open(path, newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
 
