@@ -947,6 +947,11 @@ nav a:hover:not(.btn-primary) {
     opacity: 0.48;
 }
 
+.solar-scale-control.muted select,
+.solar-scale-control.muted span {
+    display: none;
+}
+
 .solar-scale-control span {
     line-height: 1.35;
 }

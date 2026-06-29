@@ -100,6 +100,17 @@ if (container) {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
+    controls.enablePan = true;
+    controls.screenSpacePanning = true;
+    controls.mouseButtons = {
+        LEFT: THREE.MOUSE.ROTATE,
+        MIDDLE: THREE.MOUSE.DOLLY,
+        RIGHT: THREE.MOUSE.PAN
+    };
+    controls.touches = {
+        ONE: THREE.TOUCH.ROTATE,
+        TWO: THREE.TOUCH.DOLLY_PAN
+    };
     controls.minDistance = 5;
     controls.maxDistance = 260;
     controls.target.copy(stops[2].target);
@@ -129,6 +140,8 @@ if (container) {
     let activeMode = 'atlas';
     let currentZoom = Number(zoomInput.value);
     let cameraTransitionFrames = 80;
+    let lastScaleTransitionAt = 0;
+    const savedViews = new Map();
 
     function logPosition(km, minKm = 6_371, maxUnits = 72) {
         return Math.log10(Math.max(km, minKm) / minKm + 1) * maxUnits / Math.log10((93_000_000_000 * KM_PER_LY) / minKm + 1);
@@ -192,6 +205,85 @@ if (container) {
         return mesh;
     }
 
+    function makeEarthTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        const ocean = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        ocean.addColorStop(0, '#0d5da8');
+        ocean.addColorStop(0.5, '#126fc4');
+        ocean.addColorStop(1, '#083d7a');
+        ctx.fillStyle = ocean;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.globalCompositeOperation = 'source-over';
+        for (let continent = 0; continent < 9; continent += 1) {
+            const cx = Math.random() * canvas.width;
+            const cy = canvas.height * (0.24 + Math.random() * 0.52);
+            const points = 16 + Math.floor(Math.random() * 12);
+            ctx.beginPath();
+            for (let i = 0; i <= points; i += 1) {
+                const theta = (i / points) * Math.PI * 2;
+                const radius = 26 + Math.random() * 78;
+                const x = cx + Math.cos(theta) * radius * (1.5 + Math.random());
+                const y = cy + Math.sin(theta) * radius * (0.55 + Math.random() * 0.55);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.fillStyle = Math.random() > 0.35 ? 'rgba(52, 138, 78, 0.88)' : 'rgba(180, 152, 92, 0.86)';
+            ctx.fill();
+        }
+
+        ctx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 46; i += 1) {
+            const y = Math.random() * canvas.height;
+            ctx.beginPath();
+            ctx.ellipse(Math.random() * canvas.width, y, 45 + Math.random() * 120, 4 + Math.random() * 12, Math.random() * 0.4, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${0.055 + Math.random() * 0.085})`;
+            ctx.fill();
+        }
+
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    function makeMoonTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        const base = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        base.addColorStop(0, '#b9bdc0');
+        base.addColorStop(0.55, '#8f9497');
+        base.addColorStop(1, '#6e7376');
+        ctx.fillStyle = base;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        for (let i = 0; i < 120; i += 1) {
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * canvas.height;
+            const r = 2 + Math.random() * 16;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(50,52,54,${0.08 + Math.random() * 0.16})`;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x - r * 0.25, y - r * 0.25, r * 0.72, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(235,238,240,${0.08 + Math.random() * 0.12})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        for (let i = 0; i < 22; i += 1) {
+            ctx.beginPath();
+            ctx.ellipse(Math.random() * canvas.width, Math.random() * canvas.height, 22 + Math.random() * 48, 8 + Math.random() * 20, Math.random() * Math.PI, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(70,72,75,${0.08 + Math.random() * 0.1})`;
+            ctx.fill();
+        }
+
+        return new THREE.CanvasTexture(canvas);
+    }
+
     function makeOrbit(radius, color = 0x2de5ff, opacity = 0.24) {
         return new THREE.Mesh(
             new THREE.RingGeometry(radius - 0.015, radius + 0.015, 160),
@@ -199,9 +291,12 @@ if (container) {
         );
     }
 
-    const earth = makeSphere(1.25, 0x2f8cff, new THREE.Vector3(0, 0, 0), {
+    const earth = makeSphere(1.25, 0xffffff, new THREE.Vector3(0, 0, 0), {
+        map: makeEarthTexture(),
         emissive: 0x052448,
-        emissiveIntensity: 0.16
+        emissiveIntensity: 0.08,
+        roughness: 0.48,
+        metalness: 0.02
     });
     groups.earth.add(earth);
     const atmosphere = makeSphere(1.35, 0x7be7ff, new THREE.Vector3(0, 0, 0), {
@@ -211,14 +306,19 @@ if (container) {
     });
     groups.earth.add(atmosphere);
 
-    const moonDistance = logPosition(384_400, 6_371, 15);
-    const moon = makeSphere(0.38, 0xbfc4c8, new THREE.Vector3(moonDistance, 0, 0));
+    const moonDistance = 7.2;
+    const moon = makeSphere(0.34, 0xffffff, new THREE.Vector3(moonDistance, 0, 0), {
+        map: makeMoonTexture(),
+        emissive: 0x4a4a4a,
+        emissiveIntensity: 0.16,
+        roughness: 0.92,
+        metalness: 0
+    });
     groups.earth.add(moon);
     const moonOrbit = makeOrbit(moonDistance, 0x91a8c8, 0.28);
-    moonOrbit.rotation.x = Math.PI / 2;
     groups.earth.add(moonOrbit);
-    makeLabel('Earth', new THREE.Vector3(0, 2.1, 0), '#dffbff', 0, 1.72);
-    makeLabel('Moon 384,400 km', new THREE.Vector3(moonDistance, 1.35, 0), '#dffbff', 0.4, 1.82);
+    const earthLabel = makeLabel('Earth', new THREE.Vector3(0, 2.75, 0), '#dffbff', 0, 1.72, 0.62);
+    const moonLabel = makeLabel('Moon 384,400 km', new THREE.Vector3(moonDistance + 1.2, 1.35, 0), '#dffbff', 0.4, 1.82, 0.62);
 
     const planets = [
         ['Mercury', 0.387, 0.24, 0xb8a38d, 2_439.7],
@@ -255,7 +355,7 @@ if (container) {
         groups.solar.add(orbit);
         let label = null;
         if (name === 'Earth' || name === 'Jupiter' || name === 'Neptune') {
-            label = makeLabel(name, planet.position.clone().add(new THREE.Vector3(0, radius + 1.25, 0)), '#dffbff', 1.2, 3.4);
+            label = makeLabel(name, planet.position.clone().add(new THREE.Vector3(0, radius + 1.25, 0)), '#dffbff', 1.2, 2.65);
         }
         const locator = new THREE.Mesh(
             new THREE.RingGeometry(0.18, 0.24, 32),
@@ -309,7 +409,7 @@ if (container) {
             }
             return logPosition(au * KM_PER_AU, 6_371, solarDistanceSceneMax);
         };
-        const sunRadius = mode === 'size' ? 2.5 : mode === 'true' ? 0.64 : 1.6;
+        const sunRadius = mode === 'size' ? 2.5 : mode === 'true' ? 0.64 : mode === 'distance' ? 0.75 : 1.6;
         sun.scale.setScalar(sunRadius / sun.userData.baseRadius);
 
         solarPlanetEntries.forEach((entry) => {
@@ -319,8 +419,8 @@ if (container) {
             let locatorOpacity = 0;
 
             if (mode === 'distance') {
-                displayedRadius = entry.visualRadius;
-                locatorOpacity = 0.12;
+                displayedRadius = Math.max(entry.visualRadius * 0.22, accurateRadius * 14);
+                locatorOpacity = 0.2;
             } else if (mode === 'size') {
                 displayedRadius = accurateRadius;
                 locatorOpacity = entry.name === 'Jupiter' || entry.name === 'Saturn' ? 0.08 : 0.2;
@@ -334,11 +434,12 @@ if (container) {
             entry.planet.scale.setScalar(Math.max(displayedRadius / entry.visualRadius, 0.001));
             setOrbitRadius(entry.orbit, distance);
             entry.locator.position.copy(entry.planet.position);
-            entry.locator.scale.setScalar(mode === 'true' ? 1.8 : 1.25);
+            entry.locator.scale.setScalar(mode === 'true' ? 1.8 : mode === 'distance' ? 1.45 : 1.25);
             entry.locator.material.opacity = locatorOpacity;
             if (entry.label) {
-                const labelLift = mode === 'readable' || mode === 'distance' ? entry.visualRadius + 1.25 : 1.2;
-                entry.label.position.copy(entry.planet.position).add(new THREE.Vector3(0, labelLift, 0));
+                const labelLift = mode === 'readable' ? entry.visualRadius + 1.25 : mode === 'distance' ? displayedRadius + 1.45 : 1.2;
+                const labelOffsetX = entry.name === 'Jupiter' ? -1.6 : 1.25;
+                entry.label.position.copy(entry.planet.position).add(new THREE.Vector3(labelOffsetX, labelLift, 0));
             }
         });
     }
@@ -616,18 +717,38 @@ if (container) {
     // Milky Way radius is represented as 46 scene units; Sun is about 26,700 ly from center in a ~100,000 ly disk.
     const sunRadiusInGalaxy = 46 * (26_700 / 50_000);
     const sunAngleInLocalArm = -1.72;
-    const sunNeighborhood = makeSphere(0.34, 0xffdf8a, new THREE.Vector3(
+    const sunNeighborhoodPosition = new THREE.Vector3(
         Math.cos(sunAngleInLocalArm) * sunRadiusInGalaxy,
         0.35,
         Math.sin(sunAngleInLocalArm) * sunRadiusInGalaxy
-    ), {
-        emissive: 0xffc861,
-        emissiveIntensity: 1.8
-    });
-    groups.galaxy.add(sunNeighborhood);
+    );
+    const localStarsBubble = new THREE.Mesh(
+        new THREE.RingGeometry(1.35, 1.42, 56),
+        new THREE.MeshBasicMaterial({ color: 0xffdf8a, transparent: true, opacity: 0.34, side: THREE.DoubleSide, depthWrite: false })
+    );
+    localStarsBubble.rotation.x = -Math.PI / 2;
+    localStarsBubble.position.copy(sunNeighborhoodPosition);
+    groups.galaxy.add(localStarsBubble);
+    const sunPointer = new THREE.Group();
+    sunPointer.position.copy(sunNeighborhoodPosition);
+    const pointerLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, 0.08, 0),
+            new THREE.Vector3(3.6, 2.6, 0)
+        ]),
+        new THREE.LineBasicMaterial({ color: 0xffdf8a, transparent: true, opacity: 0.74, depthWrite: false })
+    );
+    const pointerTip = new THREE.Mesh(
+        new THREE.ConeGeometry(0.18, 0.55, 24),
+        new THREE.MeshBasicMaterial({ color: 0xffdf8a, transparent: true, opacity: 0.92, depthWrite: false })
+    );
+    pointerTip.position.set(0, 0.08, 0);
+    pointerTip.rotation.z = Math.PI;
+    sunPointer.add(pointerLine, pointerTip);
+    groups.galaxy.add(sunPointer);
     makeLabel('Milky Way barred spiral ~100K ly', new THREE.Vector3(0, 12, -33), '#dffbff', 3.65, 5.35, 0.78);
     makeLabel('Galactic center', new THREE.Vector3(0, 4.5, 0), '#fff1b5', 3.72, 5.25, 0.78);
-    makeLabel('Sun - Orion Spur', sunNeighborhood.position.clone().add(new THREE.Vector3(4.4, 3.2, 0)), '#ffe7a3', 3.72, 5.25, 0.82);
+    makeLabel('Sun + nearby stars - Orion Spur', sunNeighborhoodPosition.clone().add(new THREE.Vector3(4.4, 3.2, 0)), '#ffe7a3', 3.72, 5.25, 0.82);
     makeLabel('Perseus Arm', new THREE.Vector3(-18, 3, 18), '#dffbff', 3.72, 5.25, 0.68);
     makeLabel('Scutum-Centaurus Arm', new THREE.Vector3(23, 3, -18), '#dffbff', 3.72, 5.25, 0.68);
     makeLabel('Sagittarius Arm', new THREE.Vector3(-3, 3, 27), '#dffbff', 3.72, 5.25, 0.64);
@@ -672,44 +793,162 @@ if (container) {
     dwarfPositions.forEach((position, index) => {
         addDwarfGalaxy(position, index % 3 === 0 ? 0xffd7b0 : 0xb8d9ff, index % 4 === 0 ? 0.24 : 0.16);
     });
-    makeLabel('Andromeda 2.537M ly', new THREE.Vector3(58, 12, -22), '#dffbff', 4.6, 6.05);
-    makeLabel('Triangulum M33', new THREE.Vector3(31, 8, 33), '#dffbff', 4.6, 6.05, 0.72);
-    makeLabel('Dwarf satellites', new THREE.Vector3(-50, 11, 16), '#dffbff', 4.6, 6.05, 0.72);
-    makeLabel('Local Group', new THREE.Vector3(-12, 16, 8), '#dffbff', 4.6, 6.05);
+    makeLabel('Andromeda 2.537M ly', new THREE.Vector3(58, 12, -22), '#dffbff', 4.6, 5.55);
+    makeLabel('Triangulum M33', new THREE.Vector3(31, 8, 33), '#dffbff', 4.6, 5.55, 0.72);
+    makeLabel('Dwarf satellites', new THREE.Vector3(-50, 11, 16), '#dffbff', 4.6, 5.55, 0.72);
+    makeLabel('Local Group', new THREE.Vector3(-12, 16, 8), '#dffbff', 4.6, 5.55);
 
-    const cosmicCloud = makePointCloud(6200, 115, 0x73e3ff, 0xff73de, 0.16, 85);
+    const cosmicCloud = makePointCloud(7600, 115, 0xb68cff, 0xffb06f, 0.13, 85);
     groups.cosmic.add(cosmicCloud);
-    for (let i = 0; i < 18; i += 1) {
-        const curve = new THREE.CatmullRomCurve3([
-            new THREE.Vector3((Math.random() - 0.5) * 170, (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 170),
-            new THREE.Vector3((Math.random() - 0.5) * 140, (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 140),
-            new THREE.Vector3((Math.random() - 0.5) * 170, (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 170)
-        ]);
-        const tube = new THREE.Mesh(
-            new THREE.TubeGeometry(curve, 32, 0.045, 8, false),
-            new THREE.MeshBasicMaterial({ color: i % 2 ? 0xff73de : 0x73e3ff, transparent: true, opacity: 0.2 })
-        );
-        groups.cosmic.add(tube);
+    function makeCosmicWeb() {
+        const web = new THREE.Group();
+        const nodes = [];
+        const nodeCount = 70;
+
+        for (let i = 0; i < nodeCount; i += 1) {
+            const shell = Math.pow(Math.random(), 0.72) * 108;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(THREE.MathUtils.randFloatSpread(1.6));
+            const position = new THREE.Vector3(
+                Math.sin(phi) * Math.cos(theta) * shell,
+                Math.cos(phi) * shell * 0.58,
+                Math.sin(phi) * Math.sin(theta) * shell
+            );
+            nodes.push(position);
+
+            const knot = new THREE.Mesh(
+                new THREE.SphereGeometry(0.22 + Math.random() * 0.42, 14, 8),
+                new THREE.MeshBasicMaterial({
+                    color: Math.random() > 0.35 ? 0xffc06f : 0xf083ff,
+                    transparent: true,
+                    opacity: 0.84,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false
+                })
+            );
+            knot.position.copy(position);
+            web.add(knot);
+        }
+
+        nodes.forEach((node, index) => {
+            const nearest = nodes
+                .map((candidate, candidateIndex) => ({
+                    candidate,
+                    candidateIndex,
+                    distance: node.distanceTo(candidate)
+                }))
+                .filter((item) => item.candidateIndex !== index && item.distance < 48)
+                .sort((a, b) => a.distance - b.distance)
+                .slice(0, 3);
+
+            nearest.forEach(({ candidate, candidateIndex, distance }, connectionIndex) => {
+                if (candidateIndex < index && connectionIndex > 0) return;
+                const midpoint = node.clone().lerp(candidate, 0.5);
+                midpoint.add(new THREE.Vector3(
+                    THREE.MathUtils.randFloatSpread(distance * 0.12),
+                    THREE.MathUtils.randFloatSpread(distance * 0.08),
+                    THREE.MathUtils.randFloatSpread(distance * 0.12)
+                ));
+                const curve = new THREE.CatmullRomCurve3([node, midpoint, candidate]);
+                const tube = new THREE.Mesh(
+                    new THREE.TubeGeometry(curve, 18, 0.025 + Math.max(0, 44 - distance) * 0.0014, 6, false),
+                    new THREE.MeshBasicMaterial({
+                        color: connectionIndex === 0 ? 0xff9adf : 0x8fddff,
+                        transparent: true,
+                        opacity: connectionIndex === 0 ? 0.46 : 0.27,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false
+                    })
+                );
+                web.add(tube);
+            });
+        });
+
+        for (let i = 0; i < 150; i += 1) {
+            const a = nodes[Math.floor(Math.random() * nodes.length)];
+            const direction = new THREE.Vector3(
+                THREE.MathUtils.randFloatSpread(1),
+                THREE.MathUtils.randFloatSpread(0.55),
+                THREE.MathUtils.randFloatSpread(1)
+            ).normalize();
+            const b = a.clone().add(direction.multiplyScalar(8 + Math.random() * 22));
+            const curve = new THREE.CatmullRomCurve3([a, a.clone().lerp(b, 0.55), b]);
+            const wisp = new THREE.Mesh(
+                new THREE.TubeGeometry(curve, 8, 0.012 + Math.random() * 0.012, 5, false),
+                new THREE.MeshBasicMaterial({
+                    color: Math.random() > 0.5 ? 0xff83d8 : 0x8bdfff,
+                    transparent: true,
+                    opacity: 0.18,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false
+                })
+            );
+            web.add(wisp);
+        }
+
+        return web;
     }
+
+    const cosmicWeb = makeCosmicWeb();
+    groups.cosmic.add(cosmicWeb);
     const horizon = new THREE.Mesh(
         new THREE.SphereGeometry(124, 96, 48),
         new THREE.MeshBasicMaterial({ color: 0x4edfff, transparent: true, opacity: 0.035, wireframe: true })
     );
     groups.cosmic.add(horizon);
+    const cosmicLocalGroupAnchor = new THREE.Group();
+    cosmicLocalGroupAnchor.position.set(-12, -4, 18);
+    const localGroupDot = new THREE.Mesh(
+        new THREE.SphereGeometry(0.18, 24, 12),
+        new THREE.MeshBasicMaterial({ color: 0xffd48a, transparent: true, opacity: 0.86 })
+    );
+    const localGroupLocator = new THREE.Mesh(
+        new THREE.RingGeometry(0.75, 0.82, 42),
+        new THREE.MeshBasicMaterial({ color: 0xffd48a, transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false })
+    );
+    localGroupLocator.rotation.x = -Math.PI / 2;
+    cosmicLocalGroupAnchor.add(localGroupDot, localGroupLocator);
+    groups.cosmic.add(cosmicLocalGroupAnchor);
+    makeLabel('Local Group anchor', new THREE.Vector3(-12, 5, 18), '#ffe7a3', 5.55, 6, 0.72);
+
+    function addCosmicContextAnchor(name, position, color = 0x8ef2ff, radius = 0.34) {
+        const anchor = new THREE.Group();
+        anchor.position.copy(position);
+        const dot = new THREE.Mesh(
+            new THREE.SphereGeometry(radius, 20, 10),
+            new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.76 })
+        );
+        const locator = new THREE.Mesh(
+            new THREE.RingGeometry(radius * 2.2, radius * 2.45, 36),
+            new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false })
+        );
+        locator.rotation.x = -Math.PI / 2;
+        anchor.add(dot, locator);
+        groups.cosmic.add(anchor);
+        makeLabel(name, position.clone().add(new THREE.Vector3(0, 5.5, 0)), '#dffbff', 5.55, 6, 0.62);
+    }
+
+    addCosmicContextAnchor('Virgo Cluster', new THREE.Vector3(18, 9, -26), 0x8ef2ff, 0.28);
+    addCosmicContextAnchor('Fornax Cluster', new THREE.Vector3(-38, -11, -18), 0xb8d9ff, 0.24);
+    addCosmicContextAnchor('Coma Cluster', new THREE.Vector3(42, 17, 22), 0xffb6dc, 0.32);
+    addCosmicContextAnchor('Laniakea Supercluster', new THREE.Vector3(-2, -22, 42), 0xffd48a, 0.4);
+    addCosmicContextAnchor('Shapley Supercluster', new THREE.Vector3(70, -8, -48), 0xff73de, 0.48);
+    addCosmicContextAnchor('Sloan Great Wall', new THREE.Vector3(-72, 18, 58), 0x73e3ff, 0.42);
+
     makeLabel('Observable Universe ~93B ly wide', new THREE.Vector3(0, 62, 0), '#dffbff', 5.4, 6);
 
     function updateVisibility() {
         const zoom = currentZoom;
-        groups.earth.visible = zoom < 1.82;
-        groups.solar.visible = zoom >= 1.15 && zoom < 3.45;
+        groups.earth.visible = zoom < 1.18;
+        groups.solar.visible = zoom >= 1.15 && zoom < 2.65;
         groups.stars.visible = zoom >= 2.7 && zoom < 3.72;
         groups.galaxy.visible = zoom >= 3.72 && zoom < 5.35;
-        groups.local.visible = zoom >= 4.6 && zoom < 6.05;
+        groups.local.visible = zoom >= 4.6 && zoom < 5.55;
         groups.cosmic.visible = zoom >= 5.4;
         if (solarScaleSelect) {
             const solarControl = solarScaleSelect.closest('.solar-scale-control');
             if (solarControl) {
-                solarControl.classList.toggle('muted', !(zoom >= 1.15 && zoom < 3.45));
+                solarControl.classList.toggle('muted', !(zoom >= 1.15 && zoom < 2.65));
             }
         }
 
@@ -746,7 +985,7 @@ if (container) {
         distanceReadout.textContent = formatDistance(stop.distance);
         if (contextNote) {
             if (stop.id === 'observable') {
-                contextNote.textContent = 'Observable-universe filaments are procedural cosmic-web structure, not survey data.';
+                contextNote.textContent = 'Observable-universe filaments and distant structure anchors are illustrative context, not precise survey coordinates.';
             } else if (stop.id === 'local-group') {
                 contextNote.textContent = 'Local Group view includes major galaxies plus simplified dwarf satellite markers.';
             } else {
@@ -764,6 +1003,63 @@ if (container) {
         zoomInput.value = currentZoom.toFixed(2);
         updateVisibility();
         updateReadouts();
+    }
+
+    function saveCurrentView() {
+        savedViews.set(nearestStopIndex(currentZoom), {
+            camera: camera.position.clone(),
+            target: controls.target.clone()
+        });
+    }
+
+    function restoreSavedView(index) {
+        const savedView = savedViews.get(index);
+        if (!savedView) return false;
+        camera.position.copy(savedView.camera);
+        controls.target.copy(savedView.target);
+        controls.update();
+        return true;
+    }
+
+    function transitionToStop(index) {
+        const nextIndex = THREE.MathUtils.clamp(index, 0, stops.length - 1);
+        if (nextIndex === nearestStopIndex(currentZoom)) return;
+        saveCurrentView();
+        lastScaleTransitionAt = performance.now();
+        setZoom(nextIndex);
+        if (restoreSavedView(nextIndex)) {
+            cameraTransitionFrames = 0;
+        }
+    }
+
+    function handleScaleZoomTransitions() {
+        if (cameraTransitionFrames > 0) return;
+        if (performance.now() - lastScaleTransitionAt < 900) return;
+
+        const stopIndex = nearestStopIndex(currentZoom);
+        const stopDistance = stops[stopIndex].camera.distanceTo(stops[stopIndex].target);
+        const cameraDistance = camera.position.distanceTo(controls.target);
+        const largerScaleThreshold = stopIndex === 5 ? 1.42 : 1.58;
+        const smallerScaleThresholds = [0.42, 0.36, 0.3, 0.28, 0.16, 0.18, 0.22];
+        const smallerScaleThreshold = smallerScaleThresholds[stopIndex] || 0.3;
+
+        if (
+            stopIndex === 4 &&
+            controls.target.distanceTo(sunNeighborhoodPosition) < 3.2 &&
+            cameraDistance < 9
+        ) {
+            transitionToStop(2);
+            return;
+        }
+
+        if (cameraDistance > stopDistance * largerScaleThreshold && stopIndex < stops.length - 1) {
+            transitionToStop(stopIndex + 1);
+            return;
+        }
+
+        if (cameraDistance < stopDistance * smallerScaleThreshold && stopIndex > 0) {
+            transitionToStop(stopIndex - 1);
+        }
     }
 
     zoomInput.addEventListener('input', () => setZoom(Number(zoomInput.value)));
@@ -809,11 +1105,12 @@ if (container) {
             controls.target.lerp(stops[nearestStopIndex(currentZoom)].target, 0.07);
             cameraTransitionFrames -= 1;
         }
-
         const time = performance.now() * 0.001;
         earth.rotation.y = time * 0.22;
         atmosphere.rotation.y = time * 0.16;
-        moon.position.set(Math.cos(time * 0.18) * moonDistance, 0, Math.sin(time * 0.18) * moonDistance);
+        moon.position.set(Math.cos(time * 0.18) * moonDistance, Math.sin(time * 0.18) * moonDistance, 0);
+        earthLabel.position.set(0, 2.75, 0);
+        moonLabel.position.copy(moon.position).add(new THREE.Vector3(1.2, 1.35, 0));
         groups.solar.rotation.y = 0;
         groups.galaxy.rotation.y = 0;
         groups.local.rotation.y = time * 0.006;
@@ -826,6 +1123,7 @@ if (container) {
         });
 
         controls.update();
+        handleScaleZoomTransitions();
         renderer.render(scene, camera);
     }
 
