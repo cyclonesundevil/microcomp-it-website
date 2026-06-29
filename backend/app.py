@@ -29,9 +29,9 @@ from quart import Response
 from nfl_live_data import live_scoreboard
 from nfl_predictor import GAMES_URL, MODEL_PROFILES, dashboard_snapshot, default_spread_threshold, default_total_threshold, games_cache_info, list_teams, load_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
 
-load_dotenv()
-
 base_dir = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(base_dir, ".env"))
+
 frontend_dir = os.path.join(base_dir, '..', 'frontend')
 try:
     ARIZONA_TZ = ZoneInfo("America/Phoenix")
@@ -461,6 +461,15 @@ async def health_check():
         "environment": os.environ.get("RENDER_SERVICE_ID", "local"),
         "discord_webhook": webhook_status,
         "smtp": smtp_status
+    })
+
+
+@app.route("/api/maps/config")
+async def maps_config():
+    maps_key = os.getenv("GOOGLE_MAPS_TILE_API_KEY") or os.getenv("GOOGLE_MAPS_API_KEY") or ""
+    return jsonify({
+        "enabled": bool(maps_key),
+        "googleMapsApiKey": maps_key
     })
 
 # Initialize Gemini Client

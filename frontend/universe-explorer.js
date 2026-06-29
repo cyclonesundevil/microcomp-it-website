@@ -15,6 +15,11 @@ if (container) {
     const solarScaleNote = document.getElementById('solar-scale-note');
     const contextNote = document.getElementById('universe-context-note');
     const modeButtons = document.querySelectorAll('[data-universe-mode]');
+    const earthSurfaceLaunch = document.getElementById('earth-surface-launch');
+    const earthSurfaceOverlay = document.getElementById('earth-surface-overlay');
+    const earthSurfaceClose = document.getElementById('earth-surface-close');
+    const earthSurfaceMap = document.getElementById('earth-surface-map');
+    const earthSurfaceStatus = document.getElementById('earth-surface-status');
 
     const KM_PER_AU = 149_597_870.7;
     const KM_PER_LY = 9_460_730_472_580.8;
@@ -142,6 +147,9 @@ if (container) {
     let cameraTransitionFrames = 80;
     let lastScaleTransitionAt = 0;
     const savedViews = new Map();
+    let earthSurfaceWidget = null;
+    let earthSurfaceTileset = null;
+    let earthSurfaceLoading = false;
 
     function logPosition(km, minKm = 6_371, maxUnits = 72) {
         return Math.log10(Math.max(km, minKm) / minKm + 1) * maxUnits / Math.log10((93_000_000_000 * KM_PER_LY) / minKm + 1);
@@ -954,6 +962,9 @@ if (container) {
                 solarControl.classList.toggle('muted', !showSolarSystem);
             }
         }
+        if (earthSurfaceLaunch) {
+            earthSurfaceLaunch.classList.toggle('is-visible', showEarthMoon);
+        }
 
         groups.solar.children.forEach((child) => {
             if (child.userData.isOrbit) child.visible = activeMode !== 'structure';
@@ -1072,11 +1083,256 @@ if (container) {
         }
     }
 
+    function setEarthSurfaceStatus(message) {
+        if (!earthSurfaceStatus) return;
+        earthSurfaceStatus.textContent = message || '';
+    }
+
+    function loadExternalStylesheet(href, id) {
+        if (document.getElementById(id)) return Promise.resolve();
+        return new Promise((resolve, reject) => {
+            const link = document.createElement('link');
+            link.id = id;
+            link.rel = 'stylesheet';
+            link.href = href;
+            link.onload = resolve;
+            link.onerror = reject;
+            document.head.appendChild(link);
+        });
+    }
+
+    function loadExternalScript(src, id) {
+        if (document.getElementById(id)) return Promise.resolve();
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.id = id;
+            script.src = src;
+            script.async = true;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    async function loadCesium() {
+        window.CESIUM_BASE_URL = window.CESIUM_BASE_URL || 'https://cdn.jsdelivr.net/npm/cesium@1.118.2/Build/Cesium/';
+        await loadExternalStylesheet('https://cdn.jsdelivr.net/npm/cesium@1.118.2/Build/Cesium/Widgets/widgets.css', 'cesium-widgets-css');
+        await loadExternalScript('https://cdn.jsdelivr.net/npm/cesium@1.118.2/Build/Cesium/Cesium.js', 'cesium-main-js');
+    }
+
+    function attachEarthSurfaceControls(Cesium) {
+        if (!earthSurfaceMap || !earthSurfaceWidget || earthSurfaceMap.dataset.controlsAttached === 'true') return;
+        earthSurfaceMap.dataset.controlsAttached = 'true';
+        const camera = earthSurfaceWidget.camera;
+        const scene = earthSurfaceWidget.scene;
+        const activePointers = new Map();
+        let dragging = false;
+        let lastX = 0;
+        let lastY = 0;
+        let lastPinchDistance = 0;
+        let lastPinchCenter = null;
+
+        function requestRender() {
+            if (scene.requestRender) scene.requestRender();
+        }
+
+        function cameraHeight() {
+            return Math.max(camera.positionCartographic.height || 1_000, 350);
+        }
+
+        earthSurfaceMap.addEventListener('wheel', (event) => {
+            event.preventDefault();
+            const amount = cameraHeight() * Math.min(0.45, Math.max(0.08, Math.abs(event.deltaY) / 1600));
+            if (event.deltaY > 0) {
+                camera.zoomOut(amount);
+            } else {
+                camera.zoomIn(amount);
+            }
+            requestRender();
+        }, { passive: false });
+
+        earthSurfaceMap.addEventListener('pointerdown', (event) => {
+            if (event.pointerType === 'mouse' && event.button !== 0) return;
+            activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+            dragging = activePointers.size === 1;
+            lastX = event.clientX;
+            lastY = event.clientY;
+            earthSurfaceMap.setPointerCapture(event.pointerId);
+            earthSurfaceMap.classList.add('is-dragging');
+            if (activePointers.size === 2) {
+                const points = Array.from(activePointers.values());
+                lastPinchDistance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+                lastPinchCenter = {
+                    x: (points[0].x + points[1].x) / 2,
+                    y: (points[0].y + points[1].y) / 2
+                };
+            }
+        });
+
+        earthSurfaceMap.addEventListener('pointermove', (event) => {
+            if (!activePointers.has(event.pointerId)) return;
+            event.preventDefault();
+            activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+            if (activePointers.size >= 2) {
+                const points = Array.from(activePointers.values()).slice(0, 2);
+                const distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+                const center = {
+                    x: (points[0].x + points[1].x) / 2,
+                    y: (points[0].y + points[1].y) / 2
+                };
+                if (lastPinchDistance > 0) {
+                    const delta = distance - lastPinchDistance;
+                    const amount = cameraHeight() * Math.min(0.28, Math.abs(delta) / 520);
+                    if (delta > 0) {
+                        camera.zoomIn(amount);
+                    } else if (delta < 0) {
+                        camera.zoomOut(amount);
+                    }
+                    if (lastPinchCenter) {
+                        const dx = center.x - lastPinchCenter.x;
+                        const dy = center.y - lastPinchCenter.y;
+                        camera.rotateLeft(dx * 0.0015);
+                        camera.rotateUp(dy * 0.0015);
+                    }
+                    requestRender();
+                }
+                lastPinchDistance = distance;
+                lastPinchCenter = center;
+                return;
+            }
+            if (!dragging) return;
+            const dx = event.clientX - lastX;
+            const dy = event.clientY - lastY;
+            lastX = event.clientX;
+            lastY = event.clientY;
+            const height = cameraHeight();
+            if (height > 1_200_000) {
+                camera.rotateLeft(dx * 0.0022);
+                camera.rotateUp(dy * 0.0022);
+            } else {
+                const moveScale = height * 0.0016;
+                camera.moveRight(-dx * moveScale);
+                camera.moveUp(dy * moveScale);
+            }
+            requestRender();
+        }, { passive: false });
+
+        function endDrag(event) {
+            activePointers.delete(event.pointerId);
+            dragging = activePointers.size === 1;
+            if (!dragging) {
+                earthSurfaceMap.classList.remove('is-dragging');
+            }
+            if (activePointers.size < 2) {
+                lastPinchDistance = 0;
+                lastPinchCenter = null;
+            }
+            if (earthSurfaceMap.hasPointerCapture(event.pointerId)) {
+                earthSurfaceMap.releasePointerCapture(event.pointerId);
+            }
+        }
+
+        earthSurfaceMap.addEventListener('pointerup', endDrag);
+        earthSurfaceMap.addEventListener('pointercancel', endDrag);
+        earthSurfaceMap.addEventListener('lostpointercapture', (event) => {
+            activePointers.delete(event.pointerId);
+            dragging = activePointers.size === 1;
+            if (activePointers.size < 2) {
+                lastPinchDistance = 0;
+                lastPinchCenter = null;
+            }
+            if (!dragging) {
+                earthSurfaceMap.classList.remove('is-dragging');
+            }
+        });
+    }
+
+    async function getMapsConfig() {
+        const browserKey = window.MICROCOMP_GOOGLE_MAPS_API_KEY || window.GOOGLE_MAPS_TILE_API_KEY || '';
+        if (browserKey) {
+            return { enabled: true, googleMapsApiKey: browserKey };
+        }
+        try {
+            const response = await fetch('/api/maps/config', { cache: 'no-store' });
+            if (!response.ok) return { enabled: false, googleMapsApiKey: '' };
+            return await response.json();
+        } catch (error) {
+            return { enabled: false, googleMapsApiKey: '' };
+        }
+    }
+
+    async function initializeEarthSurface() {
+        if (earthSurfaceWidget || earthSurfaceLoading || !earthSurfaceMap) return;
+        earthSurfaceLoading = true;
+        setEarthSurfaceStatus('Loading Earth surface...');
+        try {
+            const config = await getMapsConfig();
+            if (!config.enabled || !config.googleMapsApiKey) {
+                setEarthSurfaceStatus('Set GOOGLE_MAPS_TILE_API_KEY or GOOGLE_MAPS_API_KEY on the server to enable Google Photorealistic 3D Tiles.');
+                return;
+            }
+
+            await loadCesium();
+            const Cesium = window.Cesium;
+            Cesium.Ion.defaultAccessToken = '';
+            earthSurfaceWidget = new Cesium.CesiumWidget(earthSurfaceMap, {
+                scene3DOnly: true,
+                requestRenderMode: false,
+                useDefaultRenderLoop: true
+            });
+            earthSurfaceWidget.scene.globe.show = true;
+            earthSurfaceWidget.scene.globe.baseColor = Cesium.Color.fromCssColorString('#071a33');
+            earthSurfaceWidget.scene.skyAtmosphere.show = true;
+            earthSurfaceWidget.scene.screenSpaceCameraController.enableCollisionDetection = true;
+            earthSurfaceWidget.scene.screenSpaceCameraController.enableInputs = false;
+            earthSurfaceWidget.scene.screenSpaceCameraController.minimumZoomDistance = 350;
+            earthSurfaceWidget.scene.screenSpaceCameraController.maximumZoomDistance = 42_000_000;
+            earthSurfaceWidget.scene.camera.setView({
+                destination: Cesium.Cartesian3.fromDegrees(-98.5795, 39.8283, 19_000_000),
+                orientation: {
+                    heading: 0,
+                    pitch: Cesium.Math.toRadians(-90),
+                    roll: 0
+                }
+            });
+
+            earthSurfaceTileset = await Cesium.Cesium3DTileset.fromUrl(
+                `https://tile.googleapis.com/v1/3dtiles/root.json?key=${encodeURIComponent(config.googleMapsApiKey)}`,
+                { showCreditsOnScreen: true }
+            );
+            earthSurfaceWidget.scene.primitives.add(earthSurfaceTileset);
+            attachEarthSurfaceControls(Cesium);
+            setEarthSurfaceStatus('');
+        } catch (error) {
+            setEarthSurfaceStatus('Earth surface tiles could not be loaded. Check the Maps tile API key, billing, and browser console details.');
+            console.error('Earth surface initialization failed:', error);
+        } finally {
+            earthSurfaceLoading = false;
+        }
+    }
+
+    function openEarthSurface() {
+        if (!earthSurfaceOverlay) return;
+        earthSurfaceOverlay.hidden = false;
+        initializeEarthSurface();
+    }
+
+    function closeEarthSurface() {
+        if (!earthSurfaceOverlay) return;
+        earthSurfaceOverlay.hidden = true;
+    }
+
     zoomInput.addEventListener('input', () => setZoom(Number(zoomInput.value)));
     stopSelect.addEventListener('change', () => {
         const index = stops.findIndex((stop) => stop.id === stopSelect.value);
         if (index >= 0) setZoom(index);
     });
+    if (earthSurfaceLaunch) {
+        earthSurfaceLaunch.addEventListener('click', openEarthSurface);
+    }
+    if (earthSurfaceClose) {
+        earthSurfaceClose.addEventListener('click', closeEarthSurface);
+    }
     if (solarScaleSelect) {
         solarScaleSelect.addEventListener('change', applySolarScaleMode);
     }

@@ -978,6 +978,29 @@ nav a:hover:not(.btn-primary) {
     background: rgba(0, 240, 255, 0.12);
 }
 
+.earth-surface-launch {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    min-height: 42px;
+    border: 1px solid rgba(0, 240, 255, 0.38);
+    border-radius: 8px;
+    background: rgba(0, 240, 255, 0.12);
+    color: var(--text-primary);
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.earth-surface-launch.is-visible {
+    display: inline-flex;
+}
+
+.earth-surface-launch:hover {
+    border-color: var(--accent-blue);
+    background: rgba(0, 240, 255, 0.18);
+}
+
 .universe-scene {
     width: 100%;
     height: 86vh;
@@ -988,6 +1011,106 @@ nav a:hover:not(.btn-primary) {
     display: block;
     width: 100%;
     height: 100%;
+}
+
+.earth-surface-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    background: #01030a;
+}
+
+.earth-surface-overlay[hidden] {
+    display: none;
+}
+
+.earth-surface-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 74px;
+    padding: 0.9rem 5%;
+    border-bottom: 1px solid rgba(0, 240, 255, 0.14);
+    background: rgba(3, 5, 10, 0.92);
+}
+
+.earth-surface-toolbar div {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.earth-surface-toolbar span {
+    color: var(--accent-blue);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.earth-surface-toolbar strong {
+    color: var(--text-primary);
+    font-size: clamp(1.1rem, 2vw, 1.55rem);
+}
+
+.earth-surface-toolbar button {
+    display: inline-grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(0, 240, 255, 0.26);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.earth-surface-toolbar button:hover {
+    border-color: var(--accent-blue);
+    background: rgba(0, 240, 255, 0.12);
+}
+
+.earth-surface-map {
+    position: relative;
+    min-height: 0;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    overscroll-behavior: contain;
+}
+
+.earth-surface-map.is-dragging {
+    cursor: grabbing;
+}
+
+.earth-surface-map .cesium-widget,
+.earth-surface-map canvas {
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+}
+
+.earth-surface-status {
+    position: absolute;
+    left: 50%;
+    top: 52%;
+    z-index: 2;
+    width: min(520px, calc(100% - 2rem));
+    transform: translate(-50%, -50%);
+    padding: 1rem 1.15rem;
+    border: 1px solid rgba(0, 240, 255, 0.24);
+    border-radius: 8px;
+    background: rgba(4, 9, 20, 0.88);
+    color: var(--text-primary);
+    text-align: center;
+    font-weight: 800;
+    line-height: 1.45;
+}
+
+.earth-surface-status:empty {
+    display: none;
 }
 
 .universe-label-panel {

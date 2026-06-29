@@ -92,9 +92,27 @@
                     <button type="button" data-universe-mode="orbits">Orbits</button>
                     <button type="button" data-universe-mode="structure">Structure</button>
                 </div>
+                <button type="button" id="earth-surface-launch" class="earth-surface-launch">
+                    <i class="fa-solid fa-earth-americas"></i>
+                    Earth Surface
+                </button>
             </div>
 
             <div id="universe-scene" class="universe-scene" aria-label="Rotatable universe scale visualization"></div>
+
+            <div id="earth-surface-overlay" class="earth-surface-overlay" hidden>
+                <div class="earth-surface-toolbar">
+                    <div>
+                        <span>Google Photorealistic 3D Tiles</span>
+                        <strong>Earth Surface</strong>
+                    </div>
+                    <button type="button" id="earth-surface-close" aria-label="Close Earth surface viewer">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div id="earth-surface-map" class="earth-surface-map" aria-label="Interactive 3D Earth surface viewer"></div>
+                <div id="earth-surface-status" class="earth-surface-status" role="status">Loading Earth surface...</div>
+            </div>
 
             <div class="universe-label-panel">
                 <span><i class="fa-solid fa-circle-dot"></i> real anchor measurements</span>
