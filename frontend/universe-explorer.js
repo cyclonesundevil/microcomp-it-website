@@ -939,8 +939,11 @@ if (container) {
 
     function updateVisibility() {
         const zoom = currentZoom;
-        groups.earth.visible = zoom < 1.18;
-        groups.solar.visible = zoom >= 1.15 && zoom < 2.65;
+        const stopIndex = nearestStopIndex(zoom);
+        const showEarthMoon = stopIndex <= 1;
+        const showSolarSystem = stopIndex === 2;
+        groups.earth.visible = showEarthMoon;
+        groups.solar.visible = showSolarSystem;
         groups.stars.visible = zoom >= 2.7 && zoom < 3.72;
         groups.galaxy.visible = zoom >= 3.72 && zoom < 5.35;
         groups.local.visible = zoom >= 4.6 && zoom < 5.55;
@@ -948,7 +951,7 @@ if (container) {
         if (solarScaleSelect) {
             const solarControl = solarScaleSelect.closest('.solar-scale-control');
             if (solarControl) {
-                solarControl.classList.toggle('muted', !(zoom >= 1.15 && zoom < 2.65));
+                solarControl.classList.toggle('muted', !showSolarSystem);
             }
         }
 
@@ -965,6 +968,13 @@ if (container) {
         });
         labelSprites.forEach((sprite) => {
             sprite.visible = currentZoom >= sprite.userData.minZoom && currentZoom <= sprite.userData.maxZoom;
+        });
+        earthLabel.visible = showEarthMoon && currentZoom >= earthLabel.userData.minZoom && currentZoom <= earthLabel.userData.maxZoom;
+        moonLabel.visible = showEarthMoon && currentZoom >= moonLabel.userData.minZoom && currentZoom <= moonLabel.userData.maxZoom;
+        solarPlanetEntries.forEach((entry) => {
+            if (entry.label) {
+                entry.label.visible = showSolarSystem && currentZoom >= entry.label.userData.minZoom && currentZoom <= entry.label.userData.maxZoom;
+            }
         });
     }
 
