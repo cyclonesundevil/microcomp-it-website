@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universe Scale Explorer | MicroComp IT</title>
+    <meta name="description" content="A scale-aware Three.js universe explorer using real astronomical measurements for anchor objects and procedural deep-space structure.">
+    <meta name="theme-color" content="#03050a">
+    <link rel="stylesheet" href="styles.css?v=2.4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="universe-page">
+    <header class="navbar">
+        <div class="logo">
+            <i class="fa-solid fa-server"></i> MicroComp IT
+        </div>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="demo-lab.html">Demo Lab</a>
+            <a href="black-hole-playground.html" target="_blank" rel="noopener">Black Hole</a>
+            <a href="index.html#contact" class="btn-primary">Contact</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="universe-hero">
+            <div class="universe-copy">
+                <p class="science-kicker">Simulation & Visualization Demo</p>
+                <h1>Universe Scale Explorer</h1>
+                <p>
+                    Zoom from Earth orbit to the observable universe through a scale-aware 3D visualization. Major
+                    anchors use real astronomical measurements, while distant star fields, galaxy clouds, and cosmic
+                    structure are procedurally rendered for interactive performance.
+                </p>
+            </div>
+            <div class="universe-data-card">
+                <span class="paper-label">real measurements + procedural context</span>
+                <h2 id="universe-focus-title">Solar System</h2>
+                <p id="universe-focus-description">
+                    Planetary distances and sizes are grounded in known values, then compressed logarithmically so the
+                    structure can be explored in one browser scene.
+                </p>
+                <div class="universe-metrics" aria-live="polite">
+                    <div>
+                        <span>Current scale</span>
+                        <strong id="universe-scale-readout">1 AU</strong>
+                    </div>
+                    <div>
+                        <span>Anchor distance</span>
+                        <strong id="universe-distance-readout">149.6M km</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="universe-workbench" aria-label="Interactive universe scale explorer">
+            <div class="universe-controls" aria-label="Universe explorer controls">
+                <label>
+                    Scale stop
+                    <select id="universe-stop-select">
+                        <option value="earth">Earth Orbit</option>
+                        <option value="moon">Earth-Moon System</option>
+                        <option value="solar" selected>Solar System</option>
+                        <option value="nearby-stars">Nearby Stars</option>
+                        <option value="milky-way">Milky Way</option>
+                        <option value="local-group">Local Group</option>
+                        <option value="observable">Observable Universe</option>
+                    </select>
+                </label>
+                <label>
+                    Zoom depth
+                    <span id="universe-zoom-value">Solar System</span>
+                    <input id="universe-zoom" type="range" min="0" max="6" step="0.01" value="2">
+                </label>
+                <label class="solar-scale-control">
+                    Solar scale
+                    <select id="solar-scale-select">
+                        <option value="readable">Readable model</option>
+                        <option value="distance">Accurate distances</option>
+                        <option value="size">Accurate sizes</option>
+                        <option value="true">True scale assisted</option>
+                    </select>
+                    <span id="solar-scale-note">Distances are logarithmically compressed and planet sizes are enlarged.</span>
+                </label>
+                <div class="universe-toggle" role="group" aria-label="Universe explorer view mode">
+                    <button type="button" class="active" data-universe-mode="atlas">Atlas</button>
+                    <button type="button" data-universe-mode="orbits">Orbits</button>
+                    <button type="button" data-universe-mode="structure">Structure</button>
+                </div>
+            </div>
+
+            <div id="universe-scene" class="universe-scene" aria-label="Rotatable universe scale visualization"></div>
+
+            <div class="universe-label-panel">
+                <span><i class="fa-solid fa-circle-dot"></i> real anchor measurements</span>
+                <span><i class="fa-solid fa-wave-square"></i> logarithmic spatial compression</span>
+                <span><i class="fa-solid fa-wand-magic-sparkles"></i> procedural deep-space density</span>
+                <span id="universe-context-note" class="universe-context-note"></span>
+            </div>
+        </section>
+
+        <section class="universe-notes">
+            <div>
+                <i class="fa-solid fa-ruler-combined"></i>
+                <h3>Scale Aware</h3>
+                <p>Known sizes and distances are stored in kilometers, astronomical units, or light-years, then mapped into a usable 3D view.</p>
+            </div>
+            <div>
+                <i class="fa-solid fa-code-branch"></i>
+                <h3>Data Honest</h3>
+                <p>Planets, stars, galaxies, and cosmic horizons use published-scale anchor values. Background density is generated for visual context.</p>
+            </div>
+            <div>
+                <i class="fa-solid fa-cube"></i>
+                <h3>Interactive 3D</h3>
+                <p>Orbit controls, jump stops, readouts, labels, and adaptive camera motion show how complex datasets can become explorable tools.</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-brand">
+            <i class="fa-solid fa-server"></i>
+            <span>MicroComp IT Solutions</span>
+        </div>
+        <div class="footer-details">
+            <span>Universe Scale Explorer</span>
+            <span class="build-stamp" data-build-stamp>Site updated: June 27, 2026 00:00:00 MST</span>
+            <a href="demo-lab.html">Demo Lab</a>
+            <a href="index.html#contact">Contact</a>
+        </div>
+    </footer>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module" src="universe-explorer.js?v=1.0"></script>
+</body>
+
+</html>
