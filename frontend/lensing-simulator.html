@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#03050a">
     <script src="theme.js?v=1.0"></script>
     <script src="analytics.js?v=1.0"></script>
-    <link rel="stylesheet" href="styles.css?v=2.7">
+    <link rel="stylesheet" href="styles.css?v=2.8">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -208,8 +208,8 @@
             </div>
             <div class="lensing-controls lensing-controls-3d" aria-label="3D lensing viewer controls">
                 <div class="lensing-toggle" role="group" aria-label="Optics mode">
-                    <button type="button" class="active" data-mode="geometric">Geometric Optics</button>
-                    <button type="button" data-mode="wave">Wave Optics</button>
+                    <button type="button" class="muted" data-3d-mode="geometric" disabled aria-disabled="true">Geometric Optics</button>
+                    <button type="button" class="active" data-3d-mode="wave">Wave Optics</button>
                 </div>
 
                 <label>
@@ -286,7 +286,7 @@
             }
         }
     </script>
-    <script type="module" src="lensing-simulator-3d.js?v=1.0"></script>
+    <script type="module" src="lensing-simulator-3d.js?v=1.2"></script>
 </body>
 
 </html>

@@ -12,6 +12,7 @@ if (container) {
         frequency: document.querySelector('[data-lensing-control="frequency"]')
     };
     const allSliders = Array.from(document.querySelectorAll('[data-lensing-control]'));
+    const modeButtons = Array.from(container.parentElement.querySelectorAll('[data-3d-mode]'));
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x02040a);
@@ -133,16 +134,19 @@ if (container) {
     const dominantMaterial = new THREE.MeshBasicMaterial({
         color: 0x00f0ff,
         transparent: true,
-        opacity: 0.9
+        opacity: 0.9,
+        depthWrite: false
     });
     const secondaryMaterial = new THREE.MeshBasicMaterial({
         color: 0xff00ff,
         transparent: true,
-        opacity: 0.82
+        opacity: 0.82,
+        depthWrite: false
     });
 
     let dominantPath = null;
     let secondaryPath = null;
+    let currentMode = 'wave';
     const wavefronts = [];
 
     for (let i = 0; i < 9; i += 1) {
@@ -158,6 +162,23 @@ if (container) {
         wave.rotation.y = Math.PI / 2;
         wavefronts.push(wave);
         root.add(wave);
+    }
+
+    function readMode() {
+        return container.parentElement.querySelector('[data-3d-mode].active')?.dataset.mode || 'wave';
+    }
+
+    function applyModeVisuals() {
+        currentMode = readMode();
+        const waveMode = currentMode === 'wave';
+        dominantMaterial.opacity = waveMode ? 0.42 : 0.94;
+        secondaryMaterial.opacity = waveMode ? 0.36 : 0.82;
+        lensPlane.material.opacity = waveMode ? 0.12 : 0.24;
+        einsteinRing.material.opacity = waveMode ? 0.96 : 0.68;
+        lensHalo.material.opacity = waveMode ? 0.15 : 0.08;
+        wavefronts.forEach((wave) => {
+            wave.visible = waveMode;
+        });
     }
 
     function currentState() {
@@ -214,6 +235,7 @@ if (container) {
     }
 
     function updateScene() {
+        applyModeVisuals();
         const state = currentState();
         const sourceX = -Math.max(4.2, state.sourceDistance * 0.9);
         const observerX = Math.max(4.2, state.observerDistance * 1.15);
@@ -242,19 +264,25 @@ if (container) {
         const time = now * 0.001;
         const state = currentState();
         const span = observer.position.x - source.position.x;
+        const waveMode = currentMode === 'wave';
 
         wavefronts.forEach((wave, index) => {
             const travel = ((time * (0.32 + state.frequency / 7000) + index * 0.62) % 1);
             const x = source.position.x + span * travel;
-            const radius = 0.25 + travel * (1.15 + state.einstein * 0.28);
-            wave.position.set(x, source.position.y * (1 - travel), source.position.z * (1 - travel));
+            const wobble = Math.sin(time * 4.4 + index * 0.75) * state.alignment * 0.18;
+            const radius = 0.28 + travel * (1.22 + state.einstein * 0.32) + (waveMode ? wobble : 0);
+            wave.position.set(x, source.position.y * (1 - travel), source.position.z * (1 - travel) + wobble);
             wave.scale.set(radius, radius, radius);
-            wave.material.opacity = 0.1 + (1 - Math.abs(travel - 0.5) * 1.6) * 0.32;
+            wave.material.opacity = waveMode
+                ? 0.16 + (1 - Math.abs(travel - 0.5) * 1.6) * 0.42
+                : 0;
+            wave.material.color.setHex(index % 2 ? 0xff55ff : 0x8ffaff);
         });
 
         lens.rotation.y += 0.006;
         lensHalo.rotation.y -= 0.002;
-        einsteinRing.rotation.z = Math.sin(time * 0.7) * 0.05;
+        einsteinRing.rotation.z = Math.sin(time * (waveMode ? 1.6 : 0.7)) * (waveMode ? 0.11 : 0.05);
+        einsteinRing.scale.z = waveMode ? 1 + Math.sin(time * 3.2) * 0.03 : 1;
         stars.rotation.y += 0.0008;
         controls.update();
         renderer.render(scene, camera);
@@ -263,6 +291,13 @@ if (container) {
 
     allSliders.forEach((slider) => {
         slider.addEventListener('input', updateScene);
+    });
+    modeButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            if (button.disabled) return;
+            modeButtons.forEach((item) => item.classList.toggle('active', item === button));
+            window.setTimeout(updateScene, 0);
+        });
     });
     window.addEventListener('lensing-controls-change', updateScene);
 
