@@ -146,6 +146,7 @@ if (container) {
     let currentZoom = Number(zoomInput.value);
     let cameraTransitionFrames = 80;
     let lastScaleTransitionAt = 0;
+    let scaleTransitionLock = null;
     const savedViews = new Map();
     let earthSurfaceWidget = null;
     let earthSurfaceTileset = null;
@@ -1021,6 +1022,7 @@ if (container) {
     function setZoom(value) {
         currentZoom = THREE.MathUtils.clamp(value, 0, stops.length - 1);
         cameraTransitionFrames = 80;
+        scaleTransitionLock = null;
         zoomInput.value = currentZoom.toFixed(2);
         updateVisibility();
         updateReadouts();
@@ -1043,14 +1045,35 @@ if (container) {
     }
 
     function transitionToStop(index) {
+        const fromIndex = nearestStopIndex(currentZoom);
         const nextIndex = THREE.MathUtils.clamp(index, 0, stops.length - 1);
-        if (nextIndex === nearestStopIndex(currentZoom)) return;
+        if (nextIndex === fromIndex) return;
         saveCurrentView();
         lastScaleTransitionAt = performance.now();
         setZoom(nextIndex);
+        scaleTransitionLock = {
+            fromIndex,
+            toIndex: nextIndex,
+            direction: Math.sign(nextIndex - fromIndex)
+        };
         if (restoreSavedView(nextIndex)) {
             cameraTransitionFrames = 0;
         }
+    }
+
+    function canAutoTransition(stopIndex, cameraRatio, direction) {
+        if (!scaleTransitionLock || scaleTransitionLock.toIndex !== stopIndex) return true;
+
+        const neutralLow = 0.74;
+        const neutralHigh = 1.26;
+        const returnedToNeutralBand = cameraRatio > neutralLow && cameraRatio < neutralHigh;
+
+        if (returnedToNeutralBand) {
+            scaleTransitionLock = null;
+            return true;
+        }
+
+        return direction !== -scaleTransitionLock.direction;
     }
 
     function handleScaleZoomTransitions() {
@@ -1060,6 +1083,7 @@ if (container) {
         const stopIndex = nearestStopIndex(currentZoom);
         const stopDistance = stops[stopIndex].camera.distanceTo(stops[stopIndex].target);
         const cameraDistance = camera.position.distanceTo(controls.target);
+        const cameraRatio = cameraDistance / stopDistance;
         const largerScaleThreshold = stopIndex === 5 ? 1.42 : 1.58;
         const smallerScaleThresholds = [0.42, 0.36, 0.3, 0.28, 0.16, 0.18, 0.22];
         const smallerScaleThreshold = smallerScaleThresholds[stopIndex] || 0.3;
@@ -1069,16 +1093,19 @@ if (container) {
             controls.target.distanceTo(sunNeighborhoodPosition) < 3.2 &&
             cameraDistance < 9
         ) {
+            if (!canAutoTransition(stopIndex, cameraRatio, -1)) return;
             transitionToStop(2);
             return;
         }
 
-        if (cameraDistance > stopDistance * largerScaleThreshold && stopIndex < stops.length - 1) {
+        if (cameraRatio > largerScaleThreshold && stopIndex < stops.length - 1) {
+            if (!canAutoTransition(stopIndex, cameraRatio, 1)) return;
             transitionToStop(stopIndex + 1);
             return;
         }
 
-        if (cameraDistance < stopDistance * smallerScaleThreshold && stopIndex > 0) {
+        if (cameraRatio < smallerScaleThreshold && stopIndex > 0) {
+            if (!canAutoTransition(stopIndex, cameraRatio, -1)) return;
             transitionToStop(stopIndex - 1);
         }
     }

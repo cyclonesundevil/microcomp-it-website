@@ -7,6 +7,31 @@
     --text-secondary: #a0aec0;
     --glass-bg: rgba(10, 15, 30, 0.4);
     --glass-border: rgba(0, 240, 255, 0.2);
+    --surface-soft: rgba(255, 255, 255, 0.035);
+    --surface-panel: rgba(10, 15, 30, 0.68);
+    --nav-bg: rgba(3, 5, 10, 0.7);
+    --footer-bg: rgba(3, 5, 10, 0.92);
+    --page-gradient-base: #03050a;
+    --page-section-bg: #050814;
+    --shadow-soft: rgba(0, 0, 0, 0.24);
+}
+
+:root[data-theme="light"] {
+    --bg-dark: #f5f8fb;
+    --accent-blue: #047b91;
+    --accent-glow: rgba(4, 123, 145, 0.24);
+    --accent-purple: #805ad5;
+    --text-primary: #142235;
+    --text-secondary: #536174;
+    --glass-bg: rgba(255, 255, 255, 0.72);
+    --glass-border: rgba(4, 123, 145, 0.2);
+    --surface-soft: rgba(255, 255, 255, 0.72);
+    --surface-panel: rgba(255, 255, 255, 0.82);
+    --nav-bg: rgba(255, 255, 255, 0.84);
+    --footer-bg: rgba(244, 248, 252, 0.94);
+    --page-gradient-base: #f5f8fb;
+    --page-section-bg: #eef4f8;
+    --shadow-soft: rgba(35, 59, 82, 0.14);
 }
 
 * {
@@ -21,6 +46,7 @@ body {
     color: var(--text-primary);
     line-height: 1.6;
     overflow-x: hidden;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Typography */
@@ -75,7 +101,7 @@ h3 {
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     border-radius: 16px;
-    box-shadow: 0 8px 32px 0 rgba(0, 240, 255, 0.1), inset 0 0 20px rgba(255, 0, 255, 0.05);
+    box-shadow: 0 8px 32px 0 var(--accent-glow), inset 0 0 20px rgba(255, 0, 255, 0.05);
 }
 
 /* Header */
@@ -88,7 +114,7 @@ h3 {
     width: 100%;
     top: 0;
     z-index: 100;
-    background: rgba(3, 5, 10, 0.7);
+    background: var(--nav-bg);
     backdrop-filter: blur(15px);
     border-bottom: 1px solid var(--glass-border);
 }
@@ -114,6 +140,32 @@ nav a {
 }
 
 nav a:hover:not(.btn-primary) {
+    color: var(--accent-blue);
+}
+
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 40px;
+    margin-left: 1rem;
+    padding: 0 0.8rem;
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    background: var(--glass-bg);
+    color: var(--text-primary);
+    font-weight: 800;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.theme-toggle:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.theme-toggle i {
     color: var(--accent-blue);
 }
 
@@ -229,7 +281,7 @@ nav a:hover:not(.btn-primary) {
 
 /* Scientific Demo */
 .science-page {
-    background: #03050a;
+    background: var(--page-gradient-base);
 }
 
 .science-hero {
@@ -242,7 +294,7 @@ nav a:hover:not(.btn-primary) {
     background:
         linear-gradient(135deg, rgba(0, 240, 255, 0.08), transparent 34%),
         radial-gradient(circle at 82% 20%, rgba(255, 0, 255, 0.18), transparent 32%),
-        #03050a;
+        var(--page-gradient-base);
 }
 
 .science-hero h1 {
@@ -268,8 +320,8 @@ nav a:hover:not(.btn-primary) {
     padding: 2rem;
     border: 1px solid var(--glass-border);
     border-radius: 8px;
-    background: rgba(10, 15, 30, 0.68);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+    background: var(--surface-panel);
+    box-shadow: 0 16px 40px var(--shadow-soft);
 }
 
 .science-paper-card h2 {
@@ -297,12 +349,12 @@ nav a:hover:not(.btn-primary) {
     padding: 0.35rem 0.6rem;
     border: 1px solid rgba(0, 240, 255, 0.18);
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--surface-soft);
 }
 
 .science-lab {
     padding: 5rem 5%;
-    background: #050814;
+    background: var(--page-section-bg);
 }
 
 .science-mobile-notice {
@@ -491,7 +543,7 @@ nav a:hover:not(.btn-primary) {
 
 /* Demo Lab */
 .demo-lab-page {
-    background: #03050a;
+    background: var(--page-gradient-base);
 }
 
 .demo-lab-hero {
@@ -504,7 +556,7 @@ nav a:hover:not(.btn-primary) {
     background:
         linear-gradient(135deg, rgba(0, 240, 255, 0.08), transparent 34%),
         radial-gradient(circle at 78% 18%, rgba(255, 0, 255, 0.14), transparent 30%),
-        #03050a;
+        var(--page-gradient-base);
 }
 
 .demo-lab-hero h1 {
@@ -522,8 +574,8 @@ nav a:hover:not(.btn-primary) {
     padding: 2rem;
     border: 1px solid var(--glass-border);
     border-radius: 8px;
-    background: rgba(10, 15, 30, 0.68);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+    background: var(--surface-panel);
+    box-shadow: 0 16px 40px var(--shadow-soft);
 }
 
 .demo-lab-panel h2 {
@@ -535,7 +587,7 @@ nav a:hover:not(.btn-primary) {
 .demo-directory,
 .demo-preview-section {
     padding: 5rem 5%;
-    background: #050814;
+    background: var(--page-section-bg);
 }
 
 .demo-card-grid,
@@ -556,7 +608,7 @@ nav a:hover:not(.btn-primary) {
     padding: 1.5rem;
     border: 1px solid rgba(0, 240, 255, 0.16);
     border-radius: 8px;
-    background: rgba(10, 15, 30, 0.62);
+    background: var(--surface-panel);
     color: var(--text-primary);
     text-decoration: none;
     transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
@@ -566,7 +618,7 @@ nav a:hover:not(.btn-primary) {
 .demo-preview-grid a:hover {
     transform: translateY(-4px);
     border-color: rgba(0, 240, 255, 0.42);
-    background: rgba(10, 15, 30, 0.78);
+    background: var(--glass-bg);
 }
 
 .demo-card > i,
@@ -621,7 +673,7 @@ nav a:hover:not(.btn-primary) {
     padding: 1.6rem;
     border: 1px solid rgba(0, 240, 255, 0.16);
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.035);
+    background: var(--surface-soft);
 }
 
 .approach-grid i {
@@ -2718,7 +2770,7 @@ nav a:hover:not(.btn-primary) {
     gap: 1.5rem;
     padding: 2rem 5%;
     border-top: 1px solid var(--glass-border);
-    background: rgba(3, 5, 10, 0.92);
+    background: var(--footer-bg);
 }
 
 .footer-brand {
@@ -2742,7 +2794,7 @@ nav a:hover:not(.btn-primary) {
 }
 
 .build-stamp {
-    color: rgba(160, 174, 192, 0.72);
+    color: var(--text-secondary);
     font-size: 0.85rem;
 }
 
@@ -2754,6 +2806,120 @@ nav a:hover:not(.btn-primary) {
 
 .footer-details a:hover {
     color: var(--accent-blue);
+}
+
+:root[data-theme="light"] .hero::before,
+:root[data-theme="light"] .hero::after {
+    opacity: 0.16;
+}
+
+:root[data-theme="light"] .science-page,
+:root[data-theme="light"] .demo-lab-page,
+:root[data-theme="light"] .black-hole-page,
+:root[data-theme="light"] .universe-page,
+:root[data-theme="light"] .lensing-page,
+:root[data-theme="light"] .nfl-page {
+    background: var(--page-gradient-base);
+}
+
+:root[data-theme="light"] .science-hero,
+:root[data-theme="light"] .demo-lab-hero,
+:root[data-theme="light"] .black-hole-hero,
+:root[data-theme="light"] .universe-hero,
+:root[data-theme="light"] .lensing-hero,
+:root[data-theme="light"] .nfl-hero {
+    background:
+        linear-gradient(135deg, rgba(4, 123, 145, 0.14), transparent 36%),
+        radial-gradient(circle at 78% 18%, rgba(128, 90, 213, 0.12), transparent 30%),
+        var(--page-gradient-base);
+}
+
+:root[data-theme="light"] .science-paper-card,
+:root[data-theme="light"] .demo-lab-panel,
+:root[data-theme="light"] .black-hole-readouts div,
+:root[data-theme="light"] .universe-data-card,
+:root[data-theme="light"] .lensing-mode-panel,
+:root[data-theme="light"] .nfl-status-card,
+:root[data-theme="light"] .glass-card {
+    background: var(--surface-panel);
+    box-shadow: 0 16px 40px var(--shadow-soft);
+}
+
+:root[data-theme="light"] .science-summary div,
+:root[data-theme="light"] .approach-grid div,
+:root[data-theme="light"] .black-hole-notes div,
+:root[data-theme="light"] .universe-notes div,
+:root[data-theme="light"] .lensing-summary div,
+:root[data-theme="light"] .nfl-metric,
+:root[data-theme="light"] .process-step,
+:root[data-theme="light"] .outcome-card,
+:root[data-theme="light"] .industry-pill,
+:root[data-theme="light"] .snapshot-item {
+    background: var(--surface-soft);
+}
+
+:root[data-theme="light"] .science-lab,
+:root[data-theme="light"] .demo-directory,
+:root[data-theme="light"] .demo-preview-section,
+:root[data-theme="light"] .lensing-workbench,
+:root[data-theme="light"] .nfl-dashboard,
+:root[data-theme="light"] .nfl-method-section {
+    background: var(--page-section-bg);
+}
+
+:root[data-theme="light"] .demo-card,
+:root[data-theme="light"] .demo-preview-grid a,
+:root[data-theme="light"] .lensing-controls,
+:root[data-theme="light"] .nfl-control-panel,
+:root[data-theme="light"] .nfl-card {
+    background: var(--surface-panel);
+}
+
+:root[data-theme="light"] .black-hole-playground,
+:root[data-theme="light"] .universe-workbench,
+:root[data-theme="light"] .science-3d-section,
+:root[data-theme="light"] .lensing-3d-section,
+:root[data-theme="light"] .nfl-dashboard-section,
+:root[data-theme="light"] .nfl-results-section,
+:root[data-theme="light"] .nfl-predict-section {
+    --text-primary: #f8fbff;
+    --text-secondary: #b8c7dc;
+    --glass-bg: rgba(10, 15, 30, 0.62);
+    --glass-border: rgba(0, 240, 255, 0.2);
+    color: var(--text-primary);
+}
+
+:root[data-theme="light"] .black-hole-notes,
+:root[data-theme="light"] .universe-notes {
+    --text-primary: #142235;
+    --text-secondary: #536174;
+}
+
+:root[data-theme="light"] .black-hole-playground .black-hole-controls,
+:root[data-theme="light"] .universe-workbench .universe-controls,
+:root[data-theme="light"] .science-3d-section .control-panel,
+:root[data-theme="light"] .lensing-3d-section .control-panel,
+:root[data-theme="light"] .nfl-dashboard-section .injury-controls,
+:root[data-theme="light"] .nfl-predict-section .matchup-form,
+:root[data-theme="light"] .nfl-predict-section .matchup-result,
+:root[data-theme="light"] .nfl-dashboard-section .dashboard-card,
+:root[data-theme="light"] .nfl-results-section .nfl-table-wrap,
+:root[data-theme="light"] .nfl-predict-section .nfl-table-wrap {
+    background: rgba(10, 15, 30, 0.72);
+}
+
+:root[data-theme="light"] .nfl-dashboard-section .nfl-metric,
+:root[data-theme="light"] .nfl-results-section .nfl-metric,
+:root[data-theme="light"] .nfl-predict-section .matchup-picks div,
+:root[data-theme="light"] .nfl-dashboard-section .dashboard-notes span,
+:root[data-theme="light"] .science-3d-section .science-3d-legend span,
+:root[data-theme="light"] .lensing-3d-section .lensing-readout div {
+    background: rgba(255, 255, 255, 0.055);
+}
+
+:root[data-theme="light"] .science-lab .control-panel,
+:root[data-theme="light"] .science-lab .canvas-panel {
+    background: var(--surface-panel);
 }
 
 #mic-btn.active {
@@ -3285,6 +3451,14 @@ nav a:hover:not(.btn-primary) {
         padding: 0.65rem 0.9rem;
         font-size: 0.9rem;
         white-space: nowrap;
+    }
+
+    .theme-toggle {
+        min-height: 38px;
+        margin-left: 0;
+        margin-right: 0.5rem;
+        padding: 0 0.7rem;
+        font-size: 0.85rem;
     }
 
     .logo {
