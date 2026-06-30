@@ -346,6 +346,17 @@ def arizona_date_label(timestamp):
     return local_time.strftime("%Y-%m-%d")
 
 
+def format_duration(seconds):
+    seconds = bounded_int(seconds, maximum=24 * 60 * 60)
+    hours, remainder = divmod(seconds, 3600)
+    minutes, secs = divmod(remainder, 60)
+    if hours:
+        return f"{hours}h {minutes}m"
+    if minutes:
+        return f"{minutes}m {secs}s"
+    return f"{secs}s"
+
+
 def ensure_analytics_schema(conn):
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS visitors
@@ -378,6 +389,13 @@ def ensure_analytics_schema(conn):
         ("utm_source", "TEXT"),
         ("utm_medium", "TEXT"),
         ("utm_campaign", "TEXT"),
+        ("active_time_seconds", "INTEGER DEFAULT 0"),
+        ("active_time_delta_seconds", "INTEGER DEFAULT 0"),
+        ("wall_time_seconds", "INTEGER DEFAULT 0"),
+        ("interaction_count", "INTEGER DEFAULT 0"),
+        ("max_scroll_percent", "INTEGER DEFAULT 0"),
+        ("last_activity_age_seconds", "INTEGER DEFAULT 0"),
+        ("event_reason", "TEXT"),
     ):
         add_column_if_missing(c, "visitors", column_name, column_type)
 
@@ -421,6 +439,14 @@ def record_pageview(visitor_id: str) -> None:
         conn.close()
     except Exception as e:
         print(f"Pageview tracking error: {e}")
+
+
+def bounded_int(value, default=0, minimum=0, maximum=86_400):
+    try:
+        parsed = int(float(value))
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(maximum, parsed))
 
 
 def is_valid_email(email: str) -> bool:
@@ -700,6 +726,24 @@ async def track_visitor():
             req_data = json.loads(data)
             ip_address = client_ip()
             metadata = analytics_metadata(ip_address, req_data)
+            event_type = req_data.get("eventType") or "active_time"
+            if event_type not in {"active_time", "time_spent"}:
+                event_type = "active_time"
+            wall_time_seconds = bounded_int(
+                req_data.get("wallTimeSeconds", req_data.get("timeSpentSeconds")),
+                maximum=24 * 60 * 60
+            )
+            active_time_seconds = bounded_int(
+                req_data.get("activeTimeSeconds", req_data.get("timeSpentSeconds")),
+                maximum=60 * 60
+            )
+            active_time_delta_seconds = bounded_int(
+                req_data.get("activeTimeDeltaSeconds", active_time_seconds),
+                maximum=15 * 60
+            )
+            interaction_count = bounded_int(req_data.get("interactionCount"), maximum=100_000)
+            max_scroll_percent = bounded_int(req_data.get("maxScrollPercent"), maximum=100)
+            last_activity_age_seconds = bounded_int(req_data.get("lastActivityAgeSeconds"), maximum=24 * 60 * 60)
             
             db_path = get_analytics_db_path()
             conn = sqlite3.connect(db_path)
@@ -710,15 +754,19 @@ async def track_visitor():
                 """INSERT INTO visitors (
                     session_id, path, time_spent_seconds, ip_address, event_type,
                     user_agent, referrer, browser, os, device_type, is_bot,
-                    country, region, city, timezone, utm_source, utm_medium, utm_campaign
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    country, region, city, timezone, utm_source, utm_medium, utm_campaign,
+                    active_time_seconds, active_time_delta_seconds, wall_time_seconds,
+                    interaction_count, max_scroll_percent, last_activity_age_seconds, event_reason
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    req_data.get('sessionId'), req_data.get('path'), req_data.get('timeSpentSeconds'), ip_address, "time_spent",
+                    req_data.get('sessionId'), req_data.get('path'), wall_time_seconds, ip_address, event_type,
                     metadata.get("user_agent"), metadata.get("referrer"), metadata.get("browser"),
                     metadata.get("os"), metadata.get("device_type"), metadata.get("is_bot"),
                     metadata.get("country"), metadata.get("region"), metadata.get("city"),
                     metadata.get("timezone"), metadata.get("utm_source"), metadata.get("utm_medium"),
-                    metadata.get("utm_campaign")
+                    metadata.get("utm_campaign"), active_time_seconds, active_time_delta_seconds,
+                    wall_time_seconds, interaction_count, max_scroll_percent, last_activity_age_seconds,
+                    req_data.get("reason")
                 )
             )
             conn.commit()
@@ -775,6 +823,7 @@ async def analytics_status():
     db_exists = os.path.exists(db_path)
     pageviews = 0
     time_spent_events = 0
+    active_time_events = 0
     total_events = 0
 
     if db_exists:
@@ -787,6 +836,8 @@ async def analytics_status():
         pageviews = c.fetchone()[0]
         c.execute("SELECT COUNT(*) FROM visitors WHERE event_type = 'time_spent'")
         time_spent_events = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM visitors WHERE event_type = 'active_time'")
+        active_time_events = c.fetchone()[0]
         conn.close()
 
     data_dir = os.path.dirname(os.path.abspath(db_path))
@@ -801,6 +852,7 @@ async def analytics_status():
         "environment": os.environ.get("RENDER_SERVICE_ID", "local"),
         "pageviews": pageviews,
         "time_spent_events": time_spent_events,
+        "active_time_events": active_time_events,
         "total_events": total_events,
     })
 
@@ -1026,6 +1078,41 @@ async def admin_dashboard():
 
     c.execute("SELECT COUNT(*) FROM visitors WHERE event_type = 'pageview' AND device_type = 'mobile'")
     mobile_hits_count = c.fetchone()[0]
+
+    c.execute("""
+        SELECT
+            COALESCE(SUM(active_time_delta_seconds), 0),
+            COUNT(DISTINCT session_id)
+        FROM visitors
+        WHERE event_type = 'active_time'
+    """)
+    active_total_seconds, active_sessions_count = c.fetchone()
+
+    c.execute("""
+        SELECT
+            COALESCE(SUM(max_interactions), 0),
+            COALESCE(AVG(NULLIF(max_scroll, 0)), 0)
+        FROM (
+            SELECT session_id,
+                   MAX(interaction_count) AS max_interactions,
+                   MAX(max_scroll_percent) AS max_scroll
+            FROM visitors
+            WHERE event_type = 'active_time'
+            GROUP BY session_id
+        )
+    """)
+    interaction_total, avg_scroll_percent = c.fetchone()
+
+    c.execute("""
+        SELECT timestamp, path, session_id, active_time_seconds, active_time_delta_seconds,
+               wall_time_seconds, interaction_count, max_scroll_percent, event_reason,
+               ip_address, browser, os, device_type
+        FROM visitors
+        WHERE event_type = 'active_time'
+        ORDER BY timestamp DESC
+        LIMIT 25
+    """)
+    recent_engagement = c.fetchall()
     
     # Get recent visitors
     c.execute("""
@@ -1069,6 +1156,26 @@ async def admin_dashboard():
             f"<td>{html_lib.escape(str(campaign))}</td>"
             "</tr>"
         )
+
+    engagement_html = ""
+    for ts, path, session_id, active_seconds, active_delta, wall_seconds, interactions, scroll_percent, reason, ip, browser, os_name, device_type in recent_engagement:
+        local_ts = format_arizona_timestamp(ts)
+        engagement_html += (
+            "<tr>"
+            f"<td>{html_lib.escape(local_ts)}</td>"
+            f"<td>{html_lib.escape(str(path or ''))}</td>"
+            f"<td>{html_lib.escape(format_duration(active_seconds))}</td>"
+            f"<td>{html_lib.escape(format_duration(active_delta))}</td>"
+            f"<td>{html_lib.escape(format_duration(wall_seconds))}</td>"
+            f"<td>{html_lib.escape(str(interactions or 0))}</td>"
+            f"<td>{html_lib.escape(str(scroll_percent or 0))}%</td>"
+            f"<td>{html_lib.escape(str(reason or ''))}</td>"
+            f"<td>{html_lib.escape(str(device_type or 'Unknown'))}</td>"
+            f"<td>{html_lib.escape(str(browser or 'Unknown'))} / {html_lib.escape(str(os_name or 'Unknown'))}</td>"
+            "</tr>"
+        )
+
+    avg_active_seconds = int(active_total_seconds / active_sessions_count) if active_sessions_count else 0
     
     html = f"""
     <!DOCTYPE html>
@@ -1116,6 +1223,22 @@ async def admin_dashboard():
                     <div class="stat-number">{bot_hits_count}</div>
                     <div class="stat-label">Likely Bots</div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-number">{html_lib.escape(format_duration(active_total_seconds))}</div>
+                    <div class="stat-label">Active Time</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{html_lib.escape(format_duration(avg_active_seconds))}</div>
+                    <div class="stat-label">Avg Active Session</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{interaction_total}</div>
+                    <div class="stat-label">Interactions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{avg_scroll_percent:.0f}%</div>
+                    <div class="stat-label">Avg Scroll Depth</div>
+                </div>
             </div>
 
             <div class="card">
@@ -1142,6 +1265,32 @@ async def admin_dashboard():
                     </thead>
                     <tbody>
                         {visitors_html}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><i class="fa-solid fa-stopwatch"></i> Recent Active Engagement</h2>
+                <p class="timezone-note">Active time counts visible, recently interactive time. Wall time is tab-open duration and can be much larger.</p>
+                <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Page Path</th>
+                            <th>Active Total</th>
+                            <th>Active Delta</th>
+                            <th>Wall Time</th>
+                            <th>Interactions</th>
+                            <th>Scroll</th>
+                            <th>Reason</th>
+                            <th>Device</th>
+                            <th>Browser / OS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {engagement_html}
                     </tbody>
                 </table>
                 </div>
