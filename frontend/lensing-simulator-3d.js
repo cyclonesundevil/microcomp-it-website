@@ -269,14 +269,14 @@ if (container) {
         wavefronts.forEach((wave, index) => {
             const travel = ((time * (0.32 + state.frequency / 7000) + index * 0.62) % 1);
             const x = source.position.x + span * travel;
-            const wobble = Math.sin(time * 4.4 + index * 0.75) * state.alignment * 0.18;
-            const radius = 0.28 + travel * (1.22 + state.einstein * 0.32) + (waveMode ? wobble : 0);
+            const wobble = Math.sin(time * 4.4 + index * 0.75) * state.alignment * 0.08;
+            const radius = 0.25 + travel * (1.15 + state.einstein * 0.28);
             wave.position.set(x, source.position.y * (1 - travel), source.position.z * (1 - travel) + wobble);
             wave.scale.set(radius, radius, radius);
             wave.material.opacity = waveMode
-                ? 0.16 + (1 - Math.abs(travel - 0.5) * 1.6) * 0.42
+                ? 0.1 + (1 - Math.abs(travel - 0.5) * 1.6) * 0.32
                 : 0;
-            wave.material.color.setHex(index % 2 ? 0xff55ff : 0x8ffaff);
+            wave.material.color.setHex(index % 2 ? 0x8ffaff : 0x00f0ff);
         });
 
         lens.rotation.y += 0.006;

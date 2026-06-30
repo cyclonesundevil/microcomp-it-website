@@ -586,6 +586,26 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fill();
     }
 
+    function drawImageMarker(x, y, radius, color, alpha = 1) {
+        ctx.save();
+        ctx.strokeStyle = color.replace('ALPHA', String(alpha));
+        ctx.fillStyle = color.replace('ALPHA', String(alpha * 0.18));
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x - radius * 1.8, y);
+        ctx.lineTo(x + radius * 1.8, y);
+        ctx.moveTo(x, y - radius * 1.8);
+        ctx.lineTo(x, y + radius * 1.8);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 0.42, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
     function drawPath(points, color, width = 2) {
         ctx.save();
         ctx.strokeStyle = color;
@@ -601,7 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.restore();
     }
 
-    function drawWaveField(bounds, lens, state, time) {
+    function drawWaveField(bounds, source, lens, observer, state, time) {
         const quality = window.devicePixelRatio > 1 ? 0.42 : 0.5;
         const scaledBounds = {
             w: Math.max(240, Math.floor(bounds.w * quality)),
@@ -617,20 +637,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const pixels = image.data;
         const freqScale = state.frequency / 1400;
         const bend = state.einstein * 0.72;
+        const sourceToLens = Math.hypot(lens.x - source.x, lens.y - source.y);
+        const sourceToObserver = Math.hypot(observer.x - source.x, observer.y - source.y);
         let index = 0;
 
         for (let y = 0; y < scaledBounds.h; y += 1) {
             for (let x = 0; x < scaledBounds.w; x += 1) {
                 const canvasX = bounds.x + (x / scaledBounds.w) * bounds.w;
                 const canvasY = bounds.y + (y / scaledBounds.h) * bounds.h;
-                const dx = (canvasX - lens.x) / bounds.w;
-                const dy = (canvasY - lens.y) / bounds.h;
-                const radius = Math.sqrt(dx * dx + dy * dy) + 0.002;
-                const angle = Math.atan2(dy, dx);
-                const ring = Math.sin(radius * (58 + freqScale * 28) - time * 0.004 + bend * 7);
-                const caustic = Math.sin((dx * Math.cos(angle) + dy * Math.sin(angle)) * 42 * freqScale + state.alignment * 9);
-                const envelope = Math.exp(-Math.abs(radius - 0.2 - bend * 0.04) * 4.2);
-                const intensity = Math.max(0, Math.min(1, 0.25 + ring * 0.32 + caustic * 0.18)) * envelope;
+                const sourceRadius = Math.hypot(canvasX - source.x, canvasY - source.y);
+                const lensRadius = Math.hypot(canvasX - lens.x, canvasY - lens.y);
+                const observerRadius = Math.hypot(canvasX - observer.x, canvasY - observer.y);
+                const sourcePhase = sourceRadius * (0.052 + freqScale * 0.018) - time * 0.004;
+                const lensPass = Math.exp(-Math.abs(sourceRadius - sourceToLens) / Math.max(32, bounds.w * 0.055));
+                const observerFade = 1 - Math.max(0, (sourceRadius - sourceToObserver * 0.98) / Math.max(sourceToObserver * 0.16, 1));
+                const lensPerturbation = Math.sin(lensRadius * (0.04 + bend * 0.012) + state.alignment * 8) * lensPass * 0.38;
+                const pathInterference = Math.sin((observerRadius - lensRadius) * 0.05 * freqScale + bend * 5) * lensPass * 0.2;
+                const ring = Math.sin(sourcePhase + lensPerturbation);
+                const sourceEnvelope = Math.exp(-Math.abs(sourceRadius - sourceToLens * 0.82) / Math.max(sourceToObserver * 0.75, 1));
+                const intensity = Math.max(0, Math.min(1, 0.22 + ring * 0.34 + pathInterference)) * sourceEnvelope * Math.max(0, observerFade);
                 pixels[index] = Math.floor(16 + intensity * 30);
                 pixels[index + 1] = Math.floor(52 + intensity * 160);
                 pixels[index + 2] = Math.floor(82 + intensity * 165);
@@ -707,7 +732,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 y: 0,
                 w: Math.floor(width),
                 h: Math.floor(height)
-            }, lens, state, time || 0);
+            }, source, lens, observer, state, time || 0);
         }
 
         ctx.setLineDash([8, 9]);
@@ -746,8 +771,15 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.ellipse(lens.x, lens.y, ringRadius * 0.98, ringRadius * 0.72, 0, 0, Math.PI * 2);
             ctx.stroke();
         } else {
-            drawGlowingCircle(lens.x + ringRadius * 0.9, lens.y - splitPx * 0.35, 5 + state.magnification, 'rgba(255,255,255,ALPHA)', 0.92);
-            drawGlowingCircle(lens.x - ringRadius * 0.7, lens.y + splitPx * 0.28, 3 + state.magnification * 0.42, 'rgba(0,240,255,ALPHA)', 0.66);
+            const brightImage = { x: lens.x + ringRadius * 0.9, y: lens.y - splitPx * 0.35 };
+            const faintImage = { x: lens.x - ringRadius * 0.7, y: lens.y + splitPx * 0.28 };
+            drawImageMarker(brightImage.x, brightImage.y, 6 + state.magnification * 0.28, 'rgba(255,255,255,ALPHA)', 0.92);
+            drawImageMarker(faintImage.x, faintImage.y, 4.5 + state.magnification * 0.18, 'rgba(0,240,255,ALPHA)', 0.7);
+            drawText('apparent images', brightImage.x + 18, brightImage.y - 16, {
+                align: 'left',
+                color: 'rgba(223,251,255,0.72)',
+                font: '700 11px Inter, sans-serif'
+            });
         }
 
         drawGlowingCircle(source.x, source.y, 8, 'rgba(255,0,255,ALPHA)', 0.85);
