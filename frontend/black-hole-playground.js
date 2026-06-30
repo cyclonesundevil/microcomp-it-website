@@ -274,6 +274,10 @@ if (container) {
         return geometry;
     }
 
+    const wellCore = new THREE.Group();
+    wellCore.rotation.x = -0.18;
+    wellGroup.add(wellCore);
+
     let wellMesh = new THREE.Mesh(
         makeWellGeometry(),
         new THREE.MeshBasicMaterial({
@@ -283,8 +287,7 @@ if (container) {
             wireframe: true
         })
     );
-    wellMesh.rotation.x = -0.18;
-    wellGroup.add(wellMesh);
+    wellCore.add(wellMesh);
 
     const wellHorizon = new THREE.Mesh(
         new THREE.TorusGeometry(0.9, 0.035, 12, 120),
@@ -295,7 +298,7 @@ if (container) {
         })
     );
     wellHorizon.rotation.x = Math.PI / 2;
-    wellGroup.add(wellHorizon);
+    wellCore.add(wellHorizon);
 
     const wellColumn = new THREE.Mesh(
         new THREE.CylinderGeometry(0.28, 0.48, 4.8, 36, 1, true),
@@ -307,7 +310,7 @@ if (container) {
         })
     );
     wellColumn.position.y = -2.25;
-    wellGroup.add(wellColumn);
+    wellCore.add(wellColumn);
 
     const wellOrbit = new THREE.Mesh(
         new THREE.TorusGeometry(1.45, 0.018, 8, 160),
@@ -318,7 +321,7 @@ if (container) {
         })
     );
     wellOrbit.rotation.x = Math.PI / 2.25;
-    wellGroup.add(wellOrbit);
+    wellCore.add(wellOrbit);
 
     function state() {
         const mass = Number(inputs.mass.value);
@@ -371,7 +374,9 @@ if (container) {
 
         wellMesh.geometry.dispose();
         wellMesh.geometry = makeWellGeometry(2.25 + model.massScale * 2.1, model.spin * 2.2);
-        wellMesh.scale.setScalar(0.9 + model.lensing * 0.06);
+        wellCore.scale.setScalar(0.9 + model.lensing * 0.06);
+        wellCore.rotation.z = model.spin * 0.08;
+        wellMesh.scale.setScalar(1);
         wellHorizon.scale.setScalar(0.92 + model.massScale * 0.45);
         wellColumn.scale.set(1 + model.spin * 0.35, 1 + model.massScale * 0.28, 1 + model.spin * 0.35);
         wellOrbit.scale.setScalar(0.88 + model.lensing * 0.18);
