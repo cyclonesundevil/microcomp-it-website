@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#03050a">
     <script src="theme.js?v=1.0"></script>
     <script src="analytics.js?v=1.0"></script>
-    <link rel="stylesheet" href="styles.css?v=2.5">
+    <link rel="stylesheet" href="styles.css?v=2.7">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -148,6 +148,43 @@
                             <strong id="paper-plasma">Achromatic delay</strong>
                         </div>
                     </div>
+                    <div class="claim-equation-panel" aria-label="Core claim equation sensitivity">
+                        <span class="paper-label">Core claim sensitivity</span>
+                        <div class="claim-equation">
+                            <span class="claim-term claim-observable" data-claim-observable="phase">&Delta;&phi;</span>
+                            <span>=</span>
+                            <span>2&pi;</span>
+                            <span class="claim-term" data-claim-term="frequency">&nu;</span>
+                            <span class="claim-term claim-observable" data-claim-observable="delay">&Delta;t<sub>grav</sub></span>
+                            <span>,</span>
+                            <span class="claim-term claim-observable" data-claim-observable="fringe">&Delta;&nu;</span>
+                            <span>&asymp;</span>
+                            <span>1 /</span>
+                            <span class="claim-term claim-observable" data-claim-observable="delay">&Delta;t<sub>grav</sub></span>
+                        </div>
+                        <div class="claim-equation claim-equation-secondary">
+                            <span class="claim-term claim-observable" data-claim-observable="delay">&Delta;t<sub>grav</sub></span>
+                            <span>&prop;</span>
+                            <span class="claim-term" data-claim-term="mass">M</span>
+                            <span>&times;</span>
+                            <span>&theta;<sub>split</sub>(</span>
+                            <span class="claim-term" data-claim-term="sourceDistance">D<sub>s</sub></span>
+                            <span>,</span>
+                            <span class="claim-term" data-claim-term="observerDistance">D<sub>o</sub></span>
+                            <span>,</span>
+                            <span class="claim-term" data-claim-term="alignment">&beta;</span>
+                            <span>)</span>
+                            <span>&times;</span>
+                            <span>G(</span>
+                            <span class="claim-term" data-claim-term="observerDistance">D<sub>o</sub></span>
+                            <span>)</span>
+                            <span>;</span>
+                            <span class="claim-term" data-claim-term="channel">W<sub>chan</sub></span>
+                            <span>samples</span>
+                            <span>&Delta;&nu;</span>
+                        </div>
+                        <p id="claim-equation-summary">Heat shows which current parameter changes most affect the paper observable.</p>
+                    </div>
                     <div class="paper-plot-toolbar" role="group" aria-label="Paper observable plot mode">
                         <button type="button" class="active" data-paper-plot="intensity">Intensity</button>
                         <button type="button" data-paper-plot="phase">Phase</button>
@@ -240,7 +277,7 @@
         </div>
     </footer>
 
-    <script src="lensing-simulator.js?v=1.6"></script>
+    <script src="lensing-simulator.js?v=1.9"></script>
     <script type="importmap">
         {
             "imports": {

@@ -1437,6 +1437,89 @@ nav a:hover:not(.btn-primary) {
     line-height: 1.25;
 }
 
+.claim-equation-panel {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid rgba(0, 240, 255, 0.14);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.claim-equation {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.42rem;
+    color: var(--text-primary);
+    font-size: clamp(1.05rem, 2vw, 1.45rem);
+    font-weight: 800;
+    line-height: 1.65;
+}
+
+.claim-equation-secondary {
+    margin-top: 0.25rem;
+    color: var(--text-secondary);
+    font-size: clamp(0.9rem, 1.5vw, 1.08rem);
+}
+
+.claim-term {
+    --heat: 0;
+    --heat-color: 0, 240, 255;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2rem;
+    padding: 0.08rem 0.42rem;
+    border: 1px solid rgba(var(--heat-color), calc(0.22 + var(--heat) * 0.54));
+    border-radius: 8px;
+    color: rgba(223, 251, 255, calc(0.76 + var(--heat) * 0.24));
+    background:
+        radial-gradient(circle at 50% 50%, rgba(var(--heat-color), calc(0.08 + var(--heat) * 0.42)), rgba(var(--heat-color), calc(0.025 + var(--heat) * 0.12)));
+    box-shadow: 0 0 calc(var(--heat) * 22px) rgba(var(--heat-color), calc(var(--heat) * 0.55));
+    text-shadow: 0 0 calc(var(--heat) * 10px) rgba(255, 255, 255, 0.72);
+    transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease, color 180ms ease;
+}
+
+.claim-term[data-claim-term="mass"] {
+    --heat-color: 255, 196, 87;
+}
+
+.claim-term[data-claim-term="sourceDistance"],
+.claim-term[data-claim-term="observerDistance"] {
+    --heat-color: 0, 240, 255;
+}
+
+.claim-term[data-claim-term="alignment"] {
+    --heat-color: 255, 0, 255;
+}
+
+.claim-term[data-claim-term="frequency"] {
+    --heat-color: 127, 255, 178;
+}
+
+.claim-term[data-claim-term="channel"] {
+    --heat-color: 157, 132, 255;
+}
+
+.claim-observable[data-claim-observable="phase"] {
+    --heat-color: 127, 255, 178;
+}
+
+.claim-observable[data-claim-observable="delay"] {
+    --heat-color: 255, 196, 87;
+}
+
+.claim-observable[data-claim-observable="fringe"] {
+    --heat-color: 255, 0, 255;
+}
+
+#claim-equation-summary {
+    margin: 0.55rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
 .paper-plot-toolbar {
     display: flex;
     align-items: center;

@@ -68,24 +68,39 @@ document.addEventListener('DOMContentLoaded', () => {
         note: document.getElementById('paper-observable-note'),
         channelWidth: document.getElementById('channel-width'),
         plotWindow: document.getElementById('paper-plot-window'),
-        plotButtons: Array.from(document.querySelectorAll('[data-paper-plot]'))
+        plotButtons: Array.from(document.querySelectorAll('[data-paper-plot]')),
+        claimTerms: Array.from(document.querySelectorAll('[data-claim-term]')),
+        claimObservables: Array.from(document.querySelectorAll('[data-claim-observable]')),
+        claimSummary: document.getElementById('claim-equation-summary')
     };
     const paperCtx = paper.canvas ? paper.canvas.getContext('2d') : null;
     const modeButtons = document.querySelectorAll('[data-mode]');
 
     let mode = 'geometric';
     let paperPlotMode = 'intensity';
+    let previousClaimObservable = null;
+    let lastClaimParam = null;
     let animationTimer = null;
     let lastWaveFrame = 0;
     const waveCanvas = document.createElement('canvas');
     const waveCtx = waveCanvas.getContext('2d');
 
-    function model() {
-        const mass = Number(controls.mass.value);
-        const sourceDistance = Number(controls.sourceDistance.value) / 10;
-        const observerDistance = Number(controls.observerDistance.value) / 10;
-        const alignment = Number(controls.alignment.value) / 100;
-        const frequency = Number(controls.frequency.value);
+    function rawInputs() {
+        return {
+            mass: Number(controls.mass.value),
+            sourceDistance: Number(controls.sourceDistance.value),
+            observerDistance: Number(controls.observerDistance.value),
+            alignment: Number(controls.alignment.value),
+            frequency: Number(controls.frequency.value)
+        };
+    }
+
+    function modelFromRaw(raw) {
+        const mass = raw.mass;
+        const sourceDistance = raw.sourceDistance / 10;
+        const observerDistance = raw.observerDistance / 10;
+        const alignment = raw.alignment / 100;
+        const frequency = raw.frequency;
         const distanceRatio = Math.sqrt((sourceDistance * observerDistance) / (sourceDistance + observerDistance));
         const einstein = Math.sqrt(mass / 80) * distanceRatio * 0.55;
         const beta = Math.max(0.015, alignment * 1.45);
@@ -111,6 +126,10 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    function model() {
+        return modelFromRaw(rawInputs());
+    }
+
     function formatScientific(value, unit = '') {
         if (!Number.isFinite(value)) return '--';
         if (Math.abs(value) >= 100_000 || Math.abs(value) < 0.01) {
@@ -124,6 +143,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (hz >= 1_000_000) return `${(hz / 1_000_000).toFixed(2)} MHz`;
         if (hz >= 1_000) return `${(hz / 1_000).toFixed(2)} kHz`;
         return `${hz.toFixed(1)} Hz`;
+    }
+
+    function formatPhaseWraps(turns) {
+        if (!Number.isFinite(turns)) return '--';
+        if (turns >= 1_000_000) return `${(turns / 1_000_000).toFixed(2)}M`;
+        if (turns >= 1_000) return `${(turns / 1_000).toFixed(2)}K`;
+        if (turns >= 10) return turns.toFixed(0);
+        return turns.toFixed(2);
     }
 
     function paperObservableModel(state) {
@@ -149,6 +176,173 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    const sensitivityConfig = {
+        mass: { label: 'lens mass M', min: 10, max: 120, target: 'Delta t grav' },
+        sourceDistance: { label: 'source distance Ds', min: 30, max: 100, target: 'Delta t grav' },
+        observerDistance: { label: 'observer distance Do', min: 20, max: 90, target: 'Delta t grav' },
+        alignment: { label: 'alignment beta', min: 0, max: 100, target: 'Delta t grav' },
+        frequency: { label: 'observing frequency nu', min: 600, max: 3000, target: 'Delta phi' }
+    };
+
+    function sensitivityTarget(param, raw, target = 'phase') {
+        const state = modelFromRaw(raw);
+        const observable = paperObservableModel(state);
+        if (target === 'delay') return observable.delaySeconds;
+        if (target === 'fringe') return observable.fringeSpacingHz;
+        if (target === 'channel') return observable.channelSmearing;
+        return observable.phaseRadians;
+    }
+
+    function parameterSensitivity(param, raw, target = 'phase') {
+        const config = sensitivityConfig[param];
+        if (!config) return 0;
+
+        const value = raw[param];
+        const step = Math.max(1, (config.max - config.min) * 0.035);
+        const lowValue = Math.max(config.min, value - step);
+        const highValue = Math.min(config.max, value + step);
+        if (highValue === lowValue) return 0;
+
+        const lowRaw = { ...raw, [param]: lowValue };
+        const highRaw = { ...raw, [param]: highValue };
+        const lowTarget = sensitivityTarget(param, lowRaw, target);
+        const highTarget = sensitivityTarget(param, highRaw, target);
+        const baseTarget = Math.max(Math.abs(sensitivityTarget(param, raw, target)), 1e-9);
+        const fractionalControlChange = Math.max((highValue - lowValue) / Math.max(Math.abs(value), 1), 1e-6);
+        return Math.abs(highTarget - lowTarget) / baseTarget / fractionalControlChange;
+    }
+
+    function visibleHeat(score, maxScore) {
+        if (score <= 0) return 0;
+        const normalized = Math.min(1, score / Math.max(maxScore, 0.05));
+        return 0.16 + Math.sqrt(normalized) * 0.84;
+    }
+
+    function valueHeat(level) {
+        return 0.18 + Math.min(1, Math.max(0, level)) * 0.82;
+    }
+
+    function targetLevelForParam(param, raw, target = 'phase') {
+        const config = sensitivityConfig[param];
+        if (!config) return 0.18;
+
+        const samples = 24;
+        const values = [];
+        for (let i = 0; i <= samples; i += 1) {
+            const value = config.min + ((config.max - config.min) * i) / samples;
+            values.push(sensitivityTarget(param, { ...raw, [param]: value }, target));
+        }
+        const currentValue = sensitivityTarget(param, raw, target);
+        const minValue = Math.min(...values, currentValue);
+        const maxValue = Math.max(...values, currentValue);
+        if (Math.abs(maxValue - minValue) < 1e-12) return 0.18;
+        return valueHeat((currentValue - minValue) / (maxValue - minValue));
+    }
+
+    function channelResolutionHeat(observable) {
+        const channelPressure = observable.channelWidthHz / Math.max(observable.fringeSpacingHz, 1);
+        return valueHeat(Math.min(1, Math.log10(channelPressure + 1) / 3.5));
+    }
+
+    function channelSensitivity(observable) {
+        const channelPressure = observable.channelWidthHz / Math.max(observable.fringeSpacingHz, 1);
+        return Math.min(0.72, Math.log10(channelPressure + 1) * 0.24);
+    }
+
+    function observableChangeHeat(previous, current, key) {
+        if (!previous) return 0.42;
+        const previousValue = Math.max(Math.abs(previous[key]), 1e-12);
+        const currentValue = Math.abs(current[key]);
+        const fractionalChange = Math.abs(currentValue - previousValue) / previousValue;
+        return Math.min(1, 0.18 + fractionalChange * 9);
+    }
+
+    function currentObservableSnapshot(observable) {
+        return {
+            delay: observable.delaySeconds,
+            phase: observable.phaseRadians,
+            fringe: observable.fringeSpacingHz,
+            channel: observable.channelSmearing
+        };
+    }
+
+    function updateClaimEquation(state, observable) {
+        if (!paper.claimTerms.length && !paper.claimObservables.length) return;
+
+        const raw = rawInputs();
+        const rawScores = Object.fromEntries(
+            Object.keys(sensitivityConfig).map((param) => [param, parameterSensitivity(param, raw)])
+        );
+        rawScores.channel = channelSensitivity(observable);
+        const maxScore = Math.max(...Object.values(rawScores), 0.05);
+        const normalizedScores = Object.fromEntries(
+            Object.entries(rawScores).map(([param, score]) => [param, visibleHeat(score, maxScore)])
+        );
+
+        paper.claimTerms.forEach((term) => {
+            const param = term.dataset.claimTerm;
+            let heat = normalizedScores[param] || 0;
+            if (param === lastClaimParam && sensitivityConfig[param]) {
+                heat = targetLevelForParam(param, raw, 'phase');
+            } else if (param === 'channel' && lastClaimParam === 'channel') {
+                heat = channelResolutionHeat(observable);
+            }
+            term.style.setProperty('--heat', heat.toFixed(3));
+            const config = sensitivityConfig[param];
+            const label = config?.label || 'channel width Wchan';
+            term.title = `${label}: ${Math.round(heat * 100)}% ${param === lastClaimParam ? 'current Delta phi level' : 'relative influence on Delta phi'} at this setting`;
+            term.setAttribute('aria-label', term.title);
+        });
+
+        const snapshot = currentObservableSnapshot(observable);
+        const observableHeat = {
+            delay: observableChangeHeat(previousClaimObservable, snapshot, 'delay'),
+            phase: observableChangeHeat(previousClaimObservable, snapshot, 'phase'),
+            fringe: observableChangeHeat(previousClaimObservable, snapshot, 'fringe')
+        };
+        if (lastClaimParam && sensitivityConfig[lastClaimParam]) {
+            observableHeat.delay = targetLevelForParam(lastClaimParam, raw, 'delay');
+            observableHeat.phase = targetLevelForParam(lastClaimParam, raw, 'phase');
+            observableHeat.fringe = targetLevelForParam(lastClaimParam, raw, 'fringe');
+        } else if (lastClaimParam === 'channel') {
+            observableHeat.fringe = channelResolutionHeat(observable);
+        }
+        paper.claimObservables.forEach((term) => {
+            const observableKey = term.dataset.claimObservable;
+            const heat = observableHeat[observableKey] || 0;
+            term.style.setProperty('--heat', heat.toFixed(3));
+            term.title = `${term.textContent.trim()}: ${Math.round(heat * 100)}% recent observable movement`;
+            term.setAttribute('aria-label', term.title);
+        });
+
+        if (paper.claimSummary) {
+            const strongest = Object.entries(normalizedScores)
+                .sort((a, b) => b[1] - a[1])[0];
+            const strongestConfig = sensitivityConfig[strongest[0]];
+            const strongestLabel = strongestConfig?.label || 'channel width Wchan';
+            const strongestObservable = Object.entries(observableHeat)
+                .sort((a, b) => b[1] - a[1])[0];
+            const observableLabels = {
+                delay: 'Delta t grav',
+                phase: 'Delta phi',
+                fringe: 'fringe spacing Delta nu'
+            };
+            const activeConfig = sensitivityConfig[lastClaimParam];
+            const activeLabel = activeConfig?.label || (lastClaimParam === 'channel' ? 'channel width Wchan' : strongestLabel);
+            let activeEffect = `latest observable movement: ${observableLabels[strongestObservable[0]]}`;
+            if (lastClaimParam === 'frequency') {
+                activeEffect = 'latest effect: nu directly changes Delta phi';
+            } else if (lastClaimParam === 'channel') {
+                activeEffect = 'latest effect: Wchan changes whether the Delta nu fringes are resolved';
+            } else if (activeConfig) {
+                activeEffect = `latest effect: ${activeLabel} changes Delta t grav, which drives Delta phi and Delta nu`;
+            }
+            paper.claimSummary.textContent = `Heat combines local sensitivity and the latest movement. Last moved: ${activeLabel}; strongest overall parameter now: ${strongestLabel}; ${activeEffect}.`;
+        }
+
+        previousClaimObservable = snapshot;
+    }
+
     function resizePaperCanvas() {
         if (!paper.canvas || !paperCtx) return;
         const rect = paper.canvas.getBoundingClientRect();
@@ -169,12 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const pad = { left: 54, right: 22, top: 28, bottom: 42 };
         const plotW = width - pad.left - pad.right;
         const plotH = height - pad.top - pad.bottom;
-        const cyclesShown = paperPlotMode === 'phase' ? 120 : 180;
-        const spanHz = Math.max(
-            observable.fringeSpacingHz * cyclesShown,
-            observable.channelWidthHz * 4,
-            8_000
-        );
+        const spanHz = Math.max(observable.channelWidthHz * 4, 8_000);
         const startHz = observable.frequencyHz - spanHz / 2;
         const endHz = observable.frequencyHz + spanHz / 2;
         const rawModulation = Math.max(0.42, observable.visibility);
@@ -266,28 +455,65 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             paperCtx.stroke();
         } else {
+            const totalTurns = Math.max(spanHz * observable.delaySeconds, 1e-9);
+            const totalPhaseRadians = 2 * Math.PI * totalTurns;
+            const visibleWrapLines = Math.min(360, Math.max(12, Math.floor(totalTurns)));
+            const density = Math.min(1, Math.log10(totalTurns + 1) / 4);
+            const densityGradient = paperCtx.createLinearGradient(0, pad.top, 0, height - pad.bottom);
+            densityGradient.addColorStop(0, `rgba(255, 0, 255, ${0.05 + density * 0.14})`);
+            densityGradient.addColorStop(0.5, `rgba(0, 240, 255, ${0.035 + density * 0.08})`);
+            densityGradient.addColorStop(1, `rgba(255, 0, 255, ${0.05 + density * 0.14})`);
+            paperCtx.fillStyle = densityGradient;
+            paperCtx.fillRect(pad.left, pad.top, plotW, plotH);
+
+            paperCtx.strokeStyle = `rgba(255, 0, 255, ${totalTurns > 360 ? 0.12 : 0.24})`;
+            paperCtx.lineWidth = totalTurns > 360 ? 1 : 1.35;
+            const lineStride = Math.max(1, Math.ceil(totalTurns / visibleWrapLines));
+            for (let wrap = 0; wrap <= totalTurns; wrap += lineStride) {
+                const x = pad.left + plotW * (wrap / totalTurns);
+                paperCtx.beginPath();
+                paperCtx.moveTo(x, pad.top);
+                paperCtx.lineTo(x, height - pad.bottom);
+                paperCtx.stroke();
+            }
+
+            paperCtx.strokeStyle = 'rgba(255, 0, 255, 0.96)';
+            paperCtx.lineWidth = 2.2;
             paperCtx.beginPath();
-            const samples = 720;
-            const totalTurns = spanHz * observable.delaySeconds;
+            const samples = 760;
             for (let i = 0; i <= samples; i += 1) {
                 const t = i / samples;
-                const turns = totalTurns * t;
-                const yValue = 1 - (turns / Math.max(totalTurns, 1e-9));
+                const wrappedPhase = (totalTurns * t) % 1;
                 const x = pad.left + plotW * t;
-                const y = pad.top + plotH * (1 - yValue);
+                const y = pad.top + plotH * (1 - wrappedPhase);
                 if (i === 0) paperCtx.moveTo(x, y);
                 else paperCtx.lineTo(x, y);
             }
             paperCtx.stroke();
 
-            paperCtx.fillStyle = 'rgba(255, 0, 255, 0.18)';
+            paperCtx.strokeStyle = 'rgba(223, 251, 255, 0.7)';
+            paperCtx.lineWidth = 2;
+            paperCtx.beginPath();
+            const accumulationHeight = Math.min(1, Math.log10(totalTurns + 1) / 5);
+            paperCtx.moveTo(pad.left, height - pad.bottom);
+            paperCtx.lineTo(width - pad.right, height - pad.bottom - plotH * accumulationHeight);
+            paperCtx.stroke();
+
+            paperCtx.fillStyle = 'rgba(255, 0, 255, 0.2)';
+            paperCtx.fillRect(pad.left + 8, pad.top + 8, 238, 42);
+            paperCtx.strokeStyle = 'rgba(255, 0, 255, 0.55)';
+            paperCtx.strokeRect(pad.left + 8, pad.top + 8, 238, 42);
+            paperCtx.fillStyle = 'rgba(255, 232, 255, 0.96)';
+            paperCtx.font = '800 12px Inter, sans-serif';
+            paperCtx.fillText(`~${formatPhaseWraps(totalTurns)} phase wraps`, pad.left + 20, pad.top + 27);
             paperCtx.font = '700 11px Inter, sans-serif';
-            paperCtx.fillText(`${formatScientific(2 * Math.PI * spanHz * observable.delaySeconds)} rad phase accumulation across window`, pad.left + 8, pad.top + 18);
+            paperCtx.fillStyle = 'rgba(223, 251, 255, 0.82)';
+            paperCtx.fillText(`${formatScientific(totalPhaseRadians)} rad across this window`, pad.left + 20, pad.top + 43);
         }
 
         paperCtx.fillStyle = 'rgba(223, 251, 255, 0.92)';
         paperCtx.font = '800 12px Inter, sans-serif';
-        paperCtx.fillText(paperPlotMode === 'phase' ? 'unwrapped phase accumulation' : 'normalized intensity across accumulation window', pad.left, 18);
+        paperCtx.fillText(paperPlotMode === 'phase' ? 'phase-wrap density across accumulation window' : 'normalized intensity across accumulation window', pad.left, 18);
         paperCtx.font = '700 11px Inter, sans-serif';
         paperCtx.fillStyle = 'rgba(184, 199, 220, 0.92)';
         paperCtx.fillText(`${formatFrequency(startHz)} to ${formatFrequency(endHz)}`, pad.left, height - 14);
@@ -312,10 +538,15 @@ document.addEventListener('DOMContentLoaded', () => {
             : `Averaged by ${formatFrequency(observable.channelWidthHz)} channels`;
         paper.plasma.textContent = 'Achromatic delay';
         if (paper.note) {
-            paper.note.textContent = observable.resolvable
-                ? 'Gravitational delay is achromatic, but phase grows with frequency; this channel setting can sample the spectral interference.'
-                : 'The underlying gravitational phase structure is present, but this channel width would average over the fringes. Plasma dispersion follows a different frequency dependence.';
+            if (paperPlotMode === 'phase') {
+                paper.note.textContent = 'Phase mode shows how many gravitational phase wraps accumulate across the selected frequency window. Denser magenta structure means the signal changes phase more rapidly with frequency; plasma dispersion follows a different frequency dependence.';
+            } else {
+                paper.note.textContent = observable.resolvable
+                    ? 'Gravitational delay is achromatic, but phase grows with frequency; this channel setting can sample the spectral interference.'
+                    : 'The underlying gravitational phase structure is present, but this channel width would average over the fringes. Plasma dispersion follows a different frequency dependence.';
+            }
         }
+        updateClaimEquation(state, observable);
         drawPaperPlot(state, observable);
     }
 
@@ -574,6 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     Object.values(controlGroups).flat().forEach((control) => {
         control.addEventListener('input', () => {
+            lastClaimParam = control.dataset.lensingControl || null;
             syncControlSet(control);
             requestDraw();
         });
@@ -599,7 +831,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (paper.channelWidth) {
-        paper.channelWidth.addEventListener('change', requestDraw);
+        paper.channelWidth.addEventListener('change', () => {
+            lastClaimParam = 'channel';
+            requestDraw();
+        });
     }
 
     window.addEventListener('resize', resizeCanvas);
