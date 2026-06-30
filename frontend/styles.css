@@ -279,65 +279,12 @@ nav a:hover:not(.btn-primary) {
     gap: 1rem;
 }
 
-/* Scientific Demo */
-.science-page {
-    background: var(--page-gradient-base);
-}
-
-.science-hero {
-    min-height: 78vh;
-    padding: 9rem 5% 4rem;
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
-    align-items: center;
-    gap: 3rem;
-    background:
-        linear-gradient(135deg, rgba(0, 240, 255, 0.08), transparent 34%),
-        radial-gradient(circle at 82% 20%, rgba(255, 0, 255, 0.18), transparent 32%),
-        var(--page-gradient-base);
-}
-
-.science-hero h1 {
-    max-width: 900px;
-    font-size: 3rem;
-}
-
-.science-hero p {
-    color: var(--text-secondary);
-    font-size: 1.08rem;
-    max-width: 760px;
-}
-
 .science-kicker {
     color: var(--accent-blue) !important;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0;
     margin-bottom: 1rem;
-}
-
-.science-paper-card {
-    padding: 2rem;
-    border: 1px solid var(--glass-border);
-    border-radius: 8px;
-    background: var(--surface-panel);
-    box-shadow: 0 16px 40px var(--shadow-soft);
-}
-
-.science-paper-card h2 {
-    text-align: left;
-    font-size: 1.55rem;
-    margin-bottom: 1rem;
-}
-
-.science-paper-card p {
-    margin-bottom: 1.5rem;
-}
-
-.science-paper-card a {
-    color: var(--accent-blue);
-    font-weight: 800;
-    text-decoration: none;
 }
 
 .paper-label {
@@ -350,195 +297,6 @@ nav a:hover:not(.btn-primary) {
     border: 1px solid rgba(0, 240, 255, 0.18);
     border-radius: 8px;
     background: var(--surface-soft);
-}
-
-.science-lab {
-    padding: 5rem 5%;
-    background: var(--page-section-bg);
-}
-
-.science-mobile-notice {
-    display: none;
-}
-
-.science-panel {
-    max-width: 1240px;
-    margin: 0 auto;
-}
-
-.demo-layout {
-    display: grid;
-    grid-template-columns: 320px minmax(0, 1fr);
-    gap: 1.5rem;
-    align-items: stretch;
-}
-
-.control-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-    padding: 1.5rem;
-    border: 1px solid var(--glass-border);
-    border-radius: 8px;
-    background: rgba(10, 15, 30, 0.62);
-}
-
-.control-panel label {
-    display: grid;
-    gap: 0.6rem;
-    color: var(--text-primary);
-    font-weight: 700;
-    font-size: 0.92rem;
-}
-
-.control-panel span {
-    color: var(--accent-blue);
-    font-size: 0.88rem;
-}
-
-.control-panel input[type="range"] {
-    width: 100%;
-    accent-color: var(--accent-blue);
-}
-
-.canvas-panel {
-    padding: 1rem;
-    border: 1px solid rgba(0, 240, 255, 0.18);
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.22);
-}
-
-#phase-canvas {
-    display: block;
-    width: 100%;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.legend-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-top: 1rem;
-    color: var(--text-secondary);
-    font-size: 0.92rem;
-}
-
-.legend-row span {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.legend-swatch {
-    width: 14px;
-    height: 4px;
-    border-radius: 999px;
-    display: inline-block;
-}
-
-.legend-swatch.gravity {
-    background: var(--accent-blue);
-}
-
-.legend-swatch.plasma {
-    background: var(--accent-purple);
-}
-
-.science-3d-section {
-    position: relative;
-    min-height: 82vh;
-    overflow: hidden;
-    background:
-        linear-gradient(180deg, rgba(5, 8, 20, 0.9), rgba(2, 4, 10, 0.98)),
-        #02040a;
-    border-top: 1px solid rgba(0, 240, 255, 0.1);
-    border-bottom: 1px solid rgba(0, 240, 255, 0.1);
-}
-
-.science-3d-copy {
-    position: absolute;
-    z-index: 2;
-    top: 4.5rem;
-    left: 5%;
-    max-width: 540px;
-    pointer-events: none;
-}
-
-.science-3d-copy h2 {
-    margin-bottom: 1rem;
-    text-align: left;
-    font-size: 2.25rem;
-}
-
-.science-3d-copy p:not(.science-kicker) {
-    color: var(--text-secondary);
-    font-size: 1.02rem;
-}
-
-.phase-3d-scene {
-    width: 100%;
-    height: 82vh;
-    min-height: 560px;
-}
-
-.phase-3d-scene canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-}
-
-.science-3d-legend {
-    position: absolute;
-    z-index: 2;
-    left: 5%;
-    bottom: 2rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    color: var(--text-secondary);
-    font-size: 0.92rem;
-}
-
-.science-3d-legend span {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.legend-dot {
-    width: 10px;
-    height: 10px;
-    display: inline-block;
-    border-radius: 999px;
-    border: 2px solid rgba(255, 255, 255, 0.82);
-    box-shadow: 0 0 12px rgba(255, 255, 255, 0.34);
-}
-
-.science-summary {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1.5rem;
-    padding: 5rem 5%;
-    background: var(--bg-dark);
-}
-
-.science-summary div {
-    padding: 2rem;
-    border: 1px solid rgba(0, 240, 255, 0.16);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.035);
-}
-
-.science-summary i {
-    color: var(--accent-blue);
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-}
-
-.science-summary p {
-    color: var(--text-secondary);
-    font-size: 0.95rem;
 }
 
 /* Demo Lab */
@@ -3038,7 +2796,6 @@ nav a:hover:not(.btn-primary) {
     background: var(--page-gradient-base);
 }
 
-:root[data-theme="light"] .science-hero,
 :root[data-theme="light"] .demo-lab-hero,
 :root[data-theme="light"] .black-hole-hero,
 :root[data-theme="light"] .universe-hero,
@@ -3050,7 +2807,6 @@ nav a:hover:not(.btn-primary) {
         var(--page-gradient-base);
 }
 
-:root[data-theme="light"] .science-paper-card,
 :root[data-theme="light"] .demo-lab-panel,
 :root[data-theme="light"] .black-hole-readouts div,
 :root[data-theme="light"] .universe-data-card,
@@ -3061,7 +2817,6 @@ nav a:hover:not(.btn-primary) {
     box-shadow: 0 16px 40px var(--shadow-soft);
 }
 
-:root[data-theme="light"] .science-summary div,
 :root[data-theme="light"] .approach-grid div,
 :root[data-theme="light"] .black-hole-notes div,
 :root[data-theme="light"] .universe-notes div,
@@ -3074,7 +2829,6 @@ nav a:hover:not(.btn-primary) {
     background: var(--surface-soft);
 }
 
-:root[data-theme="light"] .science-lab,
 :root[data-theme="light"] .demo-directory,
 :root[data-theme="light"] .demo-preview-section,
 :root[data-theme="light"] .lensing-workbench,
@@ -3094,7 +2848,6 @@ nav a:hover:not(.btn-primary) {
 
 :root[data-theme="light"] .black-hole-playground,
 :root[data-theme="light"] .universe-workbench,
-:root[data-theme="light"] .science-3d-section,
 :root[data-theme="light"] .lensing-3d-section,
 :root[data-theme="light"] .nfl-dashboard-section,
 :root[data-theme="light"] .nfl-results-section,
@@ -3114,7 +2867,6 @@ nav a:hover:not(.btn-primary) {
 
 :root[data-theme="light"] .black-hole-playground .black-hole-controls,
 :root[data-theme="light"] .universe-workbench .universe-controls,
-:root[data-theme="light"] .science-3d-section .control-panel,
 :root[data-theme="light"] .lensing-3d-section .control-panel,
 :root[data-theme="light"] .nfl-dashboard-section .injury-controls,
 :root[data-theme="light"] .nfl-predict-section .matchup-form,
@@ -3129,7 +2881,6 @@ nav a:hover:not(.btn-primary) {
 :root[data-theme="light"] .nfl-results-section .nfl-metric,
 :root[data-theme="light"] .nfl-predict-section .matchup-picks div,
 :root[data-theme="light"] .nfl-dashboard-section .dashboard-notes span,
-:root[data-theme="light"] .science-3d-section .science-3d-legend span,
 :root[data-theme="light"] .lensing-3d-section .lensing-readout div {
     background: rgba(255, 255, 255, 0.055);
 }
@@ -3139,11 +2890,6 @@ nav a:hover:not(.btn-primary) {
     --text-secondary: #b8c7dc;
     background: rgba(10, 15, 30, 0.72);
     color: var(--text-primary);
-}
-
-:root[data-theme="light"] .science-lab .control-panel,
-:root[data-theme="light"] .science-lab .canvas-panel {
-    background: var(--surface-panel);
 }
 
 #mic-btn.active {
@@ -3236,95 +2982,6 @@ nav a:hover:not(.btn-primary) {
         grid-template-columns: 1fr;
         margin-top: 0;
         padding: 2rem 5%;
-    }
-
-    .science-hero {
-        grid-template-columns: 1fr;
-        min-height: auto;
-        padding: 8rem 5% 3rem;
-    }
-
-    .science-hero h1 {
-        font-size: 2.1rem;
-    }
-
-    .science-paper-card {
-        padding: 1.5rem;
-    }
-
-    .science-mobile-notice {
-        display: block;
-        margin: 0 5% 3rem;
-        padding: 1.5rem;
-        text-align: center;
-        border: 1px solid var(--glass-border);
-        border-radius: 8px;
-        background: rgba(10, 15, 30, 0.72);
-    }
-
-    .science-mobile-notice i {
-        color: var(--accent-blue);
-        font-size: 1.8rem;
-        margin-bottom: 1rem;
-    }
-
-    .science-mobile-notice h2 {
-        font-size: 1.45rem;
-        margin-bottom: 1rem;
-    }
-
-    .science-mobile-notice p {
-        color: var(--text-secondary);
-        margin-bottom: 1.5rem;
-    }
-
-    .science-mobile-notice .btn-primary {
-        display: inline-flex;
-        justify-content: center;
-    }
-
-    .science-lab,
-    .science-summary {
-        display: none;
-    }
-
-    .science-3d-section {
-        min-height: auto;
-        padding-top: 1.5rem;
-    }
-
-    .science-3d-copy {
-        position: relative;
-        top: auto;
-        left: auto;
-        padding: 0 5% 1.25rem;
-        max-width: none;
-    }
-
-    .science-3d-copy h2 {
-        font-size: 1.55rem;
-    }
-
-    .phase-3d-scene {
-        height: 420px;
-        min-height: 420px;
-    }
-
-    .science-3d-legend {
-        position: relative;
-        left: auto;
-        bottom: auto;
-        padding: 1rem 5% 1.5rem;
-    }
-
-    .demo-layout,
-    .science-summary {
-        grid-template-columns: 1fr;
-    }
-
-    .science-lab,
-    .science-summary {
-        padding: 3.5rem 5%;
     }
 
     .demo-lab-hero {
