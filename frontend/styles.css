@@ -1278,6 +1278,8 @@ nav a:hover:not(.btn-primary) {
     flex-direction: column;
     gap: 1.15rem;
     align-self: start;
+    position: sticky;
+    top: 6rem;
     padding: 1.4rem;
     border: 1px solid rgba(0, 240, 255, 0.16);
     border-radius: 8px;
@@ -1363,6 +1365,123 @@ nav a:hover:not(.btn-primary) {
 .lensing-readout strong {
     color: var(--text-primary);
     font-size: 1.12rem;
+}
+
+.paper-observable-panel {
+    margin-top: 1rem;
+    padding: 1.25rem;
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(10, 15, 30, 0.62);
+}
+
+.paper-observable-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.paper-observable-heading h2 {
+    margin: 0;
+    text-align: left;
+    font-size: 1.35rem;
+}
+
+.paper-observable-heading label {
+    display: grid;
+    gap: 0.45rem;
+    min-width: 210px;
+    color: var(--text-primary);
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.paper-observable-heading select {
+    min-height: 40px;
+    border: 1px solid rgba(0, 240, 255, 0.24);
+    border-radius: 8px;
+    background: rgba(3, 5, 10, 0.76);
+    color: var(--text-primary);
+    padding: 0 0.75rem;
+    font-weight: 700;
+}
+
+.paper-observable-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.paper-observable-grid div {
+    min-height: 82px;
+    padding: 0.85rem;
+    border: 1px solid rgba(0, 240, 255, 0.14);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.paper-observable-grid span {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 0.35rem;
+}
+
+.paper-observable-grid strong {
+    color: var(--text-primary);
+    font-size: clamp(0.9rem, 1.3vw, 1.08rem);
+    line-height: 1.25;
+}
+
+.paper-plot-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin: 1rem 0 0.75rem;
+}
+
+.paper-plot-toolbar button {
+    min-height: 36px;
+    border: 1px solid rgba(0, 240, 255, 0.22);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+    font-weight: 800;
+    padding: 0 0.85rem;
+    cursor: pointer;
+}
+
+.paper-plot-toolbar button.active,
+.paper-plot-toolbar button:hover {
+    border-color: var(--accent-blue);
+    background: rgba(0, 240, 255, 0.11);
+}
+
+.paper-plot-toolbar span {
+    color: var(--text-secondary);
+    font-size: 0.86rem;
+    margin-left: auto;
+}
+
+#paper-observable-canvas {
+    display: block;
+    width: 100%;
+    min-height: 360px;
+    border: 1px solid rgba(0, 240, 255, 0.16);
+    border-radius: 8px;
+    background: #02040a;
+}
+
+#paper-observable-note {
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin-top: 0.8rem;
 }
 
 .lensing-3d-section {
@@ -2870,6 +2989,7 @@ nav a:hover:not(.btn-primary) {
 :root[data-theme="light"] .demo-card,
 :root[data-theme="light"] .demo-preview-grid a,
 :root[data-theme="light"] .lensing-controls,
+:root[data-theme="light"] .paper-observable-panel,
 :root[data-theme="light"] .nfl-control-panel,
 :root[data-theme="light"] .nfl-card {
     background: var(--surface-panel);
@@ -2915,6 +3035,13 @@ nav a:hover:not(.btn-primary) {
 :root[data-theme="light"] .science-3d-section .science-3d-legend span,
 :root[data-theme="light"] .lensing-3d-section .lensing-readout div {
     background: rgba(255, 255, 255, 0.055);
+}
+
+:root[data-theme="light"] .paper-observable-panel {
+    --text-primary: #f8fbff;
+    --text-secondary: #b8c7dc;
+    background: rgba(10, 15, 30, 0.72);
+    color: var(--text-primary);
 }
 
 :root[data-theme="light"] .science-lab .control-panel,
@@ -3246,7 +3373,15 @@ nav a:hover:not(.btn-primary) {
     }
 
     .lensing-controls {
+        position: static;
         padding: 1.25rem;
+    }
+
+    .lensing-workbench > .paper-observable-panel,
+    .lensing-stage {
+        grid-column: auto;
+        grid-row: auto;
+        position: static;
     }
 
     #lensing-canvas {
@@ -3255,6 +3390,24 @@ nav a:hover:not(.btn-primary) {
 
     .lensing-readout {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .paper-observable-heading {
+        flex-direction: column;
+    }
+
+    .paper-observable-heading label {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .paper-observable-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .paper-plot-toolbar span {
+        width: 100%;
+        margin-left: 0;
     }
 
     .lensing-3d-section {

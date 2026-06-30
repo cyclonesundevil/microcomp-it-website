@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#03050a">
     <script src="theme.js?v=1.0"></script>
     <script src="analytics.js?v=1.0"></script>
-    <link rel="stylesheet" href="styles.css?v=2.2">
+    <link rel="stylesheet" href="styles.css?v=2.5">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -107,6 +107,57 @@
                         <strong id="split-readout">1.7 arcsec</strong>
                     </div>
                 </div>
+                <div class="paper-observable-panel" aria-label="Paper observable readouts">
+                    <div class="paper-observable-heading">
+                        <div>
+                            <span class="paper-label">Paper observables</span>
+                            <h2>Frequency-Domain Signature</h2>
+                        </div>
+                        <label>
+                            Channel width
+                            <select id="channel-width">
+                                <option value="1000">1 kHz coherent</option>
+                                <option value="24000" selected>24 kHz narrowband</option>
+                                <option value="1000000">1 MHz survey</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="paper-observable-grid">
+                        <div>
+                            <span>Delta t grav</span>
+                            <strong id="paper-delay">--</strong>
+                        </div>
+                        <div>
+                            <span>Delta phi</span>
+                            <strong id="paper-phase">--</strong>
+                        </div>
+                        <div>
+                            <span>Fringe spacing</span>
+                            <strong id="paper-fringe">--</strong>
+                        </div>
+                        <div>
+                            <span>Optics regime</span>
+                            <strong id="paper-regime">--</strong>
+                        </div>
+                        <div>
+                            <span>Channel test</span>
+                            <strong id="paper-resolution">--</strong>
+                        </div>
+                        <div>
+                            <span>Plasma distinction</span>
+                            <strong id="paper-plasma">Achromatic delay</strong>
+                        </div>
+                    </div>
+                    <div class="paper-plot-toolbar" role="group" aria-label="Paper observable plot mode">
+                        <button type="button" class="active" data-paper-plot="intensity">Intensity</button>
+                        <button type="button" data-paper-plot="phase">Phase</button>
+                        <span id="paper-plot-window">Adaptive local frequency window</span>
+                    </div>
+                    <canvas id="paper-observable-canvas" width="960" height="320" aria-label="Frequency-domain lensing observable plot"></canvas>
+                    <p id="paper-observable-note">
+                        Gravitational delay is achromatic; phase grows linearly with observing frequency. Plasma dispersion has a different frequency dependence.
+                    </p>
+                </div>
             </div>
         </section>
 
@@ -189,7 +240,7 @@
         </div>
     </footer>
 
-    <script src="lensing-simulator.js?v=1.5"></script>
+    <script src="lensing-simulator.js?v=1.6"></script>
     <script type="importmap">
         {
             "imports": {
