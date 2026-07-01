@@ -357,6 +357,63 @@ def format_duration(seconds):
     return f"{secs}s"
 
 
+def analytics_geo_diagnostics(db_path):
+    current_ip = client_ip()
+    has_ipinfo_token = bool(os.getenv("IPINFO_TOKEN"))
+    has_lookup_url = bool(os.getenv("ANALYTICS_GEO_LOOKUP_URL"))
+    private_or_local = is_private_or_local_ip(current_ip)
+    lookup_enabled = has_ipinfo_token or has_lookup_url
+    diagnostics = {
+        "geo_lookup_enabled": lookup_enabled,
+        "ipinfo_token_configured": has_ipinfo_token,
+        "custom_lookup_url_configured": has_lookup_url,
+        "current_request_ip": current_ip,
+        "current_request_private_or_local": private_or_local,
+        "current_request_geo_preview": {},
+        "total_pageviews": 0,
+        "pageviews_with_geo": 0,
+        "recent_pageviews": 0,
+        "recent_pageviews_with_geo": 0,
+    }
+
+    if lookup_enabled and not private_or_local:
+        diagnostics["current_request_geo_preview"] = lookup_ip_geo(current_ip)
+
+    if os.path.exists(db_path):
+        conn = sqlite3.connect(db_path)
+        ensure_analytics_schema(conn)
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM visitors WHERE event_type = 'pageview'")
+        diagnostics["total_pageviews"] = c.fetchone()[0]
+        c.execute("""
+            SELECT COUNT(*)
+            FROM visitors
+            WHERE event_type = 'pageview'
+              AND COALESCE(NULLIF(region, ''), NULLIF(city, ''), NULLIF(country, '')) IS NOT NULL
+        """)
+        diagnostics["pageviews_with_geo"] = c.fetchone()[0]
+        c.execute("""
+            SELECT COUNT(*),
+                   SUM(CASE
+                       WHEN COALESCE(NULLIF(region, ''), NULLIF(city, ''), NULLIF(country, '')) IS NOT NULL
+                       THEN 1 ELSE 0
+                   END)
+            FROM (
+                SELECT country, region, city
+                FROM visitors
+                WHERE event_type = 'pageview'
+                ORDER BY timestamp DESC
+                LIMIT 25
+            )
+        """)
+        recent_total, recent_geo = c.fetchone()
+        diagnostics["recent_pageviews"] = recent_total or 0
+        diagnostics["recent_pageviews_with_geo"] = recent_geo or 0
+        conn.close()
+
+    return diagnostics
+
+
 def ensure_analytics_schema(conn):
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS visitors
@@ -841,6 +898,7 @@ async def analytics_status():
         conn.close()
 
     data_dir = os.path.dirname(os.path.abspath(db_path))
+    geo = analytics_geo_diagnostics(db_path)
     return jsonify({
         "status": "ok",
         "analytics_db_path": db_path,
@@ -854,6 +912,7 @@ async def analytics_status():
         "time_spent_events": time_spent_events,
         "active_time_events": active_time_events,
         "total_events": total_events,
+        "geo": geo,
     })
 
 def _json_summary(summary):
@@ -1125,6 +1184,17 @@ async def admin_dashboard():
     """)
     recent_visitors = c.fetchall()
     conn.close()
+
+    geo_diag = analytics_geo_diagnostics(db_path)
+    geo_preview = geo_diag.get("current_request_geo_preview") or {}
+    geo_preview_label = ", ".join(
+        part for part in (
+            geo_preview.get("city"),
+            geo_preview.get("region"),
+            geo_preview.get("country")
+        )
+        if part
+    ) or "Not available"
     
     # Process data for chart
     dates = {}
@@ -1194,6 +1264,10 @@ async def admin_dashboard():
             .stat-number {{ font-size: 2.5rem; font-weight: 800; color: #00f0ff; }}
             .stat-label {{ color: #a0aec0; font-size: 0.9rem; text-transform: uppercase; margin-top: 0.5rem; }}
             .timezone-note {{ color: #a0aec0; margin: -0.75rem 0 1.5rem; }}
+            .diagnostic-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }}
+            .diagnostic-item {{ background: rgba(255,255,255,0.035); border: 1px solid rgba(0,240,255,0.12); border-radius: 8px; padding: 1rem; }}
+            .diagnostic-item span {{ display: block; color: #a0aec0; font-size: 0.76rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem; }}
+            .diagnostic-item strong {{ color: #fff; font-size: 1rem; word-break: break-word; }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 1rem; }}
             th, td {{ text-align: left; padding: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; }}
             th {{ color: #00f0ff; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }}
@@ -1205,6 +1279,45 @@ async def admin_dashboard():
         <div class="container">
             <h1><i class="fa-solid fa-gauge-high"></i> Admin Dashboard</h1>
             <p class="timezone-note">Times displayed in Arizona local time (MST, UTC-7). Analytics are stored internally in UTC.</p>
+
+            <div class="card">
+                <h2><i class="fa-solid fa-location-dot"></i> Geo Lookup Diagnostics</h2>
+                <p class="timezone-note">Location data is added only to new public pageviews after geo lookup is configured. Local/private IPs are skipped.</p>
+                <div class="diagnostic-grid">
+                    <div class="diagnostic-item">
+                        <span>Geo lookup enabled</span>
+                        <strong>{'Yes' if geo_diag.get('geo_lookup_enabled') else 'No'}</strong>
+                    </div>
+                    <div class="diagnostic-item">
+                        <span>IPinfo token configured</span>
+                        <strong>{'Yes' if geo_diag.get('ipinfo_token_configured') else 'No'}</strong>
+                    </div>
+                    <div class="diagnostic-item">
+                        <span>Custom lookup URL configured</span>
+                        <strong>{'Yes' if geo_diag.get('custom_lookup_url_configured') else 'No'}</strong>
+                    </div>
+                    <div class="diagnostic-item">
+                        <span>Current request IP seen by backend</span>
+                        <strong>{html_lib.escape(str(geo_diag.get('current_request_ip') or ''))}</strong>
+                    </div>
+                    <div class="diagnostic-item">
+                        <span>Current request private/local</span>
+                        <strong>{'Yes' if geo_diag.get('current_request_private_or_local') else 'No'}</strong>
+                    </div>
+                    <div class="diagnostic-item">
+                        <span>Current IP lookup preview</span>
+                        <strong>{html_lib.escape(geo_preview_label)}</strong>
+                    </div>
+                    <div class="diagnostic-item">
+                        <span>All pageviews with geo</span>
+                        <strong>{geo_diag.get('pageviews_with_geo', 0)} / {geo_diag.get('total_pageviews', 0)}</strong>
+                    </div>
+                    <div class="diagnostic-item">
+                        <span>Recent pageviews with geo</span>
+                        <strong>{geo_diag.get('recent_pageviews_with_geo', 0)} / {geo_diag.get('recent_pageviews', 0)}</strong>
+                    </div>
+                </div>
+            </div>
             
             <div class="stats-grid">
                 <div class="stat-card">
