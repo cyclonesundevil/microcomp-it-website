@@ -57,11 +57,13 @@ if (container) {
     scene.add(root);
     const accretionGroup = new THREE.Group();
     const lensingGroup = new THREE.Group();
+    const waveGroup = new THREE.Group();
     const wellGroup = new THREE.Group();
     accretionGroup.position.x = 0.65;
     lensingGroup.position.x = 1.05;
+    waveGroup.position.x = 1.05;
     wellGroup.position.x = 0.75;
-    root.add(accretionGroup, lensingGroup, wellGroup);
+    root.add(accretionGroup, lensingGroup, waveGroup, wellGroup);
     let activeMode = 'disk';
 
     const starPositions = [];
@@ -242,6 +244,107 @@ if (container) {
         lensingGroup.add(band);
     }
 
+    const rayMaterials = [
+        new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.7, depthWrite: false }),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.78, depthWrite: false }),
+        new THREE.MeshBasicMaterial({ color: 0xff6fff, transparent: true, opacity: 0.62, depthWrite: false })
+    ];
+    const lensRayGroup = new THREE.Group();
+    const waveRayGroup = new THREE.Group();
+    lensingGroup.add(lensRayGroup);
+    waveGroup.add(waveRayGroup);
+
+    const waveShadow = new THREE.Mesh(
+        new THREE.SphereGeometry(1.28, 96, 48),
+        new THREE.MeshBasicMaterial({ color: 0x000000 })
+    );
+    waveGroup.add(waveShadow);
+
+    const wavePhotonRing = new THREE.Mesh(
+        new THREE.TorusGeometry(1.55, 0.035, 18, 180),
+        new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.82
+        })
+    );
+    waveGroup.add(wavePhotonRing);
+
+    const wavefronts = [];
+    for (let i = 0; i < 7; i += 1) {
+        const wave = new THREE.Mesh(
+            new THREE.TorusGeometry(0.72 + i * 0.08, 0.012, 8, 112),
+            new THREE.MeshBasicMaterial({
+                color: i % 2 ? 0x8ffaff : 0xff7cff,
+                transparent: true,
+                opacity: 0.28,
+                depthWrite: false
+            })
+        );
+        wave.rotation.y = Math.PI / 2;
+        wavefronts.push(wave);
+        waveGroup.add(wave);
+    }
+
+    const causticArcs = [];
+    for (let i = 0; i < 4; i += 1) {
+        const arc = new THREE.Mesh(
+            new THREE.TorusGeometry(2.05 + i * 0.34, 0.011, 8, 128, Math.PI * (0.62 + i * 0.05)),
+            new THREE.MeshBasicMaterial({
+                color: i % 2 ? 0xff8aff : 0x72f6ff,
+                transparent: true,
+                opacity: 0.2,
+                depthWrite: false
+            })
+        );
+        arc.rotation.z = -0.5 + i * 0.28;
+        causticArcs.push(arc);
+        waveGroup.add(arc);
+    }
+
+    function disposeGroupChildren(group) {
+        group.children.forEach((child) => {
+            child.geometry?.dispose();
+        });
+        group.clear();
+    }
+
+    function makeLightRay(offset, bend, material, wave = false) {
+        const side = Math.sign(offset) || 1;
+        const near = Math.max(0.72, Math.abs(offset) * 0.38);
+        const points = [
+            new THREE.Vector3(-5.9, offset, -0.12),
+            new THREE.Vector3(-2.45, offset * 0.72, 0.18 * side),
+            new THREE.Vector3(-0.72, side * near, bend * side),
+            new THREE.Vector3(0.78, side * near * 0.9, -bend * 0.42 * side),
+            new THREE.Vector3(5.9, offset * 0.18, 0.05)
+        ];
+        if (wave) {
+            points.splice(3, 0, new THREE.Vector3(0, side * near * 0.74, 0.28 * Math.sin(offset * 2)));
+        }
+        const curve = new THREE.CatmullRomCurve3(points);
+        return new THREE.Mesh(
+            new THREE.TubeGeometry(curve, 96, wave ? 0.018 : 0.022, 8, false),
+            material
+        );
+    }
+
+    function rebuildLightRays(model) {
+        disposeGroupChildren(lensRayGroup);
+        disposeGroupChildren(waveRayGroup);
+        const bend = 0.34 + model.lensing * 0.24 + model.massScale * 0.18;
+        const offsets = [-1.9, -0.95, 0.95, 1.9];
+        offsets.forEach((offset, index) => {
+            const material = rayMaterials[index % rayMaterials.length];
+            const ray = makeLightRay(offset, bend, material, false);
+            lensRayGroup.add(ray);
+
+            const waveRay = makeLightRay(offset, bend * 1.08, material.clone(), true);
+            waveRay.material.opacity = 0.46;
+            waveRayGroup.add(waveRay);
+        });
+    }
+
     function makeWellGeometry(depth = 2.8, spinTwist = 0.2) {
         const segments = 70;
         const rings = 34;
@@ -371,6 +474,15 @@ if (container) {
             band.scale.set(1 + model.lensing * 0.08, 0.72 + model.angleScale * 0.26, 1);
             band.material.opacity = 0.12 + model.lensing * 0.055 - index * 0.006;
         });
+        rebuildLightRays(model);
+
+        waveShadow.scale.setScalar(0.92 + model.massScale * 0.44);
+        wavePhotonRing.scale.setScalar(0.9 + model.lensing * 0.22);
+        waveRayGroup.scale.set(1 + model.lensing * 0.04, 1 + model.angleScale * 0.08, 1);
+        causticArcs.forEach((arc, index) => {
+            arc.scale.set(1 + model.lensing * 0.06, 0.8 + model.angleScale * 0.22, 1);
+            arc.material.opacity = 0.1 + model.lensing * 0.06 - index * 0.01;
+        });
 
         wellMesh.geometry.dispose();
         wellMesh.geometry = makeWellGeometry(2.25 + model.massScale * 2.1, model.spin * 2.2);
@@ -386,6 +498,7 @@ if (container) {
         activeMode = mode;
         accretionGroup.visible = mode === 'disk';
         lensingGroup.visible = mode === 'lensing';
+        waveGroup.visible = mode === 'wave';
         wellGroup.visible = mode === 'well';
         modeButtons.forEach((button) => {
             button.classList.toggle('active', button.dataset.bhMode === mode);
@@ -422,6 +535,21 @@ if (container) {
         lensHalo.rotation.z -= 0.003 + model.spin * 0.004;
         lensBands.forEach((band, index) => {
             band.rotation.z += 0.0007 + index * 0.00008;
+        });
+        wavePhotonRing.rotation.z = Math.sin(time * 0.9) * 0.08;
+        wavefronts.forEach((wave, index) => {
+            const travel = ((time * (0.38 + model.spin * 0.12) + index * 0.24) % 1);
+            const x = -4.2 + travel * 8.4;
+            const lensPass = Math.max(0, 1 - Math.abs(x) / (1.25 + model.lensing * 0.25));
+            const radius = 0.7 + travel * 1.25 + lensPass * model.lensing * 0.18;
+            wave.position.set(x, Math.sin(time * 1.8 + index) * 0.05 * model.angleScale, 0);
+            wave.scale.set(radius * (1 + lensPass * 0.2), radius * (1 - lensPass * 0.12), radius);
+            wave.material.opacity = activeMode === 'wave'
+                ? Math.max(0, 0.08 + lensPass * 0.22 + (1 - Math.abs(travel - 0.5) * 1.8) * 0.16)
+                : 0;
+        });
+        causticArcs.forEach((arc, index) => {
+            arc.rotation.z += 0.0018 + index * 0.0004 + model.spin * 0.001;
         });
         wellOrbit.rotation.z += 0.004 + model.spin * 0.008;
         wellColumn.rotation.y += 0.003;

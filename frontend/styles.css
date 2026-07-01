@@ -1410,7 +1410,8 @@ nav a:hover:not(.btn-primary) {
 }
 
 .legend-swatch,
-.legend-dot {
+.legend-dot,
+.legend-line {
     display: inline-block;
     width: 0.8rem;
     height: 0.8rem;
@@ -1430,6 +1431,13 @@ nav a:hover:not(.btn-primary) {
 .legend-dot {
     border: 1px solid rgba(255, 255, 255, 0.82);
     background: rgba(255, 255, 255, 0.18);
+}
+
+.legend-line {
+    width: 1.3rem;
+    height: 0.16rem;
+    background: linear-gradient(90deg, var(--accent-blue), #ffffff, var(--accent-pink));
+    box-shadow: 0 0 14px rgba(0, 240, 255, 0.45);
 }
 
 .lensing-notes {
