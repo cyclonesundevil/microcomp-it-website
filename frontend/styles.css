@@ -1023,6 +1023,29 @@ nav a:hover:not(.btn-primary) {
     margin-bottom: 1rem;
 }
 
+.paper-link,
+.paper-inline-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--accent-blue);
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.paper-link {
+    margin-top: 1.25rem;
+}
+
+.paper-link:hover,
+.paper-inline-link:hover {
+    color: var(--text-primary);
+}
+
+.paper-inline-link {
+    font-size: 0.92rem;
+}
+
 .lensing-workbench {
     display: grid;
     grid-template-columns: 330px minmax(0, 1fr);
