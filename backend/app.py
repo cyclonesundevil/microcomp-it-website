@@ -111,9 +111,13 @@ ANALYTICS_BOT_RE = re.compile(
 
 
 def client_ip():
-    ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
+    for header in ("CF-Connecting-IP", "True-Client-IP", "X-Real-IP", "X-Forwarded-For"):
+        ip_address = request.headers.get(header)
+        if ip_address:
+            return ip_address.split(",")[0].strip()
+    ip_address = request.remote_addr
     if ip_address:
-        return ip_address.split(",")[0].strip()
+        return str(ip_address).split(",")[0].strip()
     return "unknown"
 
 
@@ -412,6 +416,74 @@ def analytics_geo_diagnostics(db_path):
         conn.close()
 
     return diagnostics
+
+
+def backfill_analytics_geo(db_path, limit=250):
+    if not (os.getenv("IPINFO_TOKEN") or os.getenv("ANALYTICS_GEO_LOOKUP_URL")):
+        return {"success": False, "error": "Geo lookup is not configured.", "updated_rows": 0, "looked_up_ips": 0}
+    if not os.path.exists(db_path):
+        return {"success": False, "error": "Analytics database does not exist.", "updated_rows": 0, "looked_up_ips": 0}
+
+    limit = bounded_int(limit, default=250, minimum=1, maximum=1000)
+    conn = sqlite3.connect(db_path)
+    ensure_analytics_schema(conn)
+    c = conn.cursor()
+    c.execute("""
+        SELECT ip_address
+        FROM visitors
+        WHERE ip_address IS NOT NULL
+          AND TRIM(ip_address) != ''
+          AND COALESCE(NULLIF(region, ''), NULLIF(city, ''), NULLIF(country, '')) IS NULL
+        GROUP BY ip_address
+        ORDER BY MAX(timestamp) DESC
+        LIMIT ?
+    """, (limit,))
+    candidate_ips = [row[0] for row in c.fetchall()]
+
+    looked_up = 0
+    updated_rows = 0
+    skipped_private = 0
+    no_geo = 0
+    failed_ips = []
+
+    for ip_address in candidate_ips:
+        if is_private_or_local_ip(ip_address):
+            skipped_private += 1
+            continue
+        looked_up += 1
+        geo = lookup_ip_geo(ip_address)
+        if not any(geo.get(key) for key in ("country", "region", "city", "timezone")):
+            no_geo += 1
+            failed_ips.append(ip_address)
+            continue
+        c.execute("""
+            UPDATE visitors
+            SET country = COALESCE(NULLIF(country, ''), ?),
+                region = COALESCE(NULLIF(region, ''), ?),
+                city = COALESCE(NULLIF(city, ''), ?),
+                timezone = COALESCE(NULLIF(timezone, ''), ?)
+            WHERE ip_address = ?
+              AND COALESCE(NULLIF(region, ''), NULLIF(city, ''), NULLIF(country, '')) IS NULL
+        """, (
+            geo.get("country"),
+            geo.get("region"),
+            geo.get("city"),
+            geo.get("timezone"),
+            ip_address
+        ))
+        updated_rows += c.rowcount
+
+    conn.commit()
+    conn.close()
+    return {
+        "success": True,
+        "candidate_ips": len(candidate_ips),
+        "looked_up_ips": looked_up,
+        "updated_rows": updated_rows,
+        "skipped_private_or_local_ips": skipped_private,
+        "ips_without_geo": no_geo,
+        "failed_ip_samples": failed_ips[:5],
+    }
 
 
 def ensure_analytics_schema(conn):
@@ -855,11 +927,25 @@ async def download_analytics():
     rows = c.fetchall()
     
     col_names = [description[0] for description in c.description]
+    timestamp_index = col_names.index("timestamp") if "timestamp" in col_names else -1
+    export_col_names = []
+    for col_name in col_names:
+        if col_name == "timestamp":
+            export_col_names.extend(["timestamp_mst", "timestamp_utc"])
+        else:
+            export_col_names.append(col_name)
     
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(col_names)
-    writer.writerows(rows)
+    writer.writerow(export_col_names)
+    for row in rows:
+        export_row = []
+        for index, value in enumerate(row):
+            if index == timestamp_index:
+                export_row.extend([format_arizona_timestamp(value), value])
+            else:
+                export_row.append(value)
+        writer.writerow(export_row)
     
     conn.close()
     
@@ -868,6 +954,17 @@ async def download_analytics():
         mimetype="text/csv",
         headers={"Content-Disposition": "attachment;filename=analytics.csv"}
     )
+
+
+@app.route("/api/analytics/backfill-geo", methods=["GET", "POST"])
+async def analytics_backfill_geo():
+    secret = request.args.get("secret")
+    if secret != os.getenv("ADMIN_SECRET", "microcomp-admin"):
+        return "Unauthorized", 401
+
+    limit = request.args.get("limit", 250)
+    result = backfill_analytics_geo(get_analytics_db_path(), limit)
+    return jsonify(result)
 
 
 @app.route("/api/analytics/status")
@@ -1268,6 +1365,8 @@ async def admin_dashboard():
             .diagnostic-item {{ background: rgba(255,255,255,0.035); border: 1px solid rgba(0,240,255,0.12); border-radius: 8px; padding: 1rem; }}
             .diagnostic-item span {{ display: block; color: #a0aec0; font-size: 0.76rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem; }}
             .diagnostic-item strong {{ color: #fff; font-size: 1rem; word-break: break-word; }}
+            .admin-action {{ display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 1rem; padding: 0.7rem 1rem; border-radius: 8px; border: 1px solid rgba(0,240,255,0.3); color: #fff; background: rgba(0,240,255,0.1); text-decoration: none; font-weight: 800; }}
+            .admin-action:hover {{ background: rgba(0,240,255,0.18); }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 1rem; }}
             th, td {{ text-align: left; padding: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; }}
             th {{ color: #00f0ff; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }}
@@ -1317,6 +1416,9 @@ async def admin_dashboard():
                         <strong>{geo_diag.get('recent_pageviews_with_geo', 0)} / {geo_diag.get('recent_pageviews', 0)}</strong>
                     </div>
                 </div>
+                <a class="admin-action" href="/api/analytics/backfill-geo?secret={html_lib.escape(secret)}&limit=1000" target="_blank" rel="noopener">
+                    <i class="fa-solid fa-rotate"></i> Backfill missing geo data
+                </a>
             </div>
             
             <div class="stats-grid">
