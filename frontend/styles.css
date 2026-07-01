@@ -2317,6 +2317,21 @@ nav a:hover:not(.btn-primary) {
     margin-bottom: 0 !important;
 }
 
+.bio-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--accent-blue);
+    font-size: 0.95rem;
+    font-weight: 800;
+    text-decoration: none;
+    margin-top: 0.65rem;
+}
+
+.bio-link:hover {
+    color: var(--text-primary);
+}
+
 .career-agent-panel {
     display: flex;
     align-items: center;
