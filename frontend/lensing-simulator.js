@@ -696,9 +696,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const top = 48;
         const bottom = height - 66;
-        const source = { x: width * 0.16, y: height * (0.28 + state.alignment * 0.34) };
         const lens = { x: width * 0.5, y: height * 0.5 };
-        const observer = { x: width * 0.86, y: height * 0.5 };
+        const margin = Math.max(54, width * 0.07);
+        const viewSpan = Math.max(240, Math.min(width, height * 1.65));
+        const minSideSpan = viewSpan * 0.23;
+        const maxSideSpan = viewSpan * 0.43;
+        const sourceScale = Math.max(0, Math.min(1, (state.sourceDistance - 3) / 7));
+        const observerScale = Math.max(0, Math.min(1, (state.observerDistance - 2) / 7));
+        const sourceSpan = minSideSpan + sourceScale * (maxSideSpan - minSideSpan);
+        const observerSpan = minSideSpan + observerScale * (maxSideSpan - minSideSpan);
+        const source = {
+            x: Math.max(margin, lens.x - sourceSpan),
+            y: height * (0.28 + state.alignment * 0.34)
+        };
+        const observer = {
+            x: Math.min(width - margin, lens.x + observerSpan),
+            y: height * 0.5
+        };
         const ringRadius = Math.min(width, height) * (0.11 + state.einstein * 0.055);
         const splitPx = Math.min(height * 0.22, ringRadius * (0.45 + state.alignment));
 
@@ -743,20 +757,48 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        const bendStrength = Math.min(130, 28 + state.mass * 0.82);
+        const sourceToLens = Math.max(1, lens.x - source.x);
+        const lensToObserver = Math.max(1, observer.x - lens.x);
+        const localSpan = Math.min(sourceToLens, lensToObserver);
+        const bendStrength = Math.min(localSpan * 0.58, 28 + state.mass * 0.82);
         const upper = lens.y - splitPx;
         const lower = lens.y + splitPx * 0.82;
 
         drawPath([
             source,
-            { x: lens.x - width * 0.05, y: upper, cx: lens.x - bendStrength, cy: upper - bendStrength * 0.22 },
+            { x: lens.x - sourceToLens * 0.12, y: upper, cx: lens.x - bendStrength, cy: upper - bendStrength * 0.22 },
             { x: observer.x, y: observer.y, cx: lens.x + bendStrength, cy: upper - bendStrength * 0.16 }
         ], 'rgba(0, 240, 255, 0.88)', 3);
         drawPath([
             source,
-            { x: lens.x - width * 0.045, y: lower, cx: lens.x - bendStrength, cy: lower + bendStrength * 0.22 },
+            { x: lens.x - sourceToLens * 0.11, y: lower, cx: lens.x - bendStrength, cy: lower + bendStrength * 0.22 },
             { x: observer.x, y: observer.y, cx: lens.x + bendStrength, cy: lower + bendStrength * 0.16 }
         ], 'rgba(255, 0, 255, 0.72)', 2.5);
+
+        const guideY = Math.min(bottom - 24, lens.y + Math.max(ringRadius * 0.9, 74));
+        ctx.save();
+        ctx.setLineDash([5, 7]);
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(source.x, guideY);
+        ctx.lineTo(lens.x, guideY);
+        ctx.lineTo(observer.x, guideY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(0,240,255,0.72)';
+        ctx.beginPath();
+        ctx.arc(lens.x, guideY, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        drawText(`${state.sourceDistance.toFixed(1)} kpc`, (source.x + lens.x) * 0.5, guideY - 10, {
+            color: 'rgba(223,251,255,0.74)',
+            font: '700 11px Inter, sans-serif'
+        });
+        drawText(`${state.observerDistance.toFixed(1)} kpc`, (lens.x + observer.x) * 0.5, guideY - 10, {
+            color: 'rgba(223,251,255,0.74)',
+            font: '700 11px Inter, sans-serif'
+        });
 
         ctx.strokeStyle = mode === 'wave' ? 'rgba(255,255,255,0.74)' : 'rgba(0,240,255,0.48)';
         ctx.lineWidth = mode === 'wave' ? 3 : 2;
@@ -786,9 +828,9 @@ document.addEventListener('DOMContentLoaded', () => {
         drawGlowingCircle(lens.x, lens.y, 14 + state.mass * 0.07, 'rgba(0,240,255,ALPHA)', 0.9);
         drawGlowingCircle(observer.x, observer.y, 9, 'rgba(255,255,255,ALPHA)', 0.85);
 
-        drawText('source', source.x, source.y - 24);
+        drawText(`source ${state.sourceDistance.toFixed(1)} kpc`, source.x, source.y - 24);
         drawText('lens mass', lens.x, lens.y + 42);
-        drawText('observer', observer.x, observer.y - 24);
+        drawText(`observer ${state.observerDistance.toFixed(1)} kpc`, observer.x, observer.y - 24);
 
         ctx.fillStyle = 'rgba(3, 5, 10, 0.74)';
         ctx.fillRect(24, 24, Math.min(360, width - 48), 74);
@@ -800,8 +842,8 @@ document.addEventListener('DOMContentLoaded', () => {
             font: '800 14px Inter, sans-serif'
         });
         drawText(mode === 'wave'
-            ? 'Interference-style structure changes with frequency.'
-            : 'Ray paths bend around the lens into apparent images.',
+            ? '2D diagnostic projection; rotate the spatial geometry below.'
+            : '2D ray projection; rotate the spatial geometry below.',
         42, 78, {
             align: 'left',
             color: 'rgba(160,174,192,0.94)',
