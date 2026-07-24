@@ -49,6 +49,7 @@
 
         <section class="lab-command-bar" aria-label="Simulation configuration and playback">
             <div class="config-group">
+                <label id="attack-type-field">Traffic model<select id="attack-type"><option value="ddos">DDoS · distributed</option><option value="dos">DoS · single source</option></select></label>
                 <label>Difficulty<select id="difficulty"><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></label>
                 <label>Learning mode<select id="mode"><option value="guided">Guided</option><option value="free-play">Free play</option></select></label>
                 <label>Speed<select id="speed"><option value="2000">0.5×</option><option value="1000" selected>1×</option><option value="500">2×</option><option value="250">4×</option></select></label>
@@ -57,6 +58,7 @@
             <div class="playback" role="group" aria-label="Playback controls">
                 <button id="start" class="action-primary">Start</button><button id="pause">Pause</button><button id="step">Step</button><button id="reset">Reset</button><button id="replay">Replay</button>
             </div>
+            <label id="recovery-field" class="motion-toggle"><input id="recovery" type="checkbox" checked> Recovery phase</label>
             <label class="motion-toggle"><input id="reduced-motion" type="checkbox"> Reduced motion</label>
         </section>
 
@@ -74,9 +76,11 @@
                 <div class="panel-heading"><div><span class="eyebrow">Live synthetic view</span><h2 id="topology-title">Network topology</h2></div><span id="run-status" class="status-pill">Ready</span></div>
                 <div id="topology" class="topology" role="img" aria-label="Synthetic network topology. Select a host for details."></div>
                 <p id="topology-summary" class="sr-summary">No simulation events yet.</p>
+                <p id="motion-status" class="motion-status" role="status">Animated flow view enabled.</p>
                 <div class="metric-grid" aria-label="Current metrics">
-                    <div><span>Requests / sec</span><strong id="metric-rps">18</strong></div><div><span>Latency</span><strong id="metric-latency">42 ms</strong></div><div><span>Error rate</span><strong id="metric-errors">1%</strong></div><div><span>Availability</span><strong id="metric-availability">100%</strong></div>
+                    <div><span>Offered requests / sec</span><strong id="metric-rps">120</strong></div><div><span>Accepted at edge / sec</span><strong id="metric-allowed">120</strong></div><div><span>Server-bound / sec</span><strong id="metric-server-rps">120</strong></div><div><span>Filtered / sec</span><strong id="metric-blocked">0</strong></div><div><span>Latency</span><strong id="metric-latency">42 ms</strong></div><div><span>Error rate</span><strong id="metric-errors">1%</strong></div><div><span>Availability</span><strong id="metric-availability">100%</strong></div>
                 </div>
+                <div id="defense-effect-strip" class="defense-effect-strip" aria-live="polite"><p>No defense triggered on this virtual tick.</p></div>
             </section>
 
             <aside class="lab-panel defense-panel" aria-labelledby="defense-title">
@@ -97,13 +101,13 @@
             <article class="lab-panel alert-panel"><div class="panel-heading"><div><span class="eyebrow">Signal</span><h2>Alert timeline</h2></div><span id="alert-count">0 alerts</span></div><ol id="alert-list" class="timeline"><li class="empty-state">Alerts appear here as the virtual clock advances.</li></ol></article>
             <article class="lab-panel log-panel"><div class="panel-heading"><div><span class="eyebrow">Evidence</span><h2>Event log &amp; mock flow inspection</h2></div><span>Metadata only</span></div>
                 <div class="filters" aria-label="Traffic filters"><label>Protocol<select id="filter-protocol"><option value="">All</option></select></label><label>Source<input id="filter-source" type="search" placeholder="Name or safe IP"></label><label>Destination<input id="filter-destination" type="search" placeholder="Name or safe IP"></label><label>Severity<select id="filter-severity"><option value="">All</option><option>info</option><option>low</option><option>medium</option><option>high</option><option>critical</option></select></label><label>Time<select id="filter-time"><option value="">All</option><option value="5">Last 5 ticks</option><option value="10">Last 10 ticks</option></select></label></div>
-                <div class="table-wrap"><table><thead><tr><th>Time</th><th>Source</th><th>Destination</th><th>Protocol</th><th>Action</th><th>Latency</th><th>Severity</th></tr></thead><tbody id="flow-table"><tr><td colspan="7" class="empty-state">Start or step through a scenario to generate synthetic flow metadata.</td></tr></tbody></table></div>
+                <div class="table-wrap"><table><thead><tr><th>Time</th><th>Source</th><th>Destination</th><th>Protocol</th><th>Volume</th><th>Allowed</th><th>Blocked</th><th>Latency</th><th>Severity</th></tr></thead><tbody id="flow-table"><tr><td colspan="9" class="empty-state">Start or step through a scenario to generate synthetic flow metadata.</td></tr></tbody></table></div>
             </article>
         </section>
 
         <section class="lab-panel report-panel" aria-labelledby="report-title">
             <div class="panel-heading"><div><span class="eyebrow">3 · Explain and compare</span><h2 id="report-title">Post-simulation findings</h2></div><div class="report-actions"><button id="export-json" disabled>Download JSON</button><button id="export-csv" disabled>Download CSV</button></div></div>
-            <div id="report-empty" class="empty-report">Complete the 20-tick scenario to generate a synthetic defensive report. Replay with different controls to compare outcomes.</div>
+            <div id="report-empty" class="empty-report">Complete the 24-tick DoS/DDoS scenario to generate a synthetic defensive report. Replay the same seed with different controls to compare outcomes.</div>
             <div id="report-content" class="report-content" hidden></div>
         </section>
     </main>
