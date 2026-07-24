@@ -77,6 +77,7 @@
 .topology-links line { stroke: rgba(124, 166, 200, .23); stroke-width: .35; vector-effect: non-scaling-stroke; }
 .flow-links line { stroke: var(--cyber-blue); stroke-width: 1.2; vector-effect: non-scaling-stroke; stroke-dasharray: 3 8; animation: flow 1.2s linear infinite; animation-delay: var(--delay); }
 .flow-links .severity-high, .flow-links .severity-critical { stroke: var(--cyber-red); }
+.flow-links .flow-interrupted { stroke: var(--cyber-cyan); stroke-width: 2.4; stroke-dasharray: 2 5; filter: drop-shadow(0 0 4px rgba(85, 230, 193, .8)); }
 .topology-node { position: absolute; transform: translate(-50%, -50%); width: 112px; min-height: 61px; padding: 7px; color: inherit; background: rgba(8, 18, 31, .94); border: 1px solid rgba(94, 145, 181, .35); border-radius: 8px; display: grid; justify-items: center; gap: 2px; }
 :root[data-theme="light"] .topology-node { background: rgba(255, 255, 255, .96); }
 .topology-node > span { color: var(--cyber-blue); font-size: 1rem; }
@@ -85,7 +86,10 @@
 .topology-node.status-at-risk { border-color: var(--cyber-red); box-shadow: 0 0 20px rgba(255, 107, 120, .23); }
 .topology-node.status-protected { border-color: var(--cyber-cyan); }
 .topology-node.status-observing { border-color: var(--cyber-amber); }
-.metric-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.topology-node.upstream-node { border-width: 2px; background: rgba(8, 48, 47, .96); box-shadow: 0 0 25px rgba(85, 230, 193, .2); }
+.topology-counter { position: absolute; top: calc(100% + 5px); color: var(--cyber-cyan); background: rgba(3, 12, 18, .94); border: 1px solid rgba(85, 230, 193, .35); border-radius: 999px; padding: 3px 7px; white-space: nowrap; font-style: normal; font-size: .57rem; }
+:root[data-theme="light"] .topology-counter { background: white; }
+.metric-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
 .metric-grid div { border-top: 2px solid var(--cyber-blue); background: rgba(86, 168, 255, .06); padding: 10px; }
 .metric-grid span { color: var(--cyber-muted); font-size: .66rem; display: block; }
 .metric-grid strong { font-size: 1.25rem; display: block; margin-top: 4px; }
@@ -105,8 +109,9 @@
 .observability-grid { display: grid; grid-template-columns: 1fr 1fr .85fr; gap: 14px; margin-top: 14px; }
 .chart-panel svg { width: 100%; height: 150px; margin-top: 12px; }
 .chart-grid { stroke: var(--cyber-border); stroke-width: 1; }
-.chart-primary, .chart-secondary, .chart-blocked, .chart-danger { fill: none; stroke: var(--cyber-cyan); stroke-width: 3; vector-effect: non-scaling-stroke; }
+.chart-primary, .chart-secondary, .chart-server, .chart-blocked, .chart-danger { fill: none; stroke: var(--cyber-cyan); stroke-width: 3; vector-effect: non-scaling-stroke; }
 .chart-secondary { stroke: var(--cyber-blue); stroke-width: 2.25; }
+.chart-server { stroke: #b68cff; stroke-width: 2.25; }
 .chart-blocked { stroke: var(--cyber-amber); stroke-width: 2.25; stroke-dasharray: 6 4; }
 .chart-danger { stroke: var(--cyber-red); }
 .panel-heading > span { color: var(--cyber-muted); font-size: .68rem; }

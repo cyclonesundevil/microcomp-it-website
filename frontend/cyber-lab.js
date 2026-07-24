@@ -9,10 +9,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const nodePositions = {
         internet: [8, 18], actor: [8, 45], actor2: [8, 56], actor3: [8, 67], actor4: [8, 78], actor5: [8, 89],
-        edge: [31, 48], web: [51, 25], email: [51, 48],
-        identity: [51, 73], workstation: [72, 73], database: [72, 24], files: [90, 32], soc: [90, 72]
+        upstream: [22, 52], edge: [39, 52], loadbalancer: [55, 40], web: [72, 24], email: [55, 63],
+        identity: [55, 80], workstation: [73, 80], database: [90, 20], files: [90, 49], soc: [90, 80]
     };
-    const icon = { cloud: '☁', actor: '◉', gateway: '◆', server: '▰', identity: '◇', email: '✉', endpoint: '▱', database: '▤', monitor: '◎' };
+    const icon = { cloud: '☁', shield: 'UP', actor: '◉', gateway: '◆', server: '▰', identity: '◇', email: '✉', endpoint: '▱', database: '▤', monitor: '◎' };
 
     function readConfig() {
         return {
@@ -60,9 +60,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function buildTopology() {
+        const upstreamVisible = state.scenario.id === 'dos' && state.defenses.upstreamProtection;
+        const ingress = upstreamVisible ? 'upstream' : 'edge';
         const lines = [
-            ['internet', 'edge'], ['actor', 'edge'], ['actor2', 'edge'], ['actor3', 'edge'], ['actor4', 'edge'], ['actor5', 'edge'],
-            ['edge', 'web'], ['edge', 'email'], ['edge', 'identity'],
+            ['internet', ingress], ['actor', ingress], ['actor2', ingress], ['actor3', ingress], ['actor4', ingress], ['actor5', ingress],
+            ...(upstreamVisible ? [['upstream', 'edge']] : []),
+            ['edge', 'loadbalancer'], ['loadbalancer', 'web'], ['edge', 'email'], ['edge', 'identity'],
             ['web', 'database'], ['email', 'workstation'], ['identity', 'workstation'], ['workstation', 'files'],
             ['web', 'soc'], ['identity', 'soc'], ['files', 'soc']
         ];
@@ -73,19 +76,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const [x1, y1] = nodePositions[a], [x2, y2] = nodePositions[b];
             return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"></line>`;
         }).join('');
-        const flowLines = state.flows.slice(0, 8).map((flow, i) => {
+        const flowLines = state.flows.slice(0, 12).map((flow, i) => {
             const a = nodePositions[flow.source.id], b = nodePositions[flow.destination.id];
             if (!a || !b) return '';
-            return `<line class="active-flow severity-${flow.severity}" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" style="--delay:${i * -.18}s"></line>`;
+            const interrupted = flow.marker === 'DEFENSE_TRIGGERED' || flow.action === 'scrubbed' ? ' flow-interrupted' : '';
+            return `<line class="active-flow severity-${flow.severity}${interrupted}" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" style="--delay:${i * -.18}s"></line>`;
         }).join('');
         const visibleHosts = state.hosts.filter(host => {
+            if (host.id === 'upstream') return upstreamVisible;
             if (!host.id.match(/^actor[2-5]$/)) return true;
             return state.scenario.id === 'dos' && state.config.attackType === 'ddos';
         });
         const nodes = visibleHosts.map(host => {
             const [x, y] = nodePositions[host.id];
-            return `<button class="topology-node status-${host.status}" style="left:${x}%;top:${y}%" data-host="${host.id}" aria-label="${escapeHtml(host.name)}, ${host.ip}, status ${host.status}">
+            const counter = host.id === 'upstream'
+                ? `<em class="topology-counter">${state.metrics.upstreamFiltered.toLocaleString()} filtered</em>`
+                : '';
+            return `<button class="topology-node status-${host.status} ${host.id === 'upstream' ? 'upstream-node' : ''}" style="left:${x}%;top:${y}%" data-host="${host.id}" aria-label="${escapeHtml(host.name)}, ${host.ip}, status ${host.status}${host.id === 'upstream' ? `, ${state.metrics.upstreamFiltered} requests filtered this tick` : ''}">
                 <span aria-hidden="true">${icon[host.type] || '●'}</span><strong>${escapeHtml(host.name)}</strong><small>${host.ip}</small>
+                ${counter}
             </button>`;
         }).join('');
         $('#topology').innerHTML = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><g class="topology-links">${svgLines}</g><g class="flow-links">${flowLines}</g></svg>${nodes}`;
@@ -118,11 +127,12 @@ document.addEventListener('DOMContentLoaded', () => {
         $('#run-status').className = `status-pill status-${state.status}`;
         $('#metric-rps').textContent = state.metrics.rps.toLocaleString();
         $('#metric-allowed').textContent = (state.metrics.allowed ?? state.metrics.rps).toLocaleString();
+        $('#metric-server-rps').textContent = (state.metrics.serverRps ?? state.metrics.allowed ?? state.metrics.rps).toLocaleString();
         $('#metric-blocked').textContent = (state.metrics.blocked ?? 0).toLocaleString();
         $('#metric-latency').textContent = `${state.metrics.latency} ms`;
         $('#metric-errors').textContent = `${state.metrics.errors}%`;
         $('#metric-availability').textContent = `${state.metrics.availability}%`;
-        $('#topology-summary').textContent = `${s.title}: virtual tick ${state.tick}, ${state.alerts.length} alerts, risk ${state.metrics.risk} out of 100.`;
+        $('#topology-summary').textContent = `${s.title}: virtual tick ${state.tick}, ${state.alerts.length} alerts, risk ${state.metrics.risk} out of 100.${state.defenses.upstreamProtection ? ` Upstream filter removed ${state.metrics.upstreamFiltered.toLocaleString()} synthetic requests before the edge.` : ''}`;
         $('#attack-type-field').hidden = s.id !== 'dos';
         $('#recovery-field').hidden = s.id !== 'dos';
         buildTopology();
@@ -167,12 +177,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderCharts() {
         const history = state.history.length ? state.history : [{ tick: 0, ...state.metrics }];
         const requestSeries = state.scenario.id === 'dos'
-            ? [{ key: 'rps', className: 'chart-primary' }, { key: 'allowed', className: 'chart-secondary' }, { key: 'blocked', className: 'chart-blocked' }]
+            ? [{ key: 'rps', className: 'chart-primary' }, { key: 'allowed', className: 'chart-secondary' }, { key: 'serverRps', className: 'chart-server' }, { key: 'blocked', className: 'chart-blocked' }]
             : [{ key: 'rps', className: 'chart-primary' }];
         drawLines($('#rps-chart'), history, requestSeries);
         drawLines($('#health-chart'), history, [{ key: 'latency', className: 'chart-primary' }, { key: 'errors', className: 'chart-danger' }]);
         $('#chart-rps-summary').textContent = state.scenario.id === 'dos'
-            ? `Offered ${state.metrics.rps.toLocaleString()} · accepted ${state.metrics.allowed.toLocaleString()} · blocked ${state.metrics.blocked.toLocaleString()}`
+            ? `Offered ${state.metrics.rps.toLocaleString()} · edge ${state.metrics.allowed.toLocaleString()} · server ${state.metrics.serverRps.toLocaleString()} · filtered ${state.metrics.blocked.toLocaleString()}`
             : `Current: ${state.metrics.rps.toLocaleString()} rps`;
         $('#chart-health-summary').textContent = `${state.metrics.latency} ms · ${state.metrics.errors}% errors`;
     }
@@ -277,19 +287,27 @@ document.addEventListener('DOMContentLoaded', () => {
             return `${Math.abs(difference).toLocaleString()} ${difference < 0 ? 'lower' : 'higher'} · ${improved ? 'improved' : 'worse'}`;
         };
         const comparison = comparable ? `
-            <div><span>Same-seed comparison</span><strong>Peak RPS: ${delta(report.peakRps, priorReport.peakRps, false)}<br>Max latency: ${delta(report.maximumLatency, priorReport.maximumLatency)}<br>Downtime: ${delta(report.serviceDowntimeSeconds, priorReport.serviceDowntimeSeconds)}</strong></div>` :
+            <div><span>Same-seed comparison</span><strong>Peak server RPS: ${delta(report.peakServerRps, priorReport.peakServerRps)}<br>Max latency: ${delta(report.maximumLatency, priorReport.maximumLatency)}<br>Downtime: ${delta(report.serviceDowntimeSeconds, priorReport.serviceDowntimeSeconds)}</strong></div>` :
             '<div><span>Same-seed comparison</span><strong>Replay this seed with different defenses to compare outcomes.</strong></div>';
         const triggered = report.defensesTriggered.length
-            ? report.defensesTriggered.map(item => `${escapeHtml(item.name)} (${item.affectedRequests.toLocaleString()} requests affected; trade-off: ${escapeHtml(item.tradeOff)})`).join('<br>')
+            ? report.defensesTriggered.map(item => {
+                const upstreamDetail = item.id === 'upstreamProtection'
+                    ? `; ${item.effectivenessPercent}% effectiveness; +${item.availabilityImprovement} availability points`
+                    : '';
+                return `${escapeHtml(item.name)} (${item.affectedRequests.toLocaleString()} requests affected${upstreamDetail}; trade-off: ${escapeHtml(item.tradeOff)})`;
+            }).join('<br>')
             : 'No defenses triggered';
         $('#report-content').innerHTML = `
             <div class="report-score"><span>Residual risk</span><strong>${report.residualRisk}<small>/100</small></strong><p>${report.attackType} · seed ${report.seed} · ${report.trafficBlocked.toLocaleString()} requests blocked</p></div>
             <div class="report-findings dos-report-findings">
                 <div><span>Peak requests / second</span><strong>${report.peakRps.toLocaleString()}</strong></div>
+                <div><span>Peak server-bound requests / second</span><strong>${report.peakServerRps.toLocaleString()}</strong></div>
                 <div><span>Maximum latency</span><strong>${report.maximumLatency.toLocaleString()} ms</strong></div>
                 <div><span>Maximum error rate</span><strong>${report.maximumErrorRate}%</strong></div>
                 <div><span>Service downtime</span><strong>${report.serviceDowntimeSeconds} virtual seconds (${report.serviceDowntimeTicks} ticks)</strong></div>
                 <div><span>Traffic blocked</span><strong>${report.trafficBlocked.toLocaleString()} synthetic requests</strong></div>
+                <div><span>Upstream traffic filtered</span><strong>${report.upstreamTrafficFiltered.toLocaleString()} requests · ${report.upstreamEffectivenessPercent}% effectiveness</strong></div>
+                <div><span>Upstream availability improvement</span><strong>+${report.availabilityImprovement} percentage points · ${report.latencyImprovement} ms lower peak latency</strong></div>
                 <div><span>Minimum availability</span><strong>${report.minimumAvailability}%</strong></div>
                 <div><span>Defenses triggered &amp; trade-offs</span><strong>${triggered}</strong></div>
                 <div><span>Missed detections / coverage</span><strong>${report.missedDetections.length ? report.missedDetections.map(escapeHtml).join('<br>') : 'All reference defense layers were enabled.'}</strong></div>

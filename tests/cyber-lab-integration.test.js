@@ -12,7 +12,7 @@ test('lab route includes core playback, accessibility, visualization, and report
     ['id="start"', 'id="pause"', 'id="step"', 'id="reset"', 'id="replay"',
         'id="topology"', 'id="flow-table"', 'id="alert-list"', 'id="defense-list"',
         'id="report-content"', 'aria-live="polite"', 'id="reduced-motion"',
-        'id="attack-type"', 'id="recovery"', 'id="metric-allowed"', 'id="metric-blocked"'
+        'id="attack-type"', 'id="recovery"', 'id="metric-allowed"', 'id="metric-server-rps"', 'id="metric-blocked"'
     ].forEach(marker => assert.ok(page.includes(marker), `missing ${marker}`));
 });
 
@@ -38,6 +38,15 @@ test('DoS UI explains all six guided learning checkpoints', () => {
     ['DDoS uses several fictional sources', 'queueing raises latency', 'service effectively unavailable',
         'Rate limiting rejects requests', 'Autoscaling adds capacity', 'Layered defenses work'
     ].forEach(copy => assert.ok(controller.includes(copy), `missing guide copy: ${copy}`));
+});
+
+test('upstream protection is visible in topology, metrics, events, and report rendering', () => {
+    ['upstream-node', 'topology-counter', 'flow-interrupted', 'metric-server-rps',
+        'upstreamTrafficFiltered', 'availabilityImprovement', 'DEFENSE_TRIGGERED'
+    ].forEach(marker => {
+        const surfaces = `${controller}\n${page}\n${fs.readFileSync(path.join(root, 'frontend/cyber-lab.css'), 'utf8')}`;
+        assert.ok(surfaces.includes(marker), `missing upstream surface: ${marker}`);
+    });
 });
 
 test('Demo Lab directory links to the simulation route', () => {

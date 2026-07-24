@@ -27,9 +27,22 @@ The engine emits one metadata summary per active source per virtual tick, plus o
 - **Traffic filtering** removes part of the abnormal pattern and may falsely block a small share of baseline traffic.
 - **Caching** removes repeatable work from origin load but does not help dynamic requests.
 - **Autoscaling** adds delayed capacity and simulated cost but does not remove hostile traffic.
-- **Upstream DDoS protection** filters distributed traffic before the edge and adds small processing latency.
+- **Upstream DDoS protection** filters attack traffic before the firewall/rate limiter, load balancer, and web service. Its seeded effectiveness is 95–99% for Beginner, 85–95% for Intermediate, and 70–90% for Advanced. Residual traffic continues downstream, and simulated scrubbing adds a small processing delay.
 
 Each triggered defense records affected request volume and its trade-off in the final report. Layered controls intentionally outperform any one control.
+
+The modeled traffic path is:
+
+```text
+fictional attacker sources
+→ upstream filtering (when enabled)
+→ residual traffic
+→ firewall / local rate limiting
+→ load balancer
+→ web service
+```
+
+The upstream stage creates a `DEFENSE_TRIGGERED` metadata event, updates an on-topology filter counter, and records offered, residual, server-bound, and filtered request totals. Health metrics are derived only after filtering and downstream controls have run.
 
 ## Report contract
 

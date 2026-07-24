@@ -130,5 +130,47 @@ test('DoS report includes availability outcomes, triggered defenses, gaps, and s
     });
     assert.equal(report.synthetic, true);
     assert.equal(report.attackType, 'DOS');
-    assert.ok(report.events.every(event => event.action === 'aggregated'));
+    assert.ok(report.events.every(event => ['forwarded', 'scrubbed', 'filtered'].includes(event.action)));
+});
+
+test('upstream DDoS protection changes the same seeded traffic before downstream metrics', () => {
+    const config = { scenarioId: 'dos', attackType: 'ddos', difficulty: 'Intermediate', seed: 4242 };
+    const unprotected = run(config);
+    const protectedRun = run({ ...config, defenses: { upstreamProtection: true } });
+    assert.ok(protectedRun.findings.peakResidualAttack < unprotected.findings.peakResidualAttack);
+    assert.ok(protectedRun.findings.peakServerRps < unprotected.findings.peakServerRps);
+    assert.ok(protectedRun.findings.maximumLatency < unprotected.findings.maximumLatency);
+    assert.ok(protectedRun.findings.maximumErrorRate < unprotected.findings.maximumErrorRate);
+    assert.ok(protectedRun.findings.minimumAvailability > unprotected.findings.minimumAvailability);
+    assert.ok(protectedRun.findings.upstreamTrafficFiltered > 0);
+    assert.ok(protectedRun.events.some(event => event.marker === 'DEFENSE_TRIGGERED' && event.defenseId === 'upstreamProtection'));
+    const result = protectedRun.findings.defensesTriggered.find(item => item.id === 'upstreamProtection');
+    assert.ok(result);
+    assert.equal(result.trafficFiltered, protectedRun.findings.upstreamTrafficFiltered);
+    assert.ok(result.availabilityImprovement > 0);
+});
+
+test('upstream filtering effectiveness is deterministic and stays within difficulty ranges', () => {
+    const expectedRanges = {
+        Beginner: [0.95, 0.99],
+        Intermediate: [0.85, 0.95],
+        Advanced: [0.70, 0.90]
+    };
+    Object.entries(expectedRanges).forEach(([difficulty, [minimum, maximum]]) => {
+        const config = { scenarioId: 'dos', attackType: 'ddos', difficulty, seed: 8181, defenses: { upstreamProtection: true } };
+        const first = run(config);
+        const replay = run(config);
+        const effectiveness = first.history.find(item => item.upstreamEffectiveness > 0).upstreamEffectiveness;
+        assert.ok(effectiveness >= minimum && effectiveness <= maximum, `${difficulty} effectiveness outside range`);
+        assert.deepEqual(first, replay);
+    });
+});
+
+test('disabling upstream protection restores the undefended pipeline', () => {
+    const config = { scenarioId: 'dos', attackType: 'ddos', difficulty: 'Advanced', seed: 5150 };
+    const undefended = run(config);
+    const explicitlyDisabled = run({ ...config, defenses: { upstreamProtection: false } });
+    assert.deepEqual(explicitlyDisabled, undefended);
+    assert.equal(explicitlyDisabled.metrics.totalUpstreamFiltered, 0);
+    assert.equal(explicitlyDisabled.events.some(event => event.marker === 'DEFENSE_TRIGGERED'), false);
 });
