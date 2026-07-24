@@ -89,6 +89,8 @@
 .topology-node.upstream-node { border-width: 2px; background: rgba(8, 48, 47, .96); box-shadow: 0 0 25px rgba(85, 230, 193, .2); }
 .topology-counter { position: absolute; top: calc(100% + 5px); color: var(--cyber-cyan); background: rgba(3, 12, 18, .94); border: 1px solid rgba(85, 230, 193, .35); border-radius: 999px; padding: 3px 7px; white-space: nowrap; font-style: normal; font-size: .57rem; }
 :root[data-theme="light"] .topology-counter { background: white; }
+.motion-status { margin: -4px 0 12px; color: var(--cyber-muted); font-size: .67rem; }
+.motion-status.active { color: var(--cyber-cyan); }
 .metric-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
 .metric-grid div { border-top: 2px solid var(--cyber-blue); background: rgba(86, 168, 255, .06); padding: 10px; }
 .metric-grid span { color: var(--cyber-muted); font-size: .66rem; display: block; }

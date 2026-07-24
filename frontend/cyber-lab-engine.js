@@ -389,7 +389,8 @@
             time: `${String(Math.floor(state.tick / 60)).padStart(2, '0')}:${String(state.tick % 60).padStart(2, '0')}`,
             source, destination, protocol: 'HTTPS', action,
             requests: Math.round(requests), allowedRequests: Math.round(allowed), blockedRequests: Math.round(blocked),
-            bytes: Math.round(requests * 620), latency, severity, marker, phase: phase.name, defenseId,
+            bytes: Math.round(requests * 620), latency, severity, marker, phase: phase.name,
+            ...(defenseId ? { defenseId } : {}),
             explanation: marker === 'DEFENSE_TRIGGERED'
                 ? `Upstream DDoS protection filtered ${Math.round(blocked).toLocaleString()} fictional attack requests before the edge gateway; ${Math.round(allowed).toLocaleString()} residual requests continued downstream.`
                 : `${Math.round(requests).toLocaleString()} fictional requests were aggregated for this virtual tick; ${Math.round(blocked).toLocaleString()} were filtered. No network traffic was sent.`
@@ -527,9 +528,79 @@
         };
     }
 
+    function filterEvents(events, filters, currentTick) {
+        const values = filters || {};
+        const protocol = values.protocol || '';
+        const severity = values.severity || '';
+        const source = String(values.source || '').trim().toLowerCase();
+        const destination = String(values.destination || '').trim().toLowerCase();
+        const windowSize = Number(values.timeWindow) || 0;
+        const now = Number(currentTick) || 0;
+        return events.filter(event =>
+            (!protocol || event.protocol === protocol) &&
+            (!severity || event.severity === severity) &&
+            (!source || `${event.source.name} ${event.source.ip}`.toLowerCase().includes(source)) &&
+            (!destination || `${event.destination.name} ${event.destination.ip}`.toLowerCase().includes(destination)) &&
+            (!windowSize || event.tick > now - windowSize)
+        );
+    }
+
+    function serializeReportJson(report) {
+        return JSON.stringify(report, null, 2);
+    }
+
+    function csvCell(value) {
+        const normalized = value === undefined || value === null
+            ? ''
+            : (typeof value === 'object' ? JSON.stringify(value) : String(value));
+        return `"${normalized.replaceAll('"', '""')}"`;
+    }
+
+    function serializeReportCsv(report) {
+        const columns = ['record_type', 'key', 'value', 'time', 'source', 'destination', 'protocol', 'requests', 'allowed', 'blocked', 'severity', 'marker'];
+        const summaryRows = Object.entries(report)
+            .filter(([key]) => key !== 'events')
+            .map(([key, value]) => ['summary', key, value, '', '', '', '', '', '', '', '', '']);
+        const eventRows = (report.events || []).map(event => [
+            'event', '', '', event.time, event.source.ip, event.destination.ip, event.protocol,
+            event.requests || 1, event.allowedRequests ?? (event.action === 'blocked' ? 0 : 1),
+            event.blockedRequests ?? (event.action === 'blocked' ? 1 : 0), event.severity, event.marker
+        ]);
+        return [columns, ...summaryRows, ...eventRows].map(row => row.map(csvCell).join(',')).join('\n');
+    }
+
+    function compareReports(previous, current) {
+        if (!previous || !current) return { comparable: false, reason: 'A completed previous run is required.', deltas: {} };
+        const identityKeys = ['scenario', 'seed', 'difficulty'];
+        if (current.attackType !== undefined || previous.attackType !== undefined) identityKeys.push('attackType');
+        const mismatch = identityKeys.find(key => previous[key] !== current[key]);
+        if (mismatch) return { comparable: false, reason: `Run ${mismatch} does not match.`, deltas: {} };
+        const metrics = ['peakRisk', 'residualRisk', 'peakRps', 'peakServerRps', 'maximumLatency', 'maximumErrorRate', 'minimumAvailability', 'serviceDowntimeSeconds', 'trafficBlocked'];
+        const deltas = {};
+        metrics.forEach(key => {
+            if (Number.isFinite(previous[key]) && Number.isFinite(current[key])) {
+                deltas[key] = current[key] - previous[key];
+            }
+        });
+        return { comparable: true, reason: '', deltas };
+    }
+
+    function shouldAnnounceCheckpoint(state) {
+        if (!state || state.config.mode !== 'guided') return false;
+        const checkpoints = state.scenario.id === 'dos' ? [4, 8, 11, 15, 19] : [4, 8, 12, 16];
+        return checkpoints.includes(state.tick);
+    }
+
     function reducer(state, action) {
         switch (action.type) {
-        case 'STEP': return step(state);
+        case 'START':
+            return state.status === 'complete' ? state : { ...state, status: 'running' };
+        case 'TICK':
+            return step(state);
+        case 'STEP': {
+            const next = step(state);
+            return next.status === 'complete' ? next : { ...next, status: 'paused' };
+        }
         case 'PAUSE': return { ...state, status: state.status === 'running' ? 'paused' : state.status };
         case 'RESUME': return { ...state, status: state.status === 'paused' ? 'running' : state.status };
         case 'DEFENSE': return { ...state, defenses: { ...state.defenses, [action.id]: Boolean(action.enabled) } };
@@ -540,6 +611,7 @@
 
     return {
         SCENARIOS, DEFENSES, HOSTS, PROTOCOLS, SEVERITIES, DOS_PROFILES, UPSTREAM_EFFECTIVENESS,
-        seededRandom, upstreamEffectiveness, initialState, step, reducer, buildReport, dosPhase
+        seededRandom, upstreamEffectiveness, initialState, step, reducer, buildReport, dosPhase,
+        filterEvents, serializeReportJson, serializeReportCsv, compareReports, shouldAnnounceCheckpoint
     };
 }));

@@ -174,3 +174,92 @@ test('disabling upstream protection restores the undefended pipeline', () => {
     assert.equal(explicitlyDisabled.metrics.totalUpstreamFiltered, 0);
     assert.equal(explicitlyDisabled.events.some(event => event.marker === 'DEFENSE_TRIGGERED'), false);
 });
+
+test('shared lifecycle reducer owns start, tick, pause, resume, step, and reset transitions', () => {
+    let state = E.initialState({ scenarioId: 'mitm', difficulty: 'Beginner', seed: 90, defenses: { encryption: true } });
+    state = E.reducer(state, { type: 'START' });
+    assert.equal(state.status, 'running');
+    state = E.reducer(state, { type: 'TICK' });
+    assert.equal(state.tick, 1);
+    assert.equal(state.status, 'running');
+    state = E.reducer(state, { type: 'PAUSE' });
+    assert.equal(state.status, 'paused');
+    const pausedTick = state.tick;
+    state = E.reducer(state, { type: 'RESUME' });
+    assert.equal(state.status, 'running');
+    state = E.reducer(state, { type: 'STEP' });
+    assert.equal(state.tick, pausedTick + 1);
+    assert.equal(state.status, 'paused');
+    state = E.reducer(state, { type: 'RESET' });
+    assert.equal(state.status, 'ready');
+    assert.equal(state.tick, 0);
+    assert.deepEqual(state.events, []);
+    assert.deepEqual(state.alerts, []);
+    assert.deepEqual(state.flows, []);
+    assert.deepEqual(state.history, []);
+    assert.equal(state.findings, null);
+    assert.equal(state.defenses.encryption, true);
+});
+
+test('reset and replay reproduce the same report without retaining runtime state', () => {
+    const config = { scenarioId: 'dos', attackType: 'ddos', difficulty: 'Advanced', seed: 664, defenses: { upstreamProtection: true } };
+    const first = run(config);
+    let replay = E.reducer(first, { type: 'RESET' });
+    assert.equal(replay.tick, 0);
+    assert.equal(replay.metrics.totalBlocked, 0);
+    for (let index = 0; index < 24; index += 1) replay = E.reducer(replay, { type: 'TICK' });
+    assert.deepEqual(replay.findings, first.findings);
+});
+
+test('guided checkpoints announce only in guided mode', () => {
+    const guided = E.initialState({ scenarioId: 'dos', mode: 'guided', seed: 1 });
+    guided.tick = 4;
+    const freePlay = E.initialState({ scenarioId: 'dos', mode: 'free-play', seed: 1 });
+    freePlay.tick = 4;
+    assert.equal(E.shouldAnnounceCheckpoint(guided), true);
+    assert.equal(E.shouldAnnounceCheckpoint(freePlay), false);
+    guided.tick = 5;
+    assert.equal(E.shouldAnnounceCheckpoint(guided), false);
+});
+
+test('shared event filters use actual protocol, host, severity, and virtual time data', () => {
+    const state = run({ scenarioId: 'dos', attackType: 'ddos', difficulty: 'Beginner', seed: 33 }, 12);
+    const byProtocol = E.filterEvents(state.events, { protocol: 'HTTPS' }, state.tick);
+    assert.ok(byProtocol.length > 0);
+    assert.ok(byProtocol.every(event => event.protocol === 'HTTPS'));
+    const bySource = E.filterEvents(state.events, { source: '203.0.113.10' }, state.tick);
+    assert.ok(bySource.length > 0);
+    assert.ok(bySource.every(event => event.source.ip === '203.0.113.10'));
+    const byDestination = E.filterEvents(state.events, { destination: 'Web Service' }, state.tick);
+    assert.ok(byDestination.every(event => event.destination.name === 'Web Service'));
+    const severity = state.events.find(event => event.severity !== 'info').severity;
+    assert.ok(E.filterEvents(state.events, { severity }, state.tick).every(event => event.severity === severity));
+    assert.ok(E.filterEvents(state.events, { timeWindow: 5 }, state.tick).every(event => event.tick > state.tick - 5));
+});
+
+test('JSON and CSV serializers preserve synthetic report summary and event values', () => {
+    const report = run({
+        scenarioId: 'dos', attackType: 'ddos', difficulty: 'Intermediate', seed: 41,
+        defenses: { upstreamProtection: true }
+    }).findings;
+    assert.deepEqual(JSON.parse(E.serializeReportJson(report)), report);
+    const csv = E.serializeReportCsv(report);
+    ['synthetic', 'residualRisk', 'peakServerRps', 'upstreamTrafficFiltered', 'event', 'DEFENSE_TRIGGERED'].forEach(value => {
+        assert.ok(csv.includes(value), `CSV missing ${value}`);
+    });
+    assert.doesNotMatch(csv, /\[object Object\]/);
+});
+
+test('report comparison requires matching run identity and returns metric deltas', () => {
+    const base = run({ scenarioId: 'dos', attackType: 'ddos', difficulty: 'Intermediate', seed: 51 });
+    const defended = run({
+        scenarioId: 'dos', attackType: 'ddos', difficulty: 'Intermediate', seed: 51,
+        defenses: { upstreamProtection: true }
+    });
+    const comparison = E.compareReports(base.findings, defended.findings);
+    assert.equal(comparison.comparable, true);
+    assert.ok(comparison.deltas.peakServerRps < 0);
+    assert.ok(comparison.deltas.minimumAvailability > 0);
+    const mismatch = E.compareReports(base.findings, { ...defended.findings, seed: 52 });
+    assert.equal(mismatch.comparable, false);
+});

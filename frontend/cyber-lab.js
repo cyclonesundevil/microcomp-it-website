@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedScenario = 'dos';
     let state;
     let timer = null;
-    let priorReport = null;
+    let comparisonReport = null;
 
     const nodePositions = {
         internet: [8, 18], actor: [8, 45], actor2: [8, 56], actor3: [8, 67], actor4: [8, 78], actor5: [8, 89],
@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('[data-scenario]').forEach(button => button.addEventListener('click', () => {
             selectedScenario = button.dataset.scenario;
             stopTimer();
+            clearTransientUi();
             state = E.initialState(readConfig());
             buildScenarioList($('#scenario-search').value);
             buildDefenses();
@@ -219,16 +220,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function filteredEvents() {
-        const protocol = $('#filter-protocol').value, severity = $('#filter-severity').value;
-        const src = $('#filter-source').value.toLowerCase(), dst = $('#filter-destination').value.toLowerCase();
-        const windowSize = Number($('#filter-time').value);
-        return state.events.filter(event =>
-            (!protocol || event.protocol === protocol) &&
-            (!severity || event.severity === severity) &&
-            (!src || `${event.source.name} ${event.source.ip}`.toLowerCase().includes(src)) &&
-            (!dst || `${event.destination.name} ${event.destination.ip}`.toLowerCase().includes(dst)) &&
-            (!windowSize || event.tick > state.tick - windowSize)
-        );
+        return E.filterEvents(state.events, {
+            protocol: $('#filter-protocol').value,
+            severity: $('#filter-severity').value,
+            source: $('#filter-source').value,
+            destination: $('#filter-destination').value,
+            timeWindow: $('#filter-time').value
+        }, state.tick);
     }
 
     function renderFlows() {
@@ -261,7 +259,10 @@ document.addEventListener('DOMContentLoaded', () => {
             renderDosReport(r);
             return;
         }
-        const comparison = priorReport ? `<div><span>Previous peak risk</span><strong>${priorReport.peakRisk}</strong><small>${r.peakRisk < priorReport.peakRisk ? 'Lower in this run' : r.peakRisk > priorReport.peakRisk ? 'Higher in this run' : 'No change'}</small></div>` : '';
+        const comparisonResult = E.compareReports(comparisonReport, r);
+        const comparison = comparisonResult.comparable
+            ? `<div><span>Previous peak risk</span><strong>${comparisonReport.peakRisk}</strong><small>${r.peakRisk < comparisonReport.peakRisk ? 'Lower in this run' : r.peakRisk > comparisonReport.peakRisk ? 'Higher in this run' : 'No change'}</small></div>`
+            : '';
         $('#report-content').innerHTML = `
             <div class="report-score"><span>Residual risk</span><strong>${r.residualRisk}<small>/100</small></strong><p>${r.blockedEvents} events blocked · seed ${r.seed}</p></div>
             <div class="report-findings">
@@ -275,11 +276,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderDosReport(report) {
-        const comparable = priorReport &&
-            priorReport.scenario === report.scenario &&
-            priorReport.seed === report.seed &&
-            priorReport.attackType === report.attackType &&
-            priorReport.difficulty === report.difficulty;
+        const reportComparison = E.compareReports(comparisonReport, report);
+        const comparable = reportComparison.comparable;
         const delta = (current, previous, lowerIsBetter = true) => {
             const difference = current - previous;
             if (difference === 0) return 'No change';
@@ -287,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return `${Math.abs(difference).toLocaleString()} ${difference < 0 ? 'lower' : 'higher'} · ${improved ? 'improved' : 'worse'}`;
         };
         const comparison = comparable ? `
-            <div><span>Same-seed comparison</span><strong>Peak server RPS: ${delta(report.peakServerRps, priorReport.peakServerRps)}<br>Max latency: ${delta(report.maximumLatency, priorReport.maximumLatency)}<br>Downtime: ${delta(report.serviceDowntimeSeconds, priorReport.serviceDowntimeSeconds)}</strong></div>` :
+            <div><span>Same-seed comparison</span><strong>Peak server RPS: ${delta(report.peakServerRps, comparisonReport.peakServerRps)}<br>Max latency: ${delta(report.maximumLatency, comparisonReport.maximumLatency)}<br>Downtime: ${delta(report.serviceDowntimeSeconds, comparisonReport.serviceDowntimeSeconds)}</strong></div>` :
             '<div><span>Same-seed comparison</span><strong>Replay this seed with different defenses to compare outcomes.</strong></div>';
         const triggered = report.defensesTriggered.length
             ? report.defensesTriggered.map(item => {
@@ -316,22 +314,22 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
     }
 
-    function advance() {
-        state = E.reducer(state, { type: 'STEP' });
+    function advance(actionType = 'TICK') {
+        state = E.reducer(state, { type: actionType });
         render();
         if (state.status === 'complete') {
             stopTimer();
             announce(`Simulation complete. Residual risk ${state.findings.residualRisk} out of 100.`);
-        } else if ((state.scenario.id === 'dos' ? [4, 8, 11, 15, 19] : [4, 8, 12, 16]).includes(state.tick)) {
+        } else if (E.shouldAnnounceCheckpoint(state)) {
             announce(`Teaching checkpoint: ${guidedCopy()}`);
         }
     }
 
     function start() {
-        if (state.status === 'complete') state = E.initialState(readConfig());
-        state.status = 'running';
+        if (state.status === 'complete') reset(false);
+        state = E.reducer(state, { type: 'START' });
         stopTimer();
-        advance();
+        advance('TICK');
         if (state.status !== 'complete') timer = window.setInterval(advance, Number($('#speed').value));
         announce(`${state.scenario.title} simulation started.`);
     }
@@ -341,24 +339,32 @@ document.addEventListener('DOMContentLoaded', () => {
         timer = null;
     }
 
-    function reset() {
+    function clearTransientUi() {
+        ['filter-protocol', 'filter-source', 'filter-destination', 'filter-severity', 'filter-time'].forEach(id => {
+            const control = $(`#${id}`);
+            if (control) control.value = '';
+        });
+        $('#inspector-copy').textContent = 'Select a host or flow to see a plain-language explanation.';
+        $('#live-region').textContent = '';
+    }
+
+    function reset(announceReset = true) {
         stopTimer();
-        if (state.findings) priorReport = state.findings;
+        if (state.findings) comparisonReport = state.findings;
+        clearTransientUi();
         state = E.initialState(readConfig());
         buildDefenses();
         render();
-        announce('Simulation reset.');
+        if (announceReset) announce('Simulation reset. Runtime events, alerts, filters, and selections were cleared.');
     }
 
     function download(format) {
         if (!state.findings) return;
         let content, type, extension;
         if (format === 'json') {
-            content = JSON.stringify(state.findings, null, 2); type = 'application/json'; extension = 'json';
+            content = E.serializeReportJson(state.findings); type = 'application/json'; extension = 'json';
         } else {
-            const header = ['time', 'source', 'destination', 'protocol', 'requests', 'allowed', 'blocked', 'severity', 'marker'];
-            const quote = value => `"${String(value).replaceAll('"', '""')}"`;
-            content = [header.join(','), ...state.findings.events.map(e => [e.time, e.source.ip, e.destination.ip, e.protocol, e.requests || 1, e.allowedRequests ?? 1, e.blockedRequests ?? 0, e.severity, e.marker].map(quote).join(','))].join('\n');
+            content = E.serializeReportCsv(state.findings);
             type = 'text/csv'; extension = 'csv';
         }
         const blob = new Blob([content], { type });
@@ -369,6 +375,14 @@ document.addEventListener('DOMContentLoaded', () => {
         URL.revokeObjectURL(link.href);
     }
 
+    function updateMotionStatus(reduced) {
+        const status = $('#motion-status');
+        status.textContent = reduced
+            ? 'Static flow view enabled. Line color, host status, counters, and logs preserve traffic meaning.'
+            : 'Animated flow view enabled.';
+        status.classList.toggle('active', reduced);
+    }
+
     function announce(message) { $('#live-region').textContent = message; }
     function capitalize(value) { return value.charAt(0).toUpperCase() + value.slice(1); }
     function escapeHtml(value) {
@@ -377,8 +391,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     state = E.initialState(readConfig());
     $('#scenario-search').addEventListener('input', event => buildScenarioList(event.target.value));
-    ['difficulty', 'mode', 'attack-type', 'recovery'].forEach(id => $(`#${id}`).addEventListener('change', reset));
-    $('#seed').addEventListener('change', reset);
+    ['difficulty', 'mode', 'attack-type', 'recovery'].forEach(id => $(`#${id}`).addEventListener('change', () => reset()));
+    $('#seed').addEventListener('change', () => reset());
     $('#speed').addEventListener('change', () => {
         if (state.status === 'running') {
             stopTimer();
@@ -391,12 +405,13 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (state.status === 'paused') { state = E.reducer(state, { type: 'RESUME' }); timer = window.setInterval(advance, Number($('#speed').value)); }
         render();
     });
-    $('#step').addEventListener('click', () => { stopTimer(); advance(); if (state.status !== 'complete') state.status = 'paused'; render(); });
-    $('#reset').addEventListener('click', reset);
+    $('#step').addEventListener('click', () => { stopTimer(); advance('STEP'); });
+    $('#reset').addEventListener('click', () => reset());
     $('#replay').addEventListener('click', () => { reset(); start(); });
     $('#reduced-motion').addEventListener('change', event => {
         document.body.classList.toggle('reduce-motion', event.target.checked);
         localStorage.setItem('microcompCyberReducedMotion', event.target.checked ? 'true' : 'false');
+        updateMotionStatus(event.target.checked);
     });
     ['filter-protocol', 'filter-source', 'filter-destination', 'filter-severity', 'filter-time'].forEach(id => $(`#${id}`).addEventListener('input', renderFlows));
     $('#export-json').addEventListener('click', () => download('json'));
@@ -405,6 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const reduced = localStorage.getItem('microcompCyberReducedMotion') === 'true' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     $('#reduced-motion').checked = reduced;
     document.body.classList.toggle('reduce-motion', reduced);
+    updateMotionStatus(reduced);
     buildScenarioList();
     buildDefenses();
     render();

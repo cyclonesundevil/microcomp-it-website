@@ -31,7 +31,7 @@ test('controller wires the reference playback and configuration interactions', (
     });
     assert.match(controller, /type:\s*'PAUSE'/);
     assert.match(controller, /type:\s*'RESUME'/);
-    assert.match(controller, /type:\s*'STEP'/);
+    assert.match(controller, /advance\('STEP'\)/);
 });
 
 test('DoS UI explains all six guided learning checkpoints', () => {
@@ -47,6 +47,27 @@ test('upstream protection is visible in topology, metrics, events, and report re
         const surfaces = `${controller}\n${page}\n${fs.readFileSync(path.join(root, 'frontend/cyber-lab.css'), 'utf8')}`;
         assert.ok(surfaces.includes(marker), `missing upstream surface: ${marker}`);
     });
+});
+
+test('shared controls use reducer lifecycle and pure filtering/export helpers', () => {
+    ["type: 'START'", "type: actionType", "advance('STEP')", 'E.filterEvents', 'E.serializeReportJson',
+        'E.serializeReportCsv', 'E.compareReports', 'clearTransientUi'
+    ].forEach(marker => assert.ok(controller.includes(marker), `missing shared control path: ${marker}`));
+    assert.doesNotMatch(controller, /state\.status\s*=\s*['"](?:running|paused)['"]/);
+});
+
+test('speed changes scheduler timing without advancing virtual state', () => {
+    const speedHandler = controller.slice(controller.indexOf("$('#speed').addEventListener"), controller.indexOf("$('#start').addEventListener"));
+    assert.match(speedHandler, /setInterval/);
+    assert.doesNotMatch(speedHandler, /advance\s*\(/);
+});
+
+test('reduced motion keeps a textual static-flow explanation', () => {
+    const css = fs.readFileSync(path.join(root, 'frontend/cyber-lab.css'), 'utf8');
+    assert.ok(page.includes('id="motion-status"'));
+    assert.ok(controller.includes('Static flow view enabled'));
+    assert.match(css, /\.reduce-motion/);
+    assert.match(css, /prefers-reduced-motion/);
 });
 
 test('Demo Lab directory links to the simulation route', () => {
