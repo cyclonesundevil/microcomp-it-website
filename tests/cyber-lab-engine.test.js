@@ -3,9 +3,10 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const E = require('../frontend/cyber-lab-engine.js');
 
-function run(config, ticks = 20) {
+function run(config, ticks) {
     let state = E.initialState(config);
-    for (let i = 0; i < ticks; i += 1) state = E.step(state);
+    const total = ticks ?? (state.scenario.id === 'dos' ? 24 : 20);
+    for (let i = 0; i < total; i += 1) state = E.step(state);
     return state;
 }
 
@@ -15,7 +16,7 @@ test('provides all eleven safe scenario definitions', () => {
 });
 
 test('same inputs and seed produce an identical run', () => {
-    const config = { scenarioId: 'dos', difficulty: 'Intermediate', seed: 9182, defenses: { rateLimiting: true } };
+    const config = { scenarioId: 'dos', attackType: 'ddos', difficulty: 'Intermediate', seed: 9182, defenses: { rateLimiting: true } };
     assert.deepEqual(run(config), run(config));
 });
 
@@ -27,7 +28,7 @@ test('every generated host uses a documentation-only IPv4 range', () => {
 test('events contain safe labels and metadata rather than executable payloads', () => {
     E.SCENARIOS.forEach(scenario => {
         const state = run({ scenarioId: scenario.id, difficulty: 'Advanced', seed: 4 }, 5);
-        assert.equal(state.events.length, 5);
+        assert.ok(state.events.length >= 5);
         state.events.forEach(event => {
             assert.ok(event.marker);
             assert.equal('payload' in event, false);
@@ -37,10 +38,13 @@ test('events contain safe labels and metadata rather than executable payloads', 
 });
 
 test('relevant defenses reduce or preserve residual risk and record blocked events', () => {
-    const plain = run({ scenarioId: 'dos', seed: 42, defenses: {} });
-    const defended = run({ scenarioId: 'dos', seed: 42, defenses: { rateLimiting: true, ids: true, anomalyDetection: true } });
+    const plain = run({ scenarioId: 'dos', attackType: 'ddos', difficulty: 'Intermediate', seed: 42, defenses: {} });
+    const defended = run({ scenarioId: 'dos', attackType: 'ddos', difficulty: 'Intermediate', seed: 42, defenses: {
+        rateLimiting: true, trafficFiltering: true, caching: true, autoscaling: true, upstreamProtection: true
+    } });
     assert.ok(defended.findings.residualRisk <= plain.findings.residualRisk);
     assert.ok(defended.findings.blockedEvents > 0);
+    assert.ok(defended.findings.minimumAvailability > plain.findings.minimumAvailability);
 });
 
 test('reducer supports pause, resume, defense toggle, step, and reset', () => {
@@ -56,4 +60,75 @@ test('reducer supports pause, resume, defense toggle, step, and reset', () => {
     state = E.reducer(state, { type: 'RESET' });
     assert.equal(state.tick, 0);
     assert.equal(state.defenses.mfa, true);
+});
+
+test('DoS and DDoS use one and multiple fictional sources respectively', () => {
+    const dos = run({ scenarioId: 'dos', attackType: 'dos', difficulty: 'Advanced', seed: 31 }, 12);
+    const ddos = run({ scenarioId: 'dos', attackType: 'ddos', difficulty: 'Advanced', seed: 31 }, 12);
+    const dosSources = new Set(dos.flows.filter(event => event.marker === 'AGGREGATED_REQUEST_SURGE').map(event => event.source.id));
+    const ddosSources = new Set(ddos.flows.filter(event => event.marker === 'AGGREGATED_REQUEST_SURGE').map(event => event.source.id));
+    assert.equal(dosSources.size, 1);
+    assert.equal(ddosSources.size, 5);
+    assert.ok(ddos.metrics.rps > dos.metrics.rps);
+});
+
+test('DoS reference run has baseline, ramp-up, sustained, and optional recovery phases', () => {
+    let state = E.initialState({ scenarioId: 'dos', attackType: 'ddos', seed: 8, recovery: true });
+    const seen = new Set();
+    for (let i = 0; i < 24; i += 1) {
+        state = E.step(state);
+        seen.add(state.history.at(-1).phase);
+    }
+    assert.deepEqual([...seen], ['Normal baseline', 'Traffic ramp-up', 'Sustained attack', 'Recovery']);
+    assert.equal(state.status, 'complete');
+    const noRecovery = run({ scenarioId: 'dos', attackType: 'ddos', seed: 8, recovery: false });
+    assert.equal(noRecovery.history.at(-1).phase, 'Sustained attack');
+});
+
+test('difficulty changes the deterministic traffic volume and source count', () => {
+    const beginner = run({ scenarioId: 'dos', attackType: 'ddos', difficulty: 'Beginner', seed: 99 }, 12);
+    const advanced = run({ scenarioId: 'dos', attackType: 'ddos', difficulty: 'Advanced', seed: 99 }, 12);
+    assert.ok(advanced.metrics.rps > beginner.metrics.rps);
+    assert.ok(advanced.metrics.attackSources > beginner.metrics.attackSources);
+});
+
+test('each reference defense visibly changes the synthetic outcome', () => {
+    const baseConfig = { scenarioId: 'dos', attackType: 'ddos', difficulty: 'Intermediate', seed: 730 };
+    const plain = run(baseConfig);
+    ['rateLimiting', 'trafficFiltering', 'caching', 'autoscaling', 'upstreamProtection'].forEach(id => {
+        const defended = run({ ...baseConfig, defenses: { [id]: true } });
+        assert.ok(defended.findings.defensesTriggered.some(item => item.id === id), `${id} did not trigger`);
+        const changed = defended.findings.maximumLatency !== plain.findings.maximumLatency ||
+            defended.findings.minimumAvailability !== plain.findings.minimumAvailability ||
+            defended.findings.trafficBlocked !== plain.findings.trafficBlocked;
+        assert.ok(changed, `${id} did not change a reported metric`);
+    });
+});
+
+test('pause, resume, and step mode preserve the virtual clock contract', () => {
+    let state = E.initialState({ scenarioId: 'dos', seed: 71 });
+    state = E.reducer(state, { type: 'STEP' });
+    assert.equal(state.tick, 1);
+    state = E.reducer(state, { type: 'PAUSE' });
+    assert.equal(state.status, 'paused');
+    const pausedTick = state.tick;
+    state = E.reducer(state, { type: 'RESUME' });
+    assert.equal(state.status, 'running');
+    assert.equal(state.tick, pausedTick);
+    state = E.reducer(state, { type: 'STEP' });
+    assert.equal(state.tick, pausedTick + 1);
+});
+
+test('DoS report includes availability outcomes, triggered defenses, gaps, and safe aggregate events', () => {
+    const state = run({
+        scenarioId: 'dos', attackType: 'dos', difficulty: 'Beginner', seed: 200,
+        defenses: { rateLimiting: true, caching: true }
+    });
+    const report = state.findings;
+    ['peakRps', 'maximumLatency', 'maximumErrorRate', 'serviceDowntimeSeconds', 'trafficBlocked', 'defensesTriggered', 'missedDetections', 'residualRisk'].forEach(key => {
+        assert.ok(key in report, `report missing ${key}`);
+    });
+    assert.equal(report.synthetic, true);
+    assert.equal(report.attackType, 'DOS');
+    assert.ok(report.events.every(event => event.action === 'aggregated'));
 });

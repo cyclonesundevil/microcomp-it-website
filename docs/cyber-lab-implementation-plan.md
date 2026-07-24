@@ -17,6 +17,10 @@
 6. Add reduced-motion behavior, keyboard/focus support, mobile layouts, live-region summaries, bounded event rendering, and JSON/CSV synthetic report downloads.
 7. Add dependency-free engine/reducer unit tests and browser integration smoke tests, document the scenario extension format, and verify tests plus a static production smoke check.
 
+## Phase 3 status
+
+The DoS/DDoS reference implementation is complete in `cyber-lab-engine.js` and documented in `cyber-lab-dos-ddos-reference.md`. It adds distinct single-source and distributed modes, four explicit virtual phases, aggregate traffic accounting, five measurable defensive controls, guided checkpoints, and same-seed outcome comparison.
+
 ## Safety and scope
 
 - The engine will generate metadata-only events locally and deterministically. It will not use `fetch`, sockets, user-supplied targets, credentials, executable payloads, shell commands, or backend APIs.

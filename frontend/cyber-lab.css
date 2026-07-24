@@ -85,7 +85,7 @@
 .topology-node.status-at-risk { border-color: var(--cyber-red); box-shadow: 0 0 20px rgba(255, 107, 120, .23); }
 .topology-node.status-protected { border-color: var(--cyber-cyan); }
 .topology-node.status-observing { border-color: var(--cyber-amber); }
-.metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.metric-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
 .metric-grid div { border-top: 2px solid var(--cyber-blue); background: rgba(86, 168, 255, .06); padding: 10px; }
 .metric-grid span { color: var(--cyber-muted); font-size: .66rem; display: block; }
 .metric-grid strong { font-size: 1.25rem; display: block; margin-top: 4px; }
@@ -105,7 +105,9 @@
 .observability-grid { display: grid; grid-template-columns: 1fr 1fr .85fr; gap: 14px; margin-top: 14px; }
 .chart-panel svg { width: 100%; height: 150px; margin-top: 12px; }
 .chart-grid { stroke: var(--cyber-border); stroke-width: 1; }
-.chart-primary, .chart-danger { fill: none; stroke: var(--cyber-cyan); stroke-width: 3; vector-effect: non-scaling-stroke; }
+.chart-primary, .chart-secondary, .chart-blocked, .chart-danger { fill: none; stroke: var(--cyber-cyan); stroke-width: 3; vector-effect: non-scaling-stroke; }
+.chart-secondary { stroke: var(--cyber-blue); stroke-width: 2.25; }
+.chart-blocked { stroke: var(--cyber-amber); stroke-width: 2.25; stroke-dasharray: 6 4; }
 .chart-danger { stroke: var(--cyber-red); }
 .panel-heading > span { color: var(--cyber-muted); font-size: .68rem; }
 .protocol-panel { min-height: 210px; }
@@ -147,6 +149,7 @@
 .report-findings { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .report-findings div { padding: 13px; background: rgba(100,160,200,.055); display: grid; gap: 7px; }
 .report-findings strong { font-size: .74rem; line-height: 1.45; }
+.dos-report-findings { grid-template-columns: repeat(4, 1fr); }
 .sr-summary { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 @keyframes flow { to { stroke-dashoffset: -22; } }
@@ -158,6 +161,8 @@
     .defense-list { grid-template-columns: repeat(3, 1fr); max-height: none; }
     .observability-grid { grid-template-columns: 1fr 1fr; }
     .protocol-panel { grid-column: 1 / -1; }
+    .metric-grid { grid-template-columns: repeat(3, 1fr); }
+    .dos-report-findings { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 850px) {
     .cyber-lab-page main { padding: 90px 14px 38px; }
@@ -177,7 +182,7 @@
     .config-group { display: grid; grid-template-columns: 1fr 1fr; }
     .config-group label, .config-group input { width: 100%; }
     .playback { display: grid; grid-template-columns: repeat(3, 1fr); }
-    .defense-list, .filters, .report-findings { grid-template-columns: 1fr; }
+    .defense-list, .filters, .report-findings, .dos-report-findings { grid-template-columns: 1fr; }
     .topology { height: 470px; }
     .topology-node { width: 87px; min-height: 55px; }
     .topology-node strong { font-size: .6rem; }

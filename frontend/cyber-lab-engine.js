@@ -17,11 +17,19 @@
         ['database', 'Records Database', '192.0.2.60', 'database'],
         ['files', 'File Service', '192.0.2.70', 'server'],
         ['soc', 'Security Monitor', '192.0.2.80', 'monitor'],
-        ['actor', 'Simulated Actor', '203.0.113.10', 'actor']
+        ['actor', 'Simulated Source A', '203.0.113.10', 'actor'],
+        ['actor2', 'Simulated Source B', '203.0.113.11', 'actor'],
+        ['actor3', 'Simulated Source C', '203.0.113.12', 'actor'],
+        ['actor4', 'Simulated Source D', '203.0.113.13', 'actor'],
+        ['actor5', 'Simulated Source E', '203.0.113.14', 'actor']
     ].map(([id, name, ip, type]) => ({ id, name, ip, type, status: 'healthy' }));
 
     const DEFENSES = {
-        rateLimiting: ['Rate limiting', 'Restricts abnormal request volume.', 'May delay legitimate bursts.'],
+        rateLimiting: ['Rate limiting', 'Caps accepted requests when a source exceeds a safe synthetic threshold.', 'Legitimate traffic bursts may be delayed or rejected.'],
+        trafficFiltering: ['Traffic filtering', 'Drops flows that match the simulation’s abnormal-volume pattern.', 'Imperfect rules can block a small share of legitimate traffic.'],
+        caching: ['Caching', 'Serves repeatable synthetic responses without using origin capacity.', 'Dynamic or uncached requests still reach the service.'],
+        autoscaling: ['Autoscaling', 'Adds fictional service capacity after sustained load is observed.', 'Capacity arrives after a delay and adds simulated operating cost.'],
+        upstreamProtection: ['Upstream DDoS protection', 'Filters distributed traffic before it reaches the edge gateway.', 'Scrubbing can add latency and is less useful for a single trusted-looking source.'],
         waf: ['Web application firewall', 'Flags unsafe web-request markers.', 'Rules require tuning.'],
         mfa: ['Multi-factor authentication', 'Reduces account takeover risk.', 'Adds a sign-in step.'],
         accountLockout: ['Account lockout', 'Stops repeated sign-in attempts.', 'Can temporarily block users.'],
@@ -37,7 +45,7 @@
     };
 
     const SCENARIOS = [
-        ['dos', 'DoS & DDoS', 'Availability', 'Overwhelm a public service with synthetic request volume.', ['rateLimiting', 'ids', 'anomalyDetection'], ['internet', 'edge', 'web'], 'REQUEST_SURGE'],
+        ['dos', 'DoS & DDoS', 'Availability', 'Overwhelm a public service with synthetic request volume.', ['rateLimiting', 'trafficFiltering', 'caching', 'autoscaling', 'upstreamProtection'], ['actor', 'edge', 'web'], 'AGGREGATED_REQUEST_SURGE'],
         ['mitm', 'Man-in-the-Middle', 'Network', 'Observe and alter a fictional session path.', ['encryption', 'ids', 'mfa'], ['actor', 'edge', 'workstation'], 'ROUTE_INTEGRITY_RISK'],
         ['phishing', 'Phishing & Spear Phishing', 'Human', 'Influence a fictional user through a mock inbox.', ['emailFiltering', 'mfa', 'endpointProtection'], ['internet', 'email', 'workstation'], 'DECEPTIVE_MESSAGE_RISK'],
         ['malware', 'Malware Outbreak', 'Endpoint', 'Disrupt fictional endpoints and attempt abstract spread.', ['endpointProtection', 'segmentation', 'patchManagement'], ['workstation', 'files', 'soc'], 'ENDPOINT_BEHAVIOR_RISK'],
@@ -50,7 +58,8 @@
         ['insider', 'Insider Threat', 'Data', 'Access fictional data outside a trusted user baseline.', ['leastPrivilege', 'dlp', 'anomalyDetection'], ['workstation', 'files', 'soc'], 'UNUSUAL_ACCESS_PATTERN']
     ].map(([id, title, category, objective, defenses, path, marker]) => ({
         id, title, category, objective, defenses, path, marker,
-        duration: id === 'apt' ? '4 min' : '2–3 min',
+        duration: id === 'apt' ? '4 min' : (id === 'dos' ? '24 virtual ticks' : '2–3 min'),
+        phases: id === 'dos' ? ['Normal baseline', 'Traffic ramp-up', 'Sustained attack', 'Recovery'] : ['Baseline', 'Initial activity', 'Escalation', 'Detection & response', 'Outcome'],
         indicators: indicatorText(id),
         remediation: remediationText(id)
     }));
@@ -104,11 +113,24 @@
         const scenario = SCENARIOS.find(item => item.id === config.scenarioId) || SCENARIOS[0];
         const enabled = {};
         Object.keys(DEFENSES).forEach(key => { enabled[key] = Boolean(config.defenses && config.defenses[key]); });
+        const isDos = scenario.id === 'dos';
         return {
-            config: { scenarioId: scenario.id, difficulty: config.difficulty || 'Beginner', seed: Number(config.seed) || 4242, mode: config.mode || 'guided' },
+            config: {
+                scenarioId: scenario.id,
+                difficulty: config.difficulty || 'Beginner',
+                seed: Number(config.seed) || 4242,
+                mode: config.mode || 'guided',
+                attackType: config.attackType === 'dos' ? 'dos' : 'ddos',
+                recovery: config.recovery !== false
+            },
             scenario, status: 'ready', tick: 0, phase: 0, defenses: enabled,
             hosts: HOSTS.map(host => ({ ...host })), flows: [], events: [], alerts: [],
-            history: [], metrics: { rps: 18, latency: 42, errors: 1, availability: 100, blocked: 0, risk: 4 },
+            history: [], metrics: {
+                rps: isDos ? 120 : 18, offered: isDos ? 120 : 18, allowed: isDos ? 120 : 18,
+                blocked: 0, totalBlocked: 0, latency: 42, errors: 1, availability: 100,
+                capacity: isDos ? 800 : 120, attackSources: 0, risk: 4
+            },
+            defenseStats: {}, downtimeTicks: 0,
             findings: null
         };
     }
@@ -117,7 +139,14 @@
         return state.scenario.defenses.reduce((sum, id) => sum + (state.defenses[id] ? 1 : 0), 0);
     }
 
+    const DOS_PROFILES = {
+        Beginner: { baseline: 120, peakDos: 1450, peakDdos: 2100, capacity: 900, sources: 3 },
+        Intermediate: { baseline: 175, peakDos: 2300, peakDdos: 3800, capacity: 950, sources: 4 },
+        Advanced: { baseline: 240, peakDos: 3600, peakDdos: 6200, capacity: 1000, sources: 5 }
+    };
+
     function step(previous) {
+        if (previous.scenario.id === 'dos') return stepDos(previous);
         if (previous.status === 'complete') return previous;
         const state = JSON.parse(JSON.stringify(previous));
         const random = seededRandom(state.config.seed + state.tick * 997);
@@ -172,6 +201,164 @@
         return state;
     }
 
+    function dosPhase(tick, recovery) {
+        if (tick <= 4) return { index: 0, name: 'Normal baseline', intensity: 0 };
+        if (tick <= 9) return { index: 1, name: 'Traffic ramp-up', intensity: (tick - 4) / 5 };
+        if (tick <= 18 || !recovery) return { index: 2, name: 'Sustained attack', intensity: 1 };
+        return { index: 3, name: 'Recovery', intensity: Math.max(0, (24 - tick) / 6) };
+    }
+
+    function recordDefense(state, id, amount) {
+        if (amount <= 0) return;
+        if (!state.defenseStats[id]) state.defenseStats[id] = { blocked: 0, triggered: 0 };
+        state.defenseStats[id].blocked += Math.round(amount);
+        state.defenseStats[id].triggered += 1;
+    }
+
+    function stepDos(previous) {
+        if (previous.status === 'complete') return previous;
+        const state = JSON.parse(JSON.stringify(previous));
+        const random = seededRandom(state.config.seed + state.tick * 997);
+        const profile = DOS_PROFILES[state.config.difficulty] || DOS_PROFILES.Beginner;
+        state.status = 'running';
+        state.tick += 1;
+        const phase = dosPhase(state.tick, state.config.recovery);
+        state.phase = phase.index;
+
+        const baseline = Math.round(profile.baseline * (0.94 + random() * 0.12));
+        const peak = state.config.attackType === 'ddos' ? profile.peakDdos : profile.peakDos;
+        const attackRequests = Math.round(peak * phase.intensity * (0.93 + random() * 0.14));
+        const offered = baseline + attackRequests;
+        let attackRemaining = attackRequests;
+        let legitimateRemaining = baseline;
+        let blocked = 0;
+
+        if (state.defenses.upstreamProtection && attackRemaining > 0) {
+            const amount = attackRemaining * (state.config.attackType === 'ddos' ? 0.46 : 0.2);
+            attackRemaining -= amount;
+            blocked += amount;
+            recordDefense(state, 'upstreamProtection', amount);
+        }
+        if (state.defenses.trafficFiltering && attackRemaining > 0) {
+            const attackBlock = attackRemaining * 0.28;
+            const legitimateBlock = legitimateRemaining * 0.012;
+            attackRemaining -= attackBlock;
+            legitimateRemaining -= legitimateBlock;
+            blocked += attackBlock + legitimateBlock;
+            recordDefense(state, 'trafficFiltering', attackBlock + legitimateBlock);
+        }
+
+        let allowed = attackRemaining + legitimateRemaining;
+        if (state.defenses.rateLimiting && phase.index > 0) {
+            const threshold = profile.capacity * 0.78;
+            const amount = Math.max(0, allowed - threshold);
+            allowed -= amount;
+            blocked += amount;
+            recordDefense(state, 'rateLimiting', amount);
+        }
+
+        let capacity = profile.capacity;
+        if (state.defenses.autoscaling && state.tick >= 12) {
+            capacity = Math.round(capacity * 1.65);
+            recordDefense(state, 'autoscaling', Math.max(1, allowed - profile.capacity));
+        }
+        const cacheRatio = state.defenses.caching ? 0.34 : 0;
+        const cacheOffload = allowed * cacheRatio;
+        if (cacheOffload > 0) recordDefense(state, 'caching', cacheOffload);
+        const originLoad = allowed - cacheOffload;
+        const loadRatio = originLoad / capacity;
+        const defenseLatency = (state.defenses.upstreamProtection ? 5 : 0) + (state.defenses.trafficFiltering ? 3 : 0);
+        const latency = Math.round(40 + defenseLatency + Math.max(0, loadRatio - 0.55) * 330 + random() * 8);
+        const errors = Math.min(96, Math.round(1 + Math.max(0, loadRatio - 0.7) * 58));
+        const availability = Math.max(5, Math.round(100 - Math.max(0, loadRatio - 0.78) * 46 - errors * 0.12));
+        const risk = Math.min(100, Math.round((100 - availability) * 0.72 + errors * 0.28));
+        const activeSources = phase.index === 0 ? 0 : (state.config.attackType === 'ddos' ? profile.sources : 1);
+        const totalBlocked = state.metrics.totalBlocked + Math.round(blocked);
+
+        state.metrics = {
+            rps: offered, offered, allowed: Math.round(allowed), blocked: Math.round(blocked),
+            totalBlocked, latency, errors, availability, capacity,
+            attackSources: activeSources, risk
+        };
+        if (availability < 90) state.downtimeTicks += 1;
+        state.history.push({ tick: state.tick, phase: phase.name, ...state.metrics });
+        state.history = state.history.slice(-32);
+
+        const events = buildDosEvents(state, phase, baseline, attackRequests, allowed, blocked, latency);
+        state.events = [...events.reverse(), ...state.events].slice(0, 100);
+        state.flows = events.slice().reverse();
+        updateDosAlerts(state, phase);
+        updateDosHostStatus(state, phase, availability);
+
+        if (state.tick >= 24) {
+            state.status = 'complete';
+            state.findings = buildReport(state);
+        }
+        return state;
+    }
+
+    function buildDosEvents(state, phase, baseline, attackRequests, allowed, blocked, latency) {
+        const events = [];
+        const normalSource = host('internet');
+        events.push(dosEvent(state, phase, normalSource, baseline, Math.min(baseline, allowed), Math.max(0, baseline - allowed), latency, 'NORMAL_TRAFFIC_AGGREGATE'));
+        if (attackRequests > 0) {
+            const sourceIds = state.config.attackType === 'ddos'
+                ? ['actor', 'actor2', 'actor3', 'actor4', 'actor5'].slice(0, state.metrics.attackSources)
+                : ['actor'];
+            const perSource = Math.round(attackRequests / sourceIds.length);
+            sourceIds.forEach((id, index) => {
+                const share = index === sourceIds.length - 1 ? attackRequests - perSource * index : perSource;
+                const blockedShare = Math.round(blocked * (share / Math.max(1, attackRequests)));
+                const allowedShare = Math.max(0, share - blockedShare);
+                events.push(dosEvent(state, phase, host(id), share, allowedShare, blockedShare, latency, state.scenario.marker));
+            });
+        }
+        return events;
+    }
+
+    function dosEvent(state, phase, source, requests, allowed, blocked, latency, marker) {
+        const severity = phase.index === 0 ? 'info' : (state.metrics.availability < 70 ? 'critical' : state.metrics.availability < 92 ? 'high' : 'medium');
+        return {
+            id: `evt-${state.tick}-${source.id}`, tick: state.tick,
+            time: `${String(Math.floor(state.tick / 60)).padStart(2, '0')}:${String(state.tick % 60).padStart(2, '0')}`,
+            source, destination: host('edge'), protocol: 'HTTPS', action: 'aggregated',
+            requests: Math.round(requests), allowedRequests: Math.round(allowed), blockedRequests: Math.round(blocked),
+            bytes: Math.round(requests * 620), latency, severity, marker, phase: phase.name,
+            explanation: `${Math.round(requests).toLocaleString()} fictional requests were aggregated for this virtual tick; ${Math.round(blocked).toLocaleString()} were blocked. No network traffic was sent.`
+        };
+    }
+
+    function updateDosAlerts(state, phase) {
+        const latest = state.events[0];
+        const candidates = [];
+        if (state.tick === 5) candidates.push(['Traffic baseline exceeded', 'Synthetic request volume moved outside the normal baseline.', 'medium']);
+        if (state.metrics.availability < 90 && !state.alerts.some(item => item.code === 'availability')) {
+            candidates.push(['Service availability degraded', 'The fictional service is still running, but latency and errors make successful use unreliable.', 'high', 'availability']);
+        }
+        Object.keys(state.defenseStats).forEach(id => {
+            const code = `defense-${id}`;
+            if (!state.alerts.some(item => item.code === code)) {
+                candidates.push([`${DEFENSES[id][0]} triggered`, `${DEFENSES[id][0]} changed the synthetic traffic outcome.`, 'low', code]);
+            }
+        });
+        candidates.forEach(([title, explanation, severity, code]) => {
+            state.alerts.unshift({
+                ...latest, id: `alert-${state.tick}-${code || 'volume'}`, code: code || 'volume',
+                title, explanation, severity
+            });
+        });
+        state.alerts = state.alerts.slice(0, 30);
+    }
+
+    function updateDosHostStatus(state, phase, availability) {
+        state.hosts.forEach(item => {
+            if (item.id.startsWith('actor')) item.status = phase.index === 0 ? 'healthy' : 'observing';
+            else if (item.id === 'edge') item.status = state.metrics.blocked > 0 ? 'protected' : (phase.index === 0 ? 'healthy' : 'observing');
+            else if (item.id === 'web') item.status = availability < 70 ? 'at-risk' : (availability < 96 ? 'observing' : 'healthy');
+            else item.status = 'healthy';
+        });
+    }
+
     function protocolFor(id, tick) {
         if (id === 'phishing') return 'SMTP';
         if (id === 'password') return 'AUTH';
@@ -185,6 +372,7 @@
     }
 
     function buildReport(state) {
+        if (state.scenario.id === 'dos') return buildDosReport(state);
         const helped = state.scenario.defenses.filter(id => state.defenses[id]).map(id => DEFENSES[id][0]);
         const missed = state.scenario.defenses.filter(id => !state.defenses[id]).map(id => DEFENSES[id][0]);
         const maxRisk = Math.max(...state.history.map(item => item.risk), 0);
@@ -200,6 +388,56 @@
         };
     }
 
+    function buildDosReport(state) {
+        const triggeredIds = Object.keys(state.defenseStats).filter(id => state.defenseStats[id].triggered > 0);
+        const missedIds = state.scenario.defenses.filter(id => !state.defenses[id]);
+        const peakRisk = Math.max(...state.history.map(item => item.risk), 0);
+        const peakRps = Math.max(...state.history.map(item => item.rps), 0);
+        const maximumLatency = Math.max(...state.history.map(item => item.latency), 0);
+        const maximumErrorRate = Math.max(...state.history.map(item => item.errors), 0);
+        const minimumAvailability = Math.min(...state.history.map(item => item.availability), 100);
+        const residualRisk = Math.min(100, Math.max(3, Math.round(
+            (100 - minimumAvailability) * 0.55 +
+            maximumErrorRate * 0.3 +
+            (missedIds.length / state.scenario.defenses.length) * 22
+        )));
+        return {
+            synthetic: true,
+            generatedAtVirtualTime: state.tick,
+            scenario: state.scenario.title,
+            attackType: state.config.attackType.toUpperCase(),
+            seed: state.config.seed,
+            difficulty: state.config.difficulty,
+            recoveryEnabled: state.config.recovery,
+            objective: state.scenario.objective,
+            indicators: state.scenario.indicators,
+            affectedAssets: ['Edge Gateway', 'Web Service'],
+            peakRps,
+            maximumLatency,
+            maximumErrorRate,
+            minimumAvailability,
+            serviceDowntimeTicks: state.downtimeTicks,
+            serviceDowntimeSeconds: state.downtimeTicks * 5,
+            trafficBlocked: state.metrics.totalBlocked,
+            blockedEvents: state.metrics.totalBlocked,
+            defensesTriggered: triggeredIds.map(id => ({
+                id,
+                name: DEFENSES[id][0],
+                affectedRequests: Math.round(state.defenseStats[id].blocked),
+                tradeOff: DEFENSES[id][2]
+            })),
+            controlsHelped: triggeredIds.map(id => DEFENSES[id][0]),
+            controlsNotEnabled: missedIds.map(id => DEFENSES[id][0]),
+            missedDetections: missedIds.map(id => `${DEFENSES[id][0]} was not enabled, leaving part of the synthetic request surge untreated.`),
+            peakRisk,
+            residualRisk,
+            recommendation: missedIds.length
+                ? `Add ${missedIds.map(id => DEFENSES[id][0]).join(', ')} and retain layered capacity, filtering, and rate controls.`
+                : 'Keep the layered controls, tune thresholds using normal traffic baselines, and rehearse capacity and upstream-provider response.',
+            events: state.events.slice().reverse()
+        };
+    }
+
     function reducer(state, action) {
         switch (action.type) {
         case 'STEP': return step(state);
@@ -211,5 +449,5 @@
         }
     }
 
-    return { SCENARIOS, DEFENSES, HOSTS, PROTOCOLS, SEVERITIES, seededRandom, initialState, step, reducer, buildReport };
+    return { SCENARIOS, DEFENSES, HOSTS, PROTOCOLS, SEVERITIES, DOS_PROFILES, seededRandom, initialState, step, reducer, buildReport, dosPhase };
 }));
