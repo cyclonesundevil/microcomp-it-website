@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $('#defense-list').innerHTML = entries.map(([id, details]) => `
             <label class="defense-control ${state.scenario.defenses.includes(id) ? 'recommended' : ''}">
                 <input type="checkbox" data-defense="${id}" ${state.defenses[id] ? 'checked' : ''}>
-                <span><strong>${escapeHtml(details[0])}${state.scenario.defenses.includes(id) ? '<em>Relevant</em>' : ''}</strong><small>${escapeHtml(details[1])}</small><small class="tradeoff">${escapeHtml(details[2])}</small></span>
+                <span><strong>${escapeHtml(details[0])}${state.scenario.defenses.includes(id) ? '<em>Relevant</em>' : ''}</strong><small>${escapeHtml(details[1])}</small><small class="defense-meta">${escapeHtml(E.DEFENSE_META[id].kind)} · ${escapeHtml(E.DEFENSE_META[id].layer)}</small><small class="tradeoff">${escapeHtml(details[2])}</small></span>
             </label>`).join('');
         document.querySelectorAll('[data-defense]').forEach(input => input.addEventListener('change', () => {
             state = E.reducer(state, { type: 'DEFENSE', id: input.dataset.defense, enabled: input.checked });
@@ -77,11 +77,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const [x1, y1] = nodePositions[a], [x2, y2] = nodePositions[b];
             return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"></line>`;
         }).join('');
-        const flowLines = state.flows.slice(0, 12).map((flow, i) => {
+        const flowLines = state.flows.slice(0, 16).map((flow, i) => {
             const a = nodePositions[flow.source.id], b = nodePositions[flow.destination.id];
             if (!a || !b) return '';
-            const interrupted = flow.marker === 'DEFENSE_TRIGGERED' || flow.action === 'scrubbed' ? ' flow-interrupted' : '';
-            return `<line class="active-flow severity-${flow.severity}${interrupted}" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" style="--delay:${i * -.18}s"></line>`;
+            const effectClass = flow.visualEffect ? ` flow-${flow.visualEffect}` : '';
+            const interrupted = flow.action === 'scrubbed' ? ' flow-interrupted' : '';
+            return `<line class="active-flow severity-${flow.severity}${effectClass}${interrupted}" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" style="--delay:${i * -.18}s"></line>`;
         }).join('');
         const visibleHosts = state.hosts.filter(host => {
             if (host.id === 'upstream') return upstreamVisible;
@@ -90,8 +91,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const nodes = visibleHosts.map(host => {
             const [x, y] = nodePositions[host.id];
-            const counter = host.id === 'upstream'
-                ? `<em class="topology-counter">${state.metrics.upstreamFiltered.toLocaleString()} filtered</em>`
+            const nodeEffects = defenseEffectsForHost(host.id);
+            const counter = nodeEffects.length
+                ? `<em class="topology-counter">${nodeEffects.map(effect => `${effect.name}: ${effect.affected.toLocaleString()} ${effect.action}`).join(' · ')}</em>`
                 : '';
             return `<button class="topology-node status-${host.status} ${host.id === 'upstream' ? 'upstream-node' : ''}" style="left:${x}%;top:${y}%" data-host="${host.id}" aria-label="${escapeHtml(host.name)}, ${host.ip}, status ${host.status}${host.id === 'upstream' ? `, ${state.metrics.upstreamFiltered} requests filtered this tick` : ''}">
                 <span aria-hidden="true">${icon[host.type] || '●'}</span><strong>${escapeHtml(host.name)}</strong><small>${host.ip}</small>
@@ -100,6 +102,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
         $('#topology').innerHTML = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><g class="topology-links">${svgLines}</g><g class="flow-links">${flowLines}</g></svg>${nodes}`;
         document.querySelectorAll('[data-host]').forEach(button => button.addEventListener('click', () => inspectHost(button.dataset.host)));
+    }
+
+    function defenseEffectsForHost(hostId) {
+        const layers = {
+            upstream: ['upstream'],
+            edge: ['firewall', 'application-edge', 'network'],
+            loadbalancer: ['load-balancer'],
+            web: ['service', 'host'],
+            identity: ['identity', 'authorization'],
+            email: ['gateway'],
+            workstation: ['endpoint'],
+            files: ['data'],
+            soc: ['monitoring']
+        };
+        return state.activeDefenseEffects.filter(effect => (layers[hostId] || []).includes(effect.layer));
     }
 
     function inspectHost(id) {
@@ -139,6 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
         buildTopology();
         renderCharts();
         renderProtocols();
+        renderDefenseEffects();
         renderAlerts();
         renderFlows();
         renderReport();
@@ -212,6 +230,13 @@ document.addEventListener('DOMContentLoaded', () => {
         $('#protocol-chart').innerHTML = Object.entries(counts).map(([name, count]) => `<div class="protocol-row"><span>${name}</span><div><i style="width:${count / max * 100}%"></i></div><strong>${count}</strong></div>`).join('');
     }
 
+    function renderDefenseEffects() {
+        const effects = state.activeDefenseEffects;
+        $('#defense-effect-strip').innerHTML = effects.length
+            ? effects.map(effect => `<div class="defense-effect effect-${effect.kind}"><strong>${escapeHtml(effect.name)}</strong><span>${escapeHtml(effect.action)} ${effect.affected.toLocaleString()} synthetic units at ${escapeHtml(effect.layer)}</span></div>`).join('')
+            : '<p>No defense triggered on this virtual tick.</p>';
+    }
+
     function renderAlerts() {
         $('#alert-count').textContent = `${state.alerts.length} alert${state.alerts.length === 1 ? '' : 's'}`;
         $('#alert-list').innerHTML = state.alerts.length ? state.alerts.slice(0, 10).map(alert => `
@@ -270,6 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div><span>Observable indicators &amp; why alerts fired</span><strong>${escapeHtml(r.indicators)}</strong></div>
                 <div><span>Affected assets</span><strong>${r.affectedAssets.map(escapeHtml).join(', ')}</strong></div>
                 <div><span>Controls that helped</span><strong>${r.controlsHelped.length ? r.controlsHelped.map(escapeHtml).join(', ') : 'None enabled'}</strong></div>
+                <div><span>Standardized defense effects</span><strong>${r.defensesTriggered.length ? r.defensesTriggered.map(effect => `${escapeHtml(effect.name)} · ${escapeHtml(effect.kind)} · ${effect.affectedUnits.toLocaleString()} affected`).join('<br>') : 'No defense triggered'}</strong></div>
                 <div><span>Coverage gaps / controls not enabled</span><strong>${r.controlsNotEnabled.map(escapeHtml).join(', ')}</strong></div>
                 <div><span>Recommended remediation</span><strong>${escapeHtml(r.recommendation)}</strong></div>${comparison}
             </div>`;
@@ -292,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const upstreamDetail = item.id === 'upstreamProtection'
                     ? `; ${item.effectivenessPercent}% effectiveness; +${item.availabilityImprovement} availability points`
                     : '';
-                return `${escapeHtml(item.name)} (${item.affectedRequests.toLocaleString()} requests affected${upstreamDetail}; trade-off: ${escapeHtml(item.tradeOff)})`;
+                return `${escapeHtml(item.name)} (${item.affectedUnits.toLocaleString()} synthetic units affected${upstreamDetail}; trade-off: ${escapeHtml(item.tradeOff)})`;
             }).join('<br>')
             : 'No defenses triggered';
         $('#report-content').innerHTML = `

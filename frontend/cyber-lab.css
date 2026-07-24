@@ -78,6 +78,10 @@
 .flow-links line { stroke: var(--cyber-blue); stroke-width: 1.2; vector-effect: non-scaling-stroke; stroke-dasharray: 3 8; animation: flow 1.2s linear infinite; animation-delay: var(--delay); }
 .flow-links .severity-high, .flow-links .severity-critical { stroke: var(--cyber-red); }
 .flow-links .flow-interrupted { stroke: var(--cyber-cyan); stroke-width: 2.4; stroke-dasharray: 2 5; filter: drop-shadow(0 0 4px rgba(85, 230, 193, .8)); }
+.flow-links .flow-offloaded { stroke: var(--cyber-blue); stroke-width: 2.2; stroke-dasharray: 8 3; }
+.flow-links .flow-capacity { stroke: var(--cyber-amber); stroke-width: 2.4; }
+.flow-links .flow-protected { stroke: var(--cyber-cyan); stroke-width: 2.1; }
+.flow-links .flow-detected { stroke: #b68cff; stroke-width: 2.1; stroke-dasharray: 2 3; }
 .topology-node { position: absolute; transform: translate(-50%, -50%); width: 112px; min-height: 61px; padding: 7px; color: inherit; background: rgba(8, 18, 31, .94); border: 1px solid rgba(94, 145, 181, .35); border-radius: 8px; display: grid; justify-items: center; gap: 2px; }
 :root[data-theme="light"] .topology-node { background: rgba(255, 255, 255, .96); }
 .topology-node > span { color: var(--cyber-blue); font-size: 1rem; }
@@ -95,6 +99,14 @@
 .metric-grid div { border-top: 2px solid var(--cyber-blue); background: rgba(86, 168, 255, .06); padding: 10px; }
 .metric-grid span { color: var(--cyber-muted); font-size: .66rem; display: block; }
 .metric-grid strong { font-size: 1.25rem; display: block; margin-top: 4px; }
+.defense-effect-strip { display: flex; gap: 7px; overflow-x: auto; padding-top: 10px; }
+.defense-effect-strip > p { color: var(--cyber-muted); font-size: .68rem; margin: 4px 0; }
+.defense-effect { min-width: 175px; padding: 8px 10px; border: 1px solid var(--cyber-border); border-radius: 7px; display: grid; gap: 3px; }
+.defense-effect strong { font-size: .68rem; }
+.defense-effect span { color: var(--cyber-muted); font-size: .6rem; }
+.defense-effect.effect-preventive { border-color: rgba(85, 230, 193, .38); }
+.defense-effect.effect-detective { border-color: rgba(182, 140, 255, .45); }
+.defense-effect.effect-resilience { border-color: rgba(244, 184, 96, .4); }
 .defense-list { display: grid; gap: 6px; max-height: 505px; overflow-y: auto; padding-right: 3px; }
 .defense-control { display: grid; grid-template-columns: 22px 1fr; gap: 8px; padding: 10px; border: 1px solid transparent; border-radius: 8px; background: rgba(100, 160, 200, .045); }
 .defense-control.recommended { border-color: rgba(85, 230, 193, .26); }
@@ -103,6 +115,7 @@
 .defense-control strong { font-size: .76rem; display: flex; justify-content: space-between; gap: 5px; }
 .defense-control em { font-style: normal; color: var(--cyber-cyan); font-size: .56rem; text-transform: uppercase; }
 .defense-control small { color: var(--cyber-muted); font-size: .66rem; line-height: 1.35; }
+.defense-control .defense-meta { color: var(--cyber-blue); text-transform: uppercase; letter-spacing: .05em; font-size: .56rem; }
 .defense-control .tradeoff { opacity: .7; }
 .inspector { border-top: 1px solid var(--cyber-border); margin-top: 16px; }
 .inspector div { display: grid; gap: 5px; color: var(--cyber-muted); font-size: .75rem; line-height: 1.5; }

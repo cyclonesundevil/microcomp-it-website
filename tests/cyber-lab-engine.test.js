@@ -130,7 +130,7 @@ test('DoS report includes availability outcomes, triggered defenses, gaps, and s
     });
     assert.equal(report.synthetic, true);
     assert.equal(report.attackType, 'DOS');
-    assert.ok(report.events.every(event => ['forwarded', 'scrubbed', 'filtered'].includes(event.action)));
+    assert.ok(report.events.every(event => ['forwarded', 'scrubbed', 'filtered', 'rate-limited', 'offloaded', 'scaled'].includes(event.action)));
 });
 
 test('upstream DDoS protection changes the same seeded traffic before downstream metrics', () => {
@@ -262,4 +262,76 @@ test('report comparison requires matching run identity and returns metric deltas
     assert.ok(comparison.deltas.minimumAvailability > 0);
     const mismatch = E.compareReports(base.findings, { ...defended.findings, seed: 52 });
     assert.equal(mismatch.comparable, false);
+});
+
+test('every visible defense has a typed shared definition and deterministic order', () => {
+    assert.deepEqual(Object.keys(E.DEFENSE_META).sort(), Object.keys(E.DEFENSES).sort());
+    Object.keys(E.DEFENSES).forEach(id => {
+        const definition = E.defenseDefinition(id);
+        assert.ok(definition);
+        assert.ok(['preventive', 'detective', 'resilience'].includes(definition.kind));
+        assert.ok(definition.layer);
+        assert.ok(Number.isFinite(definition.order));
+        assert.ok(definition.action);
+        assert.ok(definition.visual);
+    });
+    const scenario = E.SCENARIOS.find(item => item.id === 'dos');
+    const enabled = Object.fromEntries(scenario.defenses.map(id => [id, true]));
+    const ordered = E.orderedDefenses(scenario, enabled);
+    assert.deepEqual(ordered.map(item => item.id), ['upstreamProtection', 'trafficFiltering', 'rateLimiting', 'caching', 'autoscaling']);
+});
+
+test('all five DoS defenses emit standardized effects, events, visuals, and report entries', () => {
+    const defenses = { upstreamProtection: true, trafficFiltering: true, rateLimiting: true, caching: true, autoscaling: true };
+    const state = run({ scenarioId: 'dos', attackType: 'ddos', difficulty: 'Advanced', seed: 414, defenses });
+    Object.keys(defenses).forEach(id => {
+        const effect = state.defenseEffectLog.find(item => item.id === id);
+        assert.ok(effect, `${id} missing effect`);
+        assert.ok(effect.metricDeltas && Object.keys(effect.metricDeltas).length, `${id} missing metric deltas`);
+        const event = state.events.find(item => item.marker === 'DEFENSE_TRIGGERED' && item.defenseId === id);
+        assert.ok(event, `${id} missing standardized event`);
+        assert.equal(event.defenseKind, E.DEFENSE_META[id].kind);
+        assert.equal(event.defenseLayer, E.DEFENSE_META[id].layer);
+        assert.equal(event.visualEffect, E.DEFENSE_META[id].visual);
+        const reportEntry = state.findings.defensesTriggered.find(item => item.id === id);
+        assert.ok(reportEntry, `${id} missing report entry`);
+        assert.equal(reportEntry.kind, E.DEFENSE_META[id].kind);
+        assert.ok(reportEntry.affectedUnits > 0);
+    });
+});
+
+test('shared framework distinguishes detective controls from preventive blocking', () => {
+    const idsRun = run({ scenarioId: 'mitm', difficulty: 'Intermediate', seed: 100, defenses: { ids: true } });
+    assert.ok(idsRun.metrics.detections > 0);
+    assert.equal(idsRun.metrics.totalBlocked, 0);
+    assert.ok(idsRun.events.some(event => event.defenseId === 'ids' && event.action === 'detected' && event.blockedRequests === 0));
+    const encryptionRun = run({ scenarioId: 'mitm', difficulty: 'Intermediate', seed: 100, defenses: { encryption: true } });
+    assert.ok(encryptionRun.metrics.totalBlocked > 0);
+    assert.ok(encryptionRun.events.some(event => event.defenseId === 'encryption' && event.blockedRequests > 0));
+});
+
+test('every defense can trigger through configuration and disappears when disabled', () => {
+    Object.keys(E.DEFENSES).forEach(id => {
+        const scenario = E.SCENARIOS.find(item => item.defenses.includes(id));
+        assert.ok(scenario, `${id} is not assigned to a scenario`);
+        const config = { scenarioId: scenario.id, difficulty: 'Intermediate', seed: 100 };
+        const enabled = run({ ...config, defenses: { [id]: true } });
+        assert.ok(enabled.defenseStats[id]?.triggered > 0, `${id} did not trigger`);
+        assert.ok(enabled.findings.defensesTriggered.some(item => item.id === id), `${id} missing from report`);
+        const disabled = run({ ...config, defenses: { [id]: false } });
+        assert.equal(Boolean(disabled.defenseStats[id]), false, `${id} remained active when disabled`);
+        assert.equal(disabled.events.some(event => event.defenseId === id), false, `${id} emitted an event while disabled`);
+        assert.equal(disabled.findings.defensesTriggered.some(item => item.id === id), false, `${id} remained in report when disabled`);
+    });
+});
+
+test('defense reducer rejects unknown controls and clears a disabled active visual effect', () => {
+    let state = E.initialState({ scenarioId: 'dos', defenses: { caching: true }, seed: 9 });
+    state = E.step(state);
+    assert.ok(state.activeDefenseEffects.some(effect => effect.id === 'caching'));
+    const unchanged = E.reducer(state, { type: 'DEFENSE', id: 'notAControl', enabled: true });
+    assert.equal(unchanged, state);
+    state = E.reducer(state, { type: 'DEFENSE', id: 'caching', enabled: false });
+    assert.equal(state.defenses.caching, false);
+    assert.equal(state.activeDefenseEffects.some(effect => effect.id === 'caching'), false);
 });

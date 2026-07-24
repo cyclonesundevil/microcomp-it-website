@@ -7,6 +7,8 @@ const test = require('node:test');
 const root = path.resolve(__dirname, '..');
 const page = fs.readFileSync(path.join(root, 'frontend/demo-lab/cybersecurity-simulation.html'), 'utf8');
 const controller = fs.readFileSync(path.join(root, 'frontend/cyber-lab.js'), 'utf8');
+const engine = fs.readFileSync(path.join(root, 'frontend/cyber-lab-engine.js'), 'utf8');
+const styles = fs.readFileSync(path.join(root, 'frontend/cyber-lab.css'), 'utf8');
 
 test('lab route includes core playback, accessibility, visualization, and report surfaces', () => {
     ['id="start"', 'id="pause"', 'id="step"', 'id="reset"', 'id="replay"',
@@ -44,7 +46,7 @@ test('upstream protection is visible in topology, metrics, events, and report re
     ['upstream-node', 'topology-counter', 'flow-interrupted', 'metric-server-rps',
         'upstreamTrafficFiltered', 'availabilityImprovement', 'DEFENSE_TRIGGERED'
     ].forEach(marker => {
-        const surfaces = `${controller}\n${page}\n${fs.readFileSync(path.join(root, 'frontend/cyber-lab.css'), 'utf8')}`;
+        const surfaces = `${controller}\n${page}\n${styles}\n${engine}`;
         assert.ok(surfaces.includes(marker), `missing upstream surface: ${marker}`);
     });
 });
@@ -63,11 +65,19 @@ test('speed changes scheduler timing without advancing virtual state', () => {
 });
 
 test('reduced motion keeps a textual static-flow explanation', () => {
-    const css = fs.readFileSync(path.join(root, 'frontend/cyber-lab.css'), 'utf8');
     assert.ok(page.includes('id="motion-status"'));
     assert.ok(controller.includes('Static flow view enabled'));
-    assert.match(css, /\.reduce-motion/);
-    assert.match(css, /prefers-reduced-motion/);
+    assert.match(styles, /\.reduce-motion/);
+    assert.match(styles, /prefers-reduced-motion/);
+});
+
+test('shared defense effects have visible strip, node badges, and distinct visual semantics', () => {
+    ['id="defense-effect-strip"', 'renderDefenseEffects', 'defenseEffectsForHost',
+        'flow-interrupted', 'flow-offloaded', 'flow-capacity', 'flow-protected', 'flow-detected',
+        'effect-preventive', 'effect-detective', 'effect-resilience'
+    ].forEach(marker => {
+        assert.ok(`${page}\n${controller}\n${styles}`.includes(marker), `missing defense visual: ${marker}`);
+    });
 });
 
 test('Demo Lab directory links to the simulation route', () => {

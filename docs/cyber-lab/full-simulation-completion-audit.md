@@ -234,4 +234,40 @@ Status: **Complete in this change.**
 
 ### Deliberately deferred
 
-Phases 2–6 were not implemented. The audit classifications for defense-specific behavior and the ten non-reference scenarios remain open and are the next dependency-ordered work.
+At the Phase 1 checkpoint, Phases 2–6 were not implemented. The following section records the subsequent Phase 2 completion.
+
+## Phase 2 results
+
+Status: **Complete in the working tree after Phase 1.**
+
+The baseline classifications above remain the historical audit. These results supersede the shared-defense findings while leaving scenario-specific Phases 3–6 open.
+
+### Implemented
+
+| Phase 2 requirement | Result and reference |
+|---|---|
+| Defense configuration | `frontend/cyber-lab-engine.js:DEFENSE_META/defenseDefinition` defines kind, layer, order, action, and visual semantics for all seventeen controls. `reducer(DEFENSE)` validates IDs and removes disabled active effects. |
+| Deterministic ordering | `orderedDefenses` sorts scenario-relevant enabled controls. The DoS order is upstream protection → traffic filtering → rate limiting → caching → autoscaling. |
+| Prevention versus detection | Generic simulation now separates preventive/resilience mitigation from detective observation. IDS and anomaly detection add detections without claiming to block traffic. |
+| Typed effects | `recordDefense` creates per-tick effects with affected units, kind, layer, action, metric deltas, explanation, visual encoding, and trade-off. |
+| Standard events | `defenseEffectEvent` emits metadata-only `DEFENSE_TRIGGERED` events. The five DoS controls emit at upstream, firewall, load-balancer, or service layers. |
+| Metric effects | DoS adapters record filtering, blocking, accepted-load, origin-load, and capacity deltas. Generic detective controls update detection counts; preventive controls update blocking and downstream load. |
+| Visual effects | `cyber-lab.js:renderDefenseEffects/defenseEffectsForHost` renders a live effect strip and node-layer badges. SVG flows distinguish interrupted, protected, offloaded, capacity, and detected effects. |
+| Report effects | `defenseReportEntries` standardizes affected, blocked, detected, trigger-count, kind, layer, action, order, and trade-off fields. Generic and DoS reports include the effect log. |
+| Enable/disable restoration | Every visible defense has an automated test proving it triggers when enabled and produces no state, events, or report entry when disabled. |
+| Shared test helpers/contracts | Engine tests enumerate all defense definitions, verify order and semantics, exercise all controls, and validate all five DoS effect/event/visual/report paths. |
+
+### Validation
+
+- 37 dependency-free Node tests pass.
+- All seventeen controls have typed definitions and enabled/disabled regression coverage.
+- Preventive versus detective semantics are explicitly tested.
+- All five DoS controls have standardized effect, event, visual, metric, and report assertions.
+- JavaScript syntax, safety, static-route, and whitespace checks pass.
+- No frontend lint/build command exists; static route and asset resolution remains the applicable production check.
+
+### Deliberately deferred after Phase 2
+
+- Scenario-specific engines for MITM, password attacks, and eavesdropping remain Phase 3.
+- Web/identity and endpoint/organizational scenario engines remain Phases 4–5.
+- Browser automation, visual regression, and production tooling remain Phase 6.
