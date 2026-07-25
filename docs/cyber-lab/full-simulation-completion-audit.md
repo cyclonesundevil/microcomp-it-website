@@ -379,3 +379,35 @@ Phase 5 completes the remaining endpoint and organizational scenario engines. Al
 
 - Cross-lab report/comparison schema normalization remains Phase 6.
 - Browser interaction automation, visual regression, accessibility verification, rendering-performance measurement, and optional production tooling remain Phase 6.
+
+## Phase 6 results
+
+Status: **Complete in this change.**
+
+Phase 6 adds shared quality gates without changing the safe, deterministic nature of the simulation. Existing report fields remain available for compatibility while a normalized contract makes results consistent across all eleven scenarios.
+
+### Implemented
+
+| Phase 6 requirement | Result and reference |
+|---|---|
+| Normalized report contract | `frontend/cyber-lab-engine.js:attachNormalizedSummary` adds schema version `2.0` and consistent identity, risk, activity, service, defense, and outcome summaries to every scenario report. |
+| Comparable outcomes | `compareReports` retains legacy deltas and adds canonical `normalizedDeltas`, allowing DoS, phishing, APT, and the other scenario families to be compared through the same fields. |
+| Bounded rendering state | `STATE_LIMITS` centrally caps events, flows, alerts, history, and defense effects so long or repeated runs cannot grow the rendered state without limit. |
+| Accessible interaction state | The run-status region is a polite live status; the active scenario uses `aria-current`; and Pause exposes both its pressed state and a context-sensitive accessible label. |
+| Performance regression gate | Engine tests execute every scenario, verify the state caps, and enforce a conservative aggregate simulation-time budget. |
+| Browser and route smoke checks | Integration tests resolve every local stylesheet and script reference. A headless Chrome render at 1440×1000 verifies that the deployed route loads with intact navigation, controls, scenario cards, and responsive content flow. |
+| Automated coverage | Engine tests validate the normalized schema for all eleven scenarios and cross-family comparisons. Integration tests validate accessibility semantics, unique IDs, and local asset resolution. |
+
+### Validation
+
+- 64 dependency-free Node tests pass.
+- Both lab JavaScript files pass `node --check`.
+- All report types expose the same versioned normalized summary while retaining their scenario-specific evidence.
+- Simulation collections remain within their documented caps and the complete performance test remains within its 2.5-second budget.
+- Headless Chrome successfully renders the lab at a desktop viewport without overlap or missing assets.
+- Static routes, accessibility contracts, whitespace, and safe synthetic-data boundaries pass.
+
+### Remaining production options
+
+- Pixel-diff visual regression and a cross-browser CI matrix can be added if the project adopts browser-test tooling.
+- The current dependency-free browser smoke and DOM-contract tests remain the lightweight default for this static site.

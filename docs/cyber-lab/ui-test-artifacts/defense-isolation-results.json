@@ -1,0 +1,172 @@
+[
+  {
+    "scenario": "dos",
+    "defense": "rateLimiting",
+    "label": "Rate limiting",
+    "enabledReportContainsControl": true,
+    "disabledReportContainsTriggeredControl": false,
+    "measurableChange": true,
+    "enabledScore": "RESIDUAL RISK\n20/100\n\nDDOS · seed 4242 · 20,063 requests blocked",
+    "disabledScore": "RESIDUAL RISK\n100/100\n\nDDOS · seed 4242 · 0 requests blocked"
+  },
+  {
+    "scenario": "dos",
+    "defense": "trafficFiltering",
+    "label": "Traffic filtering",
+    "enabledReportContainsControl": true,
+    "disabledReportContainsTriggeredControl": false,
+    "measurableChange": true,
+    "enabledScore": "RESIDUAL RISK\n73/100\n\nDDOS · seed 4242 · 8,636 requests blocked",
+    "disabledScore": "RESIDUAL RISK\n100/100\n\nDDOS · seed 4242 · 0 requests blocked"
+  },
+  {
+    "scenario": "dos",
+    "defense": "caching",
+    "label": "Caching",
+    "enabledReportContainsControl": true,
+    "disabledReportContainsTriggeredControl": false,
+    "measurableChange": true,
+    "enabledScore": "RESIDUAL RISK\n64/100\n\nDDOS · seed 4242 · 0 requests blocked",
+    "disabledScore": "RESIDUAL RISK\n100/100\n\nDDOS · seed 4242 · 0 requests blocked"
+  },
+  {
+    "scenario": "dos",
+    "defense": "autoscaling",
+    "label": "Autoscaling",
+    "enabledReportContainsControl": true,
+    "disabledReportContainsTriggeredControl": false,
+    "measurableChange": true,
+    "enabledScore": "RESIDUAL RISK\n99/100\n\nDDOS · seed 4242 · 0 requests blocked",
+    "disabledScore": "RESIDUAL RISK\n100/100\n\nDDOS · seed 4242 · 0 requests blocked"
+  },
+  {
+    "scenario": "dos",
+    "defense": "upstreamProtection",
+    "label": "Upstream DDoS protection",
+    "enabledReportContainsControl": true,
+    "disabledReportContainsTriggeredControl": false,
+    "measurableChange": true,
+    "enabledScore": "RESIDUAL RISK\n18/100\n\nDDOS · seed 4242 · 29,844 requests blocked",
+    "disabledScore": "RESIDUAL RISK\n100/100\n\nDDOS · seed 4242 · 0 requests blocked"
+  },
+  {
+    "scenario": "sqli",
+    "defense": "waf",
+    "label": "Web application firewall",
+    "enabledReportContainsControl": true,
+    "disabledReportContainsTriggeredControl": false,
+    "measurableChange": true,
+    "enabledScore": "RESIDUAL RISK\n59/100\n\n188 events blocked · seed 4242",
+    "disabledScore": "RESIDUAL RISK\n98/100\n\n0 events blocked · seed 4242"
+  },
+  {
+    "scenario": "mitm",
+    "defense": "mfa",
+    "label": "Multi-factor authentication",
+    "enabledReportContainsControl": true,
+    "disabledReportContainsTriggeredControl": false,
+    "measurableChange": true,
+    "enabledScore": "RESIDUAL RISK\n78/100\n\n97 events blocked · seed 4242",
+    "disabledScore": "RESIDUAL RISK\n96/100\n\n0 events blocked · seed 4242"
+  },
+  {
+    "scenario": "password",
+    "defense": "accountLockout",
+    "label": "Account lockout",
+    "enabledReportContainsControl": true,
+    "disabledReportContainsTriggeredControl": false,
+    "measurableChange": true,
+    "enabledScore": "RESIDUAL RISK\n80/100\n\n84 events blocked · seed 4242",
+    "disabledScore": "RESIDUAL RISK\n98/100\n\n0 events blocked · seed 4242"
+  },
+  {
+    "scenario": "malware",
+    "defense": "segmentation",
+    "label": "Network segmentation",
+    "enabledReportContainsControl": true,
+    "disabledReportContainsTriggeredControl": false,
+    "measurableChange": true,
+    "enabledScore": "RESIDUAL RISK\n80/100\n\n211 events blocked · seed 4242",
+    "disabledScore": "RESIDUAL RISK\n98/100\n\n0 events blocked · seed 4242"
+  },
+  {
+    "scenario": "mitm",
+    "defense": "encryption",
+    "label": "Encryption",
+    "enabledReportContainsControl": true,
+    "disabledReportContainsTriggeredControl": false,
+    "measurableChange": true,
+    "enabledScore": "RESIDUAL RISK\n53/100\n\n174 events blocked · seed 4242",
+    "disabledScore": "RESIDUAL RISK\n96/100\n\n0 events blocked · seed 4242"
+  },
+  {
+    "scenario": "malware",
+    "defense": "endpointProtection",
+    "label": "Endpoint protection",
+    "enabledReportContainsControl": true,
+    "disabledReportContainsTriggeredControl": false,
+    "measurableChange": true,
+    "enabledScore": "RESIDUAL RISK\n80/100\n\n106 events blocked · seed 4242",
+    "disabledScore": "RESIDUAL RISK\n98/100\n\n0 events blocked · seed 4242"
+  },
+  {
+    "scenario": "phishing",
+    "defense": "emailFiltering",
+    "label": "Email filtering",
+    "enabledReportContainsControl": true,
+    "disabledReportContainsTriggeredControl": false,
+    "measurableChange": true,
+    "enabledScore": "RESIDUAL RISK\n80/100\n\n104 events blocked · seed 4242",
+    "disabledScore": "RESIDUAL RISK\n98/100\n\n0 events blocked · seed 4242"
+  },
+  {
+    "scenario": "sqli",
+    "defense": "leastPrivilege",
+    "label": "Least privilege",
+    "enabledReportContainsControl": true,
+    "disabledReportContainsTriggeredControl": false,
+    "measurableChange": true,
+    "enabledScore": "RESIDUAL RISK\n80/100\n\n895 events blocked · seed 4242",
+    "disabledScore": "RESIDUAL RISK\n98/100\n\n0 events blocked · seed 4242"
+  },
+  {
+    "scenario": "zeroday",
+    "defense": "anomalyDetection",
+    "label": "Anomaly detection",
+    "enabledReportContainsControl": true,
+    "disabledReportContainsTriggeredControl": false,
+    "measurableChange": true,
+    "enabledScore": "RESIDUAL RISK\n94/100\n\n0 events blocked · seed 4242",
+    "disabledScore": "RESIDUAL RISK\n99/100\n\n0 events blocked · seed 4242"
+  },
+  {
+    "scenario": "mitm",
+    "defense": "ids",
+    "label": "Intrusion detection",
+    "enabledReportContainsControl": true,
+    "disabledReportContainsTriggeredControl": false,
+    "measurableChange": true,
+    "enabledScore": "RESIDUAL RISK\n91/100\n\n0 events blocked · seed 4242",
+    "disabledScore": "RESIDUAL RISK\n96/100\n\n0 events blocked · seed 4242"
+  },
+  {
+    "scenario": "malware",
+    "defense": "patchManagement",
+    "label": "Patch management",
+    "enabledReportContainsControl": true,
+    "disabledReportContainsTriggeredControl": false,
+    "measurableChange": true,
+    "enabledScore": "RESIDUAL RISK\n80/100\n\n103 events blocked · seed 4242",
+    "disabledScore": "RESIDUAL RISK\n98/100\n\n0 events blocked · seed 4242"
+  },
+  {
+    "scenario": "insider",
+    "defense": "dlp",
+    "label": "Data-loss prevention",
+    "enabledReportContainsControl": true,
+    "disabledReportContainsTriggeredControl": false,
+    "measurableChange": true,
+    "enabledScore": "RESIDUAL RISK\n75/100\n\n279 events blocked · seed 4242",
+    "disabledScore": "RESIDUAL RISK\n98/100\n\n0 events blocked · seed 4242"
+  }
+]

@@ -1,0 +1,3341 @@
+{
+  "synthetic": true,
+  "generatedAtVirtualTime": 20,
+  "scenario": "SQL Injection",
+  "seed": 4242,
+  "difficulty": "Beginner",
+  "objective": "Reach mock records through unsafe input handling.",
+  "indicators": "A safe request marker correlates with database errors and record-access risk.",
+  "affectedAssets": [
+    "Synthetic Internet",
+    "Web Service",
+    "Records Database"
+  ],
+  "controlsHelped": [
+    "Web application firewall",
+    "Least privilege",
+    "Intrusion detection"
+  ],
+  "controlsNotEnabled": [],
+  "blockedEvents": 344,
+  "detections": 40,
+  "defensesTriggered": [
+    {
+      "id": "waf",
+      "name": "Web application firewall",
+      "kind": "preventive",
+      "layer": "application-edge",
+      "action": "blocked",
+      "order": 22,
+      "affectedUnits": 188,
+      "blockedUnits": 188,
+      "detectedUnits": 0,
+      "triggerCount": 16,
+      "tradeOff": "Rules require tuning."
+    },
+    {
+      "id": "leastPrivilege",
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "action": "restricted",
+      "order": 55,
+      "affectedUnits": 156,
+      "blockedUnits": 156,
+      "detectedUnits": 0,
+      "triggerCount": 16,
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "ids",
+      "name": "Intrusion detection",
+      "kind": "detective",
+      "layer": "monitoring",
+      "action": "detected",
+      "order": 92,
+      "affectedUnits": 40,
+      "blockedUnits": 0,
+      "detectedUnits": 40,
+      "triggerCount": 16,
+      "tradeOff": "Detection alone does not block."
+    }
+  ],
+  "defenseEffectLog": [
+    {
+      "id": "waf",
+      "tick": 5,
+      "name": "Web application firewall",
+      "kind": "preventive",
+      "layer": "application-edge",
+      "order": 22,
+      "action": "blocked",
+      "visual": "interrupted",
+      "affected": 7,
+      "metricDeltas": {
+        "rejectedRequests": 7
+      },
+      "explanation": "The web application firewall rejected 7 metadata-only unsafe-input markers before the fictional application.",
+      "tradeOff": "Rules require tuning."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 5,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 2,
+      "metricDeltas": {
+        "protectedRecords": 2
+      },
+      "explanation": "Least privilege kept 2 fictional record units outside the application identity’s allowed scope.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "ids",
+      "tick": 5,
+      "name": "Intrusion detection",
+      "kind": "detective",
+      "layer": "monitoring",
+      "order": 92,
+      "action": "detected",
+      "visual": "detected",
+      "affected": 1,
+      "metricDeltas": {
+        "detections": 1
+      },
+      "explanation": "Intrusion detection correlated 1 safe request markers with database-flow changes.",
+      "tradeOff": "Detection alone does not block."
+    },
+    {
+      "id": "waf",
+      "tick": 6,
+      "name": "Web application firewall",
+      "kind": "preventive",
+      "layer": "application-edge",
+      "order": 22,
+      "action": "blocked",
+      "visual": "interrupted",
+      "affected": 8,
+      "metricDeltas": {
+        "rejectedRequests": 8
+      },
+      "explanation": "The web application firewall rejected 8 metadata-only unsafe-input markers before the fictional application.",
+      "tradeOff": "Rules require tuning."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 6,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 5,
+      "metricDeltas": {
+        "protectedRecords": 5
+      },
+      "explanation": "Least privilege kept 5 fictional record units outside the application identity’s allowed scope.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "ids",
+      "tick": 6,
+      "name": "Intrusion detection",
+      "kind": "detective",
+      "layer": "monitoring",
+      "order": 92,
+      "action": "detected",
+      "visual": "detected",
+      "affected": 2,
+      "metricDeltas": {
+        "detections": 2
+      },
+      "explanation": "Intrusion detection correlated 2 safe request markers with database-flow changes.",
+      "tradeOff": "Detection alone does not block."
+    },
+    {
+      "id": "waf",
+      "tick": 7,
+      "name": "Web application firewall",
+      "kind": "preventive",
+      "layer": "application-edge",
+      "order": 22,
+      "action": "blocked",
+      "visual": "interrupted",
+      "affected": 8,
+      "metricDeltas": {
+        "rejectedRequests": 8
+      },
+      "explanation": "The web application firewall rejected 8 metadata-only unsafe-input markers before the fictional application.",
+      "tradeOff": "Rules require tuning."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 7,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 5,
+      "metricDeltas": {
+        "protectedRecords": 5
+      },
+      "explanation": "Least privilege kept 5 fictional record units outside the application identity’s allowed scope.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "ids",
+      "tick": 7,
+      "name": "Intrusion detection",
+      "kind": "detective",
+      "layer": "monitoring",
+      "order": 92,
+      "action": "detected",
+      "visual": "detected",
+      "affected": 2,
+      "metricDeltas": {
+        "detections": 2
+      },
+      "explanation": "Intrusion detection correlated 2 safe request markers with database-flow changes.",
+      "tradeOff": "Detection alone does not block."
+    },
+    {
+      "id": "waf",
+      "tick": 8,
+      "name": "Web application firewall",
+      "kind": "preventive",
+      "layer": "application-edge",
+      "order": 22,
+      "action": "blocked",
+      "visual": "interrupted",
+      "affected": 7,
+      "metricDeltas": {
+        "rejectedRequests": 7
+      },
+      "explanation": "The web application firewall rejected 7 metadata-only unsafe-input markers before the fictional application.",
+      "tradeOff": "Rules require tuning."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 8,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 5,
+      "metricDeltas": {
+        "protectedRecords": 5
+      },
+      "explanation": "Least privilege kept 5 fictional record units outside the application identity’s allowed scope.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "ids",
+      "tick": 8,
+      "name": "Intrusion detection",
+      "kind": "detective",
+      "layer": "monitoring",
+      "order": 92,
+      "action": "detected",
+      "visual": "detected",
+      "affected": 2,
+      "metricDeltas": {
+        "detections": 2
+      },
+      "explanation": "Intrusion detection correlated 2 safe request markers with database-flow changes.",
+      "tradeOff": "Detection alone does not block."
+    },
+    {
+      "id": "waf",
+      "tick": 9,
+      "name": "Web application firewall",
+      "kind": "preventive",
+      "layer": "application-edge",
+      "order": 22,
+      "action": "blocked",
+      "visual": "interrupted",
+      "affected": 11,
+      "metricDeltas": {
+        "rejectedRequests": 11
+      },
+      "explanation": "The web application firewall rejected 11 metadata-only unsafe-input markers before the fictional application.",
+      "tradeOff": "Rules require tuning."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 9,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 7,
+      "metricDeltas": {
+        "protectedRecords": 7
+      },
+      "explanation": "Least privilege kept 7 fictional record units outside the application identity’s allowed scope.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "ids",
+      "tick": 9,
+      "name": "Intrusion detection",
+      "kind": "detective",
+      "layer": "monitoring",
+      "order": 92,
+      "action": "detected",
+      "visual": "detected",
+      "affected": 2,
+      "metricDeltas": {
+        "detections": 2
+      },
+      "explanation": "Intrusion detection correlated 2 safe request markers with database-flow changes.",
+      "tradeOff": "Detection alone does not block."
+    },
+    {
+      "id": "waf",
+      "tick": 10,
+      "name": "Web application firewall",
+      "kind": "preventive",
+      "layer": "application-edge",
+      "order": 22,
+      "action": "blocked",
+      "visual": "interrupted",
+      "affected": 9,
+      "metricDeltas": {
+        "rejectedRequests": 9
+      },
+      "explanation": "The web application firewall rejected 9 metadata-only unsafe-input markers before the fictional application.",
+      "tradeOff": "Rules require tuning."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 10,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 7,
+      "metricDeltas": {
+        "protectedRecords": 7
+      },
+      "explanation": "Least privilege kept 7 fictional record units outside the application identity’s allowed scope.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "ids",
+      "tick": 10,
+      "name": "Intrusion detection",
+      "kind": "detective",
+      "layer": "monitoring",
+      "order": 92,
+      "action": "detected",
+      "visual": "detected",
+      "affected": 2,
+      "metricDeltas": {
+        "detections": 2
+      },
+      "explanation": "Intrusion detection correlated 2 safe request markers with database-flow changes.",
+      "tradeOff": "Detection alone does not block."
+    },
+    {
+      "id": "waf",
+      "tick": 11,
+      "name": "Web application firewall",
+      "kind": "preventive",
+      "layer": "application-edge",
+      "order": 22,
+      "action": "blocked",
+      "visual": "interrupted",
+      "affected": 11,
+      "metricDeltas": {
+        "rejectedRequests": 11
+      },
+      "explanation": "The web application firewall rejected 11 metadata-only unsafe-input markers before the fictional application.",
+      "tradeOff": "Rules require tuning."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 11,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 10,
+      "metricDeltas": {
+        "protectedRecords": 10
+      },
+      "explanation": "Least privilege kept 10 fictional record units outside the application identity’s allowed scope.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "ids",
+      "tick": 11,
+      "name": "Intrusion detection",
+      "kind": "detective",
+      "layer": "monitoring",
+      "order": 92,
+      "action": "detected",
+      "visual": "detected",
+      "affected": 3,
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes.",
+      "tradeOff": "Detection alone does not block."
+    },
+    {
+      "id": "waf",
+      "tick": 12,
+      "name": "Web application firewall",
+      "kind": "preventive",
+      "layer": "application-edge",
+      "order": 22,
+      "action": "blocked",
+      "visual": "interrupted",
+      "affected": 11,
+      "metricDeltas": {
+        "rejectedRequests": 11
+      },
+      "explanation": "The web application firewall rejected 11 metadata-only unsafe-input markers before the fictional application.",
+      "tradeOff": "Rules require tuning."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 12,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 7,
+      "metricDeltas": {
+        "protectedRecords": 7
+      },
+      "explanation": "Least privilege kept 7 fictional record units outside the application identity’s allowed scope.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "ids",
+      "tick": 12,
+      "name": "Intrusion detection",
+      "kind": "detective",
+      "layer": "monitoring",
+      "order": 92,
+      "action": "detected",
+      "visual": "detected",
+      "affected": 2,
+      "metricDeltas": {
+        "detections": 2
+      },
+      "explanation": "Intrusion detection correlated 2 safe request markers with database-flow changes.",
+      "tradeOff": "Detection alone does not block."
+    },
+    {
+      "id": "waf",
+      "tick": 13,
+      "name": "Web application firewall",
+      "kind": "preventive",
+      "layer": "application-edge",
+      "order": 22,
+      "action": "blocked",
+      "visual": "interrupted",
+      "affected": 14,
+      "metricDeltas": {
+        "rejectedRequests": 14
+      },
+      "explanation": "The web application firewall rejected 14 metadata-only unsafe-input markers before the fictional application.",
+      "tradeOff": "Rules require tuning."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 13,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 12,
+      "metricDeltas": {
+        "protectedRecords": 12
+      },
+      "explanation": "Least privilege kept 12 fictional record units outside the application identity’s allowed scope.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "ids",
+      "tick": 13,
+      "name": "Intrusion detection",
+      "kind": "detective",
+      "layer": "monitoring",
+      "order": 92,
+      "action": "detected",
+      "visual": "detected",
+      "affected": 3,
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes.",
+      "tradeOff": "Detection alone does not block."
+    },
+    {
+      "id": "waf",
+      "tick": 14,
+      "name": "Web application firewall",
+      "kind": "preventive",
+      "layer": "application-edge",
+      "order": 22,
+      "action": "blocked",
+      "visual": "interrupted",
+      "affected": 14,
+      "metricDeltas": {
+        "rejectedRequests": 14
+      },
+      "explanation": "The web application firewall rejected 14 metadata-only unsafe-input markers before the fictional application.",
+      "tradeOff": "Rules require tuning."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 14,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 12,
+      "metricDeltas": {
+        "protectedRecords": 12
+      },
+      "explanation": "Least privilege kept 12 fictional record units outside the application identity’s allowed scope.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "ids",
+      "tick": 14,
+      "name": "Intrusion detection",
+      "kind": "detective",
+      "layer": "monitoring",
+      "order": 92,
+      "action": "detected",
+      "visual": "detected",
+      "affected": 3,
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes.",
+      "tradeOff": "Detection alone does not block."
+    },
+    {
+      "id": "waf",
+      "tick": 15,
+      "name": "Web application firewall",
+      "kind": "preventive",
+      "layer": "application-edge",
+      "order": 22,
+      "action": "blocked",
+      "visual": "interrupted",
+      "affected": 14,
+      "metricDeltas": {
+        "rejectedRequests": 14
+      },
+      "explanation": "The web application firewall rejected 14 metadata-only unsafe-input markers before the fictional application.",
+      "tradeOff": "Rules require tuning."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 15,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 12,
+      "metricDeltas": {
+        "protectedRecords": 12
+      },
+      "explanation": "Least privilege kept 12 fictional record units outside the application identity’s allowed scope.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "ids",
+      "tick": 15,
+      "name": "Intrusion detection",
+      "kind": "detective",
+      "layer": "monitoring",
+      "order": 92,
+      "action": "detected",
+      "visual": "detected",
+      "affected": 3,
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes.",
+      "tradeOff": "Detection alone does not block."
+    },
+    {
+      "id": "waf",
+      "tick": 16,
+      "name": "Web application firewall",
+      "kind": "preventive",
+      "layer": "application-edge",
+      "order": 22,
+      "action": "blocked",
+      "visual": "interrupted",
+      "affected": 13,
+      "metricDeltas": {
+        "rejectedRequests": 13
+      },
+      "explanation": "The web application firewall rejected 13 metadata-only unsafe-input markers before the fictional application.",
+      "tradeOff": "Rules require tuning."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 16,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 12,
+      "metricDeltas": {
+        "protectedRecords": 12
+      },
+      "explanation": "Least privilege kept 12 fictional record units outside the application identity’s allowed scope.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "ids",
+      "tick": 16,
+      "name": "Intrusion detection",
+      "kind": "detective",
+      "layer": "monitoring",
+      "order": 92,
+      "action": "detected",
+      "visual": "detected",
+      "affected": 3,
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes.",
+      "tradeOff": "Detection alone does not block."
+    },
+    {
+      "id": "waf",
+      "tick": 17,
+      "name": "Web application firewall",
+      "kind": "preventive",
+      "layer": "application-edge",
+      "order": 22,
+      "action": "blocked",
+      "visual": "interrupted",
+      "affected": 14,
+      "metricDeltas": {
+        "rejectedRequests": 14
+      },
+      "explanation": "The web application firewall rejected 14 metadata-only unsafe-input markers before the fictional application.",
+      "tradeOff": "Rules require tuning."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 17,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 15,
+      "metricDeltas": {
+        "protectedRecords": 15
+      },
+      "explanation": "Least privilege kept 15 fictional record units outside the application identity’s allowed scope.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "ids",
+      "tick": 17,
+      "name": "Intrusion detection",
+      "kind": "detective",
+      "layer": "monitoring",
+      "order": 92,
+      "action": "detected",
+      "visual": "detected",
+      "affected": 3,
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes.",
+      "tradeOff": "Detection alone does not block."
+    },
+    {
+      "id": "waf",
+      "tick": 18,
+      "name": "Web application firewall",
+      "kind": "preventive",
+      "layer": "application-edge",
+      "order": 22,
+      "action": "blocked",
+      "visual": "interrupted",
+      "affected": 16,
+      "metricDeltas": {
+        "rejectedRequests": 16
+      },
+      "explanation": "The web application firewall rejected 16 metadata-only unsafe-input markers before the fictional application.",
+      "tradeOff": "Rules require tuning."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 18,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 15,
+      "metricDeltas": {
+        "protectedRecords": 15
+      },
+      "explanation": "Least privilege kept 15 fictional record units outside the application identity’s allowed scope.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "ids",
+      "tick": 18,
+      "name": "Intrusion detection",
+      "kind": "detective",
+      "layer": "monitoring",
+      "order": 92,
+      "action": "detected",
+      "visual": "detected",
+      "affected": 3,
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes.",
+      "tradeOff": "Detection alone does not block."
+    },
+    {
+      "id": "waf",
+      "tick": 19,
+      "name": "Web application firewall",
+      "kind": "preventive",
+      "layer": "application-edge",
+      "order": 22,
+      "action": "blocked",
+      "visual": "interrupted",
+      "affected": 15,
+      "metricDeltas": {
+        "rejectedRequests": 15
+      },
+      "explanation": "The web application firewall rejected 15 metadata-only unsafe-input markers before the fictional application.",
+      "tradeOff": "Rules require tuning."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 19,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 15,
+      "metricDeltas": {
+        "protectedRecords": 15
+      },
+      "explanation": "Least privilege kept 15 fictional record units outside the application identity’s allowed scope.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "ids",
+      "tick": 19,
+      "name": "Intrusion detection",
+      "kind": "detective",
+      "layer": "monitoring",
+      "order": 92,
+      "action": "detected",
+      "visual": "detected",
+      "affected": 3,
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes.",
+      "tradeOff": "Detection alone does not block."
+    },
+    {
+      "id": "waf",
+      "tick": 20,
+      "name": "Web application firewall",
+      "kind": "preventive",
+      "layer": "application-edge",
+      "order": 22,
+      "action": "blocked",
+      "visual": "interrupted",
+      "affected": 16,
+      "metricDeltas": {
+        "rejectedRequests": 16
+      },
+      "explanation": "The web application firewall rejected 16 metadata-only unsafe-input markers before the fictional application.",
+      "tradeOff": "Rules require tuning."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 20,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 15,
+      "metricDeltas": {
+        "protectedRecords": 15
+      },
+      "explanation": "Least privilege kept 15 fictional record units outside the application identity’s allowed scope.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "ids",
+      "tick": 20,
+      "name": "Intrusion detection",
+      "kind": "detective",
+      "layer": "monitoring",
+      "order": 92,
+      "action": "detected",
+      "visual": "detected",
+      "affected": 3,
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes.",
+      "tradeOff": "Detection alone does not block."
+    }
+  ],
+  "peakRisk": 65,
+  "residualRisk": 24,
+  "recommendation": "Use parameterized queries, validation, least privilege, and safe error handling.",
+  "events": [
+    {
+      "id": "sqli-1",
+      "tick": 1,
+      "time": "00:01",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 4,
+      "allowedRequests": 0,
+      "blockedRequests": 0,
+      "bytes": 960,
+      "latency": 43,
+      "severity": "info",
+      "marker": "WEB_DATABASE_BASELINE",
+      "explanation": "Normal synthetic web requests use safe query metadata and expected database access.",
+      "scenarioState": {
+        "requestHandling": "normal",
+        "databaseErrors": 0
+      }
+    },
+    {
+      "id": "sqli-2",
+      "tick": 2,
+      "time": "00:02",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 4,
+      "allowedRequests": 0,
+      "blockedRequests": 0,
+      "bytes": 960,
+      "latency": 42,
+      "severity": "info",
+      "marker": "WEB_DATABASE_BASELINE",
+      "explanation": "Normal synthetic web requests use safe query metadata and expected database access.",
+      "scenarioState": {
+        "requestHandling": "normal",
+        "databaseErrors": 0
+      }
+    },
+    {
+      "id": "sqli-3",
+      "tick": 3,
+      "time": "00:03",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 4,
+      "allowedRequests": 0,
+      "blockedRequests": 0,
+      "bytes": 960,
+      "latency": 44,
+      "severity": "info",
+      "marker": "WEB_DATABASE_BASELINE",
+      "explanation": "Normal synthetic web requests use safe query metadata and expected database access.",
+      "scenarioState": {
+        "requestHandling": "normal",
+        "databaseErrors": 0
+      }
+    },
+    {
+      "id": "sqli-4",
+      "tick": 4,
+      "time": "00:04",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 4,
+      "allowedRequests": 0,
+      "blockedRequests": 0,
+      "bytes": 960,
+      "latency": 40,
+      "severity": "info",
+      "marker": "WEB_DATABASE_BASELINE",
+      "explanation": "Normal synthetic web requests use safe query metadata and expected database access.",
+      "scenarioState": {
+        "requestHandling": "normal",
+        "databaseErrors": 0
+      }
+    },
+    {
+      "id": "sqli-5",
+      "tick": 5,
+      "time": "00:05",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 8,
+      "allowedRequests": 1,
+      "blockedRequests": 7,
+      "bytes": 1920,
+      "latency": 45,
+      "severity": "high",
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "explanation": "7 marked requests were rejected; 1 reached the fictional database path; 1 record units were at risk.",
+      "scenarioState": {
+        "requestHandling": "reached-application",
+        "databaseErrors": 0
+      }
+    },
+    {
+      "id": "defense-5-waf",
+      "tick": 5,
+      "time": "00:05",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 7,
+      "allowedRequests": 0,
+      "blockedRequests": 7,
+      "bytes": 0,
+      "latency": 45,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "waf",
+      "defenseKind": "preventive",
+      "defenseLayer": "application-edge",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "rejectedRequests": 7
+      },
+      "explanation": "The web application firewall rejected 7 metadata-only unsafe-input markers before the fictional application."
+    },
+    {
+      "id": "defense-5-leastPrivilege",
+      "tick": 5,
+      "time": "00:05",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "restricted",
+      "requests": 2,
+      "allowedRequests": 0,
+      "blockedRequests": 2,
+      "bytes": 0,
+      "latency": 45,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedRecords": 2
+      },
+      "explanation": "Least privilege kept 2 fictional record units outside the application identity’s allowed scope."
+    },
+    {
+      "id": "defense-5-ids",
+      "tick": 5,
+      "time": "00:05",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "detected",
+      "requests": 1,
+      "allowedRequests": 1,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 45,
+      "severity": "medium",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "ids",
+      "defenseKind": "detective",
+      "defenseLayer": "monitoring",
+      "visualEffect": "detected",
+      "metricDeltas": {
+        "detections": 1
+      },
+      "explanation": "Intrusion detection correlated 1 safe request markers with database-flow changes."
+    },
+    {
+      "id": "sqli-6",
+      "tick": 6,
+      "time": "00:06",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 10,
+      "allowedRequests": 2,
+      "blockedRequests": 8,
+      "bytes": 2400,
+      "latency": 45,
+      "severity": "high",
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "explanation": "8 marked requests were rejected; 2 reached the fictional database path; 1 record units were at risk.",
+      "scenarioState": {
+        "requestHandling": "reached-application",
+        "databaseErrors": 1
+      }
+    },
+    {
+      "id": "defense-6-waf",
+      "tick": 6,
+      "time": "00:06",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 8,
+      "allowedRequests": 0,
+      "blockedRequests": 8,
+      "bytes": 0,
+      "latency": 45,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "waf",
+      "defenseKind": "preventive",
+      "defenseLayer": "application-edge",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "rejectedRequests": 8
+      },
+      "explanation": "The web application firewall rejected 8 metadata-only unsafe-input markers before the fictional application."
+    },
+    {
+      "id": "defense-6-leastPrivilege",
+      "tick": 6,
+      "time": "00:06",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "restricted",
+      "requests": 5,
+      "allowedRequests": 0,
+      "blockedRequests": 5,
+      "bytes": 0,
+      "latency": 45,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedRecords": 5
+      },
+      "explanation": "Least privilege kept 5 fictional record units outside the application identity’s allowed scope."
+    },
+    {
+      "id": "defense-6-ids",
+      "tick": 6,
+      "time": "00:06",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "detected",
+      "requests": 2,
+      "allowedRequests": 2,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 45,
+      "severity": "medium",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "ids",
+      "defenseKind": "detective",
+      "defenseLayer": "monitoring",
+      "visualEffect": "detected",
+      "metricDeltas": {
+        "detections": 2
+      },
+      "explanation": "Intrusion detection correlated 2 safe request markers with database-flow changes."
+    },
+    {
+      "id": "sqli-7",
+      "tick": 7,
+      "time": "00:07",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 10,
+      "allowedRequests": 2,
+      "blockedRequests": 8,
+      "bytes": 2400,
+      "latency": 44,
+      "severity": "high",
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "explanation": "8 marked requests were rejected; 2 reached the fictional database path; 1 record units were at risk.",
+      "scenarioState": {
+        "requestHandling": "reached-application",
+        "databaseErrors": 1
+      }
+    },
+    {
+      "id": "defense-7-waf",
+      "tick": 7,
+      "time": "00:07",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 8,
+      "allowedRequests": 0,
+      "blockedRequests": 8,
+      "bytes": 0,
+      "latency": 44,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "waf",
+      "defenseKind": "preventive",
+      "defenseLayer": "application-edge",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "rejectedRequests": 8
+      },
+      "explanation": "The web application firewall rejected 8 metadata-only unsafe-input markers before the fictional application."
+    },
+    {
+      "id": "defense-7-leastPrivilege",
+      "tick": 7,
+      "time": "00:07",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "restricted",
+      "requests": 5,
+      "allowedRequests": 0,
+      "blockedRequests": 5,
+      "bytes": 0,
+      "latency": 44,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedRecords": 5
+      },
+      "explanation": "Least privilege kept 5 fictional record units outside the application identity’s allowed scope."
+    },
+    {
+      "id": "defense-7-ids",
+      "tick": 7,
+      "time": "00:07",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "detected",
+      "requests": 2,
+      "allowedRequests": 2,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 44,
+      "severity": "medium",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "ids",
+      "defenseKind": "detective",
+      "defenseLayer": "monitoring",
+      "visualEffect": "detected",
+      "metricDeltas": {
+        "detections": 2
+      },
+      "explanation": "Intrusion detection correlated 2 safe request markers with database-flow changes."
+    },
+    {
+      "id": "sqli-8",
+      "tick": 8,
+      "time": "00:08",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 9,
+      "allowedRequests": 2,
+      "blockedRequests": 7,
+      "bytes": 2160,
+      "latency": 48,
+      "severity": "high",
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "explanation": "7 marked requests were rejected; 2 reached the fictional database path; 1 record units were at risk.",
+      "scenarioState": {
+        "requestHandling": "reached-application",
+        "databaseErrors": 1
+      }
+    },
+    {
+      "id": "defense-8-waf",
+      "tick": 8,
+      "time": "00:08",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 7,
+      "allowedRequests": 0,
+      "blockedRequests": 7,
+      "bytes": 0,
+      "latency": 48,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "waf",
+      "defenseKind": "preventive",
+      "defenseLayer": "application-edge",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "rejectedRequests": 7
+      },
+      "explanation": "The web application firewall rejected 7 metadata-only unsafe-input markers before the fictional application."
+    },
+    {
+      "id": "defense-8-leastPrivilege",
+      "tick": 8,
+      "time": "00:08",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "restricted",
+      "requests": 5,
+      "allowedRequests": 0,
+      "blockedRequests": 5,
+      "bytes": 0,
+      "latency": 48,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedRecords": 5
+      },
+      "explanation": "Least privilege kept 5 fictional record units outside the application identity’s allowed scope."
+    },
+    {
+      "id": "defense-8-ids",
+      "tick": 8,
+      "time": "00:08",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "detected",
+      "requests": 2,
+      "allowedRequests": 2,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 48,
+      "severity": "medium",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "ids",
+      "defenseKind": "detective",
+      "defenseLayer": "monitoring",
+      "visualEffect": "detected",
+      "metricDeltas": {
+        "detections": 2
+      },
+      "explanation": "Intrusion detection correlated 2 safe request markers with database-flow changes."
+    },
+    {
+      "id": "sqli-9",
+      "tick": 9,
+      "time": "00:09",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 13,
+      "allowedRequests": 2,
+      "blockedRequests": 11,
+      "bytes": 3120,
+      "latency": 46,
+      "severity": "high",
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "explanation": "11 marked requests were rejected; 2 reached the fictional database path; 1 record units were at risk.",
+      "scenarioState": {
+        "requestHandling": "reached-application",
+        "databaseErrors": 1
+      }
+    },
+    {
+      "id": "defense-9-waf",
+      "tick": 9,
+      "time": "00:09",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 11,
+      "allowedRequests": 0,
+      "blockedRequests": 11,
+      "bytes": 0,
+      "latency": 46,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "waf",
+      "defenseKind": "preventive",
+      "defenseLayer": "application-edge",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "rejectedRequests": 11
+      },
+      "explanation": "The web application firewall rejected 11 metadata-only unsafe-input markers before the fictional application."
+    },
+    {
+      "id": "defense-9-leastPrivilege",
+      "tick": 9,
+      "time": "00:09",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "restricted",
+      "requests": 7,
+      "allowedRequests": 0,
+      "blockedRequests": 7,
+      "bytes": 0,
+      "latency": 46,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedRecords": 7
+      },
+      "explanation": "Least privilege kept 7 fictional record units outside the application identity’s allowed scope."
+    },
+    {
+      "id": "defense-9-ids",
+      "tick": 9,
+      "time": "00:09",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "detected",
+      "requests": 2,
+      "allowedRequests": 2,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 46,
+      "severity": "medium",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "ids",
+      "defenseKind": "detective",
+      "defenseLayer": "monitoring",
+      "visualEffect": "detected",
+      "metricDeltas": {
+        "detections": 2
+      },
+      "explanation": "Intrusion detection correlated 2 safe request markers with database-flow changes."
+    },
+    {
+      "id": "sqli-10",
+      "tick": 10,
+      "time": "00:10",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 11,
+      "allowedRequests": 2,
+      "blockedRequests": 9,
+      "bytes": 2640,
+      "latency": 45,
+      "severity": "high",
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "explanation": "9 marked requests were rejected; 2 reached the fictional database path; 1 record units were at risk.",
+      "scenarioState": {
+        "requestHandling": "reached-application",
+        "databaseErrors": 1
+      }
+    },
+    {
+      "id": "defense-10-waf",
+      "tick": 10,
+      "time": "00:10",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 9,
+      "allowedRequests": 0,
+      "blockedRequests": 9,
+      "bytes": 0,
+      "latency": 45,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "waf",
+      "defenseKind": "preventive",
+      "defenseLayer": "application-edge",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "rejectedRequests": 9
+      },
+      "explanation": "The web application firewall rejected 9 metadata-only unsafe-input markers before the fictional application."
+    },
+    {
+      "id": "defense-10-leastPrivilege",
+      "tick": 10,
+      "time": "00:10",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "restricted",
+      "requests": 7,
+      "allowedRequests": 0,
+      "blockedRequests": 7,
+      "bytes": 0,
+      "latency": 45,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedRecords": 7
+      },
+      "explanation": "Least privilege kept 7 fictional record units outside the application identity’s allowed scope."
+    },
+    {
+      "id": "defense-10-ids",
+      "tick": 10,
+      "time": "00:10",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "detected",
+      "requests": 2,
+      "allowedRequests": 2,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 45,
+      "severity": "medium",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "ids",
+      "defenseKind": "detective",
+      "defenseLayer": "monitoring",
+      "visualEffect": "detected",
+      "metricDeltas": {
+        "detections": 2
+      },
+      "explanation": "Intrusion detection correlated 2 safe request markers with database-flow changes."
+    },
+    {
+      "id": "sqli-11",
+      "tick": 11,
+      "time": "00:11",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 14,
+      "allowedRequests": 3,
+      "blockedRequests": 11,
+      "bytes": 3360,
+      "latency": 51,
+      "severity": "high",
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "explanation": "11 marked requests were rejected; 3 reached the fictional database path; 2 record units were at risk.",
+      "scenarioState": {
+        "requestHandling": "reached-application",
+        "databaseErrors": 1
+      }
+    },
+    {
+      "id": "defense-11-waf",
+      "tick": 11,
+      "time": "00:11",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 11,
+      "allowedRequests": 0,
+      "blockedRequests": 11,
+      "bytes": 0,
+      "latency": 51,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "waf",
+      "defenseKind": "preventive",
+      "defenseLayer": "application-edge",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "rejectedRequests": 11
+      },
+      "explanation": "The web application firewall rejected 11 metadata-only unsafe-input markers before the fictional application."
+    },
+    {
+      "id": "defense-11-leastPrivilege",
+      "tick": 11,
+      "time": "00:11",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "restricted",
+      "requests": 10,
+      "allowedRequests": 0,
+      "blockedRequests": 10,
+      "bytes": 0,
+      "latency": 51,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedRecords": 10
+      },
+      "explanation": "Least privilege kept 10 fictional record units outside the application identity’s allowed scope."
+    },
+    {
+      "id": "defense-11-ids",
+      "tick": 11,
+      "time": "00:11",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "detected",
+      "requests": 3,
+      "allowedRequests": 3,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 51,
+      "severity": "medium",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "ids",
+      "defenseKind": "detective",
+      "defenseLayer": "monitoring",
+      "visualEffect": "detected",
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes."
+    },
+    {
+      "id": "sqli-12",
+      "tick": 12,
+      "time": "00:12",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 13,
+      "allowedRequests": 2,
+      "blockedRequests": 11,
+      "bytes": 3120,
+      "latency": 41,
+      "severity": "high",
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "explanation": "11 marked requests were rejected; 2 reached the fictional database path; 1 record units were at risk.",
+      "scenarioState": {
+        "requestHandling": "reached-application",
+        "databaseErrors": 1
+      }
+    },
+    {
+      "id": "defense-12-waf",
+      "tick": 12,
+      "time": "00:12",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 11,
+      "allowedRequests": 0,
+      "blockedRequests": 11,
+      "bytes": 0,
+      "latency": 41,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "waf",
+      "defenseKind": "preventive",
+      "defenseLayer": "application-edge",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "rejectedRequests": 11
+      },
+      "explanation": "The web application firewall rejected 11 metadata-only unsafe-input markers before the fictional application."
+    },
+    {
+      "id": "defense-12-leastPrivilege",
+      "tick": 12,
+      "time": "00:12",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "restricted",
+      "requests": 7,
+      "allowedRequests": 0,
+      "blockedRequests": 7,
+      "bytes": 0,
+      "latency": 41,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedRecords": 7
+      },
+      "explanation": "Least privilege kept 7 fictional record units outside the application identity’s allowed scope."
+    },
+    {
+      "id": "defense-12-ids",
+      "tick": 12,
+      "time": "00:12",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "detected",
+      "requests": 2,
+      "allowedRequests": 2,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 41,
+      "severity": "medium",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "ids",
+      "defenseKind": "detective",
+      "defenseLayer": "monitoring",
+      "visualEffect": "detected",
+      "metricDeltas": {
+        "detections": 2
+      },
+      "explanation": "Intrusion detection correlated 2 safe request markers with database-flow changes."
+    },
+    {
+      "id": "sqli-13",
+      "tick": 13,
+      "time": "00:13",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 17,
+      "allowedRequests": 3,
+      "blockedRequests": 14,
+      "bytes": 4080,
+      "latency": 45,
+      "severity": "critical",
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "explanation": "14 marked requests were rejected; 3 reached the fictional database path; 3 record units were at risk.",
+      "scenarioState": {
+        "requestHandling": "reached-application",
+        "databaseErrors": 1
+      }
+    },
+    {
+      "id": "defense-13-waf",
+      "tick": 13,
+      "time": "00:13",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 14,
+      "allowedRequests": 0,
+      "blockedRequests": 14,
+      "bytes": 0,
+      "latency": 45,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "waf",
+      "defenseKind": "preventive",
+      "defenseLayer": "application-edge",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "rejectedRequests": 14
+      },
+      "explanation": "The web application firewall rejected 14 metadata-only unsafe-input markers before the fictional application."
+    },
+    {
+      "id": "defense-13-leastPrivilege",
+      "tick": 13,
+      "time": "00:13",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "restricted",
+      "requests": 12,
+      "allowedRequests": 0,
+      "blockedRequests": 12,
+      "bytes": 0,
+      "latency": 45,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedRecords": 12
+      },
+      "explanation": "Least privilege kept 12 fictional record units outside the application identity’s allowed scope."
+    },
+    {
+      "id": "defense-13-ids",
+      "tick": 13,
+      "time": "00:13",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "detected",
+      "requests": 3,
+      "allowedRequests": 3,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 45,
+      "severity": "medium",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "ids",
+      "defenseKind": "detective",
+      "defenseLayer": "monitoring",
+      "visualEffect": "detected",
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes."
+    },
+    {
+      "id": "sqli-14",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 17,
+      "allowedRequests": 3,
+      "blockedRequests": 14,
+      "bytes": 4080,
+      "latency": 44,
+      "severity": "critical",
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "explanation": "14 marked requests were rejected; 3 reached the fictional database path; 3 record units were at risk.",
+      "scenarioState": {
+        "requestHandling": "reached-application",
+        "databaseErrors": 1
+      }
+    },
+    {
+      "id": "defense-14-waf",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 14,
+      "allowedRequests": 0,
+      "blockedRequests": 14,
+      "bytes": 0,
+      "latency": 44,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "waf",
+      "defenseKind": "preventive",
+      "defenseLayer": "application-edge",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "rejectedRequests": 14
+      },
+      "explanation": "The web application firewall rejected 14 metadata-only unsafe-input markers before the fictional application."
+    },
+    {
+      "id": "defense-14-leastPrivilege",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "restricted",
+      "requests": 12,
+      "allowedRequests": 0,
+      "blockedRequests": 12,
+      "bytes": 0,
+      "latency": 44,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedRecords": 12
+      },
+      "explanation": "Least privilege kept 12 fictional record units outside the application identity’s allowed scope."
+    },
+    {
+      "id": "defense-14-ids",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "detected",
+      "requests": 3,
+      "allowedRequests": 3,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 44,
+      "severity": "medium",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "ids",
+      "defenseKind": "detective",
+      "defenseLayer": "monitoring",
+      "visualEffect": "detected",
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes."
+    },
+    {
+      "id": "sqli-15",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 17,
+      "allowedRequests": 3,
+      "blockedRequests": 14,
+      "bytes": 4080,
+      "latency": 49,
+      "severity": "critical",
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "explanation": "14 marked requests were rejected; 3 reached the fictional database path; 3 record units were at risk.",
+      "scenarioState": {
+        "requestHandling": "reached-application",
+        "databaseErrors": 1
+      }
+    },
+    {
+      "id": "defense-15-waf",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 14,
+      "allowedRequests": 0,
+      "blockedRequests": 14,
+      "bytes": 0,
+      "latency": 49,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "waf",
+      "defenseKind": "preventive",
+      "defenseLayer": "application-edge",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "rejectedRequests": 14
+      },
+      "explanation": "The web application firewall rejected 14 metadata-only unsafe-input markers before the fictional application."
+    },
+    {
+      "id": "defense-15-leastPrivilege",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "restricted",
+      "requests": 12,
+      "allowedRequests": 0,
+      "blockedRequests": 12,
+      "bytes": 0,
+      "latency": 49,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedRecords": 12
+      },
+      "explanation": "Least privilege kept 12 fictional record units outside the application identity’s allowed scope."
+    },
+    {
+      "id": "defense-15-ids",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "detected",
+      "requests": 3,
+      "allowedRequests": 3,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 49,
+      "severity": "medium",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "ids",
+      "defenseKind": "detective",
+      "defenseLayer": "monitoring",
+      "visualEffect": "detected",
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes."
+    },
+    {
+      "id": "sqli-16",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 16,
+      "allowedRequests": 3,
+      "blockedRequests": 13,
+      "bytes": 3840,
+      "latency": 49,
+      "severity": "critical",
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "explanation": "13 marked requests were rejected; 3 reached the fictional database path; 3 record units were at risk.",
+      "scenarioState": {
+        "requestHandling": "reached-application",
+        "databaseErrors": 1
+      }
+    },
+    {
+      "id": "defense-16-waf",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 13,
+      "allowedRequests": 0,
+      "blockedRequests": 13,
+      "bytes": 0,
+      "latency": 49,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "waf",
+      "defenseKind": "preventive",
+      "defenseLayer": "application-edge",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "rejectedRequests": 13
+      },
+      "explanation": "The web application firewall rejected 13 metadata-only unsafe-input markers before the fictional application."
+    },
+    {
+      "id": "defense-16-leastPrivilege",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "restricted",
+      "requests": 12,
+      "allowedRequests": 0,
+      "blockedRequests": 12,
+      "bytes": 0,
+      "latency": 49,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedRecords": 12
+      },
+      "explanation": "Least privilege kept 12 fictional record units outside the application identity’s allowed scope."
+    },
+    {
+      "id": "defense-16-ids",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "detected",
+      "requests": 3,
+      "allowedRequests": 3,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 49,
+      "severity": "medium",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "ids",
+      "defenseKind": "detective",
+      "defenseLayer": "monitoring",
+      "visualEffect": "detected",
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes."
+    },
+    {
+      "id": "sqli-17",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 17,
+      "allowedRequests": 3,
+      "blockedRequests": 14,
+      "bytes": 4080,
+      "latency": 48,
+      "severity": "critical",
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "explanation": "14 marked requests were rejected; 3 reached the fictional database path; 3 record units were at risk.",
+      "scenarioState": {
+        "requestHandling": "reached-application",
+        "databaseErrors": 1
+      }
+    },
+    {
+      "id": "defense-17-waf",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 14,
+      "allowedRequests": 0,
+      "blockedRequests": 14,
+      "bytes": 0,
+      "latency": 48,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "waf",
+      "defenseKind": "preventive",
+      "defenseLayer": "application-edge",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "rejectedRequests": 14
+      },
+      "explanation": "The web application firewall rejected 14 metadata-only unsafe-input markers before the fictional application."
+    },
+    {
+      "id": "defense-17-leastPrivilege",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "restricted",
+      "requests": 15,
+      "allowedRequests": 0,
+      "blockedRequests": 15,
+      "bytes": 0,
+      "latency": 48,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedRecords": 15
+      },
+      "explanation": "Least privilege kept 15 fictional record units outside the application identity’s allowed scope."
+    },
+    {
+      "id": "defense-17-ids",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "detected",
+      "requests": 3,
+      "allowedRequests": 3,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 48,
+      "severity": "medium",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "ids",
+      "defenseKind": "detective",
+      "defenseLayer": "monitoring",
+      "visualEffect": "detected",
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes."
+    },
+    {
+      "id": "sqli-18",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 19,
+      "allowedRequests": 3,
+      "blockedRequests": 16,
+      "bytes": 4560,
+      "latency": 51,
+      "severity": "critical",
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "explanation": "16 marked requests were rejected; 3 reached the fictional database path; 3 record units were at risk.",
+      "scenarioState": {
+        "requestHandling": "reached-application",
+        "databaseErrors": 1
+      }
+    },
+    {
+      "id": "defense-18-waf",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 16,
+      "allowedRequests": 0,
+      "blockedRequests": 16,
+      "bytes": 0,
+      "latency": 51,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "waf",
+      "defenseKind": "preventive",
+      "defenseLayer": "application-edge",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "rejectedRequests": 16
+      },
+      "explanation": "The web application firewall rejected 16 metadata-only unsafe-input markers before the fictional application."
+    },
+    {
+      "id": "defense-18-leastPrivilege",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "restricted",
+      "requests": 15,
+      "allowedRequests": 0,
+      "blockedRequests": 15,
+      "bytes": 0,
+      "latency": 51,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedRecords": 15
+      },
+      "explanation": "Least privilege kept 15 fictional record units outside the application identity’s allowed scope."
+    },
+    {
+      "id": "defense-18-ids",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "detected",
+      "requests": 3,
+      "allowedRequests": 3,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 51,
+      "severity": "medium",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "ids",
+      "defenseKind": "detective",
+      "defenseLayer": "monitoring",
+      "visualEffect": "detected",
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes."
+    },
+    {
+      "id": "sqli-19",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 18,
+      "allowedRequests": 3,
+      "blockedRequests": 15,
+      "bytes": 4320,
+      "latency": 50,
+      "severity": "critical",
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "explanation": "15 marked requests were rejected; 3 reached the fictional database path; 3 record units were at risk.",
+      "scenarioState": {
+        "requestHandling": "reached-application",
+        "databaseErrors": 1
+      }
+    },
+    {
+      "id": "defense-19-waf",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 15,
+      "allowedRequests": 0,
+      "blockedRequests": 15,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "waf",
+      "defenseKind": "preventive",
+      "defenseLayer": "application-edge",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "rejectedRequests": 15
+      },
+      "explanation": "The web application firewall rejected 15 metadata-only unsafe-input markers before the fictional application."
+    },
+    {
+      "id": "defense-19-leastPrivilege",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "restricted",
+      "requests": 15,
+      "allowedRequests": 0,
+      "blockedRequests": 15,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedRecords": 15
+      },
+      "explanation": "Least privilege kept 15 fictional record units outside the application identity’s allowed scope."
+    },
+    {
+      "id": "defense-19-ids",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "detected",
+      "requests": 3,
+      "allowedRequests": 3,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "ids",
+      "defenseKind": "detective",
+      "defenseLayer": "monitoring",
+      "visualEffect": "detected",
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes."
+    },
+    {
+      "id": "sqli-20",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 19,
+      "allowedRequests": 3,
+      "blockedRequests": 16,
+      "bytes": 4560,
+      "latency": 46,
+      "severity": "critical",
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "explanation": "16 marked requests were rejected; 3 reached the fictional database path; 3 record units were at risk.",
+      "scenarioState": {
+        "requestHandling": "reached-application",
+        "databaseErrors": 1
+      }
+    },
+    {
+      "id": "defense-20-waf",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked",
+      "requests": 16,
+      "allowedRequests": 0,
+      "blockedRequests": 16,
+      "bytes": 0,
+      "latency": 46,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "waf",
+      "defenseKind": "preventive",
+      "defenseLayer": "application-edge",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "rejectedRequests": 16
+      },
+      "explanation": "The web application firewall rejected 16 metadata-only unsafe-input markers before the fictional application."
+    },
+    {
+      "id": "defense-20-leastPrivilege",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "restricted",
+      "requests": 15,
+      "allowedRequests": 0,
+      "blockedRequests": 15,
+      "bytes": 0,
+      "latency": 46,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedRecords": 15
+      },
+      "explanation": "Least privilege kept 15 fictional record units outside the application identity’s allowed scope."
+    },
+    {
+      "id": "defense-20-ids",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "database",
+        "name": "Records Database",
+        "ip": "192.0.2.60",
+        "type": "database",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "detected",
+      "requests": 3,
+      "allowedRequests": 3,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 46,
+      "severity": "medium",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "ids",
+      "defenseKind": "detective",
+      "defenseLayer": "monitoring",
+      "visualEffect": "detected",
+      "metricDeltas": {
+        "detections": 3
+      },
+      "explanation": "Intrusion detection correlated 3 safe request markers with database-flow changes."
+    }
+  ],
+  "specializedScenario": true,
+  "networkScenario": false,
+  "scenarioState": {
+    "markedRequests": 228,
+    "rejectedRequests": 188,
+    "databaseQueries": 40,
+    "databaseErrors": 15,
+    "recordsAtRisk": 33,
+    "protectedRecords": 156,
+    "requestHandling": "reached-application"
+  },
+  "outcomeMetrics": {
+    "requestHandling": "reached-application",
+    "markedRequests": 228,
+    "rejectedRequests": 188,
+    "databaseQueries": 40,
+    "databaseErrors": 15,
+    "recordsAtRisk": 33,
+    "protectedRecords": 156
+  },
+  "observableEvidence": [
+    {
+      "tick": 20,
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "action": "blocked",
+      "explanation": "16 marked requests were rejected; 3 reached the fictional database path; 3 record units were at risk."
+    },
+    {
+      "tick": 19,
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "action": "blocked",
+      "explanation": "15 marked requests were rejected; 3 reached the fictional database path; 3 record units were at risk."
+    },
+    {
+      "tick": 18,
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "action": "blocked",
+      "explanation": "16 marked requests were rejected; 3 reached the fictional database path; 3 record units were at risk."
+    },
+    {
+      "tick": 17,
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "action": "blocked",
+      "explanation": "14 marked requests were rejected; 3 reached the fictional database path; 3 record units were at risk."
+    },
+    {
+      "tick": 16,
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "action": "blocked",
+      "explanation": "13 marked requests were rejected; 3 reached the fictional database path; 3 record units were at risk."
+    },
+    {
+      "tick": 15,
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "action": "blocked",
+      "explanation": "14 marked requests were rejected; 3 reached the fictional database path; 3 record units were at risk."
+    },
+    {
+      "tick": 14,
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "action": "blocked",
+      "explanation": "14 marked requests were rejected; 3 reached the fictional database path; 3 record units were at risk."
+    },
+    {
+      "tick": 13,
+      "marker": "SIMULATED_QUERY_MANIPULATION",
+      "action": "blocked",
+      "explanation": "14 marked requests were rejected; 3 reached the fictional database path; 3 record units were at risk."
+    }
+  ],
+  "schemaVersion": "2.0",
+  "summary": {
+    "identity": {
+      "scenarioId": "sqli",
+      "scenario": "SQL Injection",
+      "seed": 4242,
+      "difficulty": "Beginner"
+    },
+    "risk": {
+      "peak": 65,
+      "residual": 24
+    },
+    "activity": {
+      "eventCount": 68,
+      "alertCount": 30,
+      "blockedUnits": 344,
+      "detections": 40
+    },
+    "service": {
+      "peakOffered": 19,
+      "peakAllowed": 3,
+      "maximumLatency": 51,
+      "maximumErrorRate": 12,
+      "minimumAvailability": 92
+    },
+    "defenses": {
+      "triggered": 3,
+      "affectedUnits": 384,
+      "controlsHelped": [
+        "Web application firewall",
+        "Least privilege",
+        "Intrusion detection"
+      ],
+      "coverageGaps": []
+    },
+    "outcomes": {
+      "requestHandling": "reached-application",
+      "markedRequests": 228,
+      "rejectedRequests": 188,
+      "databaseQueries": 40,
+      "databaseErrors": 15,
+      "recordsAtRisk": 33,
+      "protectedRecords": 156
+    }
+  }
+}

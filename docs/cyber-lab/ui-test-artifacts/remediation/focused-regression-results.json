@@ -1,0 +1,529 @@
+{
+  "configurations": [
+    {
+      "name": "desktop-dark",
+      "width": 1440,
+      "height": 1000,
+      "theme": "dark",
+      "axe": [],
+      "buttonStates": {
+        "normal": {
+          "foreground": "rgb(3, 19, 26)",
+          "background": "rgb(0, 240, 255)",
+          "contrast": 13.407266108478675
+        },
+        "hover": {
+          "foreground": "rgb(3, 19, 26)",
+          "background": "rgb(4, 240, 255)",
+          "contrast": 13.411908805798678
+        },
+        "focus": {
+          "foreground": "rgb(3, 19, 26)",
+          "background": "rgb(11, 241, 255)",
+          "outline": "rgb(3, 19, 26) solid 3px",
+          "outlineOffset": "0px",
+          "contrast": 13.526259326593468
+        },
+        "active": {
+          "foreground": "rgb(3, 19, 26)",
+          "background": "rgb(21, 242, 255)",
+          "contrast": 13.648919087995143
+        }
+      },
+      "keyboardHosts": [
+        {
+          "label": "Synthetic Internet, 198.51.100.1, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Firewall / Rate Limiter, 192.0.2.1, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Load Balancer, 192.0.2.10, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Web Service, 192.0.2.20, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Identity Provider, 192.0.2.30, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Email Gateway, 192.0.2.40, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Employee Workstation, 192.0.2.50, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Records Database, 192.0.2.60, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "File Service, 192.0.2.70, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Security Monitor, 192.0.2.80, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source A, 203.0.113.10, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source B, 203.0.113.11, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source C, 203.0.113.12, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source D, 203.0.113.13, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source E, 203.0.113.14, status healthy",
+          "inspectorUpdated": true
+        }
+      ],
+      "semantics": {
+        "topologyRole": "group",
+        "topologyLabelledBy": "topology-title",
+        "topologyDescribedBy": "topology-summary motion-status",
+        "topologyButtons": 15,
+        "metricTag": "SECTION",
+        "metricLabelledBy": "current-metrics-title",
+        "filterTag": "FIELDSET",
+        "filterLegend": "Traffic filters",
+        "bodyOverflow": false,
+        "theme": "dark"
+      },
+      "consoleMessages": [],
+      "pageErrors": [],
+      "httpErrors": [],
+      "analyticsRequests": [],
+      "faviconRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:8080/favicon.svg"
+        }
+      ]
+    },
+    {
+      "name": "desktop-light",
+      "width": 1440,
+      "height": 1000,
+      "theme": "light",
+      "axe": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "targets": [
+            [
+              ".defense-control.recommended:nth-child(1) > span > .tradeoff"
+            ],
+            [
+              ".defense-control.recommended:nth-child(2) > span > .tradeoff"
+            ],
+            [
+              ".defense-control.recommended:nth-child(3) > span > .tradeoff"
+            ],
+            [
+              ".defense-control.recommended:nth-child(4) > span > .tradeoff"
+            ],
+            [
+              ".defense-control.recommended:nth-child(5) > span > .tradeoff"
+            ]
+          ]
+        }
+      ],
+      "buttonStates": {
+        "normal": {
+          "foreground": "rgb(255, 255, 255)",
+          "background": "rgb(4, 123, 145)",
+          "contrast": 4.944419177623559
+        },
+        "hover": {
+          "foreground": "rgb(255, 255, 255)",
+          "background": "rgb(4, 122, 144)",
+          "contrast": 5.00990153356655
+        },
+        "focus": {
+          "foreground": "rgb(255, 255, 255)",
+          "background": "rgb(4, 121, 143)",
+          "outline": "rgb(255, 255, 255) solid 3px",
+          "outlineOffset": "0px",
+          "contrast": 5.076454676329126
+        },
+        "active": {
+          "foreground": "rgb(255, 255, 255)",
+          "background": "rgb(4, 121, 143)",
+          "contrast": 5.076454676329126
+        }
+      },
+      "keyboardHosts": [
+        {
+          "label": "Synthetic Internet, 198.51.100.1, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Firewall / Rate Limiter, 192.0.2.1, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Load Balancer, 192.0.2.10, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Web Service, 192.0.2.20, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Identity Provider, 192.0.2.30, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Email Gateway, 192.0.2.40, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Employee Workstation, 192.0.2.50, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Records Database, 192.0.2.60, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "File Service, 192.0.2.70, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Security Monitor, 192.0.2.80, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source A, 203.0.113.10, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source B, 203.0.113.11, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source C, 203.0.113.12, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source D, 203.0.113.13, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source E, 203.0.113.14, status healthy",
+          "inspectorUpdated": true
+        }
+      ],
+      "semantics": {
+        "topologyRole": "group",
+        "topologyLabelledBy": "topology-title",
+        "topologyDescribedBy": "topology-summary motion-status",
+        "topologyButtons": 15,
+        "metricTag": "SECTION",
+        "metricLabelledBy": "current-metrics-title",
+        "filterTag": "FIELDSET",
+        "filterLegend": "Traffic filters",
+        "bodyOverflow": false,
+        "theme": "light"
+      },
+      "consoleMessages": [],
+      "pageErrors": [],
+      "httpErrors": [],
+      "analyticsRequests": [],
+      "faviconRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:8080/favicon.svg"
+        }
+      ]
+    },
+    {
+      "name": "mobile-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "axe": [
+        {
+          "id": "scrollable-region-focusable",
+          "impact": "serious",
+          "targets": [
+            [
+              ".table-wrap"
+            ]
+          ]
+        }
+      ],
+      "buttonStates": {
+        "normal": {
+          "foreground": "rgb(3, 19, 26)",
+          "background": "rgb(0, 240, 255)",
+          "contrast": 13.407266108478675
+        },
+        "hover": {
+          "foreground": "rgb(3, 19, 26)",
+          "background": "rgb(4, 240, 255)",
+          "contrast": 13.411908805798678
+        },
+        "focus": {
+          "foreground": "rgb(3, 19, 26)",
+          "background": "rgb(4, 240, 255)",
+          "outline": "rgb(3, 19, 26) solid 3px",
+          "outlineOffset": "0px",
+          "contrast": 13.411908805798678
+        },
+        "active": {
+          "foreground": "rgb(3, 19, 26)",
+          "background": "rgb(11, 241, 255)",
+          "contrast": 13.526259326593468
+        }
+      },
+      "keyboardHosts": [
+        {
+          "label": "Synthetic Internet, 198.51.100.1, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Firewall / Rate Limiter, 192.0.2.1, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Load Balancer, 192.0.2.10, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Web Service, 192.0.2.20, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Identity Provider, 192.0.2.30, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Email Gateway, 192.0.2.40, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Employee Workstation, 192.0.2.50, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Records Database, 192.0.2.60, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "File Service, 192.0.2.70, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Security Monitor, 192.0.2.80, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source A, 203.0.113.10, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source B, 203.0.113.11, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source C, 203.0.113.12, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source D, 203.0.113.13, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source E, 203.0.113.14, status healthy",
+          "inspectorUpdated": true
+        }
+      ],
+      "semantics": {
+        "topologyRole": "group",
+        "topologyLabelledBy": "topology-title",
+        "topologyDescribedBy": "topology-summary motion-status",
+        "topologyButtons": 15,
+        "metricTag": "SECTION",
+        "metricLabelledBy": "current-metrics-title",
+        "filterTag": "FIELDSET",
+        "filterLegend": "Traffic filters",
+        "bodyOverflow": false,
+        "theme": "dark"
+      },
+      "consoleMessages": [],
+      "pageErrors": [],
+      "httpErrors": [],
+      "analyticsRequests": [],
+      "faviconRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:8080/favicon.svg"
+        }
+      ]
+    },
+    {
+      "name": "mobile-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "axe": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "targets": [
+            [
+              ".defense-control.recommended:nth-child(1) > span > .tradeoff"
+            ],
+            [
+              ".defense-control.recommended:nth-child(2) > span > .tradeoff"
+            ],
+            [
+              ".defense-control.recommended:nth-child(3) > span > .tradeoff"
+            ],
+            [
+              ".defense-control.recommended:nth-child(4) > span > .tradeoff"
+            ],
+            [
+              ".defense-control.recommended:nth-child(5) > span > .tradeoff"
+            ]
+          ]
+        },
+        {
+          "id": "scrollable-region-focusable",
+          "impact": "serious",
+          "targets": [
+            [
+              ".table-wrap"
+            ]
+          ]
+        }
+      ],
+      "buttonStates": {
+        "normal": {
+          "foreground": "rgb(255, 255, 255)",
+          "background": "rgb(4, 123, 145)",
+          "contrast": 4.944419177623559
+        },
+        "hover": {
+          "foreground": "rgb(255, 255, 255)",
+          "background": "rgb(4, 122, 144)",
+          "contrast": 5.00990153356655
+        },
+        "focus": {
+          "foreground": "rgb(255, 255, 255)",
+          "background": "rgb(4, 122, 144)",
+          "outline": "rgb(255, 255, 255) solid 3px",
+          "outlineOffset": "0px",
+          "contrast": 5.00990153356655
+        },
+        "active": {
+          "foreground": "rgb(255, 255, 255)",
+          "background": "rgb(4, 121, 143)",
+          "contrast": 5.076454676329126
+        }
+      },
+      "keyboardHosts": [
+        {
+          "label": "Synthetic Internet, 198.51.100.1, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Firewall / Rate Limiter, 192.0.2.1, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Load Balancer, 192.0.2.10, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Web Service, 192.0.2.20, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Identity Provider, 192.0.2.30, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Email Gateway, 192.0.2.40, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Employee Workstation, 192.0.2.50, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Records Database, 192.0.2.60, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "File Service, 192.0.2.70, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Security Monitor, 192.0.2.80, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source A, 203.0.113.10, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source B, 203.0.113.11, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source C, 203.0.113.12, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source D, 203.0.113.13, status healthy",
+          "inspectorUpdated": true
+        },
+        {
+          "label": "Simulated Source E, 203.0.113.14, status healthy",
+          "inspectorUpdated": true
+        }
+      ],
+      "semantics": {
+        "topologyRole": "group",
+        "topologyLabelledBy": "topology-title",
+        "topologyDescribedBy": "topology-summary motion-status",
+        "topologyButtons": 15,
+        "metricTag": "SECTION",
+        "metricLabelledBy": "current-metrics-title",
+        "filterTag": "FIELDSET",
+        "filterLegend": "Traffic filters",
+        "bodyOverflow": false,
+        "theme": "light"
+      },
+      "consoleMessages": [],
+      "pageErrors": [],
+      "httpErrors": [],
+      "analyticsRequests": [],
+      "faviconRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:8080/favicon.svg"
+        }
+      ]
+    }
+  ],
+  "startedAt": "2026-07-25T05:09:38.014Z",
+  "finishedAt": "2026-07-25T05:09:48.423Z"
+}

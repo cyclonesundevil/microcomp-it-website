@@ -12,6 +12,17 @@ const styles = fs.readFileSync(path.join(root, 'frontend/cyber-lab.css'), 'utf8'
 const homePage = fs.readFileSync(path.join(root, 'frontend/index.html'), 'utf8');
 const sharedStyles = fs.readFileSync(path.join(root, 'frontend/styles.css'), 'utf8');
 const promoStyles = fs.readFileSync(path.join(root, 'frontend/homepage-cyber-promo.css'), 'utf8');
+const analytics = fs.readFileSync(path.join(root, 'frontend/analytics.js'), 'utf8');
+
+function contrastRatio(foreground, background) {
+    const luminance = hex => {
+        const channels = hex.match(/[a-f\d]{2}/gi).map(value => parseInt(value, 16) / 255);
+        const linear = channels.map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+        return (0.2126 * linear[0]) + (0.7152 * linear[1]) + (0.0722 * linear[2]);
+    };
+    const values = [luminance(foreground), luminance(background)].sort((left, right) => right - left);
+    return (values[0] + 0.05) / (values[1] + 0.05);
+}
 
 test('lab route includes core playback, accessibility, visualization, and report surfaces', () => {
     ['id="start"', 'id="pause"', 'id="step"', 'id="reset"', 'id="replay"',
@@ -222,4 +233,68 @@ test('homepage prominently promotes the cybersecurity simulation lab', () => {
         'justify-self: start', 'margin-top: .4rem',
         '@media (max-width: 900px)', '@media (max-width: 560px)'
     ].forEach(marker => assert.ok(promoStyles.includes(marker), `scoped homepage promotion style missing: ${marker}`));
+});
+
+test('Phase 6 accessibility semantics expose state without relying on visual inspection', () => {
+    [
+        'id="run-status" class="status-pill" role="status" aria-live="polite"',
+        'aria-label="Topology status legend"', 'aria-live="polite"',
+        'class="visually-hidden" aria-live="polite"'
+    ].forEach(marker => assert.ok(page.includes(marker), `page missing accessibility state: ${marker}`));
+    [
+        'aria-current="true"', "setAttribute('aria-pressed'",
+        'Resume simulation activity', 'Pause simulation activity',
+        'Simulation paused. Flow paths are frozen',
+        'Simulation complete. Flow paths are stopped'
+    ].forEach(marker => assert.ok(controller.includes(marker), `controller missing accessibility state: ${marker}`));
+    const ids = [...page.matchAll(/\sid="([^"]+)"/g)].map(match => match[1]);
+    assert.equal(new Set(ids).size, ids.length, 'page IDs must be unique');
+});
+
+test('Phase 6 static production route resolves every local stylesheet and script', () => {
+    const references = [...page.matchAll(/(?:href|src)="([^"]+\.(?:css|js|svg)(?:\?[^"]*)?)"/g)]
+        .map(match => match[1])
+        .filter(reference => !reference.startsWith('http'));
+    references.forEach(reference => {
+        const clean = reference.split('?')[0];
+        const resolved = path.resolve(root, 'frontend/demo-lab', clean);
+        assert.ok(fs.existsSync(resolved), `missing local asset: ${reference}`);
+    });
+});
+
+test('UI audit remediation uses contrast-safe primary button states in both themes', () => {
+    assert.ok(contrastRatio('03131a', '00f0ff') >= 4.5, 'dark-theme normal button contrast must pass');
+    assert.ok(contrastRatio('03131a', '5ff7ff') >= 4.5, 'dark-theme hover button contrast must pass');
+    assert.ok(contrastRatio('03131a', '00b9c7') >= 4.5, 'dark-theme active button contrast must pass');
+    assert.ok(contrastRatio('ffffff', '047b91') >= 4.5, 'light-theme normal button contrast must pass');
+    assert.ok(contrastRatio('ffffff', '03687c') >= 4.5, 'light-theme hover button contrast must pass');
+    assert.ok(contrastRatio('ffffff', '02576a') >= 4.5, 'light-theme active button contrast must pass');
+    [
+        '--primary-button-text', '--primary-button-hover', '--primary-button-active',
+        '.btn-primary:focus-visible', 'outline: 3px solid',
+        '.btn-primary:disabled', '.btn-primary[aria-disabled="true"]'
+    ].forEach(marker => assert.ok(sharedStyles.includes(marker), `missing primary-button state: ${marker}`));
+});
+
+test('UI audit remediation preserves topology controls with valid group semantics', () => {
+    assert.match(page, /id="topology" class="topology" role="group" aria-labelledby="topology-title" aria-describedby="topology-summary motion-status"/);
+    assert.doesNotMatch(page, /id="topology"[^>]+role="img"/);
+    assert.doesNotMatch(controller, /topology\.setAttribute\('aria-label'/);
+    assert.match(controller, /<button class="topology-node/);
+    assert.match(controller, /aria-hidden="true"/);
+});
+
+test('UI audit remediation uses native named metric and filter groups', () => {
+    assert.match(page, /<section class="metric-grid" aria-labelledby="current-metrics-title">/);
+    assert.match(page, /<h3 id="current-metrics-title" class="visually-hidden">Current metrics<\/h3>/);
+    assert.match(page, /<fieldset class="filters"><legend class="visually-hidden">Traffic filters<\/legend>/);
+    assert.doesNotMatch(page, /class="metric-grid" aria-label=/);
+    assert.doesNotMatch(page, /class="filters" aria-label=/);
+});
+
+test('UI audit remediation disables analytics only on unsupported local environments', () => {
+    assert.match(analytics, /new Set\(\['localhost', '127\.0\.0\.1', '\[::1\]'\]\)/);
+    assert.match(analytics, /window\.location\.protocol === 'file:'/);
+    assert.match(analytics, /unsupportedDevelopmentHosts\.has\(window\.location\.hostname\)/);
+    assert.match(analytics, /navigator\.sendBeacon\('\/api\/track'/);
 });

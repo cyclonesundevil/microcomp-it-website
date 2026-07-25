@@ -3,6 +3,9 @@
     --accent-blue: #00f0ff;
     --accent-glow: rgba(0, 240, 255, 0.6);
     --accent-purple: #ff00ff;
+    --primary-button-text: #03131a;
+    --primary-button-hover: #5ff7ff;
+    --primary-button-active: #00b9c7;
     --text-primary: #ffffff;
     --text-secondary: #a0aec0;
     --glass-bg: rgba(10, 15, 30, 0.4);
@@ -21,6 +24,9 @@
     --accent-blue: #047b91;
     --accent-glow: rgba(4, 123, 145, 0.24);
     --accent-purple: #805ad5;
+    --primary-button-text: #ffffff;
+    --primary-button-hover: #03687c;
+    --primary-button-active: #02576a;
     --text-primary: #142235;
     --text-secondary: #536174;
     --glass-bg: rgba(255, 255, 255, 0.72);
@@ -172,7 +178,7 @@ nav a:hover:not(.btn-primary) {
 /* Buttons */
 .btn-primary {
     background: var(--accent-blue);
-    color: white;
+    color: var(--primary-button-text);
     padding: 0.75rem 1.5rem;
     border: none;
     border-radius: 8px;
@@ -183,8 +189,30 @@ nav a:hover:not(.btn-primary) {
 }
 
 .btn-primary:hover {
+    background: var(--primary-button-hover);
+    color: var(--primary-button-text);
     transform: translateY(-2px);
     box-shadow: 0 0 25px var(--accent-glow);
+}
+
+.btn-primary:active {
+    background: var(--primary-button-active);
+    color: var(--primary-button-text);
+    transform: translateY(0);
+}
+
+.btn-primary:focus-visible {
+    outline: 3px solid var(--text-primary);
+    outline-offset: 3px;
+}
+
+.btn-primary:disabled,
+.btn-primary[aria-disabled="true"] {
+    background: #52606d;
+    color: #ffffff;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
 }
 
 .btn-secondary {

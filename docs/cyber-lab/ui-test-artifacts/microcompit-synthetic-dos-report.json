@@ -1,0 +1,3097 @@
+{
+  "synthetic": true,
+  "generatedAtVirtualTime": 24,
+  "scenario": "DoS & DDoS",
+  "attackType": "DDOS",
+  "seed": 4242,
+  "difficulty": "Beginner",
+  "recoveryEnabled": true,
+  "objective": "Overwhelm a public service with synthetic request volume.",
+  "indicators": "Request volume, latency, errors, and availability change together.",
+  "affectedAssets": [
+    "Upstream Filter",
+    "Firewall / Rate Limiter",
+    "Load Balancer",
+    "Web Service"
+  ],
+  "peakRps": 2360,
+  "peakServerRps": 2360,
+  "peakResidualAttack": 2239,
+  "maximumLatency": 731,
+  "maximumErrorRate": 96,
+  "minimumAvailability": 5,
+  "serviceDowntimeTicks": 16,
+  "serviceDowntimeSeconds": 80,
+  "trafficBlocked": 0,
+  "upstreamTrafficFiltered": 0,
+  "upstreamEffectivenessPercent": 0,
+  "availabilityImprovement": 0,
+  "latencyImprovement": 0,
+  "blockedEvents": 0,
+  "defensesTriggered": [],
+  "defenseEffectLog": [],
+  "controlsHelped": [],
+  "controlsNotEnabled": [
+    "Rate limiting",
+    "Traffic filtering",
+    "Caching",
+    "Autoscaling",
+    "Upstream DDoS protection"
+  ],
+  "missedDetections": [
+    "Rate limiting was not enabled, leaving part of the synthetic request surge untreated.",
+    "Traffic filtering was not enabled, leaving part of the synthetic request surge untreated.",
+    "Caching was not enabled, leaving part of the synthetic request surge untreated.",
+    "Autoscaling was not enabled, leaving part of the synthetic request surge untreated.",
+    "Upstream DDoS protection was not enabled, leaving part of the synthetic request surge untreated."
+  ],
+  "peakRisk": 95,
+  "residualRisk": 100,
+  "recommendation": "Add Rate limiting, Traffic filtering, Caching, Autoscaling, Upstream DDoS protection and retain layered capacity, filtering, and rate controls.",
+  "events": [
+    {
+      "id": "evt-7-loadbalancer",
+      "tick": 7,
+      "time": "00:07",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 1341,
+      "allowedRequests": 1341,
+      "blockedRequests": 0,
+      "bytes": 831420,
+      "latency": 355,
+      "severity": "critical",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Traffic ramp-up",
+      "explanation": "1,341 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-8-internet",
+      "tick": 8,
+      "time": "00:08",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 122,
+      "allowedRequests": 122,
+      "blockedRequests": 0,
+      "bytes": 75640,
+      "latency": 561,
+      "severity": "critical",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Traffic ramp-up",
+      "explanation": "122 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-8-actor",
+      "tick": 8,
+      "time": "00:08",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 594,
+      "allowedRequests": 594,
+      "blockedRequests": 0,
+      "bytes": 368280,
+      "latency": 561,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Traffic ramp-up",
+      "explanation": "594 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-8-actor2",
+      "tick": 8,
+      "time": "00:08",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 594,
+      "allowedRequests": 594,
+      "blockedRequests": 0,
+      "bytes": 368280,
+      "latency": 561,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Traffic ramp-up",
+      "explanation": "594 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-8-actor3",
+      "tick": 8,
+      "time": "00:08",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 593,
+      "allowedRequests": 593,
+      "blockedRequests": 0,
+      "bytes": 367660,
+      "latency": 561,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Traffic ramp-up",
+      "explanation": "593 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-8-edge",
+      "tick": 8,
+      "time": "00:08",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 1903,
+      "allowedRequests": 1903,
+      "blockedRequests": 0,
+      "bytes": 1179860,
+      "latency": 561,
+      "severity": "critical",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Traffic ramp-up",
+      "explanation": "1,903 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-8-loadbalancer",
+      "tick": 8,
+      "time": "00:08",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 1903,
+      "allowedRequests": 1903,
+      "blockedRequests": 0,
+      "bytes": 1179860,
+      "latency": 561,
+      "severity": "critical",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Traffic ramp-up",
+      "explanation": "1,903 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-9-internet",
+      "tick": 9,
+      "time": "00:09",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 117,
+      "allowedRequests": 117,
+      "blockedRequests": 0,
+      "bytes": 72540,
+      "latency": 709,
+      "severity": "critical",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Traffic ramp-up",
+      "explanation": "117 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-9-actor",
+      "tick": 9,
+      "time": "00:09",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 729,
+      "allowedRequests": 729,
+      "blockedRequests": 0,
+      "bytes": 451980,
+      "latency": 709,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Traffic ramp-up",
+      "explanation": "729 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-9-actor2",
+      "tick": 9,
+      "time": "00:09",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 729,
+      "allowedRequests": 729,
+      "blockedRequests": 0,
+      "bytes": 451980,
+      "latency": 709,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Traffic ramp-up",
+      "explanation": "729 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-9-actor3",
+      "tick": 9,
+      "time": "00:09",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 728,
+      "allowedRequests": 728,
+      "blockedRequests": 0,
+      "bytes": 451360,
+      "latency": 709,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Traffic ramp-up",
+      "explanation": "728 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-9-edge",
+      "tick": 9,
+      "time": "00:09",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2303,
+      "allowedRequests": 2303,
+      "blockedRequests": 0,
+      "bytes": 1427860,
+      "latency": 709,
+      "severity": "critical",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Traffic ramp-up",
+      "explanation": "2,303 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-9-loadbalancer",
+      "tick": 9,
+      "time": "00:09",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2303,
+      "allowedRequests": 2303,
+      "blockedRequests": 0,
+      "bytes": 1427860,
+      "latency": 709,
+      "severity": "critical",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Traffic ramp-up",
+      "explanation": "2,303 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-10-internet",
+      "tick": 10,
+      "time": "00:10",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 124,
+      "allowedRequests": 124,
+      "blockedRequests": 0,
+      "bytes": 76880,
+      "latency": 719,
+      "severity": "critical",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Sustained attack",
+      "explanation": "124 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-10-actor",
+      "tick": 10,
+      "time": "00:10",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 735,
+      "allowedRequests": 735,
+      "blockedRequests": 0,
+      "bytes": 455700,
+      "latency": 719,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "735 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-10-actor2",
+      "tick": 10,
+      "time": "00:10",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 735,
+      "allowedRequests": 735,
+      "blockedRequests": 0,
+      "bytes": 455700,
+      "latency": 719,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "735 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-10-actor3",
+      "tick": 10,
+      "time": "00:10",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 735,
+      "allowedRequests": 735,
+      "blockedRequests": 0,
+      "bytes": 455700,
+      "latency": 719,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "735 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-10-edge",
+      "tick": 10,
+      "time": "00:10",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2329,
+      "allowedRequests": 2329,
+      "blockedRequests": 0,
+      "bytes": 1443980,
+      "latency": 719,
+      "severity": "critical",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,329 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-10-loadbalancer",
+      "tick": 10,
+      "time": "00:10",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2329,
+      "allowedRequests": 2329,
+      "blockedRequests": 0,
+      "bytes": 1443980,
+      "latency": 719,
+      "severity": "critical",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,329 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-11-internet",
+      "tick": 11,
+      "time": "00:11",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 126,
+      "allowedRequests": 126,
+      "blockedRequests": 0,
+      "bytes": 78120,
+      "latency": 713,
+      "severity": "critical",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Sustained attack",
+      "explanation": "126 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-11-actor",
+      "tick": 11,
+      "time": "00:11",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 728,
+      "allowedRequests": 728,
+      "blockedRequests": 0,
+      "bytes": 451360,
+      "latency": 713,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "728 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-11-actor2",
+      "tick": 11,
+      "time": "00:11",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 728,
+      "allowedRequests": 728,
+      "blockedRequests": 0,
+      "bytes": 451360,
+      "latency": 713,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "728 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-11-actor3",
+      "tick": 11,
+      "time": "00:11",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 728,
+      "allowedRequests": 728,
+      "blockedRequests": 0,
+      "bytes": 451360,
+      "latency": 713,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "728 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-11-edge",
+      "tick": 11,
+      "time": "00:11",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2310,
+      "allowedRequests": 2310,
+      "blockedRequests": 0,
+      "bytes": 1432200,
+      "latency": 713,
+      "severity": "critical",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,310 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-11-loadbalancer",
+      "tick": 11,
+      "time": "00:11",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2310,
+      "allowedRequests": 2310,
+      "blockedRequests": 0,
+      "bytes": 1432200,
+      "latency": 713,
+      "severity": "critical",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,310 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-12-internet",
+      "tick": 12,
+      "time": "00:12",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 116,
+      "allowedRequests": 116,
+      "blockedRequests": 0,
+      "bytes": 71920,
+      "latency": 640,
+      "severity": "critical",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Sustained attack",
+      "explanation": "116 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-12-actor",
+      "tick": 12,
+      "time": "00:12",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 668,
+      "allowedRequests": 668,
+      "blockedRequests": 0,
+      "bytes": 414160,
+      "latency": 640,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "668 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-12-actor2",
+      "tick": 12,
+      "time": "00:12",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 668,
+      "allowedRequests": 668,
+      "blockedRequests": 0,
+      "bytes": 414160,
+      "latency": 640,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "668 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-12-actor3",
+      "tick": 12,
+      "time": "00:12",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 667,
+      "allowedRequests": 667,
+      "blockedRequests": 0,
+      "bytes": 413540,
+      "latency": 640,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "667 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-12-edge",
+      "tick": 12,
+      "time": "00:12",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2119,
+      "allowedRequests": 2119,
+      "blockedRequests": 0,
+      "bytes": 1313780,
+      "latency": 640,
+      "severity": "critical",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,119 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-12-loadbalancer",
+      "tick": 12,
+      "time": "00:12",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2119,
+      "allowedRequests": 2119,
+      "blockedRequests": 0,
+      "bytes": 1313780,
+      "latency": 640,
+      "severity": "critical",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,119 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-13-internet",
+      "tick": 13,
+      "time": "00:13",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 118,
+      "allowedRequests": 118,
+      "blockedRequests": 0,
+      "bytes": 73160,
+      "latency": 639,
+      "severity": "critical",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Sustained attack",
+      "explanation": "118 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-13-actor",
+      "tick": 13,
+      "time": "00:13",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 667,
+      "allowedRequests": 667,
+      "blockedRequests": 0,
+      "bytes": 413540,
+      "latency": 639,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "667 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-13-actor2",
+      "tick": 13,
+      "time": "00:13",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 667,
+      "allowedRequests": 667,
+      "blockedRequests": 0,
+      "bytes": 413540,
+      "latency": 639,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "667 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-13-actor3",
+      "tick": 13,
+      "time": "00:13",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 666,
+      "allowedRequests": 666,
+      "blockedRequests": 0,
+      "bytes": 412920,
+      "latency": 639,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "666 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-13-edge",
+      "tick": 13,
+      "time": "00:13",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2118,
+      "allowedRequests": 2118,
+      "blockedRequests": 0,
+      "bytes": 1313160,
+      "latency": 639,
+      "severity": "critical",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,118 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-13-loadbalancer",
+      "tick": 13,
+      "time": "00:13",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2118,
+      "allowedRequests": 2118,
+      "blockedRequests": 0,
+      "bytes": 1313160,
+      "latency": 639,
+      "severity": "critical",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,118 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-14-internet",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 119,
+      "allowedRequests": 119,
+      "blockedRequests": 0,
+      "bytes": 73780,
+      "latency": 649,
+      "severity": "critical",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Sustained attack",
+      "explanation": "119 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-14-actor",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 672,
+      "allowedRequests": 672,
+      "blockedRequests": 0,
+      "bytes": 416640,
+      "latency": 649,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "672 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-14-actor2",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 672,
+      "allowedRequests": 672,
+      "blockedRequests": 0,
+      "bytes": 416640,
+      "latency": 649,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "672 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-14-actor3",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 671,
+      "allowedRequests": 671,
+      "blockedRequests": 0,
+      "bytes": 416020,
+      "latency": 649,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "671 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-14-edge",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2134,
+      "allowedRequests": 2134,
+      "blockedRequests": 0,
+      "bytes": 1323080,
+      "latency": 649,
+      "severity": "critical",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,134 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-14-loadbalancer",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2134,
+      "allowedRequests": 2134,
+      "blockedRequests": 0,
+      "bytes": 1323080,
+      "latency": 649,
+      "severity": "critical",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,134 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-15-internet",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 116,
+      "allowedRequests": 116,
+      "blockedRequests": 0,
+      "bytes": 71920,
+      "latency": 670,
+      "severity": "critical",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Sustained attack",
+      "explanation": "116 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-15-actor",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 692,
+      "allowedRequests": 692,
+      "blockedRequests": 0,
+      "bytes": 429040,
+      "latency": 670,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "692 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-15-actor2",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 692,
+      "allowedRequests": 692,
+      "blockedRequests": 0,
+      "bytes": 429040,
+      "latency": 670,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "692 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-15-actor3",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 693,
+      "allowedRequests": 693,
+      "blockedRequests": 0,
+      "bytes": 429660,
+      "latency": 670,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "693 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-15-edge",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2193,
+      "allowedRequests": 2193,
+      "blockedRequests": 0,
+      "bytes": 1359660,
+      "latency": 670,
+      "severity": "critical",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,193 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-15-loadbalancer",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2193,
+      "allowedRequests": 2193,
+      "blockedRequests": 0,
+      "bytes": 1359660,
+      "latency": 670,
+      "severity": "critical",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,193 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-16-internet",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 121,
+      "allowedRequests": 121,
+      "blockedRequests": 0,
+      "bytes": 75020,
+      "latency": 690,
+      "severity": "critical",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Sustained attack",
+      "explanation": "121 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-16-actor",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 714,
+      "allowedRequests": 714,
+      "blockedRequests": 0,
+      "bytes": 442680,
+      "latency": 690,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "714 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-16-actor2",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 714,
+      "allowedRequests": 714,
+      "blockedRequests": 0,
+      "bytes": 442680,
+      "latency": 690,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "714 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-16-actor3",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 713,
+      "allowedRequests": 713,
+      "blockedRequests": 0,
+      "bytes": 442060,
+      "latency": 690,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "713 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-16-edge",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2262,
+      "allowedRequests": 2262,
+      "blockedRequests": 0,
+      "bytes": 1402440,
+      "latency": 690,
+      "severity": "critical",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,262 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-16-loadbalancer",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2262,
+      "allowedRequests": 2262,
+      "blockedRequests": 0,
+      "bytes": 1402440,
+      "latency": 690,
+      "severity": "critical",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,262 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-17-internet",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 121,
+      "allowedRequests": 121,
+      "blockedRequests": 0,
+      "bytes": 75020,
+      "latency": 731,
+      "severity": "critical",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Sustained attack",
+      "explanation": "121 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-17-actor",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 746,
+      "allowedRequests": 746,
+      "blockedRequests": 0,
+      "bytes": 462520,
+      "latency": 731,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "746 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-17-actor2",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 746,
+      "allowedRequests": 746,
+      "blockedRequests": 0,
+      "bytes": 462520,
+      "latency": 731,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "746 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-17-actor3",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 747,
+      "allowedRequests": 747,
+      "blockedRequests": 0,
+      "bytes": 463140,
+      "latency": 731,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "747 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-17-edge",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2360,
+      "allowedRequests": 2360,
+      "blockedRequests": 0,
+      "bytes": 1463200,
+      "latency": 731,
+      "severity": "critical",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,360 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-17-loadbalancer",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2360,
+      "allowedRequests": 2360,
+      "blockedRequests": 0,
+      "bytes": 1463200,
+      "latency": 731,
+      "severity": "critical",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,360 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-18-internet",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 123,
+      "allowedRequests": 123,
+      "blockedRequests": 0,
+      "bytes": 76260,
+      "latency": 658,
+      "severity": "critical",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Sustained attack",
+      "explanation": "123 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-18-actor",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 684,
+      "allowedRequests": 684,
+      "blockedRequests": 0,
+      "bytes": 424080,
+      "latency": 658,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "684 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-18-actor2",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 684,
+      "allowedRequests": 684,
+      "blockedRequests": 0,
+      "bytes": 424080,
+      "latency": 658,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "684 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-18-actor3",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 684,
+      "allowedRequests": 684,
+      "blockedRequests": 0,
+      "bytes": 424080,
+      "latency": 658,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "684 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-18-edge",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2175,
+      "allowedRequests": 2175,
+      "blockedRequests": 0,
+      "bytes": 1348500,
+      "latency": 658,
+      "severity": "critical",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,175 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-18-loadbalancer",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 2175,
+      "allowedRequests": 2175,
+      "blockedRequests": 0,
+      "bytes": 1348500,
+      "latency": 658,
+      "severity": "critical",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "2,175 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-19-internet",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 117,
+      "allowedRequests": 117,
+      "blockedRequests": 0,
+      "bytes": 72540,
+      "latency": 514,
+      "severity": "critical",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Recovery",
+      "explanation": "117 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-19-actor",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 551,
+      "allowedRequests": 551,
+      "blockedRequests": 0,
+      "bytes": 341620,
+      "latency": 514,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "551 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-19-actor2",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 551,
+      "allowedRequests": 551,
+      "blockedRequests": 0,
+      "bytes": 341620,
+      "latency": 514,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "551 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-19-actor3",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 552,
+      "allowedRequests": 552,
+      "blockedRequests": 0,
+      "bytes": 342240,
+      "latency": 514,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "552 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-19-edge",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 1771,
+      "allowedRequests": 1771,
+      "blockedRequests": 0,
+      "bytes": 1098020,
+      "latency": 514,
+      "severity": "critical",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "1,771 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-19-loadbalancer",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 1771,
+      "allowedRequests": 1771,
+      "blockedRequests": 0,
+      "bytes": 1098020,
+      "latency": 514,
+      "severity": "critical",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "1,771 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-20-internet",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 118,
+      "allowedRequests": 118,
+      "blockedRequests": 0,
+      "bytes": 73160,
+      "latency": 450,
+      "severity": "critical",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Recovery",
+      "explanation": "118 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-20-actor",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 492,
+      "allowedRequests": 492,
+      "blockedRequests": 0,
+      "bytes": 305040,
+      "latency": 450,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "492 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-20-actor2",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 492,
+      "allowedRequests": 492,
+      "blockedRequests": 0,
+      "bytes": 305040,
+      "latency": 450,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "492 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-20-actor3",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 493,
+      "allowedRequests": 493,
+      "blockedRequests": 0,
+      "bytes": 305660,
+      "latency": 450,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "493 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-20-edge",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 1595,
+      "allowedRequests": 1595,
+      "blockedRequests": 0,
+      "bytes": 988900,
+      "latency": 450,
+      "severity": "critical",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "1,595 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-20-loadbalancer",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 1595,
+      "allowedRequests": 1595,
+      "blockedRequests": 0,
+      "bytes": 988900,
+      "latency": 450,
+      "severity": "critical",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "1,595 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-21-internet",
+      "tick": 21,
+      "time": "00:21",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 113,
+      "allowedRequests": 113,
+      "blockedRequests": 0,
+      "bytes": 70060,
+      "latency": 307,
+      "severity": "critical",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Recovery",
+      "explanation": "113 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-21-actor",
+      "tick": 21,
+      "time": "00:21",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 368,
+      "allowedRequests": 368,
+      "blockedRequests": 0,
+      "bytes": 228160,
+      "latency": 307,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "368 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-21-actor2",
+      "tick": 21,
+      "time": "00:21",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 368,
+      "allowedRequests": 368,
+      "blockedRequests": 0,
+      "bytes": 228160,
+      "latency": 307,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "368 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-21-actor3",
+      "tick": 21,
+      "time": "00:21",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 368,
+      "allowedRequests": 368,
+      "blockedRequests": 0,
+      "bytes": 228160,
+      "latency": 307,
+      "severity": "critical",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "368 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-21-edge",
+      "tick": 21,
+      "time": "00:21",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 1217,
+      "allowedRequests": 1217,
+      "blockedRequests": 0,
+      "bytes": 754540,
+      "latency": 307,
+      "severity": "critical",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "1,217 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-21-loadbalancer",
+      "tick": 21,
+      "time": "00:21",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 1217,
+      "allowedRequests": 1217,
+      "blockedRequests": 0,
+      "bytes": 754540,
+      "latency": 307,
+      "severity": "critical",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "1,217 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-22-internet",
+      "tick": 22,
+      "time": "00:22",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 126,
+      "allowedRequests": 126,
+      "blockedRequests": 0,
+      "bytes": 78120,
+      "latency": 177,
+      "severity": "high",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Recovery",
+      "explanation": "126 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-22-actor",
+      "tick": 22,
+      "time": "00:22",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 243,
+      "allowedRequests": 243,
+      "blockedRequests": 0,
+      "bytes": 150660,
+      "latency": 177,
+      "severity": "high",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "243 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-22-actor2",
+      "tick": 22,
+      "time": "00:22",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 243,
+      "allowedRequests": 243,
+      "blockedRequests": 0,
+      "bytes": 150660,
+      "latency": 177,
+      "severity": "high",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "243 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-22-actor3",
+      "tick": 22,
+      "time": "00:22",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 242,
+      "allowedRequests": 242,
+      "blockedRequests": 0,
+      "bytes": 150040,
+      "latency": 177,
+      "severity": "high",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "242 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-22-edge",
+      "tick": 22,
+      "time": "00:22",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 854,
+      "allowedRequests": 854,
+      "blockedRequests": 0,
+      "bytes": 529480,
+      "latency": 177,
+      "severity": "high",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "854 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-22-loadbalancer",
+      "tick": 22,
+      "time": "00:22",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 854,
+      "allowedRequests": 854,
+      "blockedRequests": 0,
+      "bytes": 529480,
+      "latency": 177,
+      "severity": "high",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "854 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-23-internet",
+      "tick": 23,
+      "time": "00:23",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 114,
+      "allowedRequests": 114,
+      "blockedRequests": 0,
+      "bytes": 70680,
+      "latency": 42,
+      "severity": "medium",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Recovery",
+      "explanation": "114 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-23-actor",
+      "tick": 23,
+      "time": "00:23",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 121,
+      "allowedRequests": 121,
+      "blockedRequests": 0,
+      "bytes": 75020,
+      "latency": 42,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "121 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-23-actor2",
+      "tick": 23,
+      "time": "00:23",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 121,
+      "allowedRequests": 121,
+      "blockedRequests": 0,
+      "bytes": 75020,
+      "latency": 42,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "121 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-23-actor3",
+      "tick": 23,
+      "time": "00:23",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 122,
+      "allowedRequests": 122,
+      "blockedRequests": 0,
+      "bytes": 75640,
+      "latency": 42,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "122 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-23-edge",
+      "tick": 23,
+      "time": "00:23",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 478,
+      "allowedRequests": 478,
+      "blockedRequests": 0,
+      "bytes": 296360,
+      "latency": 42,
+      "severity": "medium",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "478 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-23-loadbalancer",
+      "tick": 23,
+      "time": "00:23",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 478,
+      "allowedRequests": 478,
+      "blockedRequests": 0,
+      "bytes": 296360,
+      "latency": 42,
+      "severity": "medium",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "478 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-24-internet",
+      "tick": 24,
+      "time": "00:24",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 119,
+      "allowedRequests": 119,
+      "blockedRequests": 0,
+      "bytes": 73780,
+      "latency": 44,
+      "severity": "medium",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Recovery",
+      "explanation": "119 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-24-edge",
+      "tick": 24,
+      "time": "00:24",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 119,
+      "allowedRequests": 119,
+      "blockedRequests": 0,
+      "bytes": 73780,
+      "latency": 44,
+      "severity": "medium",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "119 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-24-loadbalancer",
+      "tick": 24,
+      "time": "00:24",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 119,
+      "allowedRequests": 119,
+      "blockedRequests": 0,
+      "bytes": 73780,
+      "latency": 44,
+      "severity": "medium",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "119 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    }
+  ],
+  "schemaVersion": "2.0",
+  "summary": {
+    "identity": {
+      "scenarioId": "dos",
+      "scenario": "DoS & DDoS",
+      "seed": 4242,
+      "difficulty": "Beginner",
+      "attackType": "DDOS"
+    },
+    "risk": {
+      "peak": 95,
+      "residual": 100
+    },
+    "activity": {
+      "eventCount": 100,
+      "alertCount": 2,
+      "blockedUnits": 0,
+      "detections": 0
+    },
+    "service": {
+      "peakOffered": 2360,
+      "peakAllowed": 2360,
+      "maximumLatency": 731,
+      "maximumErrorRate": 96,
+      "minimumAvailability": 5
+    },
+    "defenses": {
+      "triggered": 0,
+      "affectedUnits": 0,
+      "controlsHelped": [],
+      "coverageGaps": [
+        "Rate limiting",
+        "Traffic filtering",
+        "Caching",
+        "Autoscaling",
+        "Upstream DDoS protection"
+      ]
+    },
+    "outcomes": {
+      "trafficBlocked": 0,
+      "serviceDowntimeSeconds": 80,
+      "upstreamTrafficFiltered": 0
+    }
+  }
+}

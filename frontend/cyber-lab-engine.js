@@ -7,6 +7,7 @@
 
     const PROTOCOLS = ['HTTPS', 'DNS', 'SMTP', 'AUTH', 'SMB'];
     const SEVERITIES = ['info', 'low', 'medium', 'high', 'critical'];
+    const STATE_LIMITS = Object.freeze({ events: 100, flows: 24, alerts: 30, history: 32, defenseEffects: 120 });
     const HOSTS = [
         ['internet', 'Synthetic Internet', '198.51.100.1', 'cloud'],
         ['upstream', 'Upstream Filter', '198.51.100.2', 'shield'],
@@ -243,15 +244,15 @@
         };
         const defenseEvents = state.activeDefenseEffects.map(effect => defenseEffectEvent(state, effect, event.source, event.destination, protocol, event.latency));
         state.events.unshift(...defenseEvents.slice().reverse(), event);
-        state.events = state.events.slice(0, 80);
-        state.flows = [event, ...defenseEvents].slice(0, 24);
+        state.events = state.events.slice(0, STATE_LIMITS.events);
+        state.flows = [event, ...defenseEvents].slice(0, STATE_LIMITS.flows);
         if (severityIndex >= 2 || blocked) {
             state.alerts.unshift({ ...event, id: `alert-${state.tick}`, title: blocked ? 'Defense action recorded' : `${state.scenario.title} indicator` });
         }
         defenseEvents.forEach(defenseEvent => {
             state.alerts.unshift({ ...defenseEvent, id: `alert-${defenseEvent.id}`, title: `${DEFENSES[defenseEvent.defenseId][0]} triggered` });
         });
-        state.alerts = state.alerts.slice(0, 30);
+        state.alerts = state.alerts.slice(0, STATE_LIMITS.alerts);
         const detectionsThisTick = state.activeDefenseEffects.filter(effect => effect.kind === 'detective').reduce((sum, effect) => sum + effect.affected, 0);
         state.metrics = {
             rps: Math.round(18 + intensity * (state.scenario.id === 'dos' ? 900 : 120)),
@@ -266,7 +267,7 @@
             risk: Math.min(100, Math.round(5 + intensity * 82))
         };
         state.history.push({ tick: state.tick, ...state.metrics });
-        state.history = state.history.slice(-32);
+        state.history = state.history.slice(-STATE_LIMITS.history);
         const impacted = state.hosts.find(item => item.id === path[Math.min(path.length - 1, 1 + state.phase % (path.length - 1))]);
         if (impacted) impacted.status = blocked ? 'protected' : (severityIndex >= 3 ? 'at-risk' : 'observing');
         if (state.tick >= 20) {
@@ -412,7 +413,7 @@
         if (id === 'zeroday') stepZeroDay(state, random, difficulty);
         if (id === 'apt') stepApt(state, random, difficulty);
         state.history.push({ tick: state.tick, ...state.metrics });
-        state.history = state.history.slice(-32);
+        state.history = state.history.slice(-STATE_LIMITS.history);
         const totalTicks = state.scenario.id === 'apt' ? 28 : 20;
         if (state.tick >= totalTicks) {
             state.status = 'complete';
@@ -440,15 +441,15 @@
         const defenseEvents = state.activeDefenseEffects.map(effect =>
             defenseEffectEvent(state, effect, event.source, event.destination, event.protocol, event.latency));
         state.events.unshift(...defenseEvents.slice().reverse(), event);
-        state.events = state.events.slice(0, 100);
-        state.flows = [event, ...defenseEvents].slice(0, 24);
+        state.events = state.events.slice(0, STATE_LIMITS.events);
+        state.flows = [event, ...defenseEvents].slice(0, STATE_LIMITS.flows);
         if (event.severity !== 'info' || defenseEvents.length) {
             state.alerts.unshift({ ...event, id: `alert-${event.id}`, title: `${state.scenario.title} — ${event.marker.replaceAll('_', ' ').toLowerCase()}` });
         }
         defenseEvents.forEach(defenseEvent => {
             state.alerts.unshift({ ...defenseEvent, id: `alert-${defenseEvent.id}`, title: `${DEFENSES[defenseEvent.defenseId][0]} triggered` });
         });
-        state.alerts = state.alerts.slice(0, 30);
+        state.alerts = state.alerts.slice(0, STATE_LIMITS.alerts);
         const blocked = state.activeDefenseEffects.filter(effect => effect.kind !== 'detective').reduce((sum, effect) => sum + effect.affected, 0);
         const detections = state.activeDefenseEffects.filter(effect => effect.kind === 'detective').reduce((sum, effect) => sum + effect.affected, 0);
         state.metrics = {
@@ -1094,7 +1095,7 @@
         };
         state.activeDefenseEffects.push(effect);
         state.defenseEffectLog.unshift(effect);
-        state.defenseEffectLog = state.defenseEffectLog.slice(0, 120);
+        state.defenseEffectLog = state.defenseEffectLog.slice(0, STATE_LIMITS.defenseEffects);
         return effect;
     }
 
@@ -1155,10 +1156,10 @@
         };
         if (availability < 90) state.downtimeTicks += 1;
         state.history.push({ tick: state.tick, phase: phase.name, ...state.metrics });
-        state.history = state.history.slice(-32);
+        state.history = state.history.slice(-STATE_LIMITS.history);
 
         const events = buildDosEvents(state, phase, baseline, attackRequests, pipeline, upstreamFiltered, latency);
-        state.events = [...events.reverse(), ...state.events].slice(0, 100);
+        state.events = [...events.reverse(), ...state.events].slice(0, STATE_LIMITS.events);
         state.flows = events.slice().reverse();
         updateDosAlerts(state, phase);
         updateDosHostStatus(state, phase, availability);
@@ -1323,7 +1324,7 @@
                 title, explanation, severity
             });
         });
-        state.alerts = state.alerts.slice(0, 30);
+        state.alerts = state.alerts.slice(0, STATE_LIMITS.alerts);
     }
 
     function updateDosHostStatus(state, phase, availability) {
@@ -1401,7 +1402,7 @@
                 .slice(0, 8)
                 .map(event => ({ tick: event.tick, marker: event.marker, action: event.action, explanation: event.explanation }));
         }
-        return report;
+        return attachNormalizedSummary(report, state);
     }
 
     function networkOutcomeMetrics(state) {
@@ -1502,6 +1503,54 @@
         };
     }
 
+    function attachNormalizedSummary(report, state) {
+        const history = state.history || [];
+        const finite = (values, fallback, mode) => {
+            const usable = values.filter(Number.isFinite);
+            return usable.length ? Math[mode](...usable) : fallback;
+        };
+        const defenseResults = report.defensesTriggered || [];
+        report.schemaVersion = '2.0';
+        report.summary = {
+            identity: {
+                scenarioId: state.scenario.id,
+                scenario: report.scenario,
+                seed: report.seed,
+                difficulty: report.difficulty,
+                ...(report.attackType ? { attackType: report.attackType } : {})
+            },
+            risk: {
+                peak: report.peakRisk,
+                residual: report.residualRisk
+            },
+            activity: {
+                eventCount: report.events?.length || 0,
+                alertCount: state.alerts.length,
+                blockedUnits: report.blockedEvents || 0,
+                detections: report.detections || state.metrics.detections || 0
+            },
+            service: {
+                peakOffered: report.peakRps ?? finite(history.map(item => item.rps), 0, 'max'),
+                peakAllowed: report.peakServerRps ?? finite(history.map(item => item.allowed), 0, 'max'),
+                maximumLatency: report.maximumLatency ?? finite(history.map(item => item.latency), 0, 'max'),
+                maximumErrorRate: report.maximumErrorRate ?? finite(history.map(item => item.errors), 0, 'max'),
+                minimumAvailability: report.minimumAvailability ?? finite(history.map(item => item.availability), 100, 'min')
+            },
+            defenses: {
+                triggered: defenseResults.length,
+                affectedUnits: defenseResults.reduce((sum, item) => sum + (item.affectedUnits || 0), 0),
+                controlsHelped: report.controlsHelped || [],
+                coverageGaps: report.controlsNotEnabled || []
+            },
+            outcomes: report.outcomeMetrics || {
+                trafficBlocked: report.trafficBlocked || 0,
+                serviceDowntimeSeconds: report.serviceDowntimeSeconds || 0,
+                upstreamTrafficFiltered: report.upstreamTrafficFiltered || 0
+            }
+        };
+        return report;
+    }
+
     function buildDosReport(state) {
         const defenseResults = defenseReportEntries(state);
         const triggeredIds = defenseResults.map(result => result.id);
@@ -1524,7 +1573,7 @@
             maximumErrorRate * 0.3 +
             (missedIds.length / state.scenario.defenses.length) * 22
         )));
-        return {
+        const report = {
             synthetic: true,
             generatedAtVirtualTime: state.tick,
             scenario: state.scenario.title,
@@ -1569,6 +1618,7 @@
                 : 'Keep the layered controls, tune thresholds using normal traffic baselines, and rehearse capacity and upstream-provider response.',
             events: state.events.slice().reverse()
         };
+        return attachNormalizedSummary(report, state);
     }
 
     function filterEvents(events, filters, currentTick) {
@@ -1625,7 +1675,23 @@
                 deltas[key] = current[key] - previous[key];
             }
         });
-        return { comparable: true, reason: '', deltas };
+        const normalizedDeltas = {};
+        if (previous.summary && current.summary) {
+            [
+                ['risk.peak', previous.summary.risk.peak, current.summary.risk.peak],
+                ['risk.residual', previous.summary.risk.residual, current.summary.risk.residual],
+                ['activity.blockedUnits', previous.summary.activity.blockedUnits, current.summary.activity.blockedUnits],
+                ['activity.detections', previous.summary.activity.detections, current.summary.activity.detections],
+                ['service.peakOffered', previous.summary.service.peakOffered, current.summary.service.peakOffered],
+                ['service.peakAllowed', previous.summary.service.peakAllowed, current.summary.service.peakAllowed],
+                ['service.maximumLatency', previous.summary.service.maximumLatency, current.summary.service.maximumLatency],
+                ['service.maximumErrorRate', previous.summary.service.maximumErrorRate, current.summary.service.maximumErrorRate],
+                ['service.minimumAvailability', previous.summary.service.minimumAvailability, current.summary.service.minimumAvailability]
+            ].forEach(([key, before, after]) => {
+                if (Number.isFinite(before) && Number.isFinite(after)) normalizedDeltas[key] = after - before;
+            });
+        }
+        return { comparable: true, reason: '', deltas, normalizedDeltas };
     }
 
     function shouldAnnounceCheckpoint(state) {
@@ -1665,10 +1731,11 @@
     }
 
     return {
-        SCENARIOS, DEFENSES, DEFENSE_META, HOSTS, PROTOCOLS, SEVERITIES, DOS_PROFILES, UPSTREAM_EFFECTIVENESS,
+        SCENARIOS, DEFENSES, DEFENSE_META, HOSTS, PROTOCOLS, SEVERITIES, STATE_LIMITS, DOS_PROFILES, UPSTREAM_EFFECTIVENESS,
         seededRandom, upstreamEffectiveness, initialState, step, reducer, buildReport, dosPhase,
         filterEvents, serializeReportJson, serializeReportCsv, compareReports, shouldAnnounceCheckpoint,
         defenseDefinition, orderedDefenses, defenseReportEntries, scenarioGuidance, networkOutcomeMetrics,
+        attachNormalizedSummary,
         SPECIALIZED_SCENARIO_PROFILES
     };
 }));
