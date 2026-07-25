@@ -6,6 +6,7 @@ __pycache__/
 
 # Environment Variables
 backend/.env
+**/.env
 
 # Google API Credentials
 backend/credentials.json
@@ -16,6 +17,9 @@ backend/verify_calendar.py
 
 # MacOS
 .DS_Store
+**/node_modules/
+mcp-server/dist/
+mcp-server/generated/
 backend/analytics.db
 backend/ws_debug.log
 backend/data/
