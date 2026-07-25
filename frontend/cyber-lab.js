@@ -61,18 +61,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function buildTopology() {
+        const topology = $('#topology');
+        topology.classList.toggle('is-paused', state.status === 'paused');
+        topology.classList.toggle('is-complete', state.status === 'complete');
+        topology.classList.toggle('is-running', state.status === 'running');
+        topology.setAttribute('aria-label', state.status === 'paused'
+            ? 'Synthetic network topology. Simulation paused; flow paths are frozen.'
+            : state.status === 'complete'
+                ? 'Synthetic network topology. Simulation complete; flow paths are stopped.'
+                : 'Synthetic network topology. Select a host for details.');
         const upstreamVisible = state.scenario.id === 'dos' && state.defenses.upstreamProtection;
         const ingress = upstreamVisible ? 'upstream' : 'edge';
+        const actorTarget = state.scenario.id === 'password' ? 'identity' : ingress;
+        const passwordSourceCount = state.scenario.id === 'password'
+            ? Math.max(1, state.scenarioState?.distinctSources || 1)
+            : 0;
+        const actorVisible = id => {
+            if (id === 'actor') return true;
+            const sourceNumber = Number(id.replace('actor', ''));
+            return (state.scenario.id === 'dos' && state.config.attackType === 'ddos') ||
+                (state.scenario.id === 'password' && sourceNumber <= passwordSourceCount);
+        };
         const lines = [
-            ['internet', ingress], ['actor', ingress], ['actor2', ingress], ['actor3', ingress], ['actor4', ingress], ['actor5', ingress],
+            ['internet', ingress], ['actor', actorTarget], ['actor2', actorTarget], ['actor3', actorTarget], ['actor4', actorTarget], ['actor5', actorTarget],
             ...(upstreamVisible ? [['upstream', 'edge']] : []),
             ['edge', 'loadbalancer'], ['loadbalancer', 'web'], ['edge', 'email'], ['edge', 'identity'],
             ['web', 'database'], ['email', 'workstation'], ['identity', 'workstation'], ['workstation', 'files'],
             ['web', 'soc'], ['identity', 'soc'], ['files', 'soc']
         ];
-        const visibleLines = lines.filter(([source]) =>
-            !source.match(/^actor[2-5]$/) || (state.scenario.id === 'dos' && state.config.attackType === 'ddos')
-        );
+        const visibleLines = lines.filter(([source]) => !source.match(/^actor[2-5]$/) || actorVisible(source));
         const svgLines = visibleLines.map(([a, b]) => {
             const [x1, y1] = nodePositions[a], [x2, y2] = nodePositions[b];
             return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"></line>`;
@@ -87,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const visibleHosts = state.hosts.filter(host => {
             if (host.id === 'upstream') return upstreamVisible;
             if (!host.id.match(/^actor[2-5]$/)) return true;
-            return state.scenario.id === 'dos' && state.config.attackType === 'ddos';
+            return actorVisible(host.id);
         });
         const nodes = visibleHosts.map(host => {
             const [x, y] = nodePositions[host.id];
@@ -133,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $('#brief-duration').textContent = s.duration;
         $('#brief-indicators').textContent = s.indicators;
         const stages = s.phases || ['Baseline', 'Initial activity', 'Escalation', 'Detection & response', 'Outcome'];
-        const totalTicks = s.id === 'dos' ? 24 : 20;
+        const totalTicks = s.id === 'dos' ? 24 : s.phases.length * 4;
         $('#stage-count').textContent = `${state.phase + 1} / ${stages.length}`;
         $('#stage-list').innerHTML = stages.map((name, index) => `<li class="${index < state.phase ? 'done' : index === state.phase ? 'active' : ''}"><span>${index + 1}</span>${name}</li>`).join('');
         const guideText = state.config.mode === 'free-play'
@@ -150,10 +167,12 @@ document.addEventListener('DOMContentLoaded', () => {
         $('#metric-latency').textContent = `${state.metrics.latency} ms`;
         $('#metric-errors').textContent = `${state.metrics.errors}%`;
         $('#metric-availability').textContent = `${state.metrics.availability}%`;
+        renderScenarioOutcomes();
         $('#topology-summary').textContent = `${s.title}: virtual tick ${state.tick}, ${state.alerts.length} alerts, risk ${state.metrics.risk} out of 100.${state.defenses.upstreamProtection ? ` Upstream filter removed ${state.metrics.upstreamFiltered.toLocaleString()} synthetic requests before the edge.` : ''}`;
         $('#attack-type-field').hidden = s.id !== 'dos';
         $('#recovery-field').hidden = s.id !== 'dos';
         buildTopology();
+        updateMotionStatus($('#reduced-motion').checked);
         renderCharts();
         renderProtocols();
         renderDefenseEffects();
@@ -183,6 +202,8 @@ document.addEventListener('DOMContentLoaded', () => {
             thresholds.forEach((threshold, lessonIndex) => { if (state.tick >= threshold) index = lessonIndex; });
             return lessons[index];
         }
+        const networkGuidance = E.scenarioGuidance(state.scenario.id);
+        if (networkGuidance) return networkGuidance[state.phase];
         const copy = [
             'Observe the calm baseline. Check the normal request rate and healthy host states.',
             `Watch for the first indicator: ${state.scenario.indicators}`,
@@ -191,6 +212,98 @@ document.addEventListener('DOMContentLoaded', () => {
             'Review which controls helped and what residual risk remains in the findings report.'
         ];
         return copy[state.phase];
+    }
+
+    function renderScenarioOutcomes() {
+        const strip = $('#scenario-outcome-strip');
+        const inbox = $('#mock-inbox');
+        const specializedScenario = ['mitm', 'password', 'eavesdropping', 'sqli', 'xss', 'phishing', 'malware', 'insider', 'zeroday', 'apt'].includes(state.scenario.id);
+        const labels = specializedScenario
+            ? {
+                mitm: ['Session attempts / tick', 'Altered this tick', 'Protected total', 'Defense effects'],
+                password: ['Auth attempts / tick', 'Accepted attempts', 'Failed total', 'Blocked this tick'],
+                eavesdropping: ['Observed units / tick', 'Observable units', 'Encrypted total', 'Isolated this tick'],
+                sqli: ['Marked requests / tick', 'Database-bound', 'Database queries total', 'Rejected this tick'],
+                xss: ['Content submissions / tick', 'Application-bound', 'Unsafe renders total', 'Rejected this tick'],
+                phishing: ['Mock messages / tick', 'Delivered messages', 'Interactions total', 'Filtered this tick'],
+                malware: ['Endpoint events / tick', 'Active events', 'Infected endpoints', 'Controlled this tick'],
+                insider: ['Access events / tick', 'Allowed events', 'Baseline deviations', 'Restricted this tick'],
+                zeroday: ['Behavior events / tick', 'Impact actions', 'Signature misses', 'Contained this tick'],
+                apt: ['Stage actions / tick', 'Allowed actions', 'Collected units', 'Controlled this tick']
+            }[state.scenario.id]
+            : ['Offered requests / sec', 'Accepted at edge / sec', 'Server-bound / sec', 'Filtered / sec'];
+        ['#metric-rps-label', '#metric-allowed-label', '#metric-server-label', '#metric-blocked-label']
+            .forEach((selector, index) => { $(selector).textContent = labels[index]; });
+        if (!specializedScenario || !state.scenarioState) {
+            strip.innerHTML = '<p>Scenario-specific integrity, identity, or confidentiality outcomes appear here.</p>';
+            inbox.hidden = true;
+            inbox.innerHTML = '';
+            return;
+        }
+        const values = state.scenario.id === 'mitm'
+            ? {
+                'Route integrity': state.scenarioState.routeIntegrity,
+                'Certificate': state.scenarioState.certificateStatus,
+                'Altered sessions': state.scenarioState.alteredSessions,
+                'Protected sessions': state.scenarioState.protectedSessions
+            }
+            : state.scenario.id === 'password'
+                ? {
+                    'Pattern': state.scenarioState.pattern,
+                    'Failed attempts': state.scenarioState.failedAttempts,
+                    'Locked accounts': state.scenarioState.lockedAccounts,
+                    'Prevented takeovers': state.scenarioState.preventedTakeovers
+                }
+                : state.scenario.id === 'eavesdropping' ? {
+                    'Content visibility': state.scenarioState.contentVisibility,
+                    'Encrypted units': state.scenarioState.encryptedPackets,
+                    'Exposed units': state.scenarioState.exposedPackets,
+                    'Isolated units': state.scenarioState.isolatedFlows
+                } : state.scenario.id === 'sqli' ? {
+                    'Request handling': state.scenarioState.requestHandling,
+                    'Rejected requests': state.scenarioState.rejectedRequests,
+                    'Database errors': state.scenarioState.databaseErrors,
+                    'Records at risk': state.scenarioState.recordsAtRisk
+                } : state.scenario.id === 'xss' ? {
+                    'Browser policy': state.scenarioState.browserPolicy,
+                    'Rejected content': state.scenarioState.rejectedContent,
+                    'Unsafe renders': state.scenarioState.unsafeRenders,
+                    'Sessions at risk': state.scenarioState.sessionsAtRisk
+                } : state.scenario.id === 'phishing' ? {
+                    'Campaign variant': state.scenarioState.variant,
+                    'Filtered messages': state.scenarioState.filteredMessages,
+                    'User interactions': state.scenarioState.interactions,
+                    'Protected identities': state.scenarioState.protectedIdentities
+                } : state.scenario.id === 'malware' ? {
+                    'Endpoint health': state.scenarioState.endpointHealth,
+                    'Infected endpoints': state.scenarioState.infectedEndpoints,
+                    'Contained events': state.scenarioState.containedEvents,
+                    'Isolated spread': state.scenarioState.isolatedSpread
+                } : state.scenario.id === 'insider' ? {
+                    'Insider variant': state.scenarioState.variant,
+                    'Baseline deviations': state.scenarioState.baselineDeviations,
+                    'Restricted events': state.scenarioState.restrictedEvents,
+                    'Transfer risk': state.scenarioState.transferRisk
+                } : state.scenario.id === 'zeroday' ? {
+                    'Signature status': state.scenarioState.signatureStatus,
+                    'Signature misses': state.scenarioState.signatureMisses,
+                    'Anomaly detections': state.scenarioState.anomalyDetections,
+                    'Impact actions': state.scenarioState.impactActions
+                } : {
+                    'APT stage': state.scenarioState.currentStage.replaceAll('-', ' '),
+                    'Completed stages': state.scenarioState.completedStages.length,
+                    'Collected units': state.scenarioState.collectedUnits,
+                    'Exfiltrated units': state.scenarioState.exfiltratedUnits
+                };
+        strip.innerHTML = Object.entries(values).map(([label, value]) =>
+            `<div class="scenario-outcome"><span>${escapeHtml(label)}</span><strong>${typeof value === 'number' ? value.toLocaleString() : escapeHtml(value)}</strong></div>`
+        ).join('');
+        inbox.hidden = state.scenario.id !== 'phishing';
+        inbox.innerHTML = state.scenario.id === 'phishing'
+            ? `<div class="mock-inbox-header">Mock inbox · inert metadata only</div>${state.scenarioState.inbox.slice(0, 5).map(message =>
+                `<div class="mock-message"><span>${escapeHtml(message.sender)}</span><strong>${escapeHtml(message.subject)}</strong><em>${escapeHtml(message.disposition)}</em></div>`
+            ).join('')}`
+            : '';
     }
 
     function renderCharts() {
@@ -298,6 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div><span>Standardized defense effects</span><strong>${r.defensesTriggered.length ? r.defensesTriggered.map(effect => `${escapeHtml(effect.name)} · ${escapeHtml(effect.kind)} · ${effect.affectedUnits.toLocaleString()} affected`).join('<br>') : 'No defense triggered'}</strong></div>
                 <div><span>Coverage gaps / controls not enabled</span><strong>${r.controlsNotEnabled.map(escapeHtml).join(', ')}</strong></div>
                 <div><span>Recommended remediation</span><strong>${escapeHtml(r.recommendation)}</strong></div>${comparison}
+                ${r.specializedScenario ? `<div><span>Scenario-specific outcomes</span><strong>${Object.entries(r.outcomeMetrics).map(([key, value]) => `${escapeHtml(humanize(key))}: ${typeof value === 'number' ? value.toLocaleString() : escapeHtml(value)}`).join('<br>')}</strong></div>` : ''}
             </div>`;
     }
 
@@ -405,12 +519,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const status = $('#motion-status');
         status.textContent = reduced
             ? 'Static flow view enabled. Line color, host status, counters, and logs preserve traffic meaning.'
-            : 'Animated flow view enabled.';
-        status.classList.toggle('active', reduced);
+            : state.status === 'paused'
+                ? 'Simulation paused. Flow paths are frozen and no attack activity is advancing.'
+                : state.status === 'complete'
+                    ? 'Simulation complete. Flow paths are stopped at the final recorded state.'
+                    : state.status === 'running'
+                        ? 'Animated flow view enabled. Paths move only while the simulation is running.'
+                        : 'Flow paths are static until the simulation starts.';
+        status.classList.toggle('active', reduced || state.status !== 'running');
     }
 
     function announce(message) { $('#live-region').textContent = message; }
     function capitalize(value) { return value.charAt(0).toUpperCase() + value.slice(1); }
+    function humanize(value) { return value.replace(/([a-z])([A-Z])/g, '$1 $2').replaceAll('_', ' '); }
     function escapeHtml(value) {
         const div = document.createElement('div'); div.textContent = String(value); return div.innerHTML;
     }

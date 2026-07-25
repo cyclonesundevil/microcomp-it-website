@@ -9,7 +9,7 @@
     <script src="../theme.js?v=1.0"></script>
     <script src="../analytics.js?v=1.0"></script>
     <link rel="stylesheet" href="../styles.css?v=2.1">
-    <link rel="stylesheet" href="../cyber-lab.css?v=1.0">
+    <link rel="stylesheet" href="../cyber-lab.css?v=1.4">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -76,10 +76,17 @@
                 <div class="panel-heading"><div><span class="eyebrow">Live synthetic view</span><h2 id="topology-title">Network topology</h2></div><span id="run-status" class="status-pill">Ready</span></div>
                 <div id="topology" class="topology" role="img" aria-label="Synthetic network topology. Select a host for details."></div>
                 <p id="topology-summary" class="sr-summary">No simulation events yet.</p>
+                <ul class="topology-legend" aria-label="Topology status legend">
+                    <li class="legend-penetration"><i aria-hidden="true"></i><span><strong>Penetration risk</strong> Attack activity reached an at-risk asset</span></li>
+                    <li class="legend-controlled"><i aria-hidden="true"></i><span><strong>Controlled</strong> A defense interrupted or protected the flow</span></li>
+                    <li class="legend-observed"><i aria-hidden="true"></i><span><strong>Observed</strong> Suspicious activity is being monitored</span></li>
+                </ul>
                 <p id="motion-status" class="motion-status" role="status">Animated flow view enabled.</p>
                 <div class="metric-grid" aria-label="Current metrics">
-                    <div><span>Offered requests / sec</span><strong id="metric-rps">120</strong></div><div><span>Accepted at edge / sec</span><strong id="metric-allowed">120</strong></div><div><span>Server-bound / sec</span><strong id="metric-server-rps">120</strong></div><div><span>Filtered / sec</span><strong id="metric-blocked">0</strong></div><div><span>Latency</span><strong id="metric-latency">42 ms</strong></div><div><span>Error rate</span><strong id="metric-errors">1%</strong></div><div><span>Availability</span><strong id="metric-availability">100%</strong></div>
+                    <div><span id="metric-rps-label">Offered requests / sec</span><strong id="metric-rps">120</strong></div><div><span id="metric-allowed-label">Accepted at edge / sec</span><strong id="metric-allowed">120</strong></div><div><span id="metric-server-label">Server-bound / sec</span><strong id="metric-server-rps">120</strong></div><div><span id="metric-blocked-label">Filtered / sec</span><strong id="metric-blocked">0</strong></div><div><span>Latency</span><strong id="metric-latency">42 ms</strong></div><div><span>Error rate</span><strong id="metric-errors">1%</strong></div><div><span>Availability</span><strong id="metric-availability">100%</strong></div>
                 </div>
+                <div id="scenario-outcome-strip" class="scenario-outcome-strip" aria-live="polite"><p>Scenario-specific integrity, identity, or confidentiality outcomes appear here.</p></div>
+                <div id="mock-inbox" class="mock-inbox" hidden aria-label="Fictional phishing simulation inbox"></div>
                 <div id="defense-effect-strip" class="defense-effect-strip" aria-live="polite"><p>No defense triggered on this virtual tick.</p></div>
             </section>
 
@@ -113,7 +120,7 @@
     </main>
     <div id="live-region" class="visually-hidden" aria-live="polite"></div>
     <footer class="site-footer"><div class="footer-brand">▰ <span>MicroComp IT Solutions</span></div><div class="footer-details"><span>Cybersecurity Simulation Lab</span><a href="../demo-lab.html">Demo Lab</a><a href="../index.html#contact">Contact</a></div></footer>
-    <script src="../cyber-lab-engine.js?v=1.0"></script>
-    <script src="../cyber-lab.js?v=1.0"></script>
+    <script src="../cyber-lab-engine.js?v=1.1"></script>
+    <script src="../cyber-lab.js?v=1.1"></script>
 </body>
 </html>
