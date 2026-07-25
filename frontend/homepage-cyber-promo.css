@@ -1,0 +1,330 @@
+body .demo-preview-section > .cyber-lab-promo {
+    position: relative;
+    isolation: isolate;
+    width: min(1180px, 100%);
+    min-height: 390px;
+    margin: 0 auto 2rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr);
+    align-items: center;
+    gap: clamp(1.5rem, 4vw, 3.5rem);
+    padding: clamp(2rem, 4vw, 3.25rem);
+    overflow: hidden;
+    color: #f8fbff;
+    border: 1px solid #247f95;
+    border-radius: 18px;
+    background:
+        radial-gradient(circle at 86% 18%, rgba(0, 209, 178, .18), transparent 34%),
+        radial-gradient(circle at 14% 92%, rgba(41, 121, 193, .18), transparent 36%),
+        linear-gradient(135deg, #071523 0%, #0b2534 55%, #0d3040 100%);
+    box-shadow: 0 24px 60px rgba(15, 42, 62, .24);
+}
+
+body .cyber-lab-promo::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(111, 199, 220, .045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(111, 199, 220, .045) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: linear-gradient(90deg, transparent, #000 55%);
+}
+
+body .cyber-lab-promo .feature-label {
+    margin: 0;
+    color: #70ead2;
+}
+
+body .cyber-lab-promo .cyber-lab-promo-copy {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    gap: 1rem;
+}
+
+body .cyber-lab-promo h3 {
+    max-width: 700px;
+    margin: 0;
+    color: #ffffff;
+    font-size: clamp(2.15rem, 3.15vw, 3.25rem);
+    line-height: 1.02;
+}
+
+body .cyber-lab-promo-copy > p {
+    margin: 0;
+    color: #c9d9e7;
+    font-size: clamp(1rem, 1.4vw, 1.12rem);
+}
+
+body .cyber-lab-promo ul {
+    margin: .15rem 0;
+    padding: 0;
+    display: grid;
+    gap: .55rem;
+}
+
+body .cyber-lab-promo li {
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: .65rem;
+    color: #e2edf5;
+    line-height: 1.4;
+}
+
+body .cyber-lab-promo li i {
+    flex: 0 0 auto;
+    margin-top: .18rem;
+}
+
+body .cyber-lab-promo .cyber-lab-promo-cta {
+    position: relative;
+    z-index: 2;
+    justify-self: start;
+    margin-top: .4rem;
+    min-height: 48px;
+    padding: .85rem 1.2rem;
+    color: #ffffff;
+    background: #087f8c;
+    border: 1px solid #22a9b6;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .24);
+}
+
+body .cyber-lab-promo .cyber-lab-promo-cta:hover {
+    color: #071523;
+    background: #70ead2;
+    border-color: #70ead2;
+}
+
+body .cyber-lab-promo-visual {
+    min-width: 0;
+    min-height: 300px;
+    display: grid;
+    align-content: center;
+    gap: 1rem;
+}
+
+body .cyber-lab-promo .promo-network {
+    position: relative;
+    min-height: 220px;
+    overflow: hidden;
+    border: 1px solid rgba(112, 234, 210, .34);
+    border-radius: 12px;
+    border-color: rgba(112, 234, 210, .34);
+    background-color: rgba(3, 14, 24, .52);
+    background-image:
+        linear-gradient(rgba(112, 234, 210, .07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(112, 234, 210, .07) 1px, transparent 1px);
+    background-size: 26px 26px;
+    box-shadow: inset 0 0 35px rgba(0, 0, 0, .22);
+}
+
+body .cyber-lab-promo .promo-network-status {
+    position: absolute;
+    z-index: 3;
+    inset: 10px 11px auto;
+    display: flex;
+    justify-content: space-between;
+    gap: .75rem;
+    color: #adc3d4;
+    font-size: .57rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+body .cyber-lab-promo .promo-network-status span:first-child {
+    color: #ff9aa3;
+}
+
+body .cyber-lab-promo .promo-network-status i {
+    margin-right: .3rem;
+    font-size: .4rem;
+}
+
+body .cyber-lab-promo .promo-network-links {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+body .cyber-lab-promo .promo-network-links polyline,
+body .cyber-lab-promo .promo-network-links line {
+    fill: none;
+    vector-effect: non-scaling-stroke;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 4 5;
+    animation: promo-flow 2.4s linear infinite;
+}
+
+body .cyber-lab-promo .promo-attack-route {
+    stroke: #ff6b78;
+    filter: drop-shadow(0 0 3px rgba(255, 107, 120, .45));
+}
+
+body .cyber-lab-promo .promo-protected-route {
+    stroke: #70ead2;
+    filter: drop-shadow(0 0 3px rgba(112, 234, 210, .38));
+}
+
+body .cyber-lab-promo .promo-monitor-route {
+    stroke: #82c1ff;
+    opacity: .8;
+}
+
+body .cyber-lab-promo .promo-node {
+    position: absolute;
+    z-index: 2;
+    width: 54px;
+    height: 54px;
+    display: grid;
+    place-items: center;
+    border: 2px solid #56a8ff;
+    border-radius: 12px;
+    color: #82c1ff;
+    background: #0a1929;
+    font-size: 1.25rem;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .3);
+    transform: translate(-50%, -50%);
+}
+
+body .cyber-lab-promo .promo-source {
+    left: 13%;
+    top: 58%;
+    color: #ff8792;
+    border-color: #ff6b78;
+}
+body .cyber-lab-promo .promo-node::after {
+    position: absolute;
+    top: calc(100% + 8px);
+    width: max-content;
+    color: #c9d9e7;
+    font-size: .57rem;
+    font-weight: 700;
+}
+body .cyber-lab-promo .promo-source::after { content: "Attack source"; }
+body .cyber-lab-promo .promo-edge::after { content: "Edge"; }
+body .cyber-lab-promo .promo-shield::after { content: "Defense"; }
+body .cyber-lab-promo .promo-server::after { content: "Application"; }
+body .cyber-lab-promo .promo-database::after { content: "Records"; }
+body .cyber-lab-promo .promo-monitor::after { content: "Monitor"; }
+
+body .cyber-lab-promo .promo-edge {
+    left: 31%;
+    top: 32%;
+    color: #82c1ff;
+}
+
+body .cyber-lab-promo .promo-shield {
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: #70ead2;
+    border-color: #55e6c1;
+}
+
+body .cyber-lab-promo .promo-server {
+    left: 70%;
+    top: 30%;
+}
+
+body .cyber-lab-promo .promo-database {
+    left: 87%;
+    top: 58%;
+    color: #82c1ff;
+}
+
+body .cyber-lab-promo .promo-monitor {
+    left: 70%;
+    top: 76%;
+    color: #d4b7ff;
+    border-color: #a987d6;
+}
+
+body .cyber-lab-promo .promo-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .65rem;
+}
+
+body .cyber-lab-promo .promo-stat-grid div {
+    display: grid;
+    gap: .2rem;
+    padding: .85rem .55rem;
+    background: rgba(4, 20, 32, .82);
+    border-color: rgba(112, 234, 210, .26);
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 9px;
+    text-align: center;
+}
+
+body .cyber-lab-promo .promo-stat-grid strong {
+    display: block;
+    color: #ffffff;
+    font-size: 1.45rem;
+}
+
+body .cyber-lab-promo .promo-stat-grid span {
+    display: block;
+    color: #b9cad8;
+    font-size: .68rem;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+@keyframes promo-flow {
+    to { stroke-dashoffset: -18; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body .cyber-lab-promo .promo-network-links polyline,
+    body .cyber-lab-promo .promo-network-links line {
+        animation: none;
+    }
+}
+
+:root[data-theme="light"] body .demo-preview-section > .cyber-lab-promo {
+    box-shadow: 0 24px 60px rgba(15, 42, 62, .18);
+}
+
+@media (max-width: 900px) {
+    body .demo-preview-section > .cyber-lab-promo {
+        grid-template-columns: 1fr;
+        min-height: auto;
+    }
+
+    body .cyber-lab-promo-visual {
+        min-height: auto;
+    }
+}
+
+@media (max-width: 560px) {
+    body .demo-preview-section > .cyber-lab-promo {
+        padding: 1.5rem;
+        border-radius: 12px;
+    }
+
+    body .cyber-lab-promo h3 {
+        font-size: 2.25rem;
+    }
+
+    body .cyber-lab-promo .cyber-lab-promo-cta {
+        width: 100%;
+        justify-content: center;
+    }
+
+    body .cyber-lab-promo .promo-stat-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}

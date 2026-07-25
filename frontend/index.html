@@ -27,7 +27,8 @@
     <meta property="twitter:image" content="https://microcompit.com/og-image.png">
     <script src="theme.js?v=1.0"></script>
     <script src="analytics.js?v=1.0"></script>
-    <link rel="stylesheet" href="styles.css?v=1.9">
+    <link rel="stylesheet" href="styles.css?v=2.1">
+    <link rel="stylesheet" href="homepage-cyber-promo.css?v=1.3">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -122,6 +123,42 @@
             <h2>Explore the Demo Lab</h2>
             <p>See working examples of AI agents, scientific visualization, sports analytics, and workflow automation.</p>
         </div>
+        <article class="cyber-lab-promo" aria-labelledby="cyber-lab-promo-title">
+            <div class="cyber-lab-promo-copy">
+                <span class="feature-label"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Featured interactive experience</span>
+                <h3 id="cyber-lab-promo-title">See cyberattacks unfold—then stop them.</h3>
+                <p>Explore a safe, fully synthetic network where you can run 11 cybersecurity scenarios, inspect attack paths, activate defensive controls, and compare the outcome.</p>
+                <ul aria-label="Cybersecurity Simulation Lab highlights">
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> DoS, phishing, malware, password attacks, APT, and more</li>
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Live topology, alerts, traffic evidence, and findings reports</li>
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Defensive learning with no real targets or attack traffic</li>
+                </ul>
+                <a class="btn-primary cyber-lab-promo-cta" href="demo-lab/cybersecurity-simulation.html">
+                    Launch the Cybersecurity Lab <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </a>
+            </div>
+            <div class="cyber-lab-promo-visual" aria-hidden="true">
+                <div class="promo-network">
+                    <div class="promo-network-status"><span><i class="fa-solid fa-circle" aria-hidden="true"></i> Attack detected</span><span>3 controls active</span></div>
+                    <svg class="promo-network-links" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <polyline class="promo-attack-route" points="13,58 31,32 50,50"></polyline>
+                        <polyline class="promo-protected-route" points="50,50 70,30 87,58"></polyline>
+                        <line class="promo-monitor-route" x1="50" y1="50" x2="70" y2="76"></line>
+                    </svg>
+                    <span class="promo-node promo-source"><i class="fa-solid fa-user-secret"></i></span>
+                    <span class="promo-node promo-edge"><i class="fa-solid fa-network-wired"></i></span>
+                    <span class="promo-node promo-shield"><i class="fa-solid fa-shield-halved"></i></span>
+                    <span class="promo-node promo-server"><i class="fa-solid fa-server"></i></span>
+                    <span class="promo-node promo-database"><i class="fa-solid fa-database"></i></span>
+                    <span class="promo-node promo-monitor"><i class="fa-solid fa-eye"></i></span>
+                </div>
+                <div class="promo-stat-grid">
+                    <div><strong>11</strong><span>Scenarios</span></div>
+                    <div><strong>17</strong><span>Defenses</span></div>
+                    <div><strong>100%</strong><span>Synthetic</span></div>
+                </div>
+            </div>
+        </article>
         <div class="demo-preview-grid">
             <a href="demo-lab.html" target="_blank" rel="noopener">
                 <i class="fa-solid fa-flask"></i>

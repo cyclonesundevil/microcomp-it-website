@@ -5,7 +5,7 @@ const E = require('../frontend/cyber-lab-engine.js');
 
 function run(config, ticks) {
     let state = E.initialState(config);
-    const total = ticks ?? (state.scenario.id === 'dos' ? 24 : 20);
+    const total = ticks ?? (state.scenario.id === 'dos' ? 24 : state.scenario.phases.length * 4);
     for (let i = 0; i < total; i += 1) state = E.step(state);
     return state;
 }
@@ -334,4 +334,244 @@ test('defense reducer rejects unknown controls and clears a disabled active visu
     state = E.reducer(state, { type: 'DEFENSE', id: 'caching', enabled: false });
     assert.equal(state.defenses.caching, false);
     assert.equal(state.activeDefenseEffects.some(effect => effect.id === 'caching'), false);
+});
+
+test('MITM models route integrity, certificate state, and session protection', () => {
+    const exposed = run({ scenarioId: 'mitm', difficulty: 'Intermediate', seed: 303 });
+    const protectedRun = run({
+        scenarioId: 'mitm', difficulty: 'Intermediate', seed: 303,
+        defenses: { encryption: true, ids: true, mfa: true }
+    });
+    assert.equal(exposed.scenarioState.routeIntegrity, 'altered');
+    assert.equal(exposed.scenarioState.certificateStatus, 'untrusted');
+    assert.ok(exposed.scenarioState.alteredSessions > 0);
+    assert.equal(protectedRun.scenarioState.routeIntegrity, 'protected');
+    assert.equal(protectedRun.scenarioState.alteredSessions, 0);
+    assert.ok(protectedRun.scenarioState.protectedSessions > 0);
+    assert.ok(protectedRun.scenarioState.certificateWarnings > 0);
+    assert.ok(protectedRun.scenarioState.reauthChallenges > 0);
+    assert.ok(protectedRun.events.some(event => event.marker === 'ROUTE_CERTIFICATE_WARNING'));
+    assert.deepEqual(run({
+        scenarioId: 'mitm', difficulty: 'Intermediate', seed: 303,
+        defenses: { encryption: true, ids: true, mfa: true }
+    }), protectedRun);
+});
+
+test('password scenario derives authentication patterns, lockouts, and takeover outcomes', () => {
+    const undefended = run({ scenarioId: 'password', difficulty: 'Advanced', seed: 404 });
+    const defended = run({
+        scenarioId: 'password', difficulty: 'Advanced', seed: 404,
+        defenses: { rateLimiting: true, accountLockout: true, mfa: true }
+    });
+    assert.equal(defended.scenarioState.pattern, 'password-spray');
+    assert.ok(defended.scenarioState.attempts > 0);
+    assert.ok(defended.scenarioState.failedAttempts > 0);
+    assert.ok(defended.scenarioState.distinctSources > 1);
+    assert.ok(defended.scenarioState.lockedAccounts > 0);
+    assert.ok(defended.scenarioState.preventedTakeovers > 0);
+    assert.equal(defended.scenarioState.successfulTakeovers, 0);
+    assert.ok(undefended.scenarioState.successfulTakeovers > defended.scenarioState.successfulTakeovers);
+    assert.ok(defended.events.some(event => event.protocol === 'AUTH' && event.marker === 'AUTHENTICATION_PATTERN'));
+    const attackSources = new Set(defended.events
+        .filter(event => event.marker === 'AUTHENTICATION_PATTERN')
+        .map(event => event.source.id));
+    assert.ok(attackSources.has('actor2'));
+    assert.ok([...attackSources].every(id => id === 'actor' || Number(id.replace('actor', '')) <= defended.scenarioState.distinctSources));
+});
+
+test('eavesdropping distinguishes encrypted content from observable metadata', () => {
+    const exposed = run({ scenarioId: 'eavesdropping', difficulty: 'Intermediate', seed: 505 });
+    const protectedRun = run({
+        scenarioId: 'eavesdropping', difficulty: 'Intermediate', seed: 505,
+        defenses: { encryption: true, segmentation: true, ids: true }
+    });
+    assert.ok(exposed.scenarioState.exposedPackets > 0);
+    assert.equal(exposed.scenarioState.encryptedPackets, 0);
+    assert.equal(protectedRun.scenarioState.exposedPackets, 0);
+    assert.ok(protectedRun.scenarioState.encryptedPackets > 0);
+    assert.ok(protectedRun.scenarioState.isolatedFlows > 0);
+    assert.ok(protectedRun.scenarioState.metadataObserved > 0);
+    assert.ok(protectedRun.metrics.detections > 0);
+    assert.ok(protectedRun.events.some(event => event.marker === 'PLAINTEXT_EXPOSURE_RISK'));
+});
+
+test('network-centric reports include scenario outcomes and safe observable evidence', () => {
+    [
+        ['mitm', { encryption: true, ids: true, mfa: true }],
+        ['password', { rateLimiting: true, accountLockout: true, mfa: true }],
+        ['eavesdropping', { encryption: true, segmentation: true, ids: true }]
+    ].forEach(([scenarioId, defenses]) => {
+        const state = run({ scenarioId, difficulty: 'Intermediate', seed: 606, defenses });
+        const report = state.findings;
+        assert.equal(report.networkScenario, true);
+        assert.ok(report.scenarioState);
+        assert.ok(report.outcomeMetrics);
+        assert.ok(report.observableEvidence.length > 0);
+        assert.ok(report.defensesTriggered.length === 3);
+        assert.ok(report.events.every(event => !('payload' in event) && !('url' in event)));
+    });
+});
+
+test('network-centric scenarios provide five dedicated guided checkpoints', () => {
+    ['mitm', 'password', 'eavesdropping'].forEach(id => {
+        const guidance = E.scenarioGuidance(id);
+        assert.equal(guidance.length, 5);
+        assert.ok(guidance.every(item => item.length > 40));
+    });
+    assert.equal(E.scenarioGuidance('dos'), null);
+});
+
+test('SQL injection models safe request markers, database risk, and layered controls', () => {
+    const undefended = run({ scenarioId: 'sqli', difficulty: 'Advanced', seed: 707 });
+    const defended = run({
+        scenarioId: 'sqli', difficulty: 'Advanced', seed: 707,
+        defenses: { waf: true, leastPrivilege: true, ids: true }
+    });
+    assert.ok(undefended.scenarioState.recordsAtRisk > 0);
+    assert.equal(undefended.scenarioState.rejectedRequests, 0);
+    assert.ok(defended.scenarioState.rejectedRequests > 0);
+    assert.ok(defended.scenarioState.protectedRecords > 0);
+    assert.ok(defended.scenarioState.databaseQueries < undefended.scenarioState.databaseQueries);
+    assert.ok(defended.scenarioState.recordsAtRisk < undefended.scenarioState.recordsAtRisk);
+    assert.ok(defended.events.some(event => event.marker === 'SIMULATED_QUERY_MANIPULATION'));
+    assert.ok(defended.events.every(event => !('query' in event) && !('payload' in event)));
+});
+
+test('XSS models inert content markers, render state, and session risk', () => {
+    const undefended = run({ scenarioId: 'xss', difficulty: 'Intermediate', seed: 808 });
+    const defended = run({
+        scenarioId: 'xss', difficulty: 'Intermediate', seed: 808,
+        defenses: { waf: true, patchManagement: true, ids: true }
+    });
+    assert.ok(undefended.scenarioState.unsafeRenders > 0);
+    assert.ok(undefended.scenarioState.sessionsAtRisk > 0);
+    assert.equal(defended.scenarioState.unsafeRenders, 0);
+    assert.equal(defended.scenarioState.sessionsAtRisk, 0);
+    assert.ok(defended.scenarioState.rejectedContent > 0);
+    assert.ok(defended.scenarioState.protectedRenders > 0);
+    assert.equal(defended.scenarioState.browserPolicy, 'hardened');
+    assert.ok(defended.events.every(event => event.scenarioState?.executableContent !== true));
+});
+
+test('phishing models inert generic and targeted mock messages plus user outcomes', () => {
+    const undefended = run({ scenarioId: 'phishing', difficulty: 'Advanced', seed: 909 });
+    const defended = run({
+        scenarioId: 'phishing', difficulty: 'Advanced', seed: 909,
+        defenses: { emailFiltering: true, mfa: true, endpointProtection: true }
+    });
+    assert.equal(defended.scenarioState.variant, 'spear-phishing');
+    assert.ok(defended.scenarioState.filteredMessages > 0);
+    assert.ok(defended.scenarioState.protectedIdentities > 0);
+    assert.ok(defended.scenarioState.containedEndpoints > 0);
+    assert.equal(defended.scenarioState.compromisedIdentities, 0);
+    assert.equal(defended.scenarioState.endpointRisk, 0);
+    assert.ok(undefended.scenarioState.compromisedIdentities > 0);
+    assert.ok(defended.scenarioState.inbox.some(message => message.variant === 'spear-phishing'));
+    assert.ok(defended.scenarioState.inbox.every(message =>
+        message.inert && message.sender.endsWith('.test') && !('url' in message) && !('attachment' in message)));
+});
+
+test('Phase 4 reports expose scenario outcomes without executable artifacts', () => {
+    [
+        ['sqli', { waf: true, leastPrivilege: true, ids: true }],
+        ['xss', { waf: true, patchManagement: true, ids: true }],
+        ['phishing', { emailFiltering: true, mfa: true, endpointProtection: true }]
+    ].forEach(([scenarioId, defenses]) => {
+        const state = run({ scenarioId, difficulty: 'Intermediate', seed: 1001, defenses });
+        assert.equal(state.findings.specializedScenario, true);
+        assert.equal(state.findings.networkScenario, false);
+        assert.ok(state.findings.outcomeMetrics);
+        assert.equal(state.findings.defensesTriggered.length, 3);
+        assert.ok(E.scenarioGuidance(scenarioId).length === 5);
+        const serialized = E.serializeReportJson(state.findings);
+        assert.doesNotMatch(serialized, /<script|javascript:|https?:\/\/(?!fictional)/i);
+    });
+});
+
+test('malware scenario models endpoint infection, containment, and lateral spread', () => {
+    const undefended = run({ scenarioId: 'malware', difficulty: 'Advanced', seed: 1101 });
+    const defended = run({
+        scenarioId: 'malware', difficulty: 'Advanced', seed: 1101,
+        defenses: { endpointProtection: true, segmentation: true, patchManagement: true }
+    });
+    assert.ok(undefended.scenarioState.infectedEndpoints > 0);
+    assert.ok(undefended.scenarioState.successfulSpread > 0);
+    assert.ok(defended.scenarioState.preventedInfections > 0);
+    assert.ok(defended.scenarioState.containedEvents > 0);
+    assert.ok(defended.scenarioState.isolatedSpread > 0);
+    assert.ok(defended.scenarioState.infectedEndpoints < undefended.scenarioState.infectedEndpoints);
+    assert.ok(defended.scenarioState.successfulSpread < undefended.scenarioState.successfulSpread);
+    assert.ok(defended.events.every(event => event.scenarioState?.executableContent !== true));
+});
+
+test('insider scenario deterministically models three variants and behavioral controls', () => {
+    const variants = [1200, 1201, 1202].map(seed =>
+        run({ scenarioId: 'insider', difficulty: 'Intermediate', seed }).scenarioState.variant);
+    assert.deepEqual(variants, ['negligent', 'compromised', 'malicious']);
+    const undefended = run({ scenarioId: 'insider', difficulty: 'Advanced', seed: 1202 });
+    const defended = run({
+        scenarioId: 'insider', difficulty: 'Advanced', seed: 1202,
+        defenses: { leastPrivilege: true, dlp: true, anomalyDetection: true }
+    });
+    assert.ok(undefended.scenarioState.baselineDeviations > 0);
+    assert.ok(undefended.scenarioState.transferRisk > 0);
+    assert.ok(defended.scenarioState.restrictedEvents > 0);
+    assert.ok(defended.scenarioState.blockedTransfers > 0);
+    assert.ok(defended.scenarioState.anomalyDetections > 0);
+    assert.ok(defended.scenarioState.transferRisk < undefended.scenarioState.transferRisk);
+    assert.equal(defended.scenarioState.baseline.allowedDestination, 'File Service');
+});
+
+test('zero-day scenario separates signature misses from behavioral detection and containment', () => {
+    const undefended = run({ scenarioId: 'zeroday', difficulty: 'Advanced', seed: 1303 });
+    const defended = run({
+        scenarioId: 'zeroday', difficulty: 'Advanced', seed: 1303,
+        defenses: { anomalyDetection: true, segmentation: true, leastPrivilege: true }
+    });
+    assert.ok(undefended.scenarioState.signatureMisses > 0);
+    assert.equal(undefended.scenarioState.anomalyDetections, 0);
+    assert.equal(defended.scenarioState.signatureStatus, 'unknown-no-match');
+    assert.ok(defended.scenarioState.signatureMisses > 0);
+    assert.ok(defended.scenarioState.anomalyDetections > 0);
+    assert.ok(defended.scenarioState.isolatedActions > 0);
+    assert.ok(defended.scenarioState.privilegeContained > 0);
+    assert.ok(defended.scenarioState.impactActions < undefended.scenarioState.impactActions);
+    assert.ok(defended.events.every(event => event.scenarioState?.exploitPayload !== true));
+});
+
+test('APT completes all seven stages and applies controls at their actual layers', () => {
+    const undefended = run({ scenarioId: 'apt', difficulty: 'Advanced', seed: 1404 });
+    const defended = run({
+        scenarioId: 'apt', difficulty: 'Advanced', seed: 1404,
+        defenses: { leastPrivilege: true, segmentation: true, dlp: true }
+    });
+    assert.equal(defended.tick, 28);
+    assert.equal(defended.phase, 6);
+    assert.deepEqual(defended.scenarioState.completedStages, [
+        'initial-access', 'persistence', 'discovery', 'privilege-expansion',
+        'lateral-movement', 'collection', 'exfiltration'
+    ]);
+    assert.ok(defended.scenarioState.assetsDiscovered > 0);
+    assert.ok(defended.scenarioState.privilegeRestricted > 0);
+    assert.ok(defended.scenarioState.lateralBlocked > 0);
+    assert.ok(defended.scenarioState.collectedUnits > 0);
+    assert.ok(defended.scenarioState.exfiltrationBlocked > 0);
+    assert.ok(defended.scenarioState.exfiltratedUnits < undefended.scenarioState.exfiltratedUnits);
+    assert.ok(defended.events.some(event => event.marker === 'APT_EXFILTRATION'));
+});
+
+test('Phase 5 reports and guidance cover all organizational scenario outcomes', () => {
+    [
+        ['malware', { endpointProtection: true, segmentation: true, patchManagement: true }, 5],
+        ['insider', { leastPrivilege: true, dlp: true, anomalyDetection: true }, 5],
+        ['zeroday', { anomalyDetection: true, segmentation: true, leastPrivilege: true }, 5],
+        ['apt', { leastPrivilege: true, segmentation: true, dlp: true }, 7]
+    ].forEach(([scenarioId, defenses, guidanceLength]) => {
+        const state = run({ scenarioId, difficulty: 'Intermediate', seed: 1505, defenses });
+        assert.equal(state.findings.specializedScenario, true);
+        assert.ok(state.findings.outcomeMetrics);
+        assert.equal(state.findings.defensesTriggered.length, 3);
+        assert.equal(E.scenarioGuidance(scenarioId).length, guidanceLength);
+        assert.ok(state.findings.events.every(event => !('payload' in event) && !('url' in event) && !('credentials' in event)));
+    });
 });

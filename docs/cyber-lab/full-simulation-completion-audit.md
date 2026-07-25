@@ -271,3 +271,111 @@ The baseline classifications above remain the historical audit. These results su
 - Scenario-specific engines for MITM, password attacks, and eavesdropping remain Phase 3.
 - Web/identity and endpoint/organizational scenario engines remain Phases 4–5.
 - Browser automation, visual regression, and production tooling remain Phase 6.
+
+## Phase 3 results
+
+Status: **Complete in this change.**
+
+The historical classifications above describe the pre-phase baseline. These results supersede the MITM, password-attack, and eavesdropping findings while leaving Phases 4–6 open.
+
+### Implemented
+
+| Phase 3 requirement | Result and reference |
+|---|---|
+| Shared network-scenario contract | `frontend/cyber-lab-engine.js:NETWORK_SCENARIO_PROFILES/stepNetworkScenario` keeps the deterministic 20-tick lifecycle while dispatching to scenario-specific state transitions. |
+| MITM route and integrity state | `stepMitm` models expected versus altered routes, trusted versus untrusted certificate state, altered/protected sessions, certificate warnings, and reauthentication challenges. |
+| MITM defenses | Encryption protects session integrity, MFA challenges sessions after route warnings, and IDS records detection-only evidence. Each control emits standardized defense effects and events. |
+| Password-pattern state | `stepPassword` models normal sign-ins, repeated failures, password-spray expansion, distinct fictional sources, accepted/rejected attempts, lockouts, and takeover outcomes. |
+| Password defenses | Rate limiting rejects attempts, account lockout protects accounts after repeated failures, and MFA prevents guessed passwords from becoming sessions. |
+| Eavesdropping state | `stepEavesdropping` separates observed metadata, encrypted content, exposed content, and flows removed from the observer-visible path. |
+| Eavesdropping defenses | Encryption preserves confidentiality while metadata remains visible, segmentation isolates flows, and IDS detects observation without claiming prevention. |
+| Scenario guidance | `scenarioGuidance` supplies five dedicated teaching checkpoints for each Phase 3 scenario. |
+| Metrics and visuals | `cyber-lab.js:renderScenarioOutcomes` changes the primary metric vocabulary and renders route/certificate, authentication, or confidentiality outcome cards. Existing topology state and standardized defense visuals reflect scenario results. |
+| Scenario reports | `networkOutcomeMetrics/buildReport` adds typed outcome metrics, final scenario state, standardized defense evidence, and safe observable-event evidence to JSON/CSV-compatible reports. |
+| Automated coverage | Engine tests verify determinism, route/certificate outcomes, authentication outcomes, encrypted-versus-exposed behavior, all relevant defenses, safe reports, and guidance. Integration tests verify the dedicated UI/report surfaces. |
+
+### Validation
+
+- 43 dependency-free Node tests pass.
+- Both lab JavaScript files pass `node --check`.
+- All three Phase 3 engines remain deterministic for the same seed and configuration.
+- Events remain metadata-only and use documentation-range hosts; no payloads, external targets, or outbound APIs were added.
+- Static route/assets and whitespace checks pass.
+
+### Deliberately deferred after Phase 3
+
+- SQL injection, XSS, and phishing/spear-phishing scenario engines remain Phase 4.
+- Malware, insider, zero-day, and APT scenario engines remain Phase 5.
+- Browser automation, visual regression, accessibility verification, and production tooling remain Phase 6.
+
+## Phase 4 results
+
+Status: **Complete in this change.**
+
+The Phase 4 implementation extends the specialized deterministic scenario framework introduced in Phase 3. The historical audit classifications remain useful as the pre-phase baseline, but the SQL injection, XSS, and phishing findings are superseded below.
+
+### Implemented
+
+| Phase 4 requirement | Result and reference |
+|---|---|
+| Specialized scenario framework | `frontend/cyber-lab-engine.js:SPECIALIZED_SCENARIO_PROFILES/stepSpecializedScenario` now dispatches six scenario-specific engines while preserving the shared reducer, virtual clock, event, defense, report, and export contracts. |
+| Safe SQL injection state | `stepSqli` uses non-executable request markers to model edge rejection, application-bound requests, database queries/errors, protected record scope, and records at risk. It stores no query text or payload. |
+| SQL injection defenses | WAF rejects marked requests, least privilege limits fictional database scope, and IDS correlates request/database-flow indicators without claiming prevention. |
+| Safe XSS state | `stepXss` models inert content submissions, rejected markers, unsafe versus protected render state, browser-policy status, and fictional sessions at risk. Events explicitly record that executable content is absent. |
+| XSS defenses | WAF rejects marked content, patch management hardens rendering, and IDS detects delivery markers without executing or reproducing content. |
+| Phishing and spear-phishing state | `stepPhishing` progresses from baseline to generic phishing and targeted spear-phishing metadata. It tracks inert mock messages, filtering, delivery, user interactions, identity outcomes, and endpoint outcomes. |
+| Phishing defenses | Email filtering quarantines mock messages, MFA protects fictional identities after interaction, and endpoint protection contains fictional endpoint outcomes. |
+| Mock inbox | `frontend/demo-lab/cybersecurity-simulation.html:#mock-inbox` and `cyber-lab.js:renderScenarioOutcomes` display fictional `.test` senders, inert subjects, and filtered/delivered disposition without links, attachments, forms, credentials, or delivery capability. |
+| Scenario guidance and metrics | Each Phase 4 scenario has five dedicated teaching checkpoints, dynamic primary metric vocabulary, and scenario outcome cards for application, browser/session, or inbox/identity state. |
+| Scenario reports | Specialized reports include typed outcome metrics, final domain state, standardized defense evidence, and safe observable-event evidence through the shared JSON/CSV serializers. |
+| Automated coverage | Engine tests compare defended and undefended SQLi, XSS, and phishing outcomes; verify all nine relevant control paths; confirm inert/no-payload boundaries; and validate specialized reports. Integration tests cover outcome and mock-inbox surfaces. |
+
+### Validation
+
+- 48 dependency-free Node tests pass.
+- Both lab JavaScript files pass `node --check`.
+- Phase 4 scenarios are deterministic for the same seed, difficulty, and defense configuration.
+- No executable scripts, SQL text, URLs, attachments, credentials, external targets, or outbound APIs were added.
+- Mock inbox senders use fictional `.test` domains and every message is explicitly marked inert.
+- Static route/assets, safety scan, and whitespace checks pass.
+
+### Deliberately deferred after Phase 4
+
+- Malware, insider, zero-day, and APT scenario engines remain Phase 5.
+- Cross-lab schema normalization, browser automation, visual regression, accessibility verification, and production tooling remain Phase 6.
+
+## Phase 5 results
+
+Status: **Complete in this change.**
+
+Phase 5 completes the remaining endpoint and organizational scenario engines. All eleven scenarios now have deterministic simulation behavior; DoS/DDoS remains the reference availability slice and the other ten scenarios use specialized domain state rather than the former generic event formula.
+
+### Implemented
+
+| Phase 5 requirement | Result and reference |
+|---|---|
+| Malware endpoint state | `frontend/cyber-lab-engine.js:stepMalware` models harmless endpoint behavior markers, prevented and contained infection events, affected fictional hosts, lateral spread attempts, isolated spread, and successful abstract spread. No files, binaries, or executable content are generated. |
+| Malware defenses | Patch management prevents fictional infections, endpoint protection contains behavior events, and segmentation isolates lateral movement before the file service. |
+| Insider variants and baseline | `stepInsider` deterministically selects negligent, compromised, or malicious behavior from the run seed. It establishes an explicit time/volume/destination baseline and records access events, deviations, transfer units, and residual transfer risk. |
+| Insider defenses | Least privilege restricts out-of-baseline access, DLP blocks synthetic transfer units, and anomaly detection records behavioral deviations without claiming prevention. |
+| Zero-day behavior | `stepZeroDay` explicitly separates signature misses from behavior-based detection. It models unknown-flaw behavior events, anomaly detections, isolated actions, privilege containment, and residual impact actions without exploit payloads. |
+| Zero-day defenses | Anomaly detection identifies unknown behavior, segmentation limits reach, and least privilege contains unauthorized capabilities. |
+| Seven-stage APT | `stepApt` implements initial access, persistence, discovery, privilege expansion, lateral movement, collection, and exfiltration across 28 deterministic ticks. Each stage emits a distinct safe marker and typed state. |
+| APT defenses | Least privilege applies during privilege expansion, segmentation during lateral movement, and DLP during exfiltration. Reports distinguish collected, attempted, blocked, and exfiltrated synthetic units. |
+| Lifecycle and guidance | APT exposes seven stage labels, seven guided lessons, six transition announcements, and a 28-tick controller progress contract. Other Phase 5 scenarios retain the shared five-stage/20-tick lifecycle. |
+| Metrics, topology, and reports | Dynamic outcome cards expose endpoint health, insider variant/baseline, signature status, or APT stage. Host states and flows reflect the active scenario. Shared reports include typed outcome metrics, defense evidence, and safe observable evidence. |
+| Automated coverage | Tests compare defended and undefended outcomes, verify all twelve relevant defense paths, validate all insider variants, confirm signature-miss semantics, exercise all seven APT stages, and enforce no-payload/no-credential boundaries. |
+
+### Validation
+
+- 55 dependency-free Node tests pass.
+- Both lab JavaScript files pass `node --check`.
+- All eleven scenarios now have scenario-specific deterministic state and reports.
+- The APT scenario completes all seven documented stages in 28 virtual ticks.
+- No executable content, real files, scanning, exploit payloads, credentials, private targets, or outbound APIs were added.
+- Static route/assets, safety scan, and whitespace checks pass.
+
+### Deliberately deferred after Phase 5
+
+- Cross-lab report/comparison schema normalization remains Phase 6.
+- Browser interaction automation, visual regression, accessibility verification, rendering-performance measurement, and optional production tooling remain Phase 6.
