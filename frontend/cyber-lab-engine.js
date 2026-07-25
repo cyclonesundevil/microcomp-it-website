@@ -149,8 +149,97 @@
         };
     }
 
+    const MALWARE_PROFILES = [
+        {
+            id: 'ransomware-like', name: 'Ransomware-like', initialHost: 'workstation',
+            path: ['workstation', 'files', 'database'],
+            primaryRisk: 'Synthetic file availability, service disruption, and recovery workload.',
+            behavior: 'It will attempt to disrupt shared synthetic files and then reach one nearby business system.',
+            defenses: ['endpointProtection', 'segmentation', 'leastPrivilege', 'patchManagement'],
+            protocol: 'SMB',
+            guidance: [
+                'A harmless infection marker appears on the employee workstation; no file or program is created.',
+                'The profile attempts to reach shared synthetic files, with one nearby business system as a secondary target.',
+                'Endpoint protection, patching, segmentation, or least privilege can contain or narrow that path.',
+                'The final impact depends on how many synthetic file actions reached an unprotected service.'
+            ]
+        },
+        {
+            id: 'worm-like', name: 'Worm-like', initialHost: 'web',
+            path: ['web', 'workstation', 'files'],
+            primaryRisk: 'Rapid propagation, host degradation, and increased internal traffic.',
+            behavior: 'It will discover a nearby workstation and may attempt one additional move toward a shared service.',
+            defenses: ['patchManagement', 'endpointProtection', 'segmentation', 'ids', 'anomalyDetection'],
+            protocol: 'SMB',
+            guidance: [
+                'A harmless infection marker appears on a fictional application server.',
+                'The profile discovers a nearby workstation and attempts a short, predictable propagation path.',
+                'Patching and endpoint protection reduce infection; segmentation can stop movement while detection records it.',
+                'The final outcome reflects how far the profile moved before containment or recovery.'
+            ]
+        },
+        {
+            id: 'credential-stealing', name: 'Credential-stealing', initialHost: 'workstation',
+            path: ['workstation', 'identity', 'web'],
+            primaryRisk: 'Account compromise, unauthorized access, and privilege expansion.',
+            behavior: 'It will attempt synthetic sign-ins at the identity service and then one accessible application.',
+            defenses: ['endpointProtection', 'mfa', 'leastPrivilege', 'anomalyDetection', 'accountLockout'],
+            protocol: 'AUTH',
+            guidance: [
+                'A harmless credential-risk marker appears on the employee workstation; no credential is collected.',
+                'The profile attempts synthetic authentication at the identity service and one application.',
+                'Endpoint protection, MFA, account lockout, and least privilege can interrupt access; anomaly detection only observes.',
+                'The final outcome depends on whether synthetic authentication attempts became unauthorized access.'
+            ]
+        },
+        {
+            id: 'botnet-like', name: 'Botnet-like', initialHost: 'workstation',
+            path: ['workstation', 'edge', 'internet'],
+            primaryRisk: 'Abnormal outbound traffic, endpoint resource use, and distributed synthetic activity.',
+            behavior: 'It will attempt abnormal outbound traffic through the gateway to a fictional external destination.',
+            defenses: ['endpointProtection', 'trafficFiltering', 'ids', 'anomalyDetection', 'segmentation'],
+            protocol: 'HTTPS',
+            guidance: [
+                'A harmless resource-use marker appears on the employee workstation.',
+                'The profile attempts a single outbound path through the gateway to a fictional external destination.',
+                'Endpoint protection, traffic filtering, or segmentation can reduce traffic; IDS and anomaly detection only observe it.',
+                'The final outcome reflects how much abnormal synthetic traffic remained after containment.'
+            ]
+        }
+    ];
+
+    function malwareProfileForSeed(seed) {
+        return MALWARE_PROFILES[Math.abs(Number(seed) || 1) % MALWARE_PROFILES.length];
+    }
+
     function initialState(config) {
-        const scenario = SCENARIOS.find(item => item.id === config.scenarioId) || SCENARIOS[0];
+        const baseScenario = SCENARIOS.find(item => item.id === config.scenarioId) || SCENARIOS[0];
+        let scenario = { ...baseScenario, defenses: baseScenario.defenses.slice(), path: baseScenario.path.slice(), phases: baseScenario.phases.slice() };
+        const selectedSeed = Number(config.seed) || 4242;
+        let scenarioState;
+        if (scenario.id === 'malware') {
+            const profile = malwareProfileForSeed(selectedSeed);
+            scenario = {
+                ...scenario,
+                defenses: profile.defenses.slice(),
+                path: profile.path.slice(),
+                phases: ['Initial infection', 'Local execution', 'Discovery', 'Attempted spread or access', 'Infrastructure impact', 'Containment or recovery'],
+                objective: `${profile.name} malware begins at ${host(profile.initialHost).name}. ${profile.behavior}`,
+                indicators: `${profile.name}: ${profile.primaryRisk}`,
+                profileId: profile.id,
+                profileName: profile.name
+            };
+            scenarioState = {
+                profileId: profile.id, profileName: profile.name, initialHost: profile.initialHost,
+                primaryPath: profile.path.slice(), targetedHosts: profile.path.slice(),
+                affectedHosts: [], protectedHosts: [], endpointEvents: 0, infectedEndpoints: 0,
+                containedEvents: 0, preventedInfections: 0, spreadAttempts: 0,
+                isolatedSpread: 0, successfulSpread: 0, affectedServices: 0,
+                unauthorizedAttempts: 0, unauthorizedAccess: 0, abnormalOutboundFlows: 0,
+                syntheticFilesAffected: 0, recoveryProgress: 0, detections: 0,
+                endpointHealth: 'healthy'
+            };
+        }
         const enabled = {};
         Object.keys(DEFENSES).forEach(key => { enabled[key] = Boolean(config.defenses && config.defenses[key]); });
         const isDos = scenario.id === 'dos';
@@ -158,7 +247,7 @@
             config: {
                 scenarioId: scenario.id,
                 difficulty: config.difficulty || 'Beginner',
-                seed: Number(config.seed) || 4242,
+                seed: selectedSeed,
                 mode: config.mode || 'guided',
                 attackType: config.attackType === 'dos' ? 'dos' : 'ddos',
                 recovery: config.recovery !== false
@@ -173,7 +262,7 @@
                 residualAttack: 0, upstreamEffectiveness: 0, detections: 0
             },
             defenseStats: {}, activeDefenseEffects: [], defenseEffectLog: [], downtimeTicks: 0,
-            findings: null
+            findings: null, scenarioState
         };
     }
 
@@ -346,13 +435,12 @@
         },
         malware: {
             protocol: 'SMB',
-            metrics: ['Endpoint events', 'Infected endpoints', 'Isolated endpoints', 'Spread attempts'],
+            metrics: ['Profile activity', 'Affected assets', 'Protected assets', 'Residual impact'],
             guidance: [
-                'Establish normal fictional endpoint health, file activity, and internal connection patterns.',
-                'A harmless behavior marker changes one workstation from healthy to suspicious.',
-                'Abstract spread attempts move toward the fictional file service without files, binaries, or executable content.',
-                'Endpoint protection contains behavior, patch management prevents infection, and segmentation isolates lateral paths.',
-                'Compare infected, contained, patched, isolated, and residual spread-risk outcomes.'
+                'A harmless malware-profile marker identifies the initial fictional infection point.',
+                'The selected profile follows one short primary path with at most one secondary target.',
+                'Relevant preventive controls contain activity while detective controls only record it.',
+                'The final outcome explains the affected, protected, and recovering fictional systems.'
             ]
         },
         insider: {
@@ -414,7 +502,7 @@
         if (id === 'apt') stepApt(state, random, difficulty);
         state.history.push({ tick: state.tick, ...state.metrics });
         state.history = state.history.slice(-STATE_LIMITS.history);
-        const totalTicks = state.scenario.id === 'apt' ? 28 : 20;
+        const totalTicks = state.scenario.id === 'apt' ? 28 : state.scenario.id === 'malware' ? 24 : 20;
         if (state.tick >= totalTicks) {
             state.status = 'complete';
             state.findings = buildReport(state);
@@ -808,15 +896,50 @@
     }
 
     function stepMalware(state, random, difficulty) {
-        const active = state.tick > 4;
-        const behaviorEvents = active ? Math.round((3 + state.phase * 3 + random() * 3) * difficulty) : 2;
-        const patched = active && state.defenses.patchManagement ? Math.round(behaviorEvents * 0.68) : 0;
-        const vulnerableEvents = behaviorEvents - patched;
-        const contained = active && state.defenses.endpointProtection ? Math.round(vulnerableEvents * 0.72) : 0;
+        const profile = MALWARE_PROFILES.find(item => item.id === state.scenarioState.profileId);
+        const totals = state.scenarioState;
+        const behaviorEvents = Math.max(2, Math.round((3 + state.phase * 2 + random() * 3) * difficulty));
+        const patched = state.defenses.patchManagement ? Math.round(behaviorEvents * 0.58) : 0;
+        const vulnerableEvents = Math.max(0, behaviorEvents - patched);
+        const contained = state.defenses.endpointProtection ? Math.round(vulnerableEvents * 0.62) : 0;
         const infectionEvents = Math.max(0, vulnerableEvents - contained);
-        const spreadAttempts = active && state.phase >= 2 ? Math.round(infectionEvents * (1 + state.phase * 0.35)) : 0;
-        const isolated = spreadAttempts && state.defenses.segmentation ? Math.round(spreadAttempts * 0.78) : 0;
-        const successfulSpread = Math.max(0, spreadAttempts - isolated);
+        const spreadAttempts = state.phase >= 2 ? Math.round(infectionEvents * (1 + state.phase * 0.22)) : 0;
+        let preventedAccess = 0;
+        const isolated = spreadAttempts && state.defenses.segmentation ? Math.round(spreadAttempts * 0.68) : 0;
+        if (profile.id === 'ransomware-like' && state.defenses.leastPrivilege) {
+            preventedAccess = Math.round(Math.max(0, spreadAttempts - isolated) * 0.55);
+        }
+        if (profile.id === 'credential-stealing') {
+            const afterContainment = Math.max(0, spreadAttempts - isolated);
+            const mfaBlocked = state.defenses.mfa ? Math.round(afterContainment * 0.7) : 0;
+            const lockoutBlocked = state.defenses.accountLockout ? Math.round(Math.max(0, afterContainment - mfaBlocked) * 0.45) : 0;
+            const privilegeBlocked = state.defenses.leastPrivilege ? Math.round(Math.max(0, afterContainment - mfaBlocked - lockoutBlocked) * 0.55) : 0;
+            preventedAccess = mfaBlocked + lockoutBlocked + privilegeBlocked;
+            if (mfaBlocked) recordDefense(state, 'mfa', mfaBlocked, {
+                metricDeltas: { unauthorizedAccess: -mfaBlocked },
+                explanation: `MFA rejected ${mfaBlocked} synthetic credential-driven access attempts.`
+            });
+            if (lockoutBlocked) recordDefense(state, 'accountLockout', lockoutBlocked, {
+                metricDeltas: { unauthorizedAccess: -lockoutBlocked },
+                explanation: `Account lockout interrupted ${lockoutBlocked} repeated fictional authentication attempts.`
+            });
+            if (privilegeBlocked) recordDefense(state, 'leastPrivilege', privilegeBlocked, {
+                metricDeltas: { unauthorizedAccess: -privilegeBlocked },
+                explanation: `Least privilege restricted ${privilegeBlocked} fictional actions after authentication.`
+            });
+        } else if (preventedAccess) {
+            recordDefense(state, 'leastPrivilege', preventedAccess, {
+                metricDeltas: { affectedServices: -preventedAccess },
+                explanation: `Least privilege kept ${preventedAccess} synthetic file actions from reaching the next business system.`
+            });
+        }
+        const outboundFiltered = profile.id === 'botnet-like' && state.defenses.trafficFiltering
+            ? Math.round(Math.max(0, spreadAttempts - isolated) * 0.72) : 0;
+        if (outboundFiltered) recordDefense(state, 'trafficFiltering', outboundFiltered, {
+            metricDeltas: { abnormalOutboundFlows: -outboundFiltered },
+            explanation: `Traffic filtering stopped ${outboundFiltered} abnormal synthetic outbound flows at the gateway.`
+        });
+        const successfulSpread = Math.max(0, spreadAttempts - isolated - preventedAccess - outboundFiltered);
         if (patched) recordDefense(state, 'patchManagement', patched, {
             metricDeltas: { preventedInfections: patched },
             explanation: `Patch management prevented ${patched} fictional behavior events from becoming endpoint infections.`
@@ -827,48 +950,80 @@
         });
         if (isolated) recordDefense(state, 'segmentation', isolated, {
             metricDeltas: { isolatedSpread: isolated },
-            explanation: `Network segmentation isolated ${isolated} fictional lateral spread attempts before the file service.`
+            explanation: `Network segmentation isolated ${isolated} fictional propagation attempts before the next network zone.`
         });
-        const totals = state.scenarioState || {
-            endpointEvents: 0, infectedEndpoints: 0, containedEvents: 0,
-            preventedInfections: 0, spreadAttempts: 0, isolatedSpread: 0,
-            successfulSpread: 0, affectedHosts: []
-        };
-        const newInfections = Math.min(2, Math.floor(infectionEvents / 3));
+        const detectionUnits = Math.max(1, infectionEvents + spreadAttempts);
+        if (state.defenses.ids && state.phase >= 1) recordDefense(state, 'ids', detectionUnits, {
+            metricDeltas: { detections: detectionUnits },
+            explanation: `Intrusion detection observed ${detectionUnits} suspicious synthetic flows without blocking them.`
+        });
+        if (state.defenses.anomalyDetection && state.phase >= 1) recordDefense(state, 'anomalyDetection', detectionUnits, {
+            metricDeltas: { detections: detectionUnits },
+            explanation: `Anomaly detection identified ${detectionUnits} behavior deviations without claiming prevention.`
+        });
+        const newInfections = Math.min(2, Math.ceil(infectionEvents / 4));
         totals.endpointEvents += behaviorEvents;
         totals.preventedInfections += patched;
         totals.containedEvents += contained;
         totals.spreadAttempts += spreadAttempts;
         totals.isolatedSpread += isolated;
         totals.successfulSpread += successfulSpread;
-        totals.infectedEndpoints = Math.min(6, totals.infectedEndpoints + newInfections + Math.min(1, successfulSpread));
-        if (newInfections && !totals.affectedHosts.includes('workstation')) totals.affectedHosts.push('workstation');
-        if (successfulSpread && !totals.affectedHosts.includes('files')) totals.affectedHosts.push('files');
-        totals.endpointHealth = totals.infectedEndpoints ? 'infection-risk' : (active ? 'protected' : 'healthy');
-        state.scenarioState = totals;
-        const risk = active ? Math.min(98, 18 + state.phase * 14 + totals.infectedEndpoints * 9 + successfulSpread * 3 - contained - isolated) : 4;
+        totals.unauthorizedAttempts += profile.id === 'credential-stealing' ? spreadAttempts : 0;
+        totals.unauthorizedAccess += profile.id === 'credential-stealing' ? successfulSpread : 0;
+        totals.abnormalOutboundFlows += profile.id === 'botnet-like' ? successfulSpread : 0;
+        totals.syntheticFilesAffected += profile.id === 'ransomware-like' ? successfulSpread * 4 : 0;
+        totals.detections += (state.defenses.ids ? detectionUnits : 0) + (state.defenses.anomalyDetection ? detectionUnits : 0);
+        if (newInfections && !totals.affectedHosts.includes(profile.initialHost)) totals.affectedHosts.push(profile.initialHost);
+        const nextTarget = profile.path[1];
+        const secondaryTarget = profile.path[2];
+        if (successfulSpread && state.phase >= 3 && !totals.affectedHosts.includes(nextTarget)) totals.affectedHosts.push(nextTarget);
+        if (successfulSpread && state.phase >= 4 && !totals.affectedHosts.includes(secondaryTarget)) totals.affectedHosts.push(secondaryTarget);
+        totals.infectedEndpoints = totals.affectedHosts.length;
+        if ((patched || contained) && !totals.protectedHosts.includes(profile.initialHost)) totals.protectedHosts.push(profile.initialHost);
+        if ((isolated || preventedAccess || outboundFiltered) && !totals.protectedHosts.includes(nextTarget)) totals.protectedHosts.push(nextTarget);
+        if ((preventedAccess || outboundFiltered) && !totals.protectedHosts.includes(secondaryTarget)) totals.protectedHosts.push(secondaryTarget);
+        totals.affectedServices = totals.affectedHosts.filter(id => id !== profile.initialHost).length;
+        totals.recoveryProgress = state.phase === 5 ? Math.min(100, 30 + totals.containedEvents + totals.preventedInfections) : 0;
+        totals.endpointHealth = totals.infectedEndpoints ? 'infection-risk' : 'protected';
+        const risk = Math.min(98, 12 + state.phase * 12 + totals.infectedEndpoints * 8 + successfulSpread * 3 - contained - isolated - preventedAccess - outboundFiltered);
+        const route = state.phase <= 1
+            ? ['internet', profile.initialHost]
+            : state.phase <= 3
+                ? [profile.initialHost, nextTarget]
+                : state.phase === 4
+                    ? [nextTarget, secondaryTarget]
+                    : [totals.affectedHosts.at(-1) || profile.initialHost, 'soc'];
+        const blockedUnits = patched + contained + isolated + preventedAccess + outboundFiltered;
         const event = baseNetworkEvent(state, {
-            source: 'workstation', destination: spreadAttempts ? 'files' : 'soc', protocol: spreadAttempts ? 'SMB' : 'HTTPS',
+            source: route[0], destination: route[1], protocol: profile.protocol,
             action: isolated ? 'isolated' : (infectionEvents ? 'endpoint-risk' : 'contained'),
-            units: behaviorEvents + spreadAttempts, allowed: infectionEvents + successfulSpread, blocked: patched + contained + isolated,
+            units: behaviorEvents + spreadAttempts, allowed: infectionEvents + successfulSpread, blocked: blockedUnits,
             latency: Math.round(30 + infectionEvents * 3 + random() * 7),
-            severity: successfulSpread ? 'critical' : (infectionEvents ? 'high' : (active ? 'low' : 'info')),
-            marker: active ? 'ENDPOINT_BEHAVIOR_RISK' : 'ENDPOINT_HEALTH_BASELINE',
-            explanation: active
-                ? `${infectionEvents} fictional endpoint events remained active; ${isolated} spread attempts were isolated; ${successfulSpread} reached the next abstract host.`
-                : 'Normal endpoint and file-access metadata establishes the fictional health baseline.',
-            scenarioState: { endpointHealth: totals.endpointHealth, executableContent: false, affectedHosts: totals.affectedHosts.slice() }
+            severity: successfulSpread ? 'critical' : (infectionEvents ? 'high' : 'low'),
+            marker: `MALWARE_${profile.id.replaceAll('-', '_').toUpperCase()}_${state.phase + 1}`,
+            explanation: `${profile.name} profile: ${infectionEvents} harmless behavior events remained active; ${blockedUnits} actions were prevented or contained; ${successfulSpread} reached the next fictional asset.`,
+            scenarioState: {
+                profileId: profile.id, profileName: profile.name, endpointHealth: totals.endpointHealth,
+                executableContent: false, realCredentials: false, externalDestination: profile.id === 'botnet-like' ? 'fictional-documentation-destination' : null,
+                initialHost: profile.initialHost, targetedHosts: totals.targetedHosts.slice(),
+                affectedHosts: totals.affectedHosts.slice(), protectedHosts: totals.protectedHosts.slice()
+            }
         });
         commitNetworkTick(state, event, risk, {
             endpointEvents: totals.endpointEvents, infectedEndpoints: totals.infectedEndpoints,
             containedEvents: totals.containedEvents, preventedInfections: totals.preventedInfections,
             spreadAttempts: totals.spreadAttempts, isolatedSpread: totals.isolatedSpread,
-            successfulSpread: totals.successfulSpread
+            successfulSpread: totals.successfulSpread, affectedServices: totals.affectedServices,
+            unauthorizedAttempts: totals.unauthorizedAttempts, unauthorizedAccess: totals.unauthorizedAccess,
+            abnormalOutboundFlows: totals.abnormalOutboundFlows, syntheticFilesAffected: totals.syntheticFilesAffected,
+            recoveryProgress: totals.recoveryProgress
         });
-        const workstation = state.hosts.find(item => item.id === 'workstation');
-        const files = state.hosts.find(item => item.id === 'files');
-        if (workstation) workstation.status = infectionEvents ? 'at-risk' : (active ? 'protected' : 'healthy');
-        if (files) files.status = successfulSpread ? 'at-risk' : (spreadAttempts ? 'observing' : 'healthy');
+        state.hosts.forEach(item => {
+            if (totals.affectedHosts.includes(item.id)) item.status = 'at-risk';
+            else if (totals.protectedHosts.includes(item.id)) item.status = 'protected';
+            else if (totals.targetedHosts.includes(item.id) && state.phase >= 2) item.status = 'observing';
+            else item.status = 'healthy';
+        });
     }
 
     function stepInsider(state, random, difficulty) {
@@ -1367,7 +1522,10 @@
             });
     }
 
-    function scenarioGuidance(scenarioId) {
+    function scenarioGuidance(scenarioId, profileId) {
+        if (scenarioId === 'malware') {
+            return (MALWARE_PROFILES.find(profile => profile.id === profileId) || MALWARE_PROFILES[0]).guidance;
+        }
         return SPECIALIZED_SCENARIO_PROFILES[scenarioId]?.guidance || null;
     }
 
@@ -1401,6 +1559,24 @@
                 .filter(event => event.marker !== 'DEFENSE_TRIGGERED')
                 .slice(0, 8)
                 .map(event => ({ tick: event.tick, marker: event.marker, action: event.action, explanation: event.explanation }));
+        }
+        if (state.scenario.id === 'malware') {
+            const profile = MALWARE_PROFILES.find(item => item.id === state.scenarioState.profileId);
+            report.malwareProfile = state.scenarioState.profileName;
+            report.initialInfectionPoint = host(state.scenarioState.initialHost).name;
+            report.systemsTargeted = state.scenarioState.targetedHosts.map(id => host(id).name);
+            report.systemsAffected = state.scenarioState.affectedHosts.map(id => host(id).name);
+            report.systemsProtected = state.scenarioState.protectedHosts.map(id => host(id).name);
+            report.affectedAssets = report.systemsAffected;
+            report.residualImpact = {
+                infectedHosts: state.scenarioState.infectedEndpoints,
+                affectedServices: state.scenarioState.affectedServices,
+                unauthorizedAccess: state.scenarioState.unauthorizedAccess,
+                abnormalOutboundFlows: state.scenarioState.abnormalOutboundFlows,
+                syntheticFilesAffected: state.scenarioState.syntheticFilesAffected,
+                recoveryProgress: state.scenarioState.recoveryProgress
+            };
+            report.outcomeExplanation = `This run modeled ${profile.name.toLowerCase()} malware. The synthetic activity began at ${report.initialInfectionPoint} and followed ${report.systemsTargeted.join(' → ')}. ${report.systemsProtected.length ? `${report.systemsProtected.join(', ')} received protection from enabled controls.` : 'No targeted system received preventive protection.'} ${report.systemsAffected.length ? `${report.systemsAffected.join(', ')} retained synthetic impact.` : 'The activity was contained before a fictional system retained impact.'}`;
         }
         return attachNormalizedSummary(report, state);
     }
@@ -1460,6 +1636,12 @@
             endpointRisk: state.scenarioState.endpointRisk
         };
         if (state.scenario.id === 'malware') return {
+            malwareProfile: state.scenarioState.profileName,
+            initialInfectionPoint: host(state.scenarioState.initialHost).name,
+            targetedSystems: state.scenarioState.targetedHosts.map(id => host(id).name).join(' → '),
+            affectedSystems: state.scenarioState.affectedHosts.length ? state.scenarioState.affectedHosts.map(id => host(id).name).join(', ') : 'None',
+            protectedSystems: state.scenarioState.protectedHosts.length ? state.scenarioState.protectedHosts.map(id => host(id).name).join(', ') : 'None',
+            whyRunEnded: `The ${state.scenarioState.profileName.toLowerCase()} path ended with ${state.scenarioState.affectedHosts.length} affected and ${state.scenarioState.protectedHosts.length} protected fictional systems.`,
             endpointHealth: state.scenarioState.endpointHealth,
             endpointEvents: state.scenarioState.endpointEvents,
             infectedEndpoints: state.scenarioState.infectedEndpoints,
@@ -1467,7 +1649,13 @@
             preventedInfections: state.scenarioState.preventedInfections,
             spreadAttempts: state.scenarioState.spreadAttempts,
             isolatedSpread: state.scenarioState.isolatedSpread,
-            successfulSpread: state.scenarioState.successfulSpread
+            successfulSpread: state.scenarioState.successfulSpread,
+            affectedServices: state.scenarioState.affectedServices,
+            unauthorizedAccessAttempts: state.scenarioState.unauthorizedAttempts,
+            unauthorizedAccess: state.scenarioState.unauthorizedAccess,
+            abnormalOutboundFlows: state.scenarioState.abnormalOutboundFlows,
+            syntheticFilesAffected: state.scenarioState.syntheticFilesAffected,
+            recoveryProgress: state.scenarioState.recoveryProgress
         };
         if (state.scenario.id === 'insider') return {
             variant: state.scenarioState.variant,
@@ -1732,7 +1920,7 @@
 
     return {
         SCENARIOS, DEFENSES, DEFENSE_META, HOSTS, PROTOCOLS, SEVERITIES, STATE_LIMITS, DOS_PROFILES, UPSTREAM_EFFECTIVENESS,
-        seededRandom, upstreamEffectiveness, initialState, step, reducer, buildReport, dosPhase,
+        MALWARE_PROFILES, malwareProfileForSeed, seededRandom, upstreamEffectiveness, initialState, step, reducer, buildReport, dosPhase,
         filterEvents, serializeReportJson, serializeReportCsv, compareReports, shouldAnnounceCheckpoint,
         defenseDefinition, orderedDefenses, defenseReportEntries, scenarioGuidance, networkOutcomeMetrics,
         attachNormalizedSummary,

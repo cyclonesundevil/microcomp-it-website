@@ -488,20 +488,91 @@ test('Phase 4 reports expose scenario outcomes without executable artifacts', ()
     });
 });
 
-test('malware scenario models endpoint infection, containment, and lateral spread', () => {
-    const undefended = run({ scenarioId: 'malware', difficulty: 'Advanced', seed: 1101 });
-    const defended = run({
-        scenarioId: 'malware', difficulty: 'Advanced', seed: 1101,
-        defenses: { endpointProtection: true, segmentation: true, patchManagement: true }
+test('all four malware profiles are selected deterministically with two seeds each', () => {
+    const expected = [
+        [2000, 2004, 'ransomware-like'],
+        [2001, 2005, 'worm-like'],
+        [2002, 2006, 'credential-stealing'],
+        [2003, 2007, 'botnet-like']
+    ];
+    expected.forEach(([firstSeed, secondSeed, profileId]) => {
+        [firstSeed, secondSeed].forEach(seed => {
+            const initial = E.initialState({ scenarioId: 'malware', seed });
+            assert.equal(initial.scenarioState.profileId, profileId);
+            assert.equal(E.malwareProfileForSeed(seed).id, profileId);
+            assert.equal(E.initialState({ scenarioId: 'malware', seed }).scenarioState.profileId, profileId);
+        });
     });
-    assert.ok(undefended.scenarioState.infectedEndpoints > 0);
-    assert.ok(undefended.scenarioState.successfulSpread > 0);
-    assert.ok(defended.scenarioState.preventedInfections > 0);
-    assert.ok(defended.scenarioState.containedEvents > 0);
-    assert.ok(defended.scenarioState.isolatedSpread > 0);
-    assert.ok(defended.scenarioState.infectedEndpoints < undefended.scenarioState.infectedEndpoints);
-    assert.ok(defended.scenarioState.successfulSpread < undefended.scenarioState.successfulSpread);
-    assert.ok(defended.events.every(event => event.scenarioState?.executableContent !== true));
+});
+
+test('malware profiles use short understandable paths and do not always target file service first', () => {
+    const profiles = E.MALWARE_PROFILES;
+    assert.equal(profiles.length, 4);
+    profiles.forEach(profile => {
+        assert.ok(profile.path.length >= 3 && profile.path.length <= 5);
+        assert.equal(new Set(profile.path).size, profile.path.length);
+        assert.equal(profile.guidance.length, 4);
+        assert.ok(profile.defenses.length >= 4);
+    });
+    assert.equal(profiles.filter(profile => profile.path[1] === 'files').length, 1);
+    assert.ok(profiles.some(profile => !profile.path.includes('files')));
+});
+
+test('each malware profile remains bounded, deterministic, replayable, and safely described', () => {
+    [2000, 2001, 2002, 2003].forEach(seed => {
+        const first = run({ scenarioId: 'malware', difficulty: 'Advanced', seed });
+        const replay = run({ scenarioId: 'malware', difficulty: 'Advanced', seed });
+        assert.deepEqual(replay.findings, first.findings);
+        assert.equal(first.tick, 24);
+        assert.ok(first.scenarioState.affectedHosts.length <= first.scenarioState.targetedHosts.length);
+        assert.ok(first.scenarioState.affectedHosts.every(id => first.scenarioState.targetedHosts.includes(id)));
+        assert.equal(first.findings.malwareProfile, first.scenarioState.profileName);
+        assert.equal(first.findings.initialInfectionPoint, E.HOSTS.find(host => host.id === first.scenarioState.initialHost).name);
+        assert.deepEqual(first.findings.systemsTargeted, first.scenarioState.targetedHosts.map(id => E.HOSTS.find(host => host.id === id).name));
+        assert.match(first.findings.outcomeExplanation, new RegExp(first.scenarioState.profileName, 'i'));
+        assert.ok(first.events.every(event =>
+            event.scenarioState?.executableContent !== true &&
+            event.scenarioState?.realCredentials !== true &&
+            !('payload' in event)));
+    });
+});
+
+test('profile-relevant malware defenses measurably change outcomes without detective blocking claims', () => {
+    const cases = [
+        [2000, { endpointProtection: true, segmentation: true, leastPrivilege: true, patchManagement: true }],
+        [2001, { patchManagement: true, endpointProtection: true, segmentation: true, ids: true, anomalyDetection: true }],
+        [2002, { endpointProtection: true, mfa: true, leastPrivilege: true, anomalyDetection: true, accountLockout: true }],
+        [2003, { endpointProtection: true, trafficFiltering: true, ids: true, anomalyDetection: true, segmentation: true }]
+    ];
+    cases.forEach(([seed, defenses]) => {
+        const undefended = run({ scenarioId: 'malware', difficulty: 'Advanced', seed });
+        const defended = run({ scenarioId: 'malware', difficulty: 'Advanced', seed, defenses });
+        assert.ok(defended.scenarioState.successfulSpread < undefended.scenarioState.successfulSpread);
+        assert.ok(defended.scenarioState.protectedHosts.length > 0);
+        assert.ok(defended.findings.defensesTriggered.length >= 3);
+        defended.findings.defensesTriggered
+            .filter(effect => effect.kind === 'detective')
+            .forEach(effect => {
+                assert.equal(effect.blockedUnits, 0);
+                assert.equal(effect.action, 'detected');
+            });
+    });
+});
+
+test('malware reset reselects the same profile while clearing all runtime state', () => {
+    const complete = run({
+        scenarioId: 'malware', difficulty: 'Advanced', seed: 2002,
+        defenses: { endpointProtection: true, mfa: true, leastPrivilege: true }
+    });
+    const reset = E.reducer(complete, { type: 'RESET' });
+    assert.equal(reset.status, 'ready');
+    assert.equal(reset.tick, 0);
+    assert.equal(reset.scenarioState.profileId, complete.scenarioState.profileId);
+    assert.deepEqual(reset.scenarioState.affectedHosts, []);
+    assert.deepEqual(reset.scenarioState.protectedHosts, []);
+    assert.deepEqual(reset.events, []);
+    assert.deepEqual(reset.alerts, []);
+    assert.equal(reset.findings, null);
 });
 
 test('insider scenario deterministically models three variants and behavioral controls', () => {
@@ -562,15 +633,15 @@ test('APT completes all seven stages and applies controls at their actual layers
 
 test('Phase 5 reports and guidance cover all organizational scenario outcomes', () => {
     [
-        ['malware', { endpointProtection: true, segmentation: true, patchManagement: true }, 5],
-        ['insider', { leastPrivilege: true, dlp: true, anomalyDetection: true }, 5],
-        ['zeroday', { anomalyDetection: true, segmentation: true, leastPrivilege: true }, 5],
-        ['apt', { leastPrivilege: true, segmentation: true, dlp: true }, 7]
-    ].forEach(([scenarioId, defenses, guidanceLength]) => {
+        ['malware', { endpointProtection: true, segmentation: true, patchManagement: true, ids: true, anomalyDetection: true }, 4, 5],
+        ['insider', { leastPrivilege: true, dlp: true, anomalyDetection: true }, 5, 3],
+        ['zeroday', { anomalyDetection: true, segmentation: true, leastPrivilege: true }, 5, 3],
+        ['apt', { leastPrivilege: true, segmentation: true, dlp: true }, 7, 3]
+    ].forEach(([scenarioId, defenses, guidanceLength, triggeredCount]) => {
         const state = run({ scenarioId, difficulty: 'Intermediate', seed: 1505, defenses });
         assert.equal(state.findings.specializedScenario, true);
         assert.ok(state.findings.outcomeMetrics);
-        assert.equal(state.findings.defensesTriggered.length, 3);
+        assert.equal(state.findings.defensesTriggered.length, triggeredCount);
         assert.equal(E.scenarioGuidance(scenarioId).length, guidanceLength);
         assert.ok(state.findings.events.every(event => !('payload' in event) && !('url' in event) && !('credentials' in event)));
     });

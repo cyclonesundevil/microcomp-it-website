@@ -142,13 +142,34 @@ test('Phase 5 organizational scenarios expose dedicated engines and seven-stage 
         'completedStages', 'exfiltrationBlocked', '`APT_${stage.toUpperCase()'
     ].forEach(marker => assert.ok(engine.includes(marker), `engine missing Phase 5 marker: ${marker}`));
     [
-        "s.phases.length * 4", 'Endpoint health', 'Insider variant',
+        "s.phases.length * 4", 'Malware profile', 'Insider variant',
         'Signature status', 'APT stage', 'Exfiltrated units'
     ].forEach(marker => assert.ok(controller.includes(marker), `controller missing Phase 5 UI: ${marker}`));
     [
         'Initial access', 'Persistence', 'Discovery', 'Privilege expansion',
         'Lateral movement', 'Collection', 'Exfiltration outcome'
     ].forEach(stage => assert.ok(engine.includes(stage), `APT stage missing: ${stage}`));
+});
+
+test('malware profile UI exposes beginner briefing, bounded paths, metrics, and static summaries', () => {
+    [
+        'MALWARE_PROFILES', 'malwareProfileForSeed',
+        'Ransomware-like', 'Worm-like', 'Credential-stealing', 'Botnet-like',
+        "['workstation', 'files', 'database']", "['web', 'workstation', 'files']",
+        "['workstation', 'identity', 'web']", "['workstation', 'edge', 'internet']",
+        'Initial infection', 'Local execution', 'Discovery',
+        'Attempted spread or access', 'Infrastructure impact', 'Containment or recovery',
+        'outcomeExplanation', 'systemsTargeted', 'systemsAffected', 'systemsProtected'
+    ].forEach(marker => assert.ok(engine.includes(marker), `engine missing malware profile marker: ${marker}`));
+    [
+        'malwareMetricLabels', 'malwareOutcomeValues',
+        'Initial infection:', 'Path:', 'Affected:', 'Protected:',
+        'Synthetic files affected', 'Unauthorized access', 'Abnormal outbound flows',
+        'state.scenarioState?.profileId', 'initial-infection', 'initial infection point'
+    ].forEach(marker => assert.ok(controller.includes(marker), `controller missing malware profile UI: ${marker}`));
+    assert.match(styles, /\.topology-node\.initial-infection::before/);
+    assert.match(styles, /content: "INITIAL"/);
+    assert.match(controller, /Static flow view enabled/);
 });
 
 test('cyber lab light theme uses explicit high-contrast text, surfaces, and controls', () => {
@@ -163,7 +184,7 @@ test('cyber lab light theme uses explicit high-contrast text, surfaces, and cont
         ':root[data-theme="light"] .report-score'
     ].forEach(marker => assert.ok(styles.includes(marker), `light theme missing contrast rule: ${marker}`));
     assert.doesNotMatch(styles, /color:\s*var\(--text-color,\s*#f7fbff\)/);
-    assert.ok(page.includes('cyber-lab.css?v=1.4'), 'light theme stylesheet cache version was not updated');
+    assert.ok(page.includes('cyber-lab.css?v=1.5'), 'light theme stylesheet cache version was not updated');
 });
 
 test('light topology communicates penetration with color and non-color cues', () => {
@@ -193,7 +214,7 @@ test('paused and completed simulations freeze flow animation and explain the sta
         '.topology.is-complete .flow-links line',
         'animation-play-state: paused'
     ].forEach(marker => assert.ok(styles.includes(marker), `styles missing lifecycle motion cue: ${marker}`));
-    assert.ok(page.includes('cyber-lab.js?v=1.1'), 'controller cache version was not updated');
+    assert.ok(page.includes('cyber-lab.js?v=1.2'), 'controller cache version was not updated');
 });
 
 test('Demo Lab directory links to the simulation route', () => {

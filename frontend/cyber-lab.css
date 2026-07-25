@@ -99,6 +99,7 @@
 .topology-node small { color: var(--cyber-muted); font: 600 .59rem/1 monospace; }
 .topology-node.status-at-risk { border-color: var(--cyber-red); box-shadow: 0 0 20px rgba(255, 107, 120, .23); }
 .topology-node.status-at-risk::after { content: "AT RISK"; position: absolute; top: -9px; right: -7px; padding: 2px 5px; border-radius: 999px; color: #fff; background: var(--cyber-red); font-size: .5rem; font-weight: 800; letter-spacing: .04em; }
+.topology-node.initial-infection::before { content: "INITIAL"; position: absolute; top: -9px; left: -7px; padding: 2px 5px; border-radius: 999px; color: #03131a; background: var(--cyber-cyan); font-size: .5rem; font-weight: 800; letter-spacing: .04em; }
 .topology-node.status-protected { border-color: var(--cyber-cyan); }
 .topology-node.status-observing { border-color: var(--cyber-amber); }
 .topology-node.upstream-node { border-width: 2px; background: rgba(8, 48, 47, .96); box-shadow: 0 0 25px rgba(85, 230, 193, .2); }

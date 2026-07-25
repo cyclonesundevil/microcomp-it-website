@@ -411,3 +411,19 @@ Phase 6 adds shared quality gates without changing the safe, deterministic natur
 
 - Pixel-diff visual regression and a cross-browser CI matrix can be added if the project adopts browser-test tooling.
 - The current dependency-free browser smoke and DOM-contract tests remain the lightweight default for this static site.
+
+## Deterministic malware profile enhancement
+
+Status: **Complete in this change.**
+
+The Malware Outbreak lesson now selects one of four seed-deterministic teaching profiles: ransomware-like, worm-like, credential-stealing, or botnet-like. Selection occurs during initialization and remains fixed through replay and reset.
+
+- Each profile uses six understandable lifecycle stages across 24 virtual ticks.
+- Each primary path contains three meaningful assets with at most one continuation.
+- Only the ransomware-like profile uses the file service as its primary infrastructure target.
+- Briefing, guidance, topology summary, metrics, outcome cards, events, and reports name and reflect the selected profile.
+- Reports distinguish targeted, affected, and protected systems and provide a plain-language outcome explanation.
+- Preventive controls change residual outcomes; IDS and anomaly detection record activity without claiming to block it.
+- Tests cover two seeds per profile, deterministic replay, bounded targets, profile defenses, reset, reporting, safety, and reduced-motion text equivalents.
+
+These profiles are intentionally simplified defensive teaching models. They do not reproduce a real malware family and contain no executable behavior, payload, credentials, persistence, evasion, or operational attack steps.

@@ -107,7 +107,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const counter = nodeEffects.length
                 ? `<em class="topology-counter">${nodeEffects.map(effect => `${effect.name}: ${effect.affected.toLocaleString()} ${effect.action}`).join(' · ')}</em>`
                 : '';
-            return `<button class="topology-node status-${host.status} ${host.id === 'upstream' ? 'upstream-node' : ''}" style="left:${x}%;top:${y}%" data-host="${host.id}" aria-label="${escapeHtml(host.name)}, ${host.ip}, status ${host.status}${host.id === 'upstream' ? `, ${state.metrics.upstreamFiltered} requests filtered this tick` : ''}">
+            const initialInfection = state.scenario.id === 'malware' && host.id === state.scenarioState?.initialHost;
+            return `<button class="topology-node status-${host.status} ${host.id === 'upstream' ? 'upstream-node' : ''} ${initialInfection ? 'initial-infection' : ''}" style="left:${x}%;top:${y}%" data-host="${host.id}" aria-label="${escapeHtml(host.name)}, ${host.ip}, status ${host.status}${initialInfection ? ', initial infection point' : ''}${host.id === 'upstream' ? `, ${state.metrics.upstreamFiltered} requests filtered this tick` : ''}">
                 <span aria-hidden="true">${icon[host.type] || '●'}</span><strong>${escapeHtml(host.name)}</strong><small>${host.ip}</small>
                 ${counter}
             </button>`;
@@ -139,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function render() {
         const s = state.scenario;
-        $('#brief-title').textContent = s.title;
+        $('#brief-title').textContent = s.id === 'malware' ? `${s.title} — ${s.profileName}` : s.title;
         $('#brief-objective').textContent = `Objective: ${s.objective}`;
         $('#brief-category').textContent = s.category;
         $('#brief-duration').textContent = s.duration;
@@ -163,7 +164,10 @@ document.addEventListener('DOMContentLoaded', () => {
         $('#metric-errors').textContent = `${state.metrics.errors}%`;
         $('#metric-availability').textContent = `${state.metrics.availability}%`;
         renderScenarioOutcomes();
-        $('#topology-summary').textContent = `${s.title}: virtual tick ${state.tick}, ${state.alerts.length} alerts, risk ${state.metrics.risk} out of 100.${state.defenses.upstreamProtection ? ` Upstream filter removed ${state.metrics.upstreamFiltered.toLocaleString()} synthetic requests before the edge.` : ''}`;
+        const malwareSummary = s.id === 'malware' && state.scenarioState
+            ? ` ${state.scenarioState.profileName} profile. Initial infection: ${hostName(state.scenarioState.initialHost)}. Path: ${state.scenarioState.targetedHosts.map(hostName).join(' to ')}. Affected: ${state.scenarioState.affectedHosts.length ? state.scenarioState.affectedHosts.map(hostName).join(', ') : 'none'}. Protected: ${state.scenarioState.protectedHosts.length ? state.scenarioState.protectedHosts.map(hostName).join(', ') : 'none'}.`
+            : '';
+        $('#topology-summary').textContent = `${s.title}: virtual tick ${state.tick}, ${state.alerts.length} alerts, risk ${state.metrics.risk} out of 100.${malwareSummary}${state.defenses.upstreamProtection ? ` Upstream filter removed ${state.metrics.upstreamFiltered.toLocaleString()} synthetic requests before the edge.` : ''}`;
         $('#attack-type-field').hidden = s.id !== 'dos';
         $('#recovery-field').hidden = s.id !== 'dos';
         buildTopology();
@@ -199,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
             thresholds.forEach((threshold, lessonIndex) => { if (state.tick >= threshold) index = lessonIndex; });
             return lessons[index];
         }
-        const networkGuidance = E.scenarioGuidance(state.scenario.id);
+        const networkGuidance = E.scenarioGuidance(state.scenario.id, state.scenarioState?.profileId);
         if (networkGuidance) return networkGuidance[state.phase];
         const copy = [
             'Observe the calm baseline. Check the normal request rate and healthy host states.',
@@ -209,6 +213,44 @@ document.addEventListener('DOMContentLoaded', () => {
             'Review which controls helped and what residual risk remains in the findings report.'
         ];
         return copy[state.phase];
+    }
+
+    function hostName(id) {
+        return state.hosts.find(item => item.id === id)?.name || id;
+    }
+
+    function malwareMetricLabels() {
+        const labels = {
+            'ransomware-like': ['Behavior events / tick', 'Active actions', 'Synthetic files affected', 'Controlled this tick'],
+            'worm-like': ['Behavior events / tick', 'Propagation actions', 'Infected hosts', 'Controlled this tick'],
+            'credential-stealing': ['Synthetic access attempts', 'Unauthorized access', 'Protected systems', 'Controlled this tick'],
+            'botnet-like': ['Outbound attempts / tick', 'Allowed outbound', 'Abnormal outbound total', 'Controlled this tick']
+        };
+        return labels[state.scenarioState?.profileId] || ['Behavior events / tick', 'Active actions', 'Affected systems', 'Controlled this tick'];
+    }
+
+    function malwareOutcomeValues() {
+        const malware = state.scenarioState;
+        const shared = {
+            'Malware profile': malware.profileName,
+            'Initial infection': hostName(malware.initialHost)
+        };
+        if (malware.profileId === 'ransomware-like') return {
+            ...shared, 'Synthetic files affected': malware.syntheticFilesAffected,
+            'Affected services': malware.affectedServices, 'Recovery progress': `${malware.recoveryProgress}%`
+        };
+        if (malware.profileId === 'worm-like') return {
+            ...shared, 'Infected hosts': malware.infectedEndpoints,
+            'Spread attempts': malware.spreadAttempts, 'Isolated attempts': malware.isolatedSpread
+        };
+        if (malware.profileId === 'credential-stealing') return {
+            ...shared, 'Unauthorized attempts': malware.unauthorizedAttempts,
+            'Unauthorized access': malware.unauthorizedAccess, 'Protected systems': malware.protectedHosts.length
+        };
+        return {
+            ...shared, 'Abnormal outbound flows': malware.abnormalOutboundFlows,
+            'Contained events': malware.containedEvents, 'Detected activity': malware.detections
+        };
     }
 
     function renderScenarioOutcomes() {
@@ -223,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 sqli: ['Marked requests / tick', 'Database-bound', 'Database queries total', 'Rejected this tick'],
                 xss: ['Content submissions / tick', 'Application-bound', 'Unsafe renders total', 'Rejected this tick'],
                 phishing: ['Mock messages / tick', 'Delivered messages', 'Interactions total', 'Filtered this tick'],
-                malware: ['Endpoint events / tick', 'Active events', 'Infected endpoints', 'Controlled this tick'],
+                malware: malwareMetricLabels(),
                 insider: ['Access events / tick', 'Allowed events', 'Baseline deviations', 'Restricted this tick'],
                 zeroday: ['Behavior events / tick', 'Impact actions', 'Signature misses', 'Contained this tick'],
                 apt: ['Stage actions / tick', 'Allowed actions', 'Collected units', 'Controlled this tick']
@@ -231,6 +273,17 @@ document.addEventListener('DOMContentLoaded', () => {
             : ['Offered requests / sec', 'Accepted at edge / sec', 'Server-bound / sec', 'Filtered / sec'];
         ['#metric-rps-label', '#metric-allowed-label', '#metric-server-label', '#metric-blocked-label']
             .forEach((selector, index) => { $(selector).textContent = labels[index]; });
+        if (state.scenario.id === 'malware' && state.scenarioState) {
+            const malware = state.scenarioState;
+            const thirdValue = malware.profileId === 'ransomware-like'
+                ? malware.syntheticFilesAffected
+                : malware.profileId === 'worm-like'
+                    ? malware.infectedEndpoints
+                    : malware.profileId === 'credential-stealing'
+                        ? malware.protectedHosts.length
+                        : malware.abnormalOutboundFlows;
+            $('#metric-server-rps').textContent = Number(thirdValue).toLocaleString();
+        }
         if (!specializedScenario || !state.scenarioState) {
             strip.innerHTML = '<p>Scenario-specific integrity, identity, or confidentiality outcomes appear here.</p>';
             inbox.hidden = true;
@@ -271,12 +324,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Filtered messages': state.scenarioState.filteredMessages,
                     'User interactions': state.scenarioState.interactions,
                     'Protected identities': state.scenarioState.protectedIdentities
-                } : state.scenario.id === 'malware' ? {
-                    'Endpoint health': state.scenarioState.endpointHealth,
-                    'Infected endpoints': state.scenarioState.infectedEndpoints,
-                    'Contained events': state.scenarioState.containedEvents,
-                    'Isolated spread': state.scenarioState.isolatedSpread
-                } : state.scenario.id === 'insider' ? {
+                } : state.scenario.id === 'malware' ? malwareOutcomeValues()
+                : state.scenario.id === 'insider' ? {
                     'Insider variant': state.scenarioState.variant,
                     'Baseline deviations': state.scenarioState.baselineDeviations,
                     'Restricted events': state.scenarioState.restrictedEvents,

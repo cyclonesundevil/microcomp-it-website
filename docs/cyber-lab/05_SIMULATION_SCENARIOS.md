@@ -103,28 +103,42 @@ Users compare generic phishing with targeted spear phishing.
 
 ### Concept
 
-A fictional endpoint transitions through infection, execution-risk, and spread-risk stages.
+A deterministic seed selects one of four fictional behavior profiles. Each run follows six beginner-friendly stages—initial infection, local execution, discovery, attempted spread or access, infrastructure impact, and containment or recovery—without creating malware or touching a real system.
+
+The profiles are teaching models, not exact reproductions of named real-world malware families:
+
+| Profile | Purpose and likely targets | Main defenses |
+|---|---|---|
+| Ransomware-like | Begins at the employee workstation and may reach the file service plus one nearby business system. It teaches synthetic file availability, disruption, and recovery workload. | Endpoint protection, patch management, segmentation, least privilege |
+| Worm-like | Begins at a vulnerable application server, discovers a nearby workstation, and may attempt one additional shared-service hop. It teaches propagation, host degradation, and internal traffic. | Patch management, endpoint protection, segmentation, IDS, anomaly detection |
+| Credential-stealing | Begins at the employee workstation, attempts synthetic authentication at the identity service, and may reach one application. No credential is collected or displayed. | Endpoint protection, MFA, account lockout, least privilege, anomaly detection |
+| Botnet-like | Begins at the employee workstation and follows one outbound path through the gateway to a fictional external destination. It teaches abnormal outbound traffic and endpoint resource use. | Endpoint protection, traffic filtering, segmentation, IDS, anomaly detection |
+
+Profile selection uses `abs(seed) mod 4`. The profile is selected once during initialization, remains fixed through the run, and is reproduced by replay. Changing the seed may select a different profile.
+
+Every profile intentionally uses a primary path of three meaningful assets and no more than one secondary continuation. This keeps the topology understandable, prevents excessive simultaneous flows, and makes defense effects easier for beginners to compare.
 
 ### Visual indicators
 
-- anomalous process event;
-- outbound beacon-risk pattern;
-- file-access spike;
-- lateral connection attempts;
-- endpoint health changes.
+- identified initial infection point;
+- one ordered attempted path;
+- affected, protected, observing, and unaffected host states;
+- profile-specific outcome values;
+- static path, status, and summary text in reduced-motion mode.
 
 ### Defenses
 
 - endpoint protection;
-- application allowlisting;
 - segmentation;
 - least privilege;
-- backups;
 - patching.
+- MFA and account lockout for credential-driven behavior;
+- traffic filtering for outbound behavior;
+- IDS and anomaly detection as detection-only controls.
 
 ### Safety note
 
-Do not create executable content or touch real files.
+Do not create executable content, touch real files, collect credentials, or use a real command-and-control destination. All addresses and activity remain fictional and documentation-safe.
 
 ---
 
