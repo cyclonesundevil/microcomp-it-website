@@ -575,3 +575,52 @@ test('Phase 5 reports and guidance cover all organizational scenario outcomes', 
         assert.ok(state.findings.events.every(event => !('payload' in event) && !('url' in event) && !('credentials' in event)));
     });
 });
+
+test('all eleven reports expose the normalized Phase 6 summary schema', () => {
+    E.SCENARIOS.forEach(scenario => {
+        const defenses = Object.fromEntries(scenario.defenses.map(id => [id, true]));
+        const state = run({ scenarioId: scenario.id, difficulty: 'Intermediate', seed: 1606, defenses });
+        const report = state.findings;
+        assert.equal(report.schemaVersion, '2.0', `${scenario.id} schema version`);
+        assert.equal(report.summary.identity.scenarioId, scenario.id);
+        assert.equal(report.summary.identity.scenario, scenario.title);
+        assert.ok(Number.isFinite(report.summary.risk.peak));
+        assert.ok(Number.isFinite(report.summary.risk.residual));
+        assert.ok(Number.isFinite(report.summary.activity.eventCount));
+        assert.ok(Number.isFinite(report.summary.activity.blockedUnits));
+        assert.ok(Number.isFinite(report.summary.service.maximumLatency));
+        assert.ok(Number.isFinite(report.summary.service.minimumAvailability));
+        assert.equal(report.summary.defenses.triggered, report.defensesTriggered.length);
+        assert.ok(report.summary.outcomes);
+    });
+});
+
+test('normalized comparison deltas work consistently for DoS and specialized scenarios', () => {
+    [
+        ['dos', { rateLimiting: true, trafficFiltering: true }],
+        ['phishing', { emailFiltering: true, mfa: true }],
+        ['apt', { leastPrivilege: true, segmentation: true, dlp: true }]
+    ].forEach(([scenarioId, defenses]) => {
+        const baseline = run({ scenarioId, difficulty: 'Intermediate', seed: 1707 });
+        const defended = run({ scenarioId, difficulty: 'Intermediate', seed: 1707, defenses });
+        const comparison = E.compareReports(baseline.findings, defended.findings);
+        assert.equal(comparison.comparable, true);
+        assert.ok(Number.isFinite(comparison.normalizedDeltas['risk.residual']));
+        assert.ok(Number.isFinite(comparison.normalizedDeltas['activity.blockedUnits']));
+        assert.ok(Number.isFinite(comparison.normalizedDeltas['service.maximumLatency']));
+    });
+});
+
+test('all scenarios remain within centralized rendering and state limits', () => {
+    const started = performance.now();
+    E.SCENARIOS.forEach(scenario => {
+        const defenses = Object.fromEntries(scenario.defenses.map(id => [id, true]));
+        const state = run({ scenarioId: scenario.id, difficulty: 'Advanced', seed: 1808, defenses });
+        assert.ok(state.events.length <= E.STATE_LIMITS.events, `${scenario.id} event cap`);
+        assert.ok(state.flows.length <= E.STATE_LIMITS.flows, `${scenario.id} flow cap`);
+        assert.ok(state.alerts.length <= E.STATE_LIMITS.alerts, `${scenario.id} alert cap`);
+        assert.ok(state.history.length <= E.STATE_LIMITS.history, `${scenario.id} history cap`);
+        assert.ok(state.defenseEffectLog.length <= E.STATE_LIMITS.defenseEffects, `${scenario.id} effect cap`);
+    });
+    assert.ok(performance.now() - started < 2500, 'all scenario simulations should complete within the regression budget');
+});

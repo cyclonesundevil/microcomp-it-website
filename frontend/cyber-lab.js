@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const normalized = query.toLowerCase().trim();
         const items = E.SCENARIOS.filter(s => `${s.title} ${s.category} ${s.objective}`.toLowerCase().includes(normalized));
         $('#scenario-list').innerHTML = items.map(s => `
-            <button class="scenario-card ${s.id === selectedScenario ? 'selected' : ''}" role="option" aria-selected="${s.id === selectedScenario}" data-scenario="${s.id}">
+            <button class="scenario-card ${s.id === selectedScenario ? 'selected' : ''}" role="option" aria-selected="${s.id === selectedScenario}" ${s.id === selectedScenario ? 'aria-current="true"' : ''} data-scenario="${s.id}">
                 <span>${escapeHtml(s.category)}</span><strong>${escapeHtml(s.title)}</strong><small>${escapeHtml(s.duration)}</small>
             </button>`).join('') || '<p class="empty-state">No scenarios match that filter.</p>';
         document.querySelectorAll('[data-scenario]').forEach(button => button.addEventListener('click', () => {
@@ -180,6 +180,8 @@ document.addEventListener('DOMContentLoaded', () => {
         renderFlows();
         renderReport();
         $('#pause').textContent = state.status === 'paused' ? 'Resume' : 'Pause';
+        $('#pause').setAttribute('aria-pressed', state.status === 'paused' ? 'true' : 'false');
+        $('#pause').setAttribute('aria-label', state.status === 'paused' ? 'Resume simulation activity' : 'Pause simulation activity');
         $('#export-json').disabled = !state.findings;
         $('#export-csv').disabled = !state.findings;
     }

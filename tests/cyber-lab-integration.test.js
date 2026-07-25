@@ -223,3 +223,30 @@ test('homepage prominently promotes the cybersecurity simulation lab', () => {
         '@media (max-width: 900px)', '@media (max-width: 560px)'
     ].forEach(marker => assert.ok(promoStyles.includes(marker), `scoped homepage promotion style missing: ${marker}`));
 });
+
+test('Phase 6 accessibility semantics expose state without relying on visual inspection', () => {
+    [
+        'id="run-status" class="status-pill" role="status" aria-live="polite"',
+        'aria-label="Topology status legend"', 'aria-live="polite"',
+        'class="visually-hidden" aria-live="polite"'
+    ].forEach(marker => assert.ok(page.includes(marker), `page missing accessibility state: ${marker}`));
+    [
+        'aria-current="true"', "setAttribute('aria-pressed'",
+        'Resume simulation activity', 'Pause simulation activity',
+        'Simulation paused; flow paths are frozen.',
+        'Simulation complete; flow paths are stopped.'
+    ].forEach(marker => assert.ok(controller.includes(marker), `controller missing accessibility state: ${marker}`));
+    const ids = [...page.matchAll(/\sid="([^"]+)"/g)].map(match => match[1]);
+    assert.equal(new Set(ids).size, ids.length, 'page IDs must be unique');
+});
+
+test('Phase 6 static production route resolves every local stylesheet and script', () => {
+    const references = [...page.matchAll(/(?:href|src)="([^"]+\.(?:css|js)(?:\?[^"]*)?)"/g)]
+        .map(match => match[1])
+        .filter(reference => !reference.startsWith('http'));
+    references.forEach(reference => {
+        const clean = reference.split('?')[0];
+        const resolved = path.resolve(root, 'frontend/demo-lab', clean);
+        assert.ok(fs.existsSync(resolved), `missing local asset: ${reference}`);
+    });
+});
