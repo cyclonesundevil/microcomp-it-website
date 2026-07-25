@@ -155,7 +155,7 @@ test('malware profile UI exposes beginner briefing, bounded paths, metrics, and 
     [
         'MALWARE_PROFILES', 'malwareProfileForSeed',
         'Ransomware-like', 'Worm-like', 'Credential-stealing', 'Botnet-like',
-        "['workstation', 'files', 'database']", "['web', 'workstation', 'files']",
+        "['workstation', 'files', 'database']", "['workstation', 'web', 'files']",
         "['workstation', 'identity', 'web']", "['workstation', 'edge', 'internet']",
         'Initial infection', 'Local execution', 'Discovery',
         'Attempted spread or access', 'Infrastructure impact', 'Containment or recovery',

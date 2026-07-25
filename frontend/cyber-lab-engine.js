@@ -165,8 +165,8 @@
             ]
         },
         {
-            id: 'worm-like', name: 'Worm-like', initialHost: 'web',
-            path: ['web', 'workstation', 'files'],
+            id: 'worm-like', name: 'Worm-like', initialHost: 'workstation',
+            path: ['workstation', 'web', 'files'],
             primaryRisk: 'Rapid propagation, host degradation, and increased internal traffic.',
             behavior: 'It will discover a nearby workstation and may attempt one additional move toward a shared service.',
             defenses: ['patchManagement', 'endpointProtection', 'segmentation', 'ids', 'anomalyDetection'],
@@ -231,12 +231,14 @@
             };
             scenarioState = {
                 profileId: profile.id, profileName: profile.name, initialHost: profile.initialHost,
+                initialInfectionOccurred: true, originInternal: true,
                 primaryPath: profile.path.slice(), targetedHosts: profile.path.slice(),
                 affectedHosts: [], protectedHosts: [], endpointEvents: 0, infectedEndpoints: 0,
                 containedEvents: 0, preventedInfections: 0, spreadAttempts: 0,
                 isolatedSpread: 0, successfulSpread: 0, affectedServices: 0,
                 unauthorizedAttempts: 0, unauthorizedAccess: 0, abnormalOutboundFlows: 0,
                 syntheticFilesAffected: 0, recoveryProgress: 0, detections: 0,
+                networkSpreadPrevented: 0,
                 endpointHealth: 'healthy'
             };
         }
@@ -939,7 +941,15 @@
             metricDeltas: { abnormalOutboundFlows: -outboundFiltered },
             explanation: `Traffic filtering stopped ${outboundFiltered} abnormal synthetic outbound flows at the gateway.`
         });
-        const successfulSpread = Math.max(0, spreadAttempts - isolated - preventedAccess - outboundFiltered);
+        const residualSpread = Math.max(0, spreadAttempts - isolated - preventedAccess - outboundFiltered);
+        const preventiveControls = profile.defenses.filter(id => DEFENSE_META[id].kind !== 'detective');
+        const completePreventiveStack = preventiveControls.every(id => state.defenses[id]);
+        const stackContained = completePreventiveStack ? residualSpread : 0;
+        const successfulSpread = Math.max(0, residualSpread - stackContained);
+        if (stackContained) recordDefense(state, 'endpointProtection', stackContained, {
+            metricDeltas: { networkSpreadPrevented: stackContained },
+            explanation: `The complete preventive stack contained ${stackContained} residual synthetic actions at the initially infected host.`
+        });
         if (patched) recordDefense(state, 'patchManagement', patched, {
             metricDeltas: { preventedInfections: patched },
             explanation: `Patch management prevented ${patched} fictional behavior events from becoming endpoint infections.`
@@ -972,28 +982,36 @@
         totals.unauthorizedAccess += profile.id === 'credential-stealing' ? successfulSpread : 0;
         totals.abnormalOutboundFlows += profile.id === 'botnet-like' ? successfulSpread : 0;
         totals.syntheticFilesAffected += profile.id === 'ransomware-like' ? successfulSpread * 4 : 0;
+        totals.networkSpreadPrevented += stackContained;
         totals.detections += (state.defenses.ids ? detectionUnits : 0) + (state.defenses.anomalyDetection ? detectionUnits : 0);
-        if (newInfections && !totals.affectedHosts.includes(profile.initialHost)) totals.affectedHosts.push(profile.initialHost);
+        if (newInfections && !completePreventiveStack && !totals.affectedHosts.includes(profile.initialHost)) totals.affectedHosts.push(profile.initialHost);
         const nextTarget = profile.path[1];
         const secondaryTarget = profile.path[2];
         if (successfulSpread && state.phase >= 3 && !totals.affectedHosts.includes(nextTarget)) totals.affectedHosts.push(nextTarget);
         if (successfulSpread && state.phase >= 4 && !totals.affectedHosts.includes(secondaryTarget)) totals.affectedHosts.push(secondaryTarget);
         totals.infectedEndpoints = totals.affectedHosts.length;
-        if ((patched || contained) && !totals.protectedHosts.includes(profile.initialHost)) totals.protectedHosts.push(profile.initialHost);
+        if ((patched || contained || completePreventiveStack) && !totals.protectedHosts.includes(profile.initialHost)) totals.protectedHosts.push(profile.initialHost);
         if ((isolated || preventedAccess || outboundFiltered) && !totals.protectedHosts.includes(nextTarget)) totals.protectedHosts.push(nextTarget);
         if ((preventedAccess || outboundFiltered) && !totals.protectedHosts.includes(secondaryTarget)) totals.protectedHosts.push(secondaryTarget);
+        if (completePreventiveStack) {
+            profile.path.forEach(id => {
+                if (!totals.protectedHosts.includes(id)) totals.protectedHosts.push(id);
+            });
+        }
         totals.affectedServices = totals.affectedHosts.filter(id => id !== profile.initialHost).length;
         totals.recoveryProgress = state.phase === 5 ? Math.min(100, 30 + totals.containedEvents + totals.preventedInfections) : 0;
         totals.endpointHealth = totals.infectedEndpoints ? 'infection-risk' : 'protected';
-        const risk = Math.min(98, 12 + state.phase * 12 + totals.infectedEndpoints * 8 + successfulSpread * 3 - contained - isolated - preventedAccess - outboundFiltered);
+        const risk = completePreventiveStack
+            ? Math.max(4, 18 - state.phase * 2)
+            : Math.min(98, 12 + state.phase * 12 + totals.infectedEndpoints * 8 + successfulSpread * 3 - contained - isolated - preventedAccess - outboundFiltered);
         const route = state.phase <= 1
-            ? ['internet', profile.initialHost]
+            ? [profile.initialHost, nextTarget]
             : state.phase <= 3
                 ? [profile.initialHost, nextTarget]
                 : state.phase === 4
                     ? [nextTarget, secondaryTarget]
-                    : [totals.affectedHosts.at(-1) || profile.initialHost, 'soc'];
-        const blockedUnits = patched + contained + isolated + preventedAccess + outboundFiltered;
+                    : [profile.initialHost, 'soc'];
+        const blockedUnits = patched + contained + isolated + preventedAccess + outboundFiltered + stackContained;
         const event = baseNetworkEvent(state, {
             source: route[0], destination: route[1], protocol: profile.protocol,
             action: isolated ? 'isolated' : (infectionEvents ? 'endpoint-risk' : 'contained'),
@@ -1001,10 +1019,11 @@
             latency: Math.round(30 + infectionEvents * 3 + random() * 7),
             severity: successfulSpread ? 'critical' : (infectionEvents ? 'high' : 'low'),
             marker: `MALWARE_${profile.id.replaceAll('-', '_').toUpperCase()}_${state.phase + 1}`,
-            explanation: `${profile.name} profile: ${infectionEvents} harmless behavior events remained active; ${blockedUnits} actions were prevented or contained; ${successfulSpread} reached the next fictional asset.`,
+            explanation: `${profile.name} profile originated at ${host(profile.initialHost).name}: ${infectionEvents} harmless behavior events remained active; ${blockedUnits} actions were prevented or contained; ${successfulSpread} reached the next fictional asset.${completePreventiveStack ? ' The complete preventive stack prevented downstream network infection.' : ''}`,
             scenarioState: {
                 profileId: profile.id, profileName: profile.name, endpointHealth: totals.endpointHealth,
                 executableContent: false, realCredentials: false, externalDestination: profile.id === 'botnet-like' ? 'fictional-documentation-destination' : null,
+                originInternal: true, completePreventiveStack,
                 initialHost: profile.initialHost, targetedHosts: totals.targetedHosts.slice(),
                 affectedHosts: totals.affectedHosts.slice(), protectedHosts: totals.protectedHosts.slice()
             }
@@ -1016,7 +1035,7 @@
             successfulSpread: totals.successfulSpread, affectedServices: totals.affectedServices,
             unauthorizedAttempts: totals.unauthorizedAttempts, unauthorizedAccess: totals.unauthorizedAccess,
             abnormalOutboundFlows: totals.abnormalOutboundFlows, syntheticFilesAffected: totals.syntheticFilesAffected,
-            recoveryProgress: totals.recoveryProgress
+            recoveryProgress: totals.recoveryProgress, networkSpreadPrevented: totals.networkSpreadPrevented
         });
         state.hosts.forEach(item => {
             if (totals.affectedHosts.includes(item.id)) item.status = 'at-risk';
@@ -1563,6 +1582,8 @@
         if (state.scenario.id === 'malware') {
             const profile = MALWARE_PROFILES.find(item => item.id === state.scenarioState.profileId);
             report.malwareProfile = state.scenarioState.profileName;
+            report.initialInfectionOccurred = state.scenarioState.initialInfectionOccurred;
+            report.originInternal = state.scenarioState.originInternal;
             report.initialInfectionPoint = host(state.scenarioState.initialHost).name;
             report.systemsTargeted = state.scenarioState.targetedHosts.map(id => host(id).name);
             report.systemsAffected = state.scenarioState.affectedHosts.map(id => host(id).name);
@@ -1574,9 +1595,10 @@
                 unauthorizedAccess: state.scenarioState.unauthorizedAccess,
                 abnormalOutboundFlows: state.scenarioState.abnormalOutboundFlows,
                 syntheticFilesAffected: state.scenarioState.syntheticFilesAffected,
-                recoveryProgress: state.scenarioState.recoveryProgress
+                recoveryProgress: state.scenarioState.recoveryProgress,
+                networkSpreadPrevented: state.scenarioState.networkSpreadPrevented
             };
-            report.outcomeExplanation = `This run modeled ${profile.name.toLowerCase()} malware. The synthetic activity began at ${report.initialInfectionPoint} and followed ${report.systemsTargeted.join(' → ')}. ${report.systemsProtected.length ? `${report.systemsProtected.join(', ')} received protection from enabled controls.` : 'No targeted system received preventive protection.'} ${report.systemsAffected.length ? `${report.systemsAffected.join(', ')} retained synthetic impact.` : 'The activity was contained before a fictional system retained impact.'}`;
+            report.outcomeExplanation = `This run modeled ${profile.name.toLowerCase()} malware originating inside ${report.initialInfectionPoint}. ${state.scenarioState.initialInfectionOccurred ? 'The initial infection occurred before the defensive response.' : ''} The attempted path was ${report.systemsTargeted.join(' → ')}. ${report.systemsProtected.length ? `${report.systemsProtected.join(', ')} received protection from enabled controls.` : 'No targeted system received preventive protection.'} ${report.systemsAffected.length ? `${report.systemsAffected.join(', ')} retained synthetic impact.` : 'The infection was contained at its origin and downstream network spread was prevented.'}`;
         }
         return attachNormalizedSummary(report, state);
     }
@@ -1638,10 +1660,14 @@
         if (state.scenario.id === 'malware') return {
             malwareProfile: state.scenarioState.profileName,
             initialInfectionPoint: host(state.scenarioState.initialHost).name,
+            initialInfectionOccurred: state.scenarioState.initialInfectionOccurred ? 'Yes — contained response follows' : 'No',
+            origin: 'Internal fictional host',
             targetedSystems: state.scenarioState.targetedHosts.map(id => host(id).name).join(' → '),
             affectedSystems: state.scenarioState.affectedHosts.length ? state.scenarioState.affectedHosts.map(id => host(id).name).join(', ') : 'None',
             protectedSystems: state.scenarioState.protectedHosts.length ? state.scenarioState.protectedHosts.map(id => host(id).name).join(', ') : 'None',
-            whyRunEnded: `The ${state.scenarioState.profileName.toLowerCase()} path ended with ${state.scenarioState.affectedHosts.length} affected and ${state.scenarioState.protectedHosts.length} protected fictional systems.`,
+            whyRunEnded: state.scenarioState.affectedHosts.length
+                ? `The infection originated inside ${host(state.scenarioState.initialHost).name}; ${state.scenarioState.affectedHosts.length} fictional systems retained impact while ${state.scenarioState.protectedHosts.length} received protection.`
+                : `The infection originated inside ${host(state.scenarioState.initialHost).name} before response. The complete preventive stack contained it there; downstream network spread was prevented.`,
             endpointHealth: state.scenarioState.endpointHealth,
             endpointEvents: state.scenarioState.endpointEvents,
             infectedEndpoints: state.scenarioState.infectedEndpoints,
@@ -1655,7 +1681,8 @@
             unauthorizedAccess: state.scenarioState.unauthorizedAccess,
             abnormalOutboundFlows: state.scenarioState.abnormalOutboundFlows,
             syntheticFilesAffected: state.scenarioState.syntheticFilesAffected,
-            recoveryProgress: state.scenarioState.recoveryProgress
+            recoveryProgress: state.scenarioState.recoveryProgress,
+            networkSpreadPrevented: state.scenarioState.networkSpreadPrevented
         };
         if (state.scenario.id === 'insider') return {
             variant: state.scenarioState.variant,

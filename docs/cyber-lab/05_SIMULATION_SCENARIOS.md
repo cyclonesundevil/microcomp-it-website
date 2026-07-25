@@ -110,7 +110,7 @@ The profiles are teaching models, not exact reproductions of named real-world ma
 | Profile | Purpose and likely targets | Main defenses |
 |---|---|---|
 | Ransomware-like | Begins at the employee workstation and may reach the file service plus one nearby business system. It teaches synthetic file availability, disruption, and recovery workload. | Endpoint protection, patch management, segmentation, least privilege |
-| Worm-like | Begins at a vulnerable application server, discovers a nearby workstation, and may attempt one additional shared-service hop. It teaches propagation, host degradation, and internal traffic. | Patch management, endpoint protection, segmentation, IDS, anomaly detection |
+| Worm-like | Begins at the employee workstation, discovers a nearby application server, and may attempt one additional shared-service hop. It teaches propagation, host degradation, and internal traffic. | Patch management, endpoint protection, segmentation, IDS, anomaly detection |
 | Credential-stealing | Begins at the employee workstation, attempts synthetic authentication at the identity service, and may reach one application. No credential is collected or displayed. | Endpoint protection, MFA, account lockout, least privilege, anomaly detection |
 | Botnet-like | Begins at the employee workstation and follows one outbound path through the gateway to a fictional external destination. It teaches abnormal outbound traffic and endpoint resource use. | Endpoint protection, traffic filtering, segmentation, IDS, anomaly detection |
 

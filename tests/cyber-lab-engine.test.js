@@ -549,6 +549,16 @@ test('profile-relevant malware defenses measurably change outcomes without detec
         const defended = run({ scenarioId: 'malware', difficulty: 'Advanced', seed, defenses });
         assert.ok(defended.scenarioState.successfulSpread < undefended.scenarioState.successfulSpread);
         assert.ok(defended.scenarioState.protectedHosts.length > 0);
+        assert.equal(defended.scenarioState.successfulSpread, 0);
+        assert.equal(defended.scenarioState.affectedServices, 0);
+        assert.deepEqual(defended.scenarioState.affectedHosts, []);
+        assert.equal(defended.scenarioState.originInternal, true);
+        assert.equal(defended.scenarioState.initialInfectionOccurred, true);
+        assert.match(defended.findings.outcomeExplanation, /originating inside/i);
+        assert.match(defended.findings.outcomeExplanation, /downstream network spread was prevented/i);
+        assert.ok(defended.events
+            .filter(event => event.marker !== 'DEFENSE_TRIGGERED')
+            .every(event => event.source.id !== 'internet'));
         assert.ok(defended.findings.defensesTriggered.length >= 3);
         defended.findings.defensesTriggered
             .filter(effect => effect.kind === 'detective')

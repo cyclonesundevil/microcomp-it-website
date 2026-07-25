@@ -424,6 +424,7 @@ The Malware Outbreak lesson now selects one of four seed-deterministic teaching 
 - Briefing, guidance, topology summary, metrics, outcome cards, events, and reports name and reflect the selected profile.
 - Reports distinguish targeted, affected, and protected systems and provide a plain-language outcome explanation.
 - Preventive controls change residual outcomes; IDS and anomaly detection record activity without claiming to block it.
+- Malware originates at the selected internal fictional host. Enabling the profile's complete preventive stack contains the initial infection there and prevents downstream network spread; the report distinguishes that contained infection from broader network impact.
 - Tests cover two seeds per profile, deterministic replay, bounded targets, profile defenses, reset, reporting, safety, and reduced-motion text equivalents.
 
 These profiles are intentionally simplified defensive teaching models. They do not reproduce a real malware family and contain no executable behavior, payload, credentials, persistence, evasion, or operational attack steps.
