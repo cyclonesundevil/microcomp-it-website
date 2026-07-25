@@ -1,0 +1,4631 @@
+{
+  "synthetic": true,
+  "generatedAtVirtualTime": 24,
+  "scenario": "DoS & DDoS",
+  "attackType": "DDOS",
+  "seed": 4242,
+  "difficulty": "Beginner",
+  "recoveryEnabled": true,
+  "objective": "Overwhelm a public service with synthetic request volume.",
+  "indicators": "Request volume, latency, errors, and availability change together.",
+  "affectedAssets": [
+    "Upstream Filter",
+    "Firewall / Rate Limiter",
+    "Load Balancer",
+    "Web Service"
+  ],
+  "peakRps": 2360,
+  "peakServerRps": 113,
+  "peakResidualAttack": 66,
+  "maximumLatency": 56,
+  "maximumErrorRate": 1,
+  "minimumAvailability": 100,
+  "serviceDowntimeTicks": 0,
+  "serviceDowntimeSeconds": 0,
+  "trafficBlocked": 30127,
+  "upstreamTrafficFiltered": 29844,
+  "upstreamEffectivenessPercent": 97,
+  "availabilityImprovement": 0,
+  "latencyImprovement": 0,
+  "blockedEvents": 30127,
+  "defensesTriggered": [
+    {
+      "id": "upstreamProtection",
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "action": "filtered",
+      "order": 10,
+      "affectedUnits": 29844,
+      "blockedUnits": 29844,
+      "detectedUnits": 0,
+      "triggerCount": 19,
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source.",
+      "affectedRequests": 29844,
+      "trafficFiltered": 29844,
+      "effectivenessPercent": 97,
+      "availabilityImprovement": 0
+    },
+    {
+      "id": "trafficFiltering",
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "action": "filtered",
+      "order": 20,
+      "affectedUnits": 282,
+      "blockedUnits": 282,
+      "detectedUnits": 0,
+      "triggerCount": 19,
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic.",
+      "affectedRequests": 282
+    },
+    {
+      "id": "caching",
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "action": "offloaded",
+      "order": 40,
+      "affectedUnits": 1185,
+      "blockedUnits": 0,
+      "detectedUnits": 0,
+      "triggerCount": 24,
+      "tradeOff": "Dynamic or uncached requests still reach the service.",
+      "affectedRequests": 1185
+    },
+    {
+      "id": "autoscaling",
+      "name": "Autoscaling",
+      "kind": "resilience",
+      "layer": "service",
+      "action": "scaled",
+      "order": 50,
+      "affectedUnits": 13,
+      "blockedUnits": 0,
+      "detectedUnits": 0,
+      "triggerCount": 13,
+      "tradeOff": "Capacity arrives after a delay and adds simulated operating cost.",
+      "affectedRequests": 13
+    }
+  ],
+  "defenseEffectLog": [
+    {
+      "id": "caching",
+      "tick": 1,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 41,
+      "metricDeltas": {
+        "serverRps": -41
+      },
+      "explanation": "Caching served 41 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "caching",
+      "tick": 2,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 39,
+      "metricDeltas": {
+        "serverRps": -39
+      },
+      "explanation": "Caching served 39 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "caching",
+      "tick": 3,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 40,
+      "metricDeltas": {
+        "serverRps": -40
+      },
+      "explanation": "Caching served 40 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "caching",
+      "tick": 4,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 40,
+      "metricDeltas": {
+        "serverRps": -40
+      },
+      "explanation": "Caching served 40 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 5,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 418,
+      "metricDeltas": {
+        "upstreamFiltered": 418,
+        "serverRps": -418
+      },
+      "explanation": "Upstream DDoS protection filtered 418 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 5,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 5,
+      "metricDeltas": {
+        "blocked": 5
+      },
+      "explanation": "Traffic filtering removed 4 attack-pattern requests and 1 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 5,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 43,
+      "metricDeltas": {
+        "serverRps": -43
+      },
+      "explanation": "Caching served 43 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 6,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 862,
+      "metricDeltas": {
+        "upstreamFiltered": 862,
+        "serverRps": -862
+      },
+      "explanation": "Upstream DDoS protection filtered 862 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 6,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 9,
+      "metricDeltas": {
+        "blocked": 9
+      },
+      "explanation": "Traffic filtering removed 7 attack-pattern requests and 2 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 6,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 48,
+      "metricDeltas": {
+        "serverRps": -48
+      },
+      "explanation": "Caching served 48 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 7,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 1187,
+      "metricDeltas": {
+        "upstreamFiltered": 1187,
+        "serverRps": -1187
+      },
+      "explanation": "Upstream DDoS protection filtered 1,187 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 7,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 12,
+      "metricDeltas": {
+        "blocked": 12
+      },
+      "explanation": "Traffic filtering removed 10 attack-pattern requests and 1 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 7,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 48,
+      "metricDeltas": {
+        "serverRps": -48
+      },
+      "explanation": "Caching served 48 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 8,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 1728,
+      "metricDeltas": {
+        "upstreamFiltered": 1728,
+        "serverRps": -1728
+      },
+      "explanation": "Upstream DDoS protection filtered 1,728 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 8,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 16,
+      "metricDeltas": {
+        "blocked": 16
+      },
+      "explanation": "Traffic filtering removed 15 attack-pattern requests and 1 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 8,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 54,
+      "metricDeltas": {
+        "serverRps": -54
+      },
+      "explanation": "Caching served 54 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 9,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 2121,
+      "metricDeltas": {
+        "upstreamFiltered": 2121,
+        "serverRps": -2121
+      },
+      "explanation": "Upstream DDoS protection filtered 2,121 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 9,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 19,
+      "metricDeltas": {
+        "blocked": 19
+      },
+      "explanation": "Traffic filtering removed 18 attack-pattern requests and 1 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 9,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 55,
+      "metricDeltas": {
+        "serverRps": -55
+      },
+      "explanation": "Caching served 55 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 10,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 2140,
+      "metricDeltas": {
+        "upstreamFiltered": 2140,
+        "serverRps": -2140
+      },
+      "explanation": "Upstream DDoS protection filtered 2,140 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 10,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 20,
+      "metricDeltas": {
+        "blocked": 20
+      },
+      "explanation": "Traffic filtering removed 18 attack-pattern requests and 1 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 10,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 58,
+      "metricDeltas": {
+        "serverRps": -58
+      },
+      "explanation": "Caching served 58 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 11,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 2120,
+      "metricDeltas": {
+        "upstreamFiltered": 2120,
+        "serverRps": -2120
+      },
+      "explanation": "Upstream DDoS protection filtered 2,120 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 11,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 20,
+      "metricDeltas": {
+        "blocked": 20
+      },
+      "explanation": "Traffic filtering removed 18 attack-pattern requests and 2 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 11,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 58,
+      "metricDeltas": {
+        "serverRps": -58
+      },
+      "explanation": "Caching served 58 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 12,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 1944,
+      "metricDeltas": {
+        "upstreamFiltered": 1944,
+        "serverRps": -1944
+      },
+      "explanation": "Upstream DDoS protection filtered 1,944 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 12,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 18,
+      "metricDeltas": {
+        "blocked": 18
+      },
+      "explanation": "Traffic filtering removed 17 attack-pattern requests and 1 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 12,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 53,
+      "metricDeltas": {
+        "serverRps": -53
+      },
+      "explanation": "Caching served 53 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "autoscaling",
+      "tick": 12,
+      "name": "Autoscaling",
+      "kind": "resilience",
+      "layer": "service",
+      "order": 50,
+      "action": "scaled",
+      "visual": "capacity",
+      "affected": 1,
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity.",
+      "tradeOff": "Capacity arrives after a delay and adds simulated operating cost."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 13,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 1941,
+      "metricDeltas": {
+        "upstreamFiltered": 1941,
+        "serverRps": -1941
+      },
+      "explanation": "Upstream DDoS protection filtered 1,941 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 13,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 18,
+      "metricDeltas": {
+        "blocked": 18
+      },
+      "explanation": "Traffic filtering removed 17 attack-pattern requests and 1 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 13,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 54,
+      "metricDeltas": {
+        "serverRps": -54
+      },
+      "explanation": "Caching served 54 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "autoscaling",
+      "tick": 13,
+      "name": "Autoscaling",
+      "kind": "resilience",
+      "layer": "service",
+      "order": 50,
+      "action": "scaled",
+      "visual": "capacity",
+      "affected": 1,
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity.",
+      "tradeOff": "Capacity arrives after a delay and adds simulated operating cost."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 14,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 1956,
+      "metricDeltas": {
+        "upstreamFiltered": 1956,
+        "serverRps": -1956
+      },
+      "explanation": "Upstream DDoS protection filtered 1,956 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 14,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 18,
+      "metricDeltas": {
+        "blocked": 18
+      },
+      "explanation": "Traffic filtering removed 17 attack-pattern requests and 1 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 14,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 55,
+      "metricDeltas": {
+        "serverRps": -55
+      },
+      "explanation": "Caching served 55 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "autoscaling",
+      "tick": 14,
+      "name": "Autoscaling",
+      "kind": "resilience",
+      "layer": "service",
+      "order": 50,
+      "action": "scaled",
+      "visual": "capacity",
+      "affected": 1,
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity.",
+      "tradeOff": "Capacity arrives after a delay and adds simulated operating cost."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 15,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 2016,
+      "metricDeltas": {
+        "upstreamFiltered": 2016,
+        "serverRps": -2016
+      },
+      "explanation": "Upstream DDoS protection filtered 2,016 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 15,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 19,
+      "metricDeltas": {
+        "blocked": 19
+      },
+      "explanation": "Traffic filtering removed 17 attack-pattern requests and 1 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 15,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 54,
+      "metricDeltas": {
+        "serverRps": -54
+      },
+      "explanation": "Caching served 54 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "autoscaling",
+      "tick": 15,
+      "name": "Autoscaling",
+      "kind": "resilience",
+      "layer": "service",
+      "order": 50,
+      "action": "scaled",
+      "visual": "capacity",
+      "affected": 1,
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity.",
+      "tradeOff": "Capacity arrives after a delay and adds simulated operating cost."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 16,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 2078,
+      "metricDeltas": {
+        "upstreamFiltered": 2078,
+        "serverRps": -2078
+      },
+      "explanation": "Upstream DDoS protection filtered 2,078 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 16,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 19,
+      "metricDeltas": {
+        "blocked": 19
+      },
+      "explanation": "Traffic filtering removed 18 attack-pattern requests and 1 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 16,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 56,
+      "metricDeltas": {
+        "serverRps": -56
+      },
+      "explanation": "Caching served 56 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "autoscaling",
+      "tick": 16,
+      "name": "Autoscaling",
+      "kind": "resilience",
+      "layer": "service",
+      "order": 50,
+      "action": "scaled",
+      "visual": "capacity",
+      "affected": 1,
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity.",
+      "tradeOff": "Capacity arrives after a delay and adds simulated operating cost."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 17,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 2173,
+      "metricDeltas": {
+        "upstreamFiltered": 2173,
+        "serverRps": -2173
+      },
+      "explanation": "Upstream DDoS protection filtered 2,173 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 17,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 20,
+      "metricDeltas": {
+        "blocked": 20
+      },
+      "explanation": "Traffic filtering removed 18 attack-pattern requests and 1 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 17,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 57,
+      "metricDeltas": {
+        "serverRps": -57
+      },
+      "explanation": "Caching served 57 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "autoscaling",
+      "tick": 17,
+      "name": "Autoscaling",
+      "kind": "resilience",
+      "layer": "service",
+      "order": 50,
+      "action": "scaled",
+      "visual": "capacity",
+      "affected": 1,
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity.",
+      "tradeOff": "Capacity arrives after a delay and adds simulated operating cost."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 18,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 1991,
+      "metricDeltas": {
+        "upstreamFiltered": 1991,
+        "serverRps": -1991
+      },
+      "explanation": "Upstream DDoS protection filtered 1,991 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 18,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 18,
+      "metricDeltas": {
+        "blocked": 18
+      },
+      "explanation": "Traffic filtering removed 17 attack-pattern requests and 1 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 18,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 56,
+      "metricDeltas": {
+        "serverRps": -56
+      },
+      "explanation": "Caching served 56 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "autoscaling",
+      "tick": 18,
+      "name": "Autoscaling",
+      "kind": "resilience",
+      "layer": "service",
+      "order": 50,
+      "action": "scaled",
+      "visual": "capacity",
+      "affected": 1,
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity.",
+      "tradeOff": "Capacity arrives after a delay and adds simulated operating cost."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 19,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 1605,
+      "metricDeltas": {
+        "upstreamFiltered": 1605,
+        "serverRps": -1605
+      },
+      "explanation": "Upstream DDoS protection filtered 1,605 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 19,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 15,
+      "metricDeltas": {
+        "blocked": 15
+      },
+      "explanation": "Traffic filtering removed 14 attack-pattern requests and 1 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 19,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 51,
+      "metricDeltas": {
+        "serverRps": -51
+      },
+      "explanation": "Caching served 51 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "autoscaling",
+      "tick": 19,
+      "name": "Autoscaling",
+      "kind": "resilience",
+      "layer": "service",
+      "order": 50,
+      "action": "scaled",
+      "visual": "capacity",
+      "affected": 1,
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity.",
+      "tradeOff": "Capacity arrives after a delay and adds simulated operating cost."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 20,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 1433,
+      "metricDeltas": {
+        "upstreamFiltered": 1433,
+        "serverRps": -1433
+      },
+      "explanation": "Upstream DDoS protection filtered 1,433 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 20,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 14,
+      "metricDeltas": {
+        "blocked": 14
+      },
+      "explanation": "Traffic filtering removed 12 attack-pattern requests and 1 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 20,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 50,
+      "metricDeltas": {
+        "serverRps": -50
+      },
+      "explanation": "Caching served 50 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "autoscaling",
+      "tick": 20,
+      "name": "Autoscaling",
+      "kind": "resilience",
+      "layer": "service",
+      "order": 50,
+      "action": "scaled",
+      "visual": "capacity",
+      "affected": 1,
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity.",
+      "tradeOff": "Capacity arrives after a delay and adds simulated operating cost."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 21,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 1071,
+      "metricDeltas": {
+        "upstreamFiltered": 1071,
+        "serverRps": -1071
+      },
+      "explanation": "Upstream DDoS protection filtered 1,071 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 21,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 10,
+      "metricDeltas": {
+        "blocked": 10
+      },
+      "explanation": "Traffic filtering removed 9 attack-pattern requests and 1 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 21,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 46,
+      "metricDeltas": {
+        "serverRps": -46
+      },
+      "explanation": "Caching served 46 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "autoscaling",
+      "tick": 21,
+      "name": "Autoscaling",
+      "kind": "resilience",
+      "layer": "service",
+      "order": 50,
+      "action": "scaled",
+      "visual": "capacity",
+      "affected": 1,
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity.",
+      "tradeOff": "Capacity arrives after a delay and adds simulated operating cost."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 22,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 707,
+      "metricDeltas": {
+        "upstreamFiltered": 707,
+        "serverRps": -707
+      },
+      "explanation": "Upstream DDoS protection filtered 707 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 22,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 8,
+      "metricDeltas": {
+        "blocked": 8
+      },
+      "explanation": "Traffic filtering removed 6 attack-pattern requests and 2 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 22,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 48,
+      "metricDeltas": {
+        "serverRps": -48
+      },
+      "explanation": "Caching served 48 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "autoscaling",
+      "tick": 22,
+      "name": "Autoscaling",
+      "kind": "resilience",
+      "layer": "service",
+      "order": 50,
+      "action": "scaled",
+      "visual": "capacity",
+      "affected": 1,
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity.",
+      "tradeOff": "Capacity arrives after a delay and adds simulated operating cost."
+    },
+    {
+      "id": "upstreamProtection",
+      "tick": 23,
+      "name": "Upstream DDoS protection",
+      "kind": "preventive",
+      "layer": "upstream",
+      "order": 10,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 353,
+      "metricDeltas": {
+        "upstreamFiltered": 353,
+        "serverRps": -353
+      },
+      "explanation": "Upstream DDoS protection filtered 353 fictional attack requests before the firewall.",
+      "tradeOff": "Scrubbing can add latency and is less useful for a single trusted-looking source."
+    },
+    {
+      "id": "trafficFiltering",
+      "tick": 23,
+      "name": "Traffic filtering",
+      "kind": "preventive",
+      "layer": "firewall",
+      "order": 20,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 4,
+      "metricDeltas": {
+        "blocked": 4
+      },
+      "explanation": "Traffic filtering removed 3 attack-pattern requests and 1 baseline requests.",
+      "tradeOff": "Imperfect rules can block a small share of legitimate traffic."
+    },
+    {
+      "id": "caching",
+      "tick": 23,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 41,
+      "metricDeltas": {
+        "serverRps": -41
+      },
+      "explanation": "Caching served 41 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "autoscaling",
+      "tick": 23,
+      "name": "Autoscaling",
+      "kind": "resilience",
+      "layer": "service",
+      "order": 50,
+      "action": "scaled",
+      "visual": "capacity",
+      "affected": 1,
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity.",
+      "tradeOff": "Capacity arrives after a delay and adds simulated operating cost."
+    },
+    {
+      "id": "caching",
+      "tick": 24,
+      "name": "Caching",
+      "kind": "resilience",
+      "layer": "load-balancer",
+      "order": 40,
+      "action": "offloaded",
+      "visual": "offloaded",
+      "affected": 40,
+      "metricDeltas": {
+        "serverRps": -40
+      },
+      "explanation": "Caching served 40 requests without using web-server capacity.",
+      "tradeOff": "Dynamic or uncached requests still reach the service."
+    },
+    {
+      "id": "autoscaling",
+      "tick": 24,
+      "name": "Autoscaling",
+      "kind": "resilience",
+      "layer": "service",
+      "order": 50,
+      "action": "scaled",
+      "visual": "capacity",
+      "affected": 1,
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity.",
+      "tradeOff": "Capacity arrives after a delay and adds simulated operating cost."
+    }
+  ],
+  "controlsHelped": [
+    "Upstream DDoS protection",
+    "Traffic filtering",
+    "Caching",
+    "Autoscaling"
+  ],
+  "controlsNotEnabled": [],
+  "missedDetections": [],
+  "peakRisk": 0,
+  "residualRisk": 3,
+  "recommendation": "Keep the layered controls, tune thresholds using normal traffic baselines, and rehearse capacity and upstream-provider response.",
+  "events": [
+    {
+      "id": "evt-14-loadbalancer",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 106,
+      "allowedRequests": 106,
+      "blockedRequests": 0,
+      "bytes": 65628,
+      "latency": 56,
+      "severity": "medium",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "106 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "defense-14-upstreamProtection",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 1956,
+      "allowedRequests": 0,
+      "blockedRequests": 1956,
+      "bytes": 0,
+      "latency": 56,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "upstreamProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "upstream",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "upstreamFiltered": 1956,
+        "serverRps": -1956
+      },
+      "explanation": "Upstream DDoS protection filtered 1,956 fictional attack requests before the firewall."
+    },
+    {
+      "id": "defense-14-trafficFiltering",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 18,
+      "allowedRequests": 0,
+      "blockedRequests": 18,
+      "bytes": 0,
+      "latency": 56,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "trafficFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "firewall",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "blocked": 18
+      },
+      "explanation": "Traffic filtering removed 17 attack-pattern requests and 1 baseline requests."
+    },
+    {
+      "id": "defense-14-caching",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "offloaded",
+      "requests": 55,
+      "allowedRequests": 55,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 56,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "caching",
+      "defenseKind": "resilience",
+      "defenseLayer": "load-balancer",
+      "visualEffect": "offloaded",
+      "metricDeltas": {
+        "serverRps": -55
+      },
+      "explanation": "Caching served 55 requests without using web-server capacity."
+    },
+    {
+      "id": "defense-14-autoscaling",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "soc",
+        "name": "Security Monitor",
+        "ip": "192.0.2.80",
+        "type": "monitor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scaled",
+      "requests": 1,
+      "allowedRequests": 1,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 56,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "autoscaling",
+      "defenseKind": "resilience",
+      "defenseLayer": "service",
+      "visualEffect": "capacity",
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity."
+    },
+    {
+      "id": "evt-15-internet",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 116,
+      "allowedRequests": 116,
+      "blockedRequests": 0,
+      "bytes": 71920,
+      "latency": 56,
+      "severity": "medium",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Sustained attack",
+      "explanation": "116 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-15-actor",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 692,
+      "allowedRequests": 20,
+      "blockedRequests": 672,
+      "bytes": 429040,
+      "latency": 56,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "692 fictional requests were aggregated for this virtual tick; 672 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-15-actor2",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 692,
+      "allowedRequests": 20,
+      "blockedRequests": 672,
+      "bytes": 429040,
+      "latency": 56,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "692 fictional requests were aggregated for this virtual tick; 672 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-15-actor3",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 693,
+      "allowedRequests": 20,
+      "blockedRequests": 673,
+      "bytes": 429660,
+      "latency": 56,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "693 fictional requests were aggregated for this virtual tick; 673 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-15-edge",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 159,
+      "allowedRequests": 159,
+      "blockedRequests": 0,
+      "bytes": 98415,
+      "latency": 56,
+      "severity": "medium",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "159 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-15-loadbalancer",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 105,
+      "allowedRequests": 105,
+      "blockedRequests": 0,
+      "bytes": 64954,
+      "latency": 56,
+      "severity": "medium",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "105 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "defense-15-upstreamProtection",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 2016,
+      "allowedRequests": 0,
+      "blockedRequests": 2016,
+      "bytes": 0,
+      "latency": 56,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "upstreamProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "upstream",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "upstreamFiltered": 2016,
+        "serverRps": -2016
+      },
+      "explanation": "Upstream DDoS protection filtered 2,016 fictional attack requests before the firewall."
+    },
+    {
+      "id": "defense-15-trafficFiltering",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 19,
+      "allowedRequests": 0,
+      "blockedRequests": 19,
+      "bytes": 0,
+      "latency": 56,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "trafficFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "firewall",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "blocked": 19
+      },
+      "explanation": "Traffic filtering removed 17 attack-pattern requests and 1 baseline requests."
+    },
+    {
+      "id": "defense-15-caching",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "offloaded",
+      "requests": 54,
+      "allowedRequests": 54,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 56,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "caching",
+      "defenseKind": "resilience",
+      "defenseLayer": "load-balancer",
+      "visualEffect": "offloaded",
+      "metricDeltas": {
+        "serverRps": -54
+      },
+      "explanation": "Caching served 54 requests without using web-server capacity."
+    },
+    {
+      "id": "defense-15-autoscaling",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "soc",
+        "name": "Security Monitor",
+        "ip": "192.0.2.80",
+        "type": "monitor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scaled",
+      "requests": 1,
+      "allowedRequests": 1,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 56,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "autoscaling",
+      "defenseKind": "resilience",
+      "defenseLayer": "service",
+      "visualEffect": "capacity",
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity."
+    },
+    {
+      "id": "evt-16-internet",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 121,
+      "allowedRequests": 121,
+      "blockedRequests": 0,
+      "bytes": 75020,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Sustained attack",
+      "explanation": "121 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-16-actor",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 714,
+      "allowedRequests": 21,
+      "blockedRequests": 693,
+      "bytes": 442680,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "714 fictional requests were aggregated for this virtual tick; 693 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-16-actor2",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 714,
+      "allowedRequests": 21,
+      "blockedRequests": 693,
+      "bytes": 442680,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "714 fictional requests were aggregated for this virtual tick; 693 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-16-actor3",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 713,
+      "allowedRequests": 21,
+      "blockedRequests": 692,
+      "bytes": 442060,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "713 fictional requests were aggregated for this virtual tick; 692 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-16-edge",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 165,
+      "allowedRequests": 165,
+      "blockedRequests": 0,
+      "bytes": 102321,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "165 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-16-loadbalancer",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 109,
+      "allowedRequests": 109,
+      "blockedRequests": 0,
+      "bytes": 67532,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "109 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "defense-16-upstreamProtection",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 2078,
+      "allowedRequests": 0,
+      "blockedRequests": 2078,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "upstreamProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "upstream",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "upstreamFiltered": 2078,
+        "serverRps": -2078
+      },
+      "explanation": "Upstream DDoS protection filtered 2,078 fictional attack requests before the firewall."
+    },
+    {
+      "id": "defense-16-trafficFiltering",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 19,
+      "allowedRequests": 0,
+      "blockedRequests": 19,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "trafficFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "firewall",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "blocked": 19
+      },
+      "explanation": "Traffic filtering removed 18 attack-pattern requests and 1 baseline requests."
+    },
+    {
+      "id": "defense-16-caching",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "offloaded",
+      "requests": 56,
+      "allowedRequests": 56,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "caching",
+      "defenseKind": "resilience",
+      "defenseLayer": "load-balancer",
+      "visualEffect": "offloaded",
+      "metricDeltas": {
+        "serverRps": -56
+      },
+      "explanation": "Caching served 56 requests without using web-server capacity."
+    },
+    {
+      "id": "defense-16-autoscaling",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "soc",
+        "name": "Security Monitor",
+        "ip": "192.0.2.80",
+        "type": "monitor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scaled",
+      "requests": 1,
+      "allowedRequests": 1,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "autoscaling",
+      "defenseKind": "resilience",
+      "defenseLayer": "service",
+      "visualEffect": "capacity",
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity."
+    },
+    {
+      "id": "evt-17-internet",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 121,
+      "allowedRequests": 121,
+      "blockedRequests": 0,
+      "bytes": 75020,
+      "latency": 56,
+      "severity": "medium",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Sustained attack",
+      "explanation": "121 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-17-actor",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 746,
+      "allowedRequests": 22,
+      "blockedRequests": 724,
+      "bytes": 462520,
+      "latency": 56,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "746 fictional requests were aggregated for this virtual tick; 724 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-17-actor2",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 746,
+      "allowedRequests": 22,
+      "blockedRequests": 724,
+      "bytes": 462520,
+      "latency": 56,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "746 fictional requests were aggregated for this virtual tick; 724 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-17-actor3",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 747,
+      "allowedRequests": 22,
+      "blockedRequests": 725,
+      "bytes": 463140,
+      "latency": 56,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "747 fictional requests were aggregated for this virtual tick; 725 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-17-edge",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 167,
+      "allowedRequests": 167,
+      "blockedRequests": 0,
+      "bytes": 103612,
+      "latency": 56,
+      "severity": "medium",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "167 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-17-loadbalancer",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 110,
+      "allowedRequests": 110,
+      "blockedRequests": 0,
+      "bytes": 68384,
+      "latency": 56,
+      "severity": "medium",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "110 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "defense-17-upstreamProtection",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 2173,
+      "allowedRequests": 0,
+      "blockedRequests": 2173,
+      "bytes": 0,
+      "latency": 56,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "upstreamProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "upstream",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "upstreamFiltered": 2173,
+        "serverRps": -2173
+      },
+      "explanation": "Upstream DDoS protection filtered 2,173 fictional attack requests before the firewall."
+    },
+    {
+      "id": "defense-17-trafficFiltering",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 20,
+      "allowedRequests": 0,
+      "blockedRequests": 20,
+      "bytes": 0,
+      "latency": 56,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "trafficFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "firewall",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "blocked": 20
+      },
+      "explanation": "Traffic filtering removed 18 attack-pattern requests and 1 baseline requests."
+    },
+    {
+      "id": "defense-17-caching",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "offloaded",
+      "requests": 57,
+      "allowedRequests": 57,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 56,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "caching",
+      "defenseKind": "resilience",
+      "defenseLayer": "load-balancer",
+      "visualEffect": "offloaded",
+      "metricDeltas": {
+        "serverRps": -57
+      },
+      "explanation": "Caching served 57 requests without using web-server capacity."
+    },
+    {
+      "id": "defense-17-autoscaling",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "soc",
+        "name": "Security Monitor",
+        "ip": "192.0.2.80",
+        "type": "monitor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scaled",
+      "requests": 1,
+      "allowedRequests": 1,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 56,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "autoscaling",
+      "defenseKind": "resilience",
+      "defenseLayer": "service",
+      "visualEffect": "capacity",
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity."
+    },
+    {
+      "id": "evt-18-internet",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 123,
+      "allowedRequests": 123,
+      "blockedRequests": 0,
+      "bytes": 76260,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Sustained attack",
+      "explanation": "123 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-18-actor",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 684,
+      "allowedRequests": 20,
+      "blockedRequests": 664,
+      "bytes": 424080,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "684 fictional requests were aggregated for this virtual tick; 664 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-18-actor2",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 684,
+      "allowedRequests": 20,
+      "blockedRequests": 664,
+      "bytes": 424080,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "684 fictional requests were aggregated for this virtual tick; 664 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-18-actor3",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 684,
+      "allowedRequests": 20,
+      "blockedRequests": 664,
+      "bytes": 424080,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Sustained attack",
+      "explanation": "684 fictional requests were aggregated for this virtual tick; 664 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-18-edge",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 165,
+      "allowedRequests": 165,
+      "blockedRequests": 0,
+      "bytes": 102374,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "165 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-18-loadbalancer",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 109,
+      "allowedRequests": 109,
+      "blockedRequests": 0,
+      "bytes": 67567,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Sustained attack",
+      "explanation": "109 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "defense-18-upstreamProtection",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 1991,
+      "allowedRequests": 0,
+      "blockedRequests": 1991,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "upstreamProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "upstream",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "upstreamFiltered": 1991,
+        "serverRps": -1991
+      },
+      "explanation": "Upstream DDoS protection filtered 1,991 fictional attack requests before the firewall."
+    },
+    {
+      "id": "defense-18-trafficFiltering",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 18,
+      "allowedRequests": 0,
+      "blockedRequests": 18,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "trafficFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "firewall",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "blocked": 18
+      },
+      "explanation": "Traffic filtering removed 17 attack-pattern requests and 1 baseline requests."
+    },
+    {
+      "id": "defense-18-caching",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "offloaded",
+      "requests": 56,
+      "allowedRequests": 56,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "caching",
+      "defenseKind": "resilience",
+      "defenseLayer": "load-balancer",
+      "visualEffect": "offloaded",
+      "metricDeltas": {
+        "serverRps": -56
+      },
+      "explanation": "Caching served 56 requests without using web-server capacity."
+    },
+    {
+      "id": "defense-18-autoscaling",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "soc",
+        "name": "Security Monitor",
+        "ip": "192.0.2.80",
+        "type": "monitor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scaled",
+      "requests": 1,
+      "allowedRequests": 1,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "autoscaling",
+      "defenseKind": "resilience",
+      "defenseLayer": "service",
+      "visualEffect": "capacity",
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity."
+    },
+    {
+      "id": "evt-19-internet",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 117,
+      "allowedRequests": 117,
+      "blockedRequests": 0,
+      "bytes": 72540,
+      "latency": 54,
+      "severity": "medium",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Recovery",
+      "explanation": "117 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-19-actor",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 551,
+      "allowedRequests": 16,
+      "blockedRequests": 535,
+      "bytes": 341620,
+      "latency": 54,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "551 fictional requests were aggregated for this virtual tick; 535 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-19-actor2",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 551,
+      "allowedRequests": 16,
+      "blockedRequests": 535,
+      "bytes": 341620,
+      "latency": 54,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "551 fictional requests were aggregated for this virtual tick; 535 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-19-actor3",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 552,
+      "allowedRequests": 16,
+      "blockedRequests": 536,
+      "bytes": 342240,
+      "latency": 54,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "552 fictional requests were aggregated for this virtual tick; 536 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-19-edge",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 151,
+      "allowedRequests": 151,
+      "blockedRequests": 0,
+      "bytes": 93456,
+      "latency": 54,
+      "severity": "medium",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "151 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-19-loadbalancer",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 99,
+      "allowedRequests": 99,
+      "blockedRequests": 0,
+      "bytes": 61681,
+      "latency": 54,
+      "severity": "medium",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "99 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "defense-19-upstreamProtection",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 1605,
+      "allowedRequests": 0,
+      "blockedRequests": 1605,
+      "bytes": 0,
+      "latency": 54,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "upstreamProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "upstream",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "upstreamFiltered": 1605,
+        "serverRps": -1605
+      },
+      "explanation": "Upstream DDoS protection filtered 1,605 fictional attack requests before the firewall."
+    },
+    {
+      "id": "defense-19-trafficFiltering",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 15,
+      "allowedRequests": 0,
+      "blockedRequests": 15,
+      "bytes": 0,
+      "latency": 54,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "trafficFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "firewall",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "blocked": 15
+      },
+      "explanation": "Traffic filtering removed 14 attack-pattern requests and 1 baseline requests."
+    },
+    {
+      "id": "defense-19-caching",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "offloaded",
+      "requests": 51,
+      "allowedRequests": 51,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 54,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "caching",
+      "defenseKind": "resilience",
+      "defenseLayer": "load-balancer",
+      "visualEffect": "offloaded",
+      "metricDeltas": {
+        "serverRps": -51
+      },
+      "explanation": "Caching served 51 requests without using web-server capacity."
+    },
+    {
+      "id": "defense-19-autoscaling",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "soc",
+        "name": "Security Monitor",
+        "ip": "192.0.2.80",
+        "type": "monitor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scaled",
+      "requests": 1,
+      "allowedRequests": 1,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 54,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "autoscaling",
+      "defenseKind": "resilience",
+      "defenseLayer": "service",
+      "visualEffect": "capacity",
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity."
+    },
+    {
+      "id": "evt-20-internet",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 118,
+      "allowedRequests": 118,
+      "blockedRequests": 0,
+      "bytes": 73160,
+      "latency": 54,
+      "severity": "medium",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Recovery",
+      "explanation": "118 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-20-actor",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 492,
+      "allowedRequests": 15,
+      "blockedRequests": 477,
+      "bytes": 305040,
+      "latency": 54,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "492 fictional requests were aggregated for this virtual tick; 477 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-20-actor2",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 492,
+      "allowedRequests": 15,
+      "blockedRequests": 477,
+      "bytes": 305040,
+      "latency": 54,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "492 fictional requests were aggregated for this virtual tick; 477 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-20-actor3",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 493,
+      "allowedRequests": 15,
+      "blockedRequests": 478,
+      "bytes": 305660,
+      "latency": 54,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "493 fictional requests were aggregated for this virtual tick; 478 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-20-edge",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 148,
+      "allowedRequests": 148,
+      "blockedRequests": 0,
+      "bytes": 91737,
+      "latency": 54,
+      "severity": "medium",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "148 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-20-loadbalancer",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 98,
+      "allowedRequests": 98,
+      "blockedRequests": 0,
+      "bytes": 60547,
+      "latency": 54,
+      "severity": "medium",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "98 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "defense-20-upstreamProtection",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 1433,
+      "allowedRequests": 0,
+      "blockedRequests": 1433,
+      "bytes": 0,
+      "latency": 54,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "upstreamProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "upstream",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "upstreamFiltered": 1433,
+        "serverRps": -1433
+      },
+      "explanation": "Upstream DDoS protection filtered 1,433 fictional attack requests before the firewall."
+    },
+    {
+      "id": "defense-20-trafficFiltering",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 14,
+      "allowedRequests": 0,
+      "blockedRequests": 14,
+      "bytes": 0,
+      "latency": 54,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "trafficFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "firewall",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "blocked": 14
+      },
+      "explanation": "Traffic filtering removed 12 attack-pattern requests and 1 baseline requests."
+    },
+    {
+      "id": "defense-20-caching",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "offloaded",
+      "requests": 50,
+      "allowedRequests": 50,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 54,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "caching",
+      "defenseKind": "resilience",
+      "defenseLayer": "load-balancer",
+      "visualEffect": "offloaded",
+      "metricDeltas": {
+        "serverRps": -50
+      },
+      "explanation": "Caching served 50 requests without using web-server capacity."
+    },
+    {
+      "id": "defense-20-autoscaling",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "soc",
+        "name": "Security Monitor",
+        "ip": "192.0.2.80",
+        "type": "monitor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scaled",
+      "requests": 1,
+      "allowedRequests": 1,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 54,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "autoscaling",
+      "defenseKind": "resilience",
+      "defenseLayer": "service",
+      "visualEffect": "capacity",
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity."
+    },
+    {
+      "id": "evt-21-internet",
+      "tick": 21,
+      "time": "00:21",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 113,
+      "allowedRequests": 113,
+      "blockedRequests": 0,
+      "bytes": 70060,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Recovery",
+      "explanation": "113 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-21-actor",
+      "tick": 21,
+      "time": "00:21",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 368,
+      "allowedRequests": 11,
+      "blockedRequests": 357,
+      "bytes": 228160,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "368 fictional requests were aggregated for this virtual tick; 357 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-21-actor2",
+      "tick": 21,
+      "time": "00:21",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 368,
+      "allowedRequests": 11,
+      "blockedRequests": 357,
+      "bytes": 228160,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "368 fictional requests were aggregated for this virtual tick; 357 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-21-actor3",
+      "tick": 21,
+      "time": "00:21",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 368,
+      "allowedRequests": 11,
+      "blockedRequests": 357,
+      "bytes": 228160,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "368 fictional requests were aggregated for this virtual tick; 357 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-21-edge",
+      "tick": 21,
+      "time": "00:21",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 135,
+      "allowedRequests": 135,
+      "blockedRequests": 0,
+      "bytes": 83761,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "135 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-21-loadbalancer",
+      "tick": 21,
+      "time": "00:21",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 89,
+      "allowedRequests": 89,
+      "blockedRequests": 0,
+      "bytes": 55282,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "89 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "defense-21-upstreamProtection",
+      "tick": 21,
+      "time": "00:21",
+      "source": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 1071,
+      "allowedRequests": 0,
+      "blockedRequests": 1071,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "upstreamProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "upstream",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "upstreamFiltered": 1071,
+        "serverRps": -1071
+      },
+      "explanation": "Upstream DDoS protection filtered 1,071 fictional attack requests before the firewall."
+    },
+    {
+      "id": "defense-21-trafficFiltering",
+      "tick": 21,
+      "time": "00:21",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 10,
+      "allowedRequests": 0,
+      "blockedRequests": 10,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "trafficFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "firewall",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "blocked": 10
+      },
+      "explanation": "Traffic filtering removed 9 attack-pattern requests and 1 baseline requests."
+    },
+    {
+      "id": "defense-21-caching",
+      "tick": 21,
+      "time": "00:21",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "offloaded",
+      "requests": 46,
+      "allowedRequests": 46,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "caching",
+      "defenseKind": "resilience",
+      "defenseLayer": "load-balancer",
+      "visualEffect": "offloaded",
+      "metricDeltas": {
+        "serverRps": -46
+      },
+      "explanation": "Caching served 46 requests without using web-server capacity."
+    },
+    {
+      "id": "defense-21-autoscaling",
+      "tick": 21,
+      "time": "00:21",
+      "source": {
+        "id": "soc",
+        "name": "Security Monitor",
+        "ip": "192.0.2.80",
+        "type": "monitor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scaled",
+      "requests": 1,
+      "allowedRequests": 1,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "autoscaling",
+      "defenseKind": "resilience",
+      "defenseLayer": "service",
+      "visualEffect": "capacity",
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity."
+    },
+    {
+      "id": "evt-22-internet",
+      "tick": 22,
+      "time": "00:22",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 126,
+      "allowedRequests": 126,
+      "blockedRequests": 0,
+      "bytes": 78120,
+      "latency": 53,
+      "severity": "medium",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Recovery",
+      "explanation": "126 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-22-actor",
+      "tick": 22,
+      "time": "00:22",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 243,
+      "allowedRequests": 7,
+      "blockedRequests": 236,
+      "bytes": 150660,
+      "latency": 53,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "243 fictional requests were aggregated for this virtual tick; 236 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-22-actor2",
+      "tick": 22,
+      "time": "00:22",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 243,
+      "allowedRequests": 7,
+      "blockedRequests": 236,
+      "bytes": 150660,
+      "latency": 53,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "243 fictional requests were aggregated for this virtual tick; 236 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-22-actor3",
+      "tick": 22,
+      "time": "00:22",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 242,
+      "allowedRequests": 7,
+      "blockedRequests": 235,
+      "bytes": 150040,
+      "latency": 53,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "242 fictional requests were aggregated for this virtual tick; 235 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-22-edge",
+      "tick": 22,
+      "time": "00:22",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 140,
+      "allowedRequests": 140,
+      "blockedRequests": 0,
+      "bytes": 86772,
+      "latency": 53,
+      "severity": "medium",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "140 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-22-loadbalancer",
+      "tick": 22,
+      "time": "00:22",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 92,
+      "allowedRequests": 92,
+      "blockedRequests": 0,
+      "bytes": 57269,
+      "latency": 53,
+      "severity": "medium",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "92 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "defense-22-upstreamProtection",
+      "tick": 22,
+      "time": "00:22",
+      "source": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 707,
+      "allowedRequests": 0,
+      "blockedRequests": 707,
+      "bytes": 0,
+      "latency": 53,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "upstreamProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "upstream",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "upstreamFiltered": 707,
+        "serverRps": -707
+      },
+      "explanation": "Upstream DDoS protection filtered 707 fictional attack requests before the firewall."
+    },
+    {
+      "id": "defense-22-trafficFiltering",
+      "tick": 22,
+      "time": "00:22",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 8,
+      "allowedRequests": 0,
+      "blockedRequests": 8,
+      "bytes": 0,
+      "latency": 53,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "trafficFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "firewall",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "blocked": 8
+      },
+      "explanation": "Traffic filtering removed 6 attack-pattern requests and 2 baseline requests."
+    },
+    {
+      "id": "defense-22-caching",
+      "tick": 22,
+      "time": "00:22",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "offloaded",
+      "requests": 48,
+      "allowedRequests": 48,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 53,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "caching",
+      "defenseKind": "resilience",
+      "defenseLayer": "load-balancer",
+      "visualEffect": "offloaded",
+      "metricDeltas": {
+        "serverRps": -48
+      },
+      "explanation": "Caching served 48 requests without using web-server capacity."
+    },
+    {
+      "id": "defense-22-autoscaling",
+      "tick": 22,
+      "time": "00:22",
+      "source": {
+        "id": "soc",
+        "name": "Security Monitor",
+        "ip": "192.0.2.80",
+        "type": "monitor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scaled",
+      "requests": 1,
+      "allowedRequests": 1,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 53,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "autoscaling",
+      "defenseKind": "resilience",
+      "defenseLayer": "service",
+      "visualEffect": "capacity",
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity."
+    },
+    {
+      "id": "evt-23-internet",
+      "tick": 23,
+      "time": "00:23",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 114,
+      "allowedRequests": 114,
+      "blockedRequests": 0,
+      "bytes": 70680,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Recovery",
+      "explanation": "114 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-23-actor",
+      "tick": 23,
+      "time": "00:23",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 121,
+      "allowedRequests": 4,
+      "blockedRequests": 117,
+      "bytes": 75020,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "121 fictional requests were aggregated for this virtual tick; 117 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-23-actor2",
+      "tick": 23,
+      "time": "00:23",
+      "source": {
+        "id": "actor2",
+        "name": "Simulated Source B",
+        "ip": "203.0.113.11",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 121,
+      "allowedRequests": 4,
+      "blockedRequests": 117,
+      "bytes": 75020,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "121 fictional requests were aggregated for this virtual tick; 117 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-23-actor3",
+      "tick": 23,
+      "time": "00:23",
+      "source": {
+        "id": "actor3",
+        "name": "Simulated Source C",
+        "ip": "203.0.113.12",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scrubbed",
+      "requests": 122,
+      "allowedRequests": 4,
+      "blockedRequests": 118,
+      "bytes": 75640,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "AGGREGATED_REQUEST_SURGE",
+      "phase": "Recovery",
+      "explanation": "122 fictional requests were aggregated for this virtual tick; 118 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-23-edge",
+      "tick": 23,
+      "time": "00:23",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 120,
+      "allowedRequests": 120,
+      "blockedRequests": 0,
+      "bytes": 74626,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "120 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-23-loadbalancer",
+      "tick": 23,
+      "time": "00:23",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 79,
+      "allowedRequests": 79,
+      "blockedRequests": 0,
+      "bytes": 49253,
+      "latency": 50,
+      "severity": "medium",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "79 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "defense-23-upstreamProtection",
+      "tick": 23,
+      "time": "00:23",
+      "source": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 353,
+      "allowedRequests": 0,
+      "blockedRequests": 353,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "upstreamProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "upstream",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "upstreamFiltered": 353,
+        "serverRps": -353
+      },
+      "explanation": "Upstream DDoS protection filtered 353 fictional attack requests before the firewall."
+    },
+    {
+      "id": "defense-23-trafficFiltering",
+      "tick": 23,
+      "time": "00:23",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "filtered",
+      "requests": 4,
+      "allowedRequests": 0,
+      "blockedRequests": 4,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "trafficFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "firewall",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "blocked": 4
+      },
+      "explanation": "Traffic filtering removed 3 attack-pattern requests and 1 baseline requests."
+    },
+    {
+      "id": "defense-23-caching",
+      "tick": 23,
+      "time": "00:23",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "offloaded",
+      "requests": 41,
+      "allowedRequests": 41,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "caching",
+      "defenseKind": "resilience",
+      "defenseLayer": "load-balancer",
+      "visualEffect": "offloaded",
+      "metricDeltas": {
+        "serverRps": -41
+      },
+      "explanation": "Caching served 41 requests without using web-server capacity."
+    },
+    {
+      "id": "defense-23-autoscaling",
+      "tick": 23,
+      "time": "00:23",
+      "source": {
+        "id": "soc",
+        "name": "Security Monitor",
+        "ip": "192.0.2.80",
+        "type": "monitor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scaled",
+      "requests": 1,
+      "allowedRequests": 1,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "autoscaling",
+      "defenseKind": "resilience",
+      "defenseLayer": "service",
+      "visualEffect": "capacity",
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity."
+    },
+    {
+      "id": "evt-24-internet",
+      "tick": 24,
+      "time": "00:24",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "upstream",
+        "name": "Upstream Filter",
+        "ip": "198.51.100.2",
+        "type": "shield",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 119,
+      "allowedRequests": 119,
+      "blockedRequests": 0,
+      "bytes": 73780,
+      "latency": 52,
+      "severity": "medium",
+      "marker": "NORMAL_TRAFFIC_AGGREGATE",
+      "phase": "Recovery",
+      "explanation": "119 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-24-edge",
+      "tick": 24,
+      "time": "00:24",
+      "source": {
+        "id": "edge",
+        "name": "Firewall / Rate Limiter",
+        "ip": "192.0.2.1",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 119,
+      "allowedRequests": 119,
+      "blockedRequests": 0,
+      "bytes": 73780,
+      "latency": 52,
+      "severity": "medium",
+      "marker": "EDGE_ACCEPTED_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "119 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "evt-24-loadbalancer",
+      "tick": 24,
+      "time": "00:24",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "forwarded",
+      "requests": 79,
+      "allowedRequests": 79,
+      "blockedRequests": 0,
+      "bytes": 48695,
+      "latency": 52,
+      "severity": "medium",
+      "marker": "SERVER_BOUND_TRAFFIC",
+      "phase": "Recovery",
+      "explanation": "79 fictional requests were aggregated for this virtual tick; 0 were filtered. No network traffic was sent."
+    },
+    {
+      "id": "defense-24-caching",
+      "tick": 24,
+      "time": "00:24",
+      "source": {
+        "id": "loadbalancer",
+        "name": "Load Balancer",
+        "ip": "192.0.2.10",
+        "type": "gateway",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "offloaded",
+      "requests": 40,
+      "allowedRequests": 40,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 52,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "caching",
+      "defenseKind": "resilience",
+      "defenseLayer": "load-balancer",
+      "visualEffect": "offloaded",
+      "metricDeltas": {
+        "serverRps": -40
+      },
+      "explanation": "Caching served 40 requests without using web-server capacity."
+    },
+    {
+      "id": "defense-24-autoscaling",
+      "tick": 24,
+      "time": "00:24",
+      "source": {
+        "id": "soc",
+        "name": "Security Monitor",
+        "ip": "192.0.2.80",
+        "type": "monitor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "web",
+        "name": "Web Service",
+        "ip": "192.0.2.20",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "scaled",
+      "requests": 1,
+      "allowedRequests": 1,
+      "blockedRequests": 0,
+      "bytes": 0,
+      "latency": 52,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "autoscaling",
+      "defenseKind": "resilience",
+      "defenseLayer": "service",
+      "visualEffect": "capacity",
+      "metricDeltas": {
+        "capacity": 585
+      },
+      "explanation": "Autoscaling added 585 requests per second of fictional service capacity."
+    }
+  ],
+  "schemaVersion": "2.0",
+  "summary": {
+    "identity": {
+      "scenarioId": "dos",
+      "scenario": "DoS & DDoS",
+      "seed": 4242,
+      "difficulty": "Beginner",
+      "attackType": "DDOS"
+    },
+    "risk": {
+      "peak": 0,
+      "residual": 3
+    },
+    "activity": {
+      "eventCount": 100,
+      "alertCount": 5,
+      "blockedUnits": 30127,
+      "detections": 0
+    },
+    "service": {
+      "peakOffered": 2360,
+      "peakAllowed": 113,
+      "maximumLatency": 56,
+      "maximumErrorRate": 1,
+      "minimumAvailability": 100
+    },
+    "defenses": {
+      "triggered": 4,
+      "affectedUnits": 31324,
+      "controlsHelped": [
+        "Upstream DDoS protection",
+        "Traffic filtering",
+        "Caching",
+        "Autoscaling"
+      ],
+      "coverageGaps": []
+    },
+    "outcomes": {
+      "trafficBlocked": 30127,
+      "serviceDowntimeSeconds": 0,
+      "upstreamTrafficFiltered": 29844
+    }
+  }
+}

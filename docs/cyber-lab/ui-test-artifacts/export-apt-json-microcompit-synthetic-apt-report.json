@@ -1,0 +1,1965 @@
+{
+  "synthetic": true,
+  "generatedAtVirtualTime": 28,
+  "scenario": "Advanced Persistent Threat",
+  "seed": 4242,
+  "difficulty": "Beginner",
+  "objective": "Move toward fictional sensitive assets over several abstract stages.",
+  "indicators": "Low-volume events accumulate across access, discovery, movement, and collection.",
+  "affectedAssets": [
+    "Simulated Source A",
+    "Employee Workstation",
+    "File Service"
+  ],
+  "controlsHelped": [
+    "Network segmentation",
+    "Least privilege",
+    "Data-loss prevention"
+  ],
+  "controlsNotEnabled": [],
+  "blockedEvents": 430,
+  "detections": 0,
+  "defensesTriggered": [
+    {
+      "id": "segmentation",
+      "name": "Network segmentation",
+      "kind": "preventive",
+      "layer": "network",
+      "action": "isolated",
+      "order": 35,
+      "affectedUnits": 18,
+      "blockedUnits": 18,
+      "detectedUnits": 0,
+      "triggerCount": 4,
+      "tradeOff": "Adds network complexity."
+    },
+    {
+      "id": "leastPrivilege",
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "action": "restricted",
+      "order": 55,
+      "affectedUnits": 16,
+      "blockedUnits": 16,
+      "detectedUnits": 0,
+      "triggerCount": 4,
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "dlp",
+      "name": "Data-loss prevention",
+      "kind": "preventive",
+      "layer": "data",
+      "action": "blocked-transfer",
+      "order": 60,
+      "affectedUnits": 396,
+      "blockedUnits": 396,
+      "detectedUnits": 0,
+      "triggerCount": 4,
+      "tradeOff": "May interrupt valid transfers."
+    }
+  ],
+  "defenseEffectLog": [
+    {
+      "id": "leastPrivilege",
+      "tick": 13,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 4,
+      "metricDeltas": {
+        "privilegeRestricted": 4
+      },
+      "explanation": "Least privilege restricted 4 fictional privilege-expansion actions.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 14,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 4,
+      "metricDeltas": {
+        "privilegeRestricted": 4
+      },
+      "explanation": "Least privilege restricted 4 fictional privilege-expansion actions.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 15,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 4,
+      "metricDeltas": {
+        "privilegeRestricted": 4
+      },
+      "explanation": "Least privilege restricted 4 fictional privilege-expansion actions.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "leastPrivilege",
+      "tick": 16,
+      "name": "Least privilege",
+      "kind": "preventive",
+      "layer": "authorization",
+      "order": 55,
+      "action": "restricted",
+      "visual": "protected",
+      "affected": 4,
+      "metricDeltas": {
+        "privilegeRestricted": 4
+      },
+      "explanation": "Least privilege restricted 4 fictional privilege-expansion actions.",
+      "tradeOff": "Requires access reviews."
+    },
+    {
+      "id": "segmentation",
+      "tick": 17,
+      "name": "Network segmentation",
+      "kind": "preventive",
+      "layer": "network",
+      "order": 35,
+      "action": "isolated",
+      "visual": "interrupted",
+      "affected": 4,
+      "metricDeltas": {
+        "lateralBlocked": 4
+      },
+      "explanation": "Network segmentation blocked 4 fictional lateral-movement actions toward the file service.",
+      "tradeOff": "Adds network complexity."
+    },
+    {
+      "id": "segmentation",
+      "tick": 18,
+      "name": "Network segmentation",
+      "kind": "preventive",
+      "layer": "network",
+      "order": 35,
+      "action": "isolated",
+      "visual": "interrupted",
+      "affected": 4,
+      "metricDeltas": {
+        "lateralBlocked": 4
+      },
+      "explanation": "Network segmentation blocked 4 fictional lateral-movement actions toward the file service.",
+      "tradeOff": "Adds network complexity."
+    },
+    {
+      "id": "segmentation",
+      "tick": 19,
+      "name": "Network segmentation",
+      "kind": "preventive",
+      "layer": "network",
+      "order": 35,
+      "action": "isolated",
+      "visual": "interrupted",
+      "affected": 5,
+      "metricDeltas": {
+        "lateralBlocked": 5
+      },
+      "explanation": "Network segmentation blocked 5 fictional lateral-movement actions toward the file service.",
+      "tradeOff": "Adds network complexity."
+    },
+    {
+      "id": "segmentation",
+      "tick": 20,
+      "name": "Network segmentation",
+      "kind": "preventive",
+      "layer": "network",
+      "order": 35,
+      "action": "isolated",
+      "visual": "interrupted",
+      "affected": 5,
+      "metricDeltas": {
+        "lateralBlocked": 5
+      },
+      "explanation": "Network segmentation blocked 5 fictional lateral-movement actions toward the file service.",
+      "tradeOff": "Adds network complexity."
+    },
+    {
+      "id": "dlp",
+      "tick": 25,
+      "name": "Data-loss prevention",
+      "kind": "preventive",
+      "layer": "data",
+      "order": 60,
+      "action": "blocked-transfer",
+      "visual": "interrupted",
+      "affected": 99,
+      "metricDeltas": {
+        "exfiltrationBlocked": 99
+      },
+      "explanation": "Data-loss prevention blocked 99 synthetic collection units at the data boundary.",
+      "tradeOff": "May interrupt valid transfers."
+    },
+    {
+      "id": "dlp",
+      "tick": 26,
+      "name": "Data-loss prevention",
+      "kind": "preventive",
+      "layer": "data",
+      "order": 60,
+      "action": "blocked-transfer",
+      "visual": "interrupted",
+      "affected": 99,
+      "metricDeltas": {
+        "exfiltrationBlocked": 99
+      },
+      "explanation": "Data-loss prevention blocked 99 synthetic collection units at the data boundary.",
+      "tradeOff": "May interrupt valid transfers."
+    },
+    {
+      "id": "dlp",
+      "tick": 27,
+      "name": "Data-loss prevention",
+      "kind": "preventive",
+      "layer": "data",
+      "order": 60,
+      "action": "blocked-transfer",
+      "visual": "interrupted",
+      "affected": 99,
+      "metricDeltas": {
+        "exfiltrationBlocked": 99
+      },
+      "explanation": "Data-loss prevention blocked 99 synthetic collection units at the data boundary.",
+      "tradeOff": "May interrupt valid transfers."
+    },
+    {
+      "id": "dlp",
+      "tick": 28,
+      "name": "Data-loss prevention",
+      "kind": "preventive",
+      "layer": "data",
+      "order": 60,
+      "action": "blocked-transfer",
+      "visual": "interrupted",
+      "affected": 99,
+      "metricDeltas": {
+        "exfiltrationBlocked": 99
+      },
+      "explanation": "Data-loss prevention blocked 99 synthetic collection units at the data boundary.",
+      "tradeOff": "May interrupt valid transfers."
+    }
+  ],
+  "peakRisk": 92,
+  "residualRisk": 38,
+  "recommendation": "Reduce privilege, segment assets, hunt anomalies, and protect data movement.",
+  "events": [
+    {
+      "id": "apt-1",
+      "tick": 1,
+      "time": "00:01",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "initial-access",
+      "requests": 3,
+      "allowedRequests": 3,
+      "blockedRequests": 0,
+      "bytes": 720,
+      "latency": 33,
+      "severity": "low",
+      "marker": "APT_INITIAL_ACCESS",
+      "explanation": "initial access generated 3 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "initial-access",
+        "completedStages": [
+          "initial-access"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "apt-2",
+      "tick": 2,
+      "time": "00:02",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "initial-access",
+      "requests": 2,
+      "allowedRequests": 2,
+      "blockedRequests": 0,
+      "bytes": 480,
+      "latency": 34,
+      "severity": "low",
+      "marker": "APT_INITIAL_ACCESS",
+      "explanation": "initial access generated 2 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "initial-access",
+        "completedStages": [
+          "initial-access"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "apt-3",
+      "tick": 3,
+      "time": "00:03",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "initial-access",
+      "requests": 3,
+      "allowedRequests": 3,
+      "blockedRequests": 0,
+      "bytes": 720,
+      "latency": 33,
+      "severity": "low",
+      "marker": "APT_INITIAL_ACCESS",
+      "explanation": "initial access generated 3 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "initial-access",
+        "completedStages": [
+          "initial-access"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "apt-4",
+      "tick": 4,
+      "time": "00:04",
+      "source": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "initial-access",
+      "requests": 3,
+      "allowedRequests": 3,
+      "blockedRequests": 0,
+      "bytes": 720,
+      "latency": 37,
+      "severity": "low",
+      "marker": "APT_INITIAL_ACCESS",
+      "explanation": "initial access generated 3 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "initial-access",
+        "completedStages": [
+          "initial-access"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "apt-5",
+      "tick": 5,
+      "time": "00:05",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "persistence",
+      "requests": 3,
+      "allowedRequests": 3,
+      "blockedRequests": 0,
+      "bytes": 720,
+      "latency": 39,
+      "severity": "low",
+      "marker": "APT_PERSISTENCE",
+      "explanation": "persistence generated 3 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "persistence",
+        "completedStages": [
+          "initial-access",
+          "persistence"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "apt-6",
+      "tick": 6,
+      "time": "00:06",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "persistence",
+      "requests": 5,
+      "allowedRequests": 5,
+      "blockedRequests": 0,
+      "bytes": 1200,
+      "latency": 41,
+      "severity": "low",
+      "marker": "APT_PERSISTENCE",
+      "explanation": "persistence generated 5 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "persistence",
+        "completedStages": [
+          "initial-access",
+          "persistence"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "apt-7",
+      "tick": 7,
+      "time": "00:07",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "persistence",
+      "requests": 3,
+      "allowedRequests": 3,
+      "blockedRequests": 0,
+      "bytes": 720,
+      "latency": 36,
+      "severity": "low",
+      "marker": "APT_PERSISTENCE",
+      "explanation": "persistence generated 3 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "persistence",
+        "completedStages": [
+          "initial-access",
+          "persistence"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "apt-8",
+      "tick": 8,
+      "time": "00:08",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "persistence",
+      "requests": 4,
+      "allowedRequests": 4,
+      "blockedRequests": 0,
+      "bytes": 960,
+      "latency": 36,
+      "severity": "low",
+      "marker": "APT_PERSISTENCE",
+      "explanation": "persistence generated 4 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "persistence",
+        "completedStages": [
+          "initial-access",
+          "persistence"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "apt-9",
+      "tick": 9,
+      "time": "00:09",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "soc",
+        "name": "Security Monitor",
+        "ip": "192.0.2.80",
+        "type": "monitor",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "discovery",
+      "requests": 5,
+      "allowedRequests": 5,
+      "blockedRequests": 0,
+      "bytes": 1200,
+      "latency": 44,
+      "severity": "medium",
+      "marker": "APT_DISCOVERY",
+      "explanation": "discovery generated 5 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "discovery",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "apt-10",
+      "tick": 10,
+      "time": "00:10",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "soc",
+        "name": "Security Monitor",
+        "ip": "192.0.2.80",
+        "type": "monitor",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "discovery",
+      "requests": 4,
+      "allowedRequests": 4,
+      "blockedRequests": 0,
+      "bytes": 960,
+      "latency": 44,
+      "severity": "medium",
+      "marker": "APT_DISCOVERY",
+      "explanation": "discovery generated 4 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "discovery",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "apt-11",
+      "tick": 11,
+      "time": "00:11",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "soc",
+        "name": "Security Monitor",
+        "ip": "192.0.2.80",
+        "type": "monitor",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "discovery",
+      "requests": 4,
+      "allowedRequests": 4,
+      "blockedRequests": 0,
+      "bytes": 960,
+      "latency": 44,
+      "severity": "medium",
+      "marker": "APT_DISCOVERY",
+      "explanation": "discovery generated 4 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "discovery",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "apt-12",
+      "tick": 12,
+      "time": "00:12",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "soc",
+        "name": "Security Monitor",
+        "ip": "192.0.2.80",
+        "type": "monitor",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "discovery",
+      "requests": 4,
+      "allowedRequests": 4,
+      "blockedRequests": 0,
+      "bytes": 960,
+      "latency": 47,
+      "severity": "medium",
+      "marker": "APT_DISCOVERY",
+      "explanation": "discovery generated 4 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "discovery",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "apt-13",
+      "tick": 13,
+      "time": "00:13",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "restricted",
+      "requests": 5,
+      "allowedRequests": 1,
+      "blockedRequests": 4,
+      "bytes": 1200,
+      "latency": 52,
+      "severity": "medium",
+      "marker": "APT_PRIVILEGE_EXPANSION",
+      "explanation": "privilege expansion generated 5 metadata-only actions; 4 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "privilege-expansion",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery",
+          "privilege-expansion"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "defense-13-leastPrivilege",
+      "tick": 13,
+      "time": "00:13",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "restricted",
+      "requests": 4,
+      "allowedRequests": 0,
+      "blockedRequests": 4,
+      "bytes": 0,
+      "latency": 52,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "privilegeRestricted": 4
+      },
+      "explanation": "Least privilege restricted 4 fictional privilege-expansion actions."
+    },
+    {
+      "id": "apt-14",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "restricted",
+      "requests": 5,
+      "allowedRequests": 1,
+      "blockedRequests": 4,
+      "bytes": 1200,
+      "latency": 49,
+      "severity": "medium",
+      "marker": "APT_PRIVILEGE_EXPANSION",
+      "explanation": "privilege expansion generated 5 metadata-only actions; 4 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "privilege-expansion",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery",
+          "privilege-expansion"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "defense-14-leastPrivilege",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "restricted",
+      "requests": 4,
+      "allowedRequests": 0,
+      "blockedRequests": 4,
+      "bytes": 0,
+      "latency": 49,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "privilegeRestricted": 4
+      },
+      "explanation": "Least privilege restricted 4 fictional privilege-expansion actions."
+    },
+    {
+      "id": "apt-15",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "restricted",
+      "requests": 5,
+      "allowedRequests": 1,
+      "blockedRequests": 4,
+      "bytes": 1200,
+      "latency": 51,
+      "severity": "medium",
+      "marker": "APT_PRIVILEGE_EXPANSION",
+      "explanation": "privilege expansion generated 5 metadata-only actions; 4 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "privilege-expansion",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery",
+          "privilege-expansion"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "defense-15-leastPrivilege",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "restricted",
+      "requests": 4,
+      "allowedRequests": 0,
+      "blockedRequests": 4,
+      "bytes": 0,
+      "latency": 51,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "privilegeRestricted": 4
+      },
+      "explanation": "Least privilege restricted 4 fictional privilege-expansion actions."
+    },
+    {
+      "id": "apt-16",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "restricted",
+      "requests": 6,
+      "allowedRequests": 2,
+      "blockedRequests": 4,
+      "bytes": 1440,
+      "latency": 48,
+      "severity": "medium",
+      "marker": "APT_PRIVILEGE_EXPANSION",
+      "explanation": "privilege expansion generated 6 metadata-only actions; 4 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "privilege-expansion",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery",
+          "privilege-expansion"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "defense-16-leastPrivilege",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "restricted",
+      "requests": 4,
+      "allowedRequests": 0,
+      "blockedRequests": 4,
+      "bytes": 0,
+      "latency": 48,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "leastPrivilege",
+      "defenseKind": "preventive",
+      "defenseLayer": "authorization",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "privilegeRestricted": 4
+      },
+      "explanation": "Least privilege restricted 4 fictional privilege-expansion actions."
+    },
+    {
+      "id": "apt-17",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "restricted",
+      "requests": 5,
+      "allowedRequests": 1,
+      "blockedRequests": 4,
+      "bytes": 1200,
+      "latency": 51,
+      "severity": "high",
+      "marker": "APT_LATERAL_MOVEMENT",
+      "explanation": "lateral movement generated 5 metadata-only actions; 4 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "lateral-movement",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery",
+          "privilege-expansion",
+          "lateral-movement"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "defense-17-segmentation",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "isolated",
+      "requests": 4,
+      "allowedRequests": 0,
+      "blockedRequests": 4,
+      "bytes": 0,
+      "latency": 51,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "segmentation",
+      "defenseKind": "preventive",
+      "defenseLayer": "network",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "lateralBlocked": 4
+      },
+      "explanation": "Network segmentation blocked 4 fictional lateral-movement actions toward the file service."
+    },
+    {
+      "id": "apt-18",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "restricted",
+      "requests": 5,
+      "allowedRequests": 1,
+      "blockedRequests": 4,
+      "bytes": 1200,
+      "latency": 54,
+      "severity": "high",
+      "marker": "APT_LATERAL_MOVEMENT",
+      "explanation": "lateral movement generated 5 metadata-only actions; 4 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "lateral-movement",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery",
+          "privilege-expansion",
+          "lateral-movement"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "defense-18-segmentation",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "isolated",
+      "requests": 4,
+      "allowedRequests": 0,
+      "blockedRequests": 4,
+      "bytes": 0,
+      "latency": 54,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "segmentation",
+      "defenseKind": "preventive",
+      "defenseLayer": "network",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "lateralBlocked": 4
+      },
+      "explanation": "Network segmentation blocked 4 fictional lateral-movement actions toward the file service."
+    },
+    {
+      "id": "apt-19",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "restricted",
+      "requests": 6,
+      "allowedRequests": 1,
+      "blockedRequests": 5,
+      "bytes": 1440,
+      "latency": 55,
+      "severity": "high",
+      "marker": "APT_LATERAL_MOVEMENT",
+      "explanation": "lateral movement generated 6 metadata-only actions; 5 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "lateral-movement",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery",
+          "privilege-expansion",
+          "lateral-movement"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "defense-19-segmentation",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "isolated",
+      "requests": 5,
+      "allowedRequests": 0,
+      "blockedRequests": 5,
+      "bytes": 0,
+      "latency": 55,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "segmentation",
+      "defenseKind": "preventive",
+      "defenseLayer": "network",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "lateralBlocked": 5
+      },
+      "explanation": "Network segmentation blocked 5 fictional lateral-movement actions toward the file service."
+    },
+    {
+      "id": "apt-20",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "restricted",
+      "requests": 7,
+      "allowedRequests": 2,
+      "blockedRequests": 5,
+      "bytes": 1680,
+      "latency": 50,
+      "severity": "high",
+      "marker": "APT_LATERAL_MOVEMENT",
+      "explanation": "lateral movement generated 7 metadata-only actions; 5 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "lateral-movement",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery",
+          "privilege-expansion",
+          "lateral-movement"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "defense-20-segmentation",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "isolated",
+      "requests": 5,
+      "allowedRequests": 0,
+      "blockedRequests": 5,
+      "bytes": 0,
+      "latency": 50,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "segmentation",
+      "defenseKind": "preventive",
+      "defenseLayer": "network",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "lateralBlocked": 5
+      },
+      "explanation": "Network segmentation blocked 5 fictional lateral-movement actions toward the file service."
+    },
+    {
+      "id": "apt-21",
+      "tick": 21,
+      "time": "00:21",
+      "source": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "collection",
+      "requests": 7,
+      "allowedRequests": 7,
+      "blockedRequests": 0,
+      "bytes": 1680,
+      "latency": 57,
+      "severity": "high",
+      "marker": "APT_COLLECTION",
+      "explanation": "collection generated 7 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "collection",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery",
+          "privilege-expansion",
+          "lateral-movement",
+          "collection"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "apt-22",
+      "tick": 22,
+      "time": "00:22",
+      "source": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "collection",
+      "requests": 7,
+      "allowedRequests": 7,
+      "blockedRequests": 0,
+      "bytes": 1680,
+      "latency": 57,
+      "severity": "high",
+      "marker": "APT_COLLECTION",
+      "explanation": "collection generated 7 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "collection",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery",
+          "privilege-expansion",
+          "lateral-movement",
+          "collection"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "apt-23",
+      "tick": 23,
+      "time": "00:23",
+      "source": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "collection",
+      "requests": 8,
+      "allowedRequests": 8,
+      "blockedRequests": 0,
+      "bytes": 1920,
+      "latency": 62,
+      "severity": "high",
+      "marker": "APT_COLLECTION",
+      "explanation": "collection generated 8 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "collection",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery",
+          "privilege-expansion",
+          "lateral-movement",
+          "collection"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "apt-24",
+      "tick": 24,
+      "time": "00:24",
+      "source": {
+        "id": "files",
+        "name": "File Service",
+        "ip": "192.0.2.70",
+        "type": "server",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "protocol": "SMB",
+      "action": "collection",
+      "requests": 6,
+      "allowedRequests": 6,
+      "blockedRequests": 0,
+      "bytes": 1440,
+      "latency": 62,
+      "severity": "high",
+      "marker": "APT_COLLECTION",
+      "explanation": "collection generated 6 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "collection",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery",
+          "privilege-expansion",
+          "lateral-movement",
+          "collection"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "apt-25",
+      "tick": 25,
+      "time": "00:25",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked-transfer",
+      "requests": 112,
+      "allowedRequests": 20,
+      "blockedRequests": 99,
+      "bytes": 26880,
+      "latency": 63,
+      "severity": "critical",
+      "marker": "APT_EXFILTRATION",
+      "explanation": "exfiltration generated 7 metadata-only actions; 99 were controlled; 13 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "exfiltration",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery",
+          "privilege-expansion",
+          "lateral-movement",
+          "collection",
+          "exfiltration"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "defense-25-dlp",
+      "tick": 25,
+      "time": "00:25",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked-transfer",
+      "requests": 99,
+      "allowedRequests": 0,
+      "blockedRequests": 99,
+      "bytes": 0,
+      "latency": 63,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "dlp",
+      "defenseKind": "preventive",
+      "defenseLayer": "data",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "exfiltrationBlocked": 99
+      },
+      "explanation": "Data-loss prevention blocked 99 synthetic collection units at the data boundary."
+    },
+    {
+      "id": "apt-26",
+      "tick": 26,
+      "time": "00:26",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked-transfer",
+      "requests": 112,
+      "allowedRequests": 20,
+      "blockedRequests": 99,
+      "bytes": 26880,
+      "latency": 63,
+      "severity": "critical",
+      "marker": "APT_EXFILTRATION",
+      "explanation": "exfiltration generated 7 metadata-only actions; 99 were controlled; 13 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "exfiltration",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery",
+          "privilege-expansion",
+          "lateral-movement",
+          "collection",
+          "exfiltration"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "defense-26-dlp",
+      "tick": 26,
+      "time": "00:26",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked-transfer",
+      "requests": 99,
+      "allowedRequests": 0,
+      "blockedRequests": 99,
+      "bytes": 0,
+      "latency": 63,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "dlp",
+      "defenseKind": "preventive",
+      "defenseLayer": "data",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "exfiltrationBlocked": 99
+      },
+      "explanation": "Data-loss prevention blocked 99 synthetic collection units at the data boundary."
+    },
+    {
+      "id": "apt-27",
+      "tick": 27,
+      "time": "00:27",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked-transfer",
+      "requests": 112,
+      "allowedRequests": 21,
+      "blockedRequests": 99,
+      "bytes": 26880,
+      "latency": 66,
+      "severity": "critical",
+      "marker": "APT_EXFILTRATION",
+      "explanation": "exfiltration generated 8 metadata-only actions; 99 were controlled; 13 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "exfiltration",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery",
+          "privilege-expansion",
+          "lateral-movement",
+          "collection",
+          "exfiltration"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "defense-27-dlp",
+      "tick": 27,
+      "time": "00:27",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked-transfer",
+      "requests": 99,
+      "allowedRequests": 0,
+      "blockedRequests": 99,
+      "bytes": 0,
+      "latency": 66,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "dlp",
+      "defenseKind": "preventive",
+      "defenseLayer": "data",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "exfiltrationBlocked": 99
+      },
+      "explanation": "Data-loss prevention blocked 99 synthetic collection units at the data boundary."
+    },
+    {
+      "id": "apt-28",
+      "tick": 28,
+      "time": "00:28",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked-transfer",
+      "requests": 112,
+      "allowedRequests": 20,
+      "blockedRequests": 99,
+      "bytes": 26880,
+      "latency": 62,
+      "severity": "critical",
+      "marker": "APT_EXFILTRATION",
+      "explanation": "exfiltration generated 7 metadata-only actions; 99 were controlled; 13 synthetic units crossed the boundary.",
+      "scenarioState": {
+        "stage": "exfiltration",
+        "completedStages": [
+          "initial-access",
+          "persistence",
+          "discovery",
+          "privilege-expansion",
+          "lateral-movement",
+          "collection",
+          "exfiltration"
+        ],
+        "executableContent": false,
+        "realData": false
+      }
+    },
+    {
+      "id": "defense-28-dlp",
+      "tick": 28,
+      "time": "00:28",
+      "source": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "actor",
+        "name": "Simulated Source A",
+        "ip": "203.0.113.10",
+        "type": "actor",
+        "status": "healthy"
+      },
+      "protocol": "HTTPS",
+      "action": "blocked-transfer",
+      "requests": 99,
+      "allowedRequests": 0,
+      "blockedRequests": 99,
+      "bytes": 0,
+      "latency": 62,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "dlp",
+      "defenseKind": "preventive",
+      "defenseLayer": "data",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "exfiltrationBlocked": 99
+      },
+      "explanation": "Data-loss prevention blocked 99 synthetic collection units at the data boundary."
+    }
+  ],
+  "specializedScenario": true,
+  "networkScenario": false,
+  "scenarioState": {
+    "currentStage": "exfiltration",
+    "completedStages": [
+      "initial-access",
+      "persistence",
+      "discovery",
+      "privilege-expansion",
+      "lateral-movement",
+      "collection",
+      "exfiltration"
+    ],
+    "stageEvents": 144,
+    "assetsDiscovered": 17,
+    "privilegeRestricted": 16,
+    "lateralMoves": 5,
+    "lateralBlocked": 18,
+    "collectedUnits": 112,
+    "exfiltrationAttempted": 448,
+    "exfiltrationBlocked": 396,
+    "exfiltratedUnits": 52
+  },
+  "outcomeMetrics": {
+    "currentStage": "exfiltration",
+    "completedStages": [
+      "initial-access",
+      "persistence",
+      "discovery",
+      "privilege-expansion",
+      "lateral-movement",
+      "collection",
+      "exfiltration"
+    ],
+    "stageEvents": 144,
+    "assetsDiscovered": 17,
+    "privilegeRestricted": 16,
+    "lateralMoves": 5,
+    "lateralBlocked": 18,
+    "collectedUnits": 112,
+    "exfiltrationAttempted": 448,
+    "exfiltrationBlocked": 396,
+    "exfiltratedUnits": 52
+  },
+  "observableEvidence": [
+    {
+      "tick": 28,
+      "marker": "APT_EXFILTRATION",
+      "action": "blocked-transfer",
+      "explanation": "exfiltration generated 7 metadata-only actions; 99 were controlled; 13 synthetic units crossed the boundary."
+    },
+    {
+      "tick": 27,
+      "marker": "APT_EXFILTRATION",
+      "action": "blocked-transfer",
+      "explanation": "exfiltration generated 8 metadata-only actions; 99 were controlled; 13 synthetic units crossed the boundary."
+    },
+    {
+      "tick": 26,
+      "marker": "APT_EXFILTRATION",
+      "action": "blocked-transfer",
+      "explanation": "exfiltration generated 7 metadata-only actions; 99 were controlled; 13 synthetic units crossed the boundary."
+    },
+    {
+      "tick": 25,
+      "marker": "APT_EXFILTRATION",
+      "action": "blocked-transfer",
+      "explanation": "exfiltration generated 7 metadata-only actions; 99 were controlled; 13 synthetic units crossed the boundary."
+    },
+    {
+      "tick": 24,
+      "marker": "APT_COLLECTION",
+      "action": "collection",
+      "explanation": "collection generated 6 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary."
+    },
+    {
+      "tick": 23,
+      "marker": "APT_COLLECTION",
+      "action": "collection",
+      "explanation": "collection generated 8 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary."
+    },
+    {
+      "tick": 22,
+      "marker": "APT_COLLECTION",
+      "action": "collection",
+      "explanation": "collection generated 7 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary."
+    },
+    {
+      "tick": 21,
+      "marker": "APT_COLLECTION",
+      "action": "collection",
+      "explanation": "collection generated 7 metadata-only actions; 0 were controlled; 0 synthetic units crossed the boundary."
+    }
+  ],
+  "schemaVersion": "2.0",
+  "summary": {
+    "identity": {
+      "scenarioId": "apt",
+      "scenario": "Advanced Persistent Threat",
+      "seed": 4242,
+      "difficulty": "Beginner"
+    },
+    "risk": {
+      "peak": 92,
+      "residual": 38
+    },
+    "activity": {
+      "eventCount": 40,
+      "alertCount": 30,
+      "blockedUnits": 430,
+      "detections": 0
+    },
+    "service": {
+      "peakOffered": 112,
+      "peakAllowed": 21,
+      "maximumLatency": 66,
+      "maximumErrorRate": 17,
+      "minimumAvailability": 89
+    },
+    "defenses": {
+      "triggered": 3,
+      "affectedUnits": 430,
+      "controlsHelped": [
+        "Network segmentation",
+        "Least privilege",
+        "Data-loss prevention"
+      ],
+      "coverageGaps": []
+    },
+    "outcomes": {
+      "currentStage": "exfiltration",
+      "completedStages": [
+        "initial-access",
+        "persistence",
+        "discovery",
+        "privilege-expansion",
+        "lateral-movement",
+        "collection",
+        "exfiltration"
+      ],
+      "stageEvents": 144,
+      "assetsDiscovered": 17,
+      "privilegeRestricted": 16,
+      "lateralMoves": 5,
+      "lateralBlocked": 18,
+      "collectedUnits": 112,
+      "exfiltrationAttempted": 448,
+      "exfiltrationBlocked": 396,
+      "exfiltratedUnits": 52
+    }
+  }
+}

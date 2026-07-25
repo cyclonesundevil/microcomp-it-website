@@ -1,4 +1,9 @@
 (function () {
+    const unsupportedDevelopmentHosts = new Set(['localhost', '127.0.0.1', '[::1]']);
+    if (window.location.protocol === 'file:' || unsupportedDevelopmentHosts.has(window.location.hostname)) {
+        return;
+    }
+
     const idleTimeoutMs = 30_000;
     const heartbeatMs = 15_000;
     const maxActiveSeconds = 60 * 60;

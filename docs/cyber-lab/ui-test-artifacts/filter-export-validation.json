@@ -1,0 +1,130 @@
+{
+  "baseline": 100,
+  "sample": [
+    "00:24",
+    "Load Balancer192.0.2.10",
+    "Web Service192.0.2.20",
+    "HTTPS",
+    "119",
+    "119",
+    "0",
+    "44 ms",
+    "medium"
+  ],
+  "source": {
+    "value": "Load Balancer",
+    "count": 18
+  },
+  "sourceDestination": {
+    "destination": "Web Service",
+    "count": 18
+  },
+  "combinedWithTime": 5,
+  "empty": {
+    "count": 0,
+    "text": "No synthetic flows match these filters."
+  },
+  "restored": 100,
+  "exports": [
+    {
+      "name": "export-apt-csv-microcompit-synthetic-apt-report.csv",
+      "bytes": 14477,
+      "privateAddress": false,
+      "dangerousText": false,
+      "csvConsistent": true
+    },
+    {
+      "name": "export-apt-json-microcompit-synthetic-apt-report.json",
+      "bytes": 53626,
+      "privateAddress": false,
+      "dangerousText": false,
+      "csvConsistent": null,
+      "identity": {
+        "scenario": "Advanced Persistent Threat",
+        "seed": 4242,
+        "difficulty": "Beginner",
+        "synthetic": true
+      }
+    },
+    {
+      "name": "export-dos-csv-microcompit-synthetic-dos-report.csv",
+      "bytes": 46087,
+      "privateAddress": false,
+      "dangerousText": false,
+      "csvConsistent": true
+    },
+    {
+      "name": "export-dos-json-microcompit-synthetic-dos-report.json",
+      "bytes": 131242,
+      "privateAddress": false,
+      "dangerousText": false,
+      "csvConsistent": null,
+      "identity": {
+        "scenario": "DoS & DDoS",
+        "seed": 4242,
+        "difficulty": "Beginner",
+        "synthetic": true
+      }
+    },
+    {
+      "name": "export-malware-csv-microcompit-synthetic-malware-report.csv",
+      "bytes": 28898,
+      "privateAddress": false,
+      "dangerousText": false,
+      "csvConsistent": true
+    },
+    {
+      "name": "export-malware-json-microcompit-synthetic-malware-report.json",
+      "bytes": 88791,
+      "privateAddress": false,
+      "dangerousText": false,
+      "csvConsistent": null,
+      "identity": {
+        "scenario": "Malware Outbreak",
+        "seed": 4242,
+        "difficulty": "Beginner",
+        "synthetic": true
+      }
+    },
+    {
+      "name": "export-phishing-csv-microcompit-synthetic-phishing-report.csv",
+      "bytes": 29938,
+      "privateAddress": false,
+      "dangerousText": false,
+      "csvConsistent": true
+    },
+    {
+      "name": "export-phishing-json-microcompit-synthetic-phishing-report.json",
+      "bytes": 86800,
+      "privateAddress": false,
+      "dangerousText": false,
+      "csvConsistent": null,
+      "identity": {
+        "scenario": "Phishing & Spear Phishing",
+        "seed": 4242,
+        "difficulty": "Beginner",
+        "synthetic": true
+      }
+    },
+    {
+      "name": "export-sqli-csv-microcompit-synthetic-sqli-report.csv",
+      "bytes": 31275,
+      "privateAddress": false,
+      "dangerousText": false,
+      "csvConsistent": true
+    },
+    {
+      "name": "export-sqli-json-microcompit-synthetic-sqli-report.json",
+      "bytes": 93903,
+      "privateAddress": false,
+      "dangerousText": false,
+      "csvConsistent": null,
+      "identity": {
+        "scenario": "SQL Injection",
+        "seed": 4242,
+        "difficulty": "Beginner",
+        "synthetic": true
+      }
+    }
+  ]
+}

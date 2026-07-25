@@ -1,0 +1,895 @@
+{
+  "defenses": [
+    {
+      "scenario": "dos",
+      "defense": "rateLimiting",
+      "interactive": true,
+      "reportContainsDefense": false,
+      "reportExcerpt": []
+    },
+    {
+      "scenario": "dos",
+      "defense": "trafficFiltering",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Traffic filtering (282 synthetic units affected; trade-off: Imperfect rules can block a small share of legitimate traffic.)"
+      ]
+    },
+    {
+      "scenario": "dos",
+      "defense": "caching",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Caching (1,185 synthetic units affected; trade-off: Dynamic or uncached requests still reach the service.)"
+      ]
+    },
+    {
+      "scenario": "dos",
+      "defense": "autoscaling",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Autoscaling (13 synthetic units affected; trade-off: Capacity arrives after a delay and adds simulated operating cost.)"
+      ]
+    },
+    {
+      "scenario": "dos",
+      "defense": "upstreamProtection",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Upstream DDoS protection (29,844 synthetic units affected; 97% effectiveness; +0 availability points; trade-off: Scrubbing can add latency and is less useful for a single trusted-looking source.)"
+      ]
+    },
+    {
+      "scenario": "mitm",
+      "defense": "encryption",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Multi-factor authentication, Encryption, Intrusion detection",
+        "Encryption · preventive · 174 affected"
+      ]
+    },
+    {
+      "scenario": "mitm",
+      "defense": "ids",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Multi-factor authentication, Encryption, Intrusion detection",
+        "Intrusion detection · detective · 174 affected"
+      ]
+    },
+    {
+      "scenario": "mitm",
+      "defense": "mfa",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Multi-factor authentication, Encryption, Intrusion detection",
+        "Multi-factor authentication · preventive · 97 affected"
+      ]
+    },
+    {
+      "scenario": "phishing",
+      "defense": "emailFiltering",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Email filtering, Multi-factor authentication, Endpoint protection",
+        "Email filtering · preventive · 104 affected"
+      ]
+    },
+    {
+      "scenario": "phishing",
+      "defense": "mfa",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Email filtering, Multi-factor authentication, Endpoint protection",
+        "Multi-factor authentication · preventive · 17 affected"
+      ]
+    },
+    {
+      "scenario": "phishing",
+      "defense": "endpointProtection",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Email filtering, Multi-factor authentication, Endpoint protection",
+        "Endpoint protection · preventive · 17 affected"
+      ]
+    },
+    {
+      "scenario": "malware",
+      "defense": "endpointProtection",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Network segmentation, Endpoint protection, Patch management",
+        "Endpoint protection · preventive · 33 affected"
+      ]
+    },
+    {
+      "scenario": "malware",
+      "defense": "segmentation",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Network segmentation, Endpoint protection, Patch management",
+        "Network segmentation · preventive · 24 affected"
+      ]
+    },
+    {
+      "scenario": "malware",
+      "defense": "patchManagement",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Network segmentation, Endpoint protection, Patch management",
+        "Patch management · preventive · 103 affected"
+      ]
+    },
+    {
+      "scenario": "sqli",
+      "defense": "waf",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Web application firewall, Least privilege, Intrusion detection",
+        "Web application firewall · preventive · 188 affected"
+      ]
+    },
+    {
+      "scenario": "sqli",
+      "defense": "leastPrivilege",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Web application firewall, Least privilege, Intrusion detection",
+        "Least privilege · preventive · 156 affected"
+      ]
+    },
+    {
+      "scenario": "sqli",
+      "defense": "ids",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Web application firewall, Least privilege, Intrusion detection",
+        "Intrusion detection · detective · 40 affected"
+      ]
+    },
+    {
+      "scenario": "zeroday",
+      "defense": "anomalyDetection",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Network segmentation, Least privilege, Anomaly detection",
+        "Anomaly detection · detective · 156 affected"
+      ]
+    },
+    {
+      "scenario": "zeroday",
+      "defense": "segmentation",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Network segmentation, Least privilege, Anomaly detection",
+        "Network segmentation · preventive · 36 affected"
+      ]
+    },
+    {
+      "scenario": "zeroday",
+      "defense": "leastPrivilege",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Network segmentation, Least privilege, Anomaly detection",
+        "Least privilege · preventive · 20 affected"
+      ]
+    },
+    {
+      "scenario": "xss",
+      "defense": "waf",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Web application firewall, Patch management, Intrusion detection",
+        "Web application firewall · preventive · 165 affected"
+      ]
+    },
+    {
+      "scenario": "xss",
+      "defense": "ids",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Web application firewall, Patch management, Intrusion detection",
+        "Intrusion detection · detective · 42 affected"
+      ]
+    },
+    {
+      "scenario": "xss",
+      "defense": "patchManagement",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Web application firewall, Patch management, Intrusion detection",
+        "Patch management · preventive · 42 affected"
+      ]
+    },
+    {
+      "scenario": "password",
+      "defense": "mfa",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Rate limiting, Account lockout, Multi-factor authentication",
+        "Multi-factor authentication · preventive · 4 affected"
+      ]
+    },
+    {
+      "scenario": "password",
+      "defense": "accountLockout",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Rate limiting, Account lockout, Multi-factor authentication",
+        "Account lockout · preventive · 49 affected"
+      ]
+    },
+    {
+      "scenario": "password",
+      "defense": "rateLimiting",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Rate limiting, Account lockout, Multi-factor authentication",
+        "Rate limiting · preventive · 235 affected"
+      ]
+    },
+    {
+      "scenario": "apt",
+      "defense": "segmentation",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Network segmentation, Least privilege, Data-loss prevention",
+        "Network segmentation · preventive · 18 affected"
+      ]
+    },
+    {
+      "scenario": "apt",
+      "defense": "leastPrivilege",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Network segmentation, Least privilege, Data-loss prevention",
+        "Least privilege · preventive · 16 affected"
+      ]
+    },
+    {
+      "scenario": "apt",
+      "defense": "dlp",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Network segmentation, Least privilege, Data-loss prevention",
+        "Data-loss prevention · preventive · 396 affected"
+      ]
+    },
+    {
+      "scenario": "eavesdropping",
+      "defense": "encryption",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Encryption changes content visibility while metadata remains observable.",
+        "Encryption, Network segmentation, Intrusion detection"
+      ]
+    },
+    {
+      "scenario": "eavesdropping",
+      "defense": "segmentation",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Encryption, Network segmentation, Intrusion detection",
+        "Network segmentation · preventive · 227 affected"
+      ]
+    },
+    {
+      "scenario": "eavesdropping",
+      "defense": "ids",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Encryption, Network segmentation, Intrusion detection",
+        "Intrusion detection · detective · 417 affected"
+      ]
+    },
+    {
+      "scenario": "insider",
+      "defense": "leastPrivilege",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Least privilege, Data-loss prevention, Anomaly detection",
+        "Least privilege · preventive · 46 affected"
+      ]
+    },
+    {
+      "scenario": "insider",
+      "defense": "dlp",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Least privilege, Data-loss prevention, Anomaly detection",
+        "Data-loss prevention · preventive · 109 affected"
+      ]
+    },
+    {
+      "scenario": "insider",
+      "defense": "anomalyDetection",
+      "interactive": true,
+      "reportContainsDefense": true,
+      "reportExcerpt": [
+        "Least privilege, Data-loss prevention, Anomaly detection",
+        "Anomaly detection · detective · 77 affected"
+      ]
+    }
+  ],
+  "replay": [
+    {
+      "scenario": "dos",
+      "stableOutcomeIdentical": true,
+      "first": {
+        "score": "RESIDUAL RISK\n3/100\n\nDDOS · seed 4242 · 30,127 requests blocked",
+        "findings": [
+          "PEAK REQUESTS / SECOND\n2,360",
+          "PEAK SERVER-BOUND REQUESTS / SECOND\n113",
+          "MAXIMUM LATENCY\n56 ms",
+          "MAXIMUM ERROR RATE\n1%",
+          "SERVICE DOWNTIME\n0 virtual seconds (0 ticks)",
+          "TRAFFIC BLOCKED\n30,127 synthetic requests",
+          "UPSTREAM TRAFFIC FILTERED\n29,844 requests · 97% effectiveness",
+          "UPSTREAM AVAILABILITY IMPROVEMENT\n+0 percentage points · 0 ms lower peak latency",
+          "MINIMUM AVAILABILITY\n100%",
+          "DEFENSES TRIGGERED & TRADE-OFFS\nUpstream DDoS protection (29,844 synthetic units affected; 97% effectiveness; +0 availability points; trade-off: Scrubbing can add latency and is less useful for a single trusted-looking source.)\nTraffic filtering (282 synthetic units affected; trade-off: Imperfect rules can block a small share of legitimate traffic.)\nCaching (1,185 synthetic units affected; trade-off: Dynamic or uncached requests still reach the service.)\nAutoscaling (13 synthetic units affected; trade-off: Capacity arrives after a delay and adds simulated operating cost.)",
+          "MISSED DETECTIONS / COVERAGE\nAll reference defense layers were enabled.",
+          "RECOMMENDED IMPROVEMENTS\nKeep the layered controls, tune thresholds using normal traffic baselines, and rehearse capacity and upstream-provider response."
+        ]
+      },
+      "second": {
+        "score": "RESIDUAL RISK\n3/100\n\nDDOS · seed 4242 · 30,127 requests blocked",
+        "findings": [
+          "PEAK REQUESTS / SECOND\n2,360",
+          "PEAK SERVER-BOUND REQUESTS / SECOND\n113",
+          "MAXIMUM LATENCY\n56 ms",
+          "MAXIMUM ERROR RATE\n1%",
+          "SERVICE DOWNTIME\n0 virtual seconds (0 ticks)",
+          "TRAFFIC BLOCKED\n30,127 synthetic requests",
+          "UPSTREAM TRAFFIC FILTERED\n29,844 requests · 97% effectiveness",
+          "UPSTREAM AVAILABILITY IMPROVEMENT\n+0 percentage points · 0 ms lower peak latency",
+          "MINIMUM AVAILABILITY\n100%",
+          "DEFENSES TRIGGERED & TRADE-OFFS\nUpstream DDoS protection (29,844 synthetic units affected; 97% effectiveness; +0 availability points; trade-off: Scrubbing can add latency and is less useful for a single trusted-looking source.)\nTraffic filtering (282 synthetic units affected; trade-off: Imperfect rules can block a small share of legitimate traffic.)\nCaching (1,185 synthetic units affected; trade-off: Dynamic or uncached requests still reach the service.)\nAutoscaling (13 synthetic units affected; trade-off: Capacity arrives after a delay and adds simulated operating cost.)",
+          "MISSED DETECTIONS / COVERAGE\nAll reference defense layers were enabled.",
+          "RECOMMENDED IMPROVEMENTS\nKeep the layered controls, tune thresholds using normal traffic baselines, and rehearse capacity and upstream-provider response."
+        ]
+      }
+    },
+    {
+      "scenario": "mitm",
+      "stableOutcomeIdentical": true,
+      "first": {
+        "score": "RESIDUAL RISK\n23/100\n\n271 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nObserve and alter a fictional session path.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nA route change and integrity warning appear on a synthetic session.",
+          "AFFECTED ASSETS\nSimulated Source A, Firewall / Rate Limiter, Employee Workstation",
+          "CONTROLS THAT HELPED\nMulti-factor authentication, Encryption, Intrusion detection",
+          "STANDARDIZED DEFENSE EFFECTS\nMulti-factor authentication · preventive · 97 affected\nEncryption · preventive · 174 affected\nIntrusion detection · detective · 174 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nEnforce encryption and certificate validation; reauthenticate risky sessions.",
+          "SCENARIO-SPECIFIC OUTCOMES\nroute Integrity: protected\ncertificate Status: validated warning\naltered Sessions: 0\nprotected Sessions: 174\ncertificate Warnings: 174\nreauth Challenges: 97"
+        ]
+      },
+      "second": {
+        "score": "RESIDUAL RISK\n23/100\n\n271 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nObserve and alter a fictional session path.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nA route change and integrity warning appear on a synthetic session.",
+          "AFFECTED ASSETS\nSimulated Source A, Firewall / Rate Limiter, Employee Workstation",
+          "CONTROLS THAT HELPED\nMulti-factor authentication, Encryption, Intrusion detection",
+          "STANDARDIZED DEFENSE EFFECTS\nMulti-factor authentication · preventive · 97 affected\nEncryption · preventive · 174 affected\nIntrusion detection · detective · 174 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nEnforce encryption and certificate validation; reauthenticate risky sessions.",
+          "SCENARIO-SPECIFIC OUTCOMES\nroute Integrity: protected\ncertificate Status: validated warning\naltered Sessions: 0\nprotected Sessions: 174\ncertificate Warnings: 174\nreauth Challenges: 97"
+        ]
+      }
+    },
+    {
+      "scenario": "phishing",
+      "stableOutcomeIdentical": true,
+      "first": {
+        "score": "RESIDUAL RISK\n9/100\n\n138 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nInfluence a fictional user through a mock inbox.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nSender discrepancy, urgency cues, and interaction risk appear in a mock inbox.",
+          "AFFECTED ASSETS\nSynthetic Internet, Email Gateway, Employee Workstation",
+          "CONTROLS THAT HELPED\nEmail filtering, Multi-factor authentication, Endpoint protection",
+          "STANDARDIZED DEFENSE EFFECTS\nEmail filtering · preventive · 104 affected\nMulti-factor authentication · preventive · 17 affected\nEndpoint protection · preventive · 17 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nCombine filtering, MFA, awareness, and endpoint monitoring.",
+          "SCENARIO-SPECIFIC OUTCOMES\nvariant: spear-phishing\nmock Messages: 166\nfiltered Messages: 104\ndelivered Messages: 62\ninteractions: 17\nprotected Identities: 17\ncompromised Identities: 0\ncontained Endpoints: 17\nendpoint Risk: 0"
+        ]
+      },
+      "second": {
+        "score": "RESIDUAL RISK\n9/100\n\n138 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nInfluence a fictional user through a mock inbox.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nSender discrepancy, urgency cues, and interaction risk appear in a mock inbox.",
+          "AFFECTED ASSETS\nSynthetic Internet, Email Gateway, Employee Workstation",
+          "CONTROLS THAT HELPED\nEmail filtering, Multi-factor authentication, Endpoint protection",
+          "STANDARDIZED DEFENSE EFFECTS\nEmail filtering · preventive · 104 affected\nMulti-factor authentication · preventive · 17 affected\nEndpoint protection · preventive · 17 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nCombine filtering, MFA, awareness, and endpoint monitoring.",
+          "SCENARIO-SPECIFIC OUTCOMES\nvariant: spear-phishing\nmock Messages: 166\nfiltered Messages: 104\ndelivered Messages: 62\ninteractions: 17\nprotected Identities: 17\ncompromised Identities: 0\ncontained Endpoints: 17\nendpoint Risk: 0"
+        ]
+      }
+    },
+    {
+      "scenario": "malware",
+      "stableOutcomeIdentical": true,
+      "first": {
+        "score": "RESIDUAL RISK\n15/100\n\n160 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nDisrupt fictional endpoints and attempt abstract spread.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nEndpoint health, file access, and lateral-connection risk deviate from baseline.",
+          "AFFECTED ASSETS\nEmployee Workstation, File Service, Security Monitor",
+          "CONTROLS THAT HELPED\nNetwork segmentation, Endpoint protection, Patch management",
+          "STANDARDIZED DEFENSE EFFECTS\nNetwork segmentation · preventive · 24 affected\nEndpoint protection · preventive · 33 affected\nPatch management · preventive · 103 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nIsolate affected endpoints, patch systems, and review endpoint alerts.",
+          "SCENARIO-SPECIFIC OUTCOMES\nendpoint Health: protected\nendpoint Events: 160\ninfected Endpoints: 0\ncontained Events: 33\nprevented Infections: 103\nspread Attempts: 24\nisolated Spread: 24\nsuccessful Spread: 0"
+        ]
+      },
+      "second": {
+        "score": "RESIDUAL RISK\n15/100\n\n160 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nDisrupt fictional endpoints and attempt abstract spread.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nEndpoint health, file access, and lateral-connection risk deviate from baseline.",
+          "AFFECTED ASSETS\nEmployee Workstation, File Service, Security Monitor",
+          "CONTROLS THAT HELPED\nNetwork segmentation, Endpoint protection, Patch management",
+          "STANDARDIZED DEFENSE EFFECTS\nNetwork segmentation · preventive · 24 affected\nEndpoint protection · preventive · 33 affected\nPatch management · preventive · 103 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nIsolate affected endpoints, patch systems, and review endpoint alerts.",
+          "SCENARIO-SPECIFIC OUTCOMES\nendpoint Health: protected\nendpoint Events: 160\ninfected Endpoints: 0\ncontained Events: 33\nprevented Infections: 103\nspread Attempts: 24\nisolated Spread: 24\nsuccessful Spread: 0"
+        ]
+      }
+    },
+    {
+      "scenario": "sqli",
+      "stableOutcomeIdentical": true,
+      "first": {
+        "score": "RESIDUAL RISK\n24/100\n\n344 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nReach mock records through unsafe input handling.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nA safe request marker correlates with database errors and record-access risk.",
+          "AFFECTED ASSETS\nSynthetic Internet, Web Service, Records Database",
+          "CONTROLS THAT HELPED\nWeb application firewall, Least privilege, Intrusion detection",
+          "STANDARDIZED DEFENSE EFFECTS\nWeb application firewall · preventive · 188 affected\nLeast privilege · preventive · 156 affected\nIntrusion detection · detective · 40 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nUse parameterized queries, validation, least privilege, and safe error handling.",
+          "SCENARIO-SPECIFIC OUTCOMES\nrequest Handling: reached-application\nmarked Requests: 228\nrejected Requests: 188\ndatabase Queries: 40\ndatabase Errors: 15\nrecords At Risk: 33\nprotected Records: 156"
+        ]
+      },
+      "second": {
+        "score": "RESIDUAL RISK\n24/100\n\n344 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nReach mock records through unsafe input handling.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nA safe request marker correlates with database errors and record-access risk.",
+          "AFFECTED ASSETS\nSynthetic Internet, Web Service, Records Database",
+          "CONTROLS THAT HELPED\nWeb application firewall, Least privilege, Intrusion detection",
+          "STANDARDIZED DEFENSE EFFECTS\nWeb application firewall · preventive · 188 affected\nLeast privilege · preventive · 156 affected\nIntrusion detection · detective · 40 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nUse parameterized queries, validation, least privilege, and safe error handling.",
+          "SCENARIO-SPECIFIC OUTCOMES\nrequest Handling: reached-application\nmarked Requests: 228\nrejected Requests: 188\ndatabase Queries: 40\ndatabase Errors: 15\nrecords At Risk: 33\nprotected Records: 156"
+        ]
+      }
+    },
+    {
+      "scenario": "zeroday",
+      "stableOutcomeIdentical": true,
+      "first": {
+        "score": "RESIDUAL RISK\n28/100\n\n56 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nUse an unknown abstract flaw before a signature exists.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nBehavior-based detection observes activity missed by signature checks.",
+          "AFFECTED ASSETS\nSimulated Source A, Web Service, Records Database",
+          "CONTROLS THAT HELPED\nNetwork segmentation, Least privilege, Anomaly detection",
+          "STANDARDIZED DEFENSE EFFECTS\nNetwork segmentation · preventive · 36 affected\nLeast privilege · preventive · 20 affected\nAnomaly detection · detective · 156 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nUse behavior analytics, rapid isolation, segmentation, and virtual patching.",
+          "SCENARIO-SPECIFIC OUTCOMES\nsignature Status: unknown-no-match\nbehavior Events: 213\nsignature Misses: 205\nanomaly Detections: 156\nisolated Actions: 36\nprivilege Contained: 20\nimpact Actions: 1"
+        ]
+      },
+      "second": {
+        "score": "RESIDUAL RISK\n28/100\n\n56 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nUse an unknown abstract flaw before a signature exists.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nBehavior-based detection observes activity missed by signature checks.",
+          "AFFECTED ASSETS\nSimulated Source A, Web Service, Records Database",
+          "CONTROLS THAT HELPED\nNetwork segmentation, Least privilege, Anomaly detection",
+          "STANDARDIZED DEFENSE EFFECTS\nNetwork segmentation · preventive · 36 affected\nLeast privilege · preventive · 20 affected\nAnomaly detection · detective · 156 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nUse behavior analytics, rapid isolation, segmentation, and virtual patching.",
+          "SCENARIO-SPECIFIC OUTCOMES\nsignature Status: unknown-no-match\nbehavior Events: 213\nsignature Misses: 205\nanomaly Detections: 156\nisolated Actions: 36\nprivilege Contained: 20\nimpact Actions: 1"
+        ]
+      }
+    },
+    {
+      "scenario": "xss",
+      "stableOutcomeIdentical": true,
+      "first": {
+        "score": "RESIDUAL RISK\n16/100\n\n207 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nCreate session risk through mishandled fictional content.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nUnsafe-content markers correlate with browser policy and session-risk alerts.",
+          "AFFECTED ASSETS\nSynthetic Internet, Web Service, Employee Workstation",
+          "CONTROLS THAT HELPED\nWeb application firewall, Patch management, Intrusion detection",
+          "STANDARDIZED DEFENSE EFFECTS\nWeb application firewall · preventive · 165 affected\nPatch management · preventive · 42 affected\nIntrusion detection · detective · 42 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nEncode output, validate input, enforce browser policy, and secure cookies.",
+          "SCENARIO-SPECIFIC OUTCOMES\nbrowser Policy: hardened\ncontent Submissions: 215\nrejected Content: 165\nunsafe Renders: 0\nprotected Renders: 42\nsessions At Risk: 0"
+        ]
+      },
+      "second": {
+        "score": "RESIDUAL RISK\n16/100\n\n207 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nCreate session risk through mishandled fictional content.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nUnsafe-content markers correlate with browser policy and session-risk alerts.",
+          "AFFECTED ASSETS\nSynthetic Internet, Web Service, Employee Workstation",
+          "CONTROLS THAT HELPED\nWeb application firewall, Patch management, Intrusion detection",
+          "STANDARDIZED DEFENSE EFFECTS\nWeb application firewall · preventive · 165 affected\nPatch management · preventive · 42 affected\nIntrusion detection · detective · 42 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nEncode output, validate input, enforce browser policy, and secure cookies.",
+          "SCENARIO-SPECIFIC OUTCOMES\nbrowser Policy: hardened\ncontent Submissions: 215\nrejected Content: 165\nunsafe Renders: 0\nprotected Renders: 42\nsessions At Risk: 0"
+        ]
+      }
+    },
+    {
+      "scenario": "password",
+      "stableOutcomeIdentical": true,
+      "first": {
+        "score": "RESIDUAL RISK\n12/100\n\n288 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nGenerate repeated synthetic authentication patterns.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nAuthentication failures form repeated and distributed patterns.",
+          "AFFECTED ASSETS\nSimulated Source A, Identity Provider, Security Monitor",
+          "CONTROLS THAT HELPED\nRate limiting, Account lockout, Multi-factor authentication",
+          "STANDARDIZED DEFENSE EFFECTS\nRate limiting · preventive · 235 affected\nAccount lockout · preventive · 49 affected\nMulti-factor authentication · preventive · 4 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nUse MFA, rate limits, lockouts, and monitored authentication baselines.",
+          "SCENARIO-SPECIFIC OUTCOMES\npattern: password-spray\nauthentication Attempts: 568\nfailed Attempts: 329\nlocked Accounts: 49\nprevented Takeovers: 4\nsuccessful Takeovers: 0\ndistinct Sources: 5"
+        ]
+      },
+      "second": {
+        "score": "RESIDUAL RISK\n12/100\n\n288 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nGenerate repeated synthetic authentication patterns.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nAuthentication failures form repeated and distributed patterns.",
+          "AFFECTED ASSETS\nSimulated Source A, Identity Provider, Security Monitor",
+          "CONTROLS THAT HELPED\nRate limiting, Account lockout, Multi-factor authentication",
+          "STANDARDIZED DEFENSE EFFECTS\nRate limiting · preventive · 235 affected\nAccount lockout · preventive · 49 affected\nMulti-factor authentication · preventive · 4 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nUse MFA, rate limits, lockouts, and monitored authentication baselines.",
+          "SCENARIO-SPECIFIC OUTCOMES\npattern: password-spray\nauthentication Attempts: 568\nfailed Attempts: 329\nlocked Accounts: 49\nprevented Takeovers: 4\nsuccessful Takeovers: 0\ndistinct Sources: 5"
+        ]
+      }
+    },
+    {
+      "scenario": "apt",
+      "stableOutcomeIdentical": true,
+      "first": {
+        "score": "RESIDUAL RISK\n38/100\n\n430 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nMove toward fictional sensitive assets over several abstract stages.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nLow-volume events accumulate across access, discovery, movement, and collection.",
+          "AFFECTED ASSETS\nSimulated Source A, Employee Workstation, File Service",
+          "CONTROLS THAT HELPED\nNetwork segmentation, Least privilege, Data-loss prevention",
+          "STANDARDIZED DEFENSE EFFECTS\nNetwork segmentation · preventive · 18 affected\nLeast privilege · preventive · 16 affected\nData-loss prevention · preventive · 396 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nReduce privilege, segment assets, hunt anomalies, and protect data movement.",
+          "SCENARIO-SPECIFIC OUTCOMES\ncurrent Stage: exfiltration\ncompleted Stages: initial-access,persistence,discovery,privilege-expansion,lateral-movement,collection,exfiltration\nstage Events: 144\nassets Discovered: 17\nprivilege Restricted: 16\nlateral Moves: 5\nlateral Blocked: 18\ncollected Units: 112\nexfiltration Attempted: 448\nexfiltration Blocked: 396\nexfiltrated Units: 52"
+        ]
+      },
+      "second": {
+        "score": "RESIDUAL RISK\n38/100\n\n430 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nMove toward fictional sensitive assets over several abstract stages.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nLow-volume events accumulate across access, discovery, movement, and collection.",
+          "AFFECTED ASSETS\nSimulated Source A, Employee Workstation, File Service",
+          "CONTROLS THAT HELPED\nNetwork segmentation, Least privilege, Data-loss prevention",
+          "STANDARDIZED DEFENSE EFFECTS\nNetwork segmentation · preventive · 18 affected\nLeast privilege · preventive · 16 affected\nData-loss prevention · preventive · 396 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nReduce privilege, segment assets, hunt anomalies, and protect data movement.",
+          "SCENARIO-SPECIFIC OUTCOMES\ncurrent Stage: exfiltration\ncompleted Stages: initial-access,persistence,discovery,privilege-expansion,lateral-movement,collection,exfiltration\nstage Events: 144\nassets Discovered: 17\nprivilege Restricted: 16\nlateral Moves: 5\nlateral Blocked: 18\ncollected Units: 112\nexfiltration Attempted: 448\nexfiltration Blocked: 396\nexfiltrated Units: 52"
+        ]
+      }
+    },
+    {
+      "scenario": "eavesdropping",
+      "stableOutcomeIdentical": true,
+      "first": {
+        "score": "RESIDUAL RISK\n28/100\n\n676 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nCompare protected and unprotected synthetic metadata.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nEncryption changes content visibility while metadata remains observable.",
+          "AFFECTED ASSETS\nEmployee Workstation, Firewall / Rate Limiter, Simulated Source A",
+          "CONTROLS THAT HELPED\nEncryption, Network segmentation, Intrusion detection",
+          "STANDARDIZED DEFENSE EFFECTS\nEncryption · preventive · 449 affected\nNetwork segmentation · preventive · 227 affected\nIntrusion detection · detective · 417 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nEncrypt data in transit and validate certificates across every hop.",
+          "SCENARIO-SPECIFIC OUTCOMES\ncontent Visibility: encrypted\nobserved Packets: 676\nencrypted Packets: 449\nexposed Packets: 0\nisolated Flows: 227\nmetadata Observed: 449"
+        ]
+      },
+      "second": {
+        "score": "RESIDUAL RISK\n28/100\n\n676 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nCompare protected and unprotected synthetic metadata.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nEncryption changes content visibility while metadata remains observable.",
+          "AFFECTED ASSETS\nEmployee Workstation, Firewall / Rate Limiter, Simulated Source A",
+          "CONTROLS THAT HELPED\nEncryption, Network segmentation, Intrusion detection",
+          "STANDARDIZED DEFENSE EFFECTS\nEncryption · preventive · 449 affected\nNetwork segmentation · preventive · 227 affected\nIntrusion detection · detective · 417 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nEncrypt data in transit and validate certificates across every hop.",
+          "SCENARIO-SPECIFIC OUTCOMES\ncontent Visibility: encrypted\nobserved Packets: 676\nencrypted Packets: 449\nexposed Packets: 0\nisolated Flows: 227\nmetadata Observed: 449"
+        ]
+      }
+    },
+    {
+      "scenario": "insider",
+      "stableOutcomeIdentical": true,
+      "first": {
+        "score": "RESIDUAL RISK\n36/100\n\n155 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nAccess fictional data outside a trusted user baseline.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nAccess time, volume, privilege, and destination differ from the user baseline.",
+          "AFFECTED ASSETS\nEmployee Workstation, File Service, Security Monitor",
+          "CONTROLS THAT HELPED\nLeast privilege, Data-loss prevention, Anomaly detection",
+          "STANDARDIZED DEFENSE EFFECTS\nLeast privilege · preventive · 46 affected\nData-loss prevention · preventive · 109 affected\nAnomaly detection · detective · 77 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nReview access, enforce least privilege, and monitor unusual data movement.",
+          "SCENARIO-SPECIFIC OUTCOMES\nvariant: negligent\naccess Events: 164\nbaseline Deviations: 77\nrestricted Events: 46\ntransfer Units: 140\nblocked Transfers: 109\ntransfer Risk: 31\nanomaly Detections: 77"
+        ]
+      },
+      "second": {
+        "score": "RESIDUAL RISK\n36/100\n\n155 events blocked · seed 4242",
+        "findings": [
+          "ATTACKER OBJECTIVE\nAccess fictional data outside a trusted user baseline.",
+          "OBSERVABLE INDICATORS & WHY ALERTS FIRED\nAccess time, volume, privilege, and destination differ from the user baseline.",
+          "AFFECTED ASSETS\nEmployee Workstation, File Service, Security Monitor",
+          "CONTROLS THAT HELPED\nLeast privilege, Data-loss prevention, Anomaly detection",
+          "STANDARDIZED DEFENSE EFFECTS\nLeast privilege · preventive · 46 affected\nData-loss prevention · preventive · 109 affected\nAnomaly detection · detective · 77 affected",
+          "COVERAGE GAPS / CONTROLS NOT ENABLED",
+          "RECOMMENDED REMEDIATION\nReview access, enforce least privilege, and monitor unusual data movement.",
+          "SCENARIO-SPECIFIC OUTCOMES\nvariant: negligent\naccess Events: 164\nbaseline Deviations: 77\nrestricted Events: 46\ntransfer Units: 140\nblocked Transfers: 109\ntransfer Risk: 31\nanomaly Detections: 77"
+        ]
+      }
+    }
+  ],
+  "exports": [
+    {
+      "scenario": "dos",
+      "kind": "json",
+      "filename": "microcompit-synthetic-dos-report.json",
+      "saved": "export-dos-json-microcompit-synthetic-dos-report.json",
+      "failure": null
+    },
+    {
+      "scenario": "dos",
+      "kind": "csv",
+      "filename": "microcompit-synthetic-dos-report.csv",
+      "saved": "export-dos-csv-microcompit-synthetic-dos-report.csv",
+      "failure": null
+    },
+    {
+      "scenario": "phishing",
+      "kind": "json",
+      "filename": "microcompit-synthetic-phishing-report.json",
+      "saved": "export-phishing-json-microcompit-synthetic-phishing-report.json",
+      "failure": null
+    },
+    {
+      "scenario": "phishing",
+      "kind": "csv",
+      "filename": "microcompit-synthetic-phishing-report.csv",
+      "saved": "export-phishing-csv-microcompit-synthetic-phishing-report.csv",
+      "failure": null
+    },
+    {
+      "scenario": "malware",
+      "kind": "json",
+      "filename": "microcompit-synthetic-malware-report.json",
+      "saved": "export-malware-json-microcompit-synthetic-malware-report.json",
+      "failure": null
+    },
+    {
+      "scenario": "malware",
+      "kind": "csv",
+      "filename": "microcompit-synthetic-malware-report.csv",
+      "saved": "export-malware-csv-microcompit-synthetic-malware-report.csv",
+      "failure": null
+    },
+    {
+      "scenario": "sqli",
+      "kind": "json",
+      "filename": "microcompit-synthetic-sqli-report.json",
+      "saved": "export-sqli-json-microcompit-synthetic-sqli-report.json",
+      "failure": null
+    },
+    {
+      "scenario": "sqli",
+      "kind": "csv",
+      "filename": "microcompit-synthetic-sqli-report.csv",
+      "saved": "export-sqli-csv-microcompit-synthetic-sqli-report.csv",
+      "failure": null
+    },
+    {
+      "scenario": "apt",
+      "kind": "json",
+      "filename": "microcompit-synthetic-apt-report.json",
+      "saved": "export-apt-json-microcompit-synthetic-apt-report.json",
+      "failure": null
+    },
+    {
+      "scenario": "apt",
+      "kind": "csv",
+      "filename": "microcompit-synthetic-apt-report.csv",
+      "saved": "export-apt-csv-microcompit-synthetic-apt-report.csv",
+      "failure": null
+    }
+  ],
+  "network": [
+    {
+      "method": "GET",
+      "url": "http://localhost:8080/demo-lab/cybersecurity-simulation.html",
+      "resourceType": "document"
+    },
+    {
+      "method": "GET",
+      "url": "http://localhost:8080/theme.js?v=1.0",
+      "resourceType": "script"
+    },
+    {
+      "method": "GET",
+      "url": "http://localhost:8080/analytics.js?v=1.0",
+      "resourceType": "script"
+    },
+    {
+      "method": "GET",
+      "url": "http://localhost:8080/styles.css?v=2.1",
+      "resourceType": "stylesheet"
+    },
+    {
+      "method": "GET",
+      "url": "http://localhost:8080/cyber-lab.css?v=1.4",
+      "resourceType": "stylesheet"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap",
+      "resourceType": "stylesheet"
+    },
+    {
+      "method": "GET",
+      "url": "http://localhost:8080/cyber-lab-engine.js?v=1.1",
+      "resourceType": "script"
+    },
+    {
+      "method": "GET",
+      "url": "http://localhost:8080/cyber-lab.js?v=1.1",
+      "resourceType": "script"
+    },
+    {
+      "method": "GET",
+      "url": "https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2",
+      "resourceType": "font"
+    },
+    {
+      "method": "POST",
+      "url": "http://localhost:8080/api/track",
+      "resourceType": "ping"
+    },
+    {
+      "method": "POST",
+      "url": "http://localhost:8080/api/track",
+      "resourceType": "ping"
+    }
+  ],
+  "console": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (File not found)"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+    }
+  ],
+  "controls": {
+    "speedDeterministic": true,
+    "difficulty": "Advanced",
+    "seed": "98765",
+    "activeScenarioAriaCurrent": "true",
+    "uniqueIds": [],
+    "headingOutline": [
+      {
+        "level": 1,
+        "text": "Cybersecurity Simulation Lab"
+      },
+      {
+        "level": 2,
+        "text": "Attack scenario"
+      },
+      {
+        "level": 2,
+        "text": "DoS & DDoS"
+      },
+      {
+        "level": 3,
+        "text": "What to watch"
+      },
+      {
+        "level": 3,
+        "text": "Attack stage"
+      },
+      {
+        "level": 2,
+        "text": "Network topology"
+      },
+      {
+        "level": 2,
+        "text": "Defensive controls"
+      },
+      {
+        "level": 3,
+        "text": "Selection details"
+      },
+      {
+        "level": 2,
+        "text": "Requests per second"
+      },
+      {
+        "level": 2,
+        "text": "Latency & error rate"
+      },
+      {
+        "level": 2,
+        "text": "Traffic by protocol"
+      },
+      {
+        "level": 2,
+        "text": "Alert timeline"
+      },
+      {
+        "level": 2,
+        "text": "Event log & mock flow inspection"
+      },
+      {
+        "level": 2,
+        "text": "Post-simulation findings"
+      }
+    ]
+  }
+}

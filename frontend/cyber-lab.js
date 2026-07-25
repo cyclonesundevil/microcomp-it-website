@@ -65,11 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
         topology.classList.toggle('is-paused', state.status === 'paused');
         topology.classList.toggle('is-complete', state.status === 'complete');
         topology.classList.toggle('is-running', state.status === 'running');
-        topology.setAttribute('aria-label', state.status === 'paused'
-            ? 'Synthetic network topology. Simulation paused; flow paths are frozen.'
-            : state.status === 'complete'
-                ? 'Synthetic network topology. Simulation complete; flow paths are stopped.'
-                : 'Synthetic network topology. Select a host for details.');
         const upstreamVisible = state.scenario.id === 'dos' && state.defenses.upstreamProtection;
         const ingress = upstreamVisible ? 'upstream' : 'edge';
         const actorTarget = state.scenario.id === 'password' ? 'identity' : ingress;

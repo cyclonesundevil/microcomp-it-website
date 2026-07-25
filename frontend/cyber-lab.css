@@ -170,7 +170,7 @@
 .timeline div { display: grid; gap: 4px; }
 .timeline strong { font-size: .73rem; }
 .timeline span { color: var(--cyber-muted); font-size: .68rem; line-height: 1.4; }
-.filters { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 15px 0; }
+.filters { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 15px 0; padding: 0; border: 0; min-width: 0; }
 .filters input, .filters select { width: 100%; min-width: 0; }
 .table-wrap { overflow: auto; max-height: 300px; }
 .cyber-lab-page table { border-collapse: collapse; width: 100%; font-size: .7rem; }

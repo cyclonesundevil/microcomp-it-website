@@ -1,0 +1,3169 @@
+{
+  "synthetic": true,
+  "generatedAtVirtualTime": 20,
+  "scenario": "Phishing & Spear Phishing",
+  "seed": 4242,
+  "difficulty": "Beginner",
+  "objective": "Influence a fictional user through a mock inbox.",
+  "indicators": "Sender discrepancy, urgency cues, and interaction risk appear in a mock inbox.",
+  "affectedAssets": [
+    "Synthetic Internet",
+    "Email Gateway",
+    "Employee Workstation"
+  ],
+  "controlsHelped": [
+    "Email filtering",
+    "Multi-factor authentication",
+    "Endpoint protection"
+  ],
+  "controlsNotEnabled": [],
+  "blockedEvents": 138,
+  "detections": 0,
+  "defensesTriggered": [
+    {
+      "id": "emailFiltering",
+      "name": "Email filtering",
+      "kind": "preventive",
+      "layer": "gateway",
+      "action": "filtered",
+      "order": 15,
+      "affectedUnits": 104,
+      "blockedUnits": 104,
+      "detectedUnits": 0,
+      "triggerCount": 16,
+      "tradeOff": "Some messages need review."
+    },
+    {
+      "id": "mfa",
+      "name": "Multi-factor authentication",
+      "kind": "preventive",
+      "layer": "identity",
+      "action": "challenged",
+      "order": 30,
+      "affectedUnits": 17,
+      "blockedUnits": 17,
+      "detectedUnits": 0,
+      "triggerCount": 12,
+      "tradeOff": "Adds a sign-in step."
+    },
+    {
+      "id": "endpointProtection",
+      "name": "Endpoint protection",
+      "kind": "preventive",
+      "layer": "endpoint",
+      "action": "contained",
+      "order": 42,
+      "affectedUnits": 17,
+      "blockedUnits": 17,
+      "detectedUnits": 0,
+      "triggerCount": 12,
+      "tradeOff": "May generate false positives."
+    }
+  ],
+  "defenseEffectLog": [
+    {
+      "id": "emailFiltering",
+      "tick": 5,
+      "name": "Email filtering",
+      "kind": "preventive",
+      "layer": "gateway",
+      "order": 15,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 4,
+      "metricDeltas": {
+        "filteredMessages": 4
+      },
+      "explanation": "Email filtering quarantined 4 inert mock messages using sender and urgency metadata.",
+      "tradeOff": "Some messages need review."
+    },
+    {
+      "id": "emailFiltering",
+      "tick": 6,
+      "name": "Email filtering",
+      "kind": "preventive",
+      "layer": "gateway",
+      "order": 15,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 6,
+      "metricDeltas": {
+        "filteredMessages": 6
+      },
+      "explanation": "Email filtering quarantined 6 inert mock messages using sender and urgency metadata.",
+      "tradeOff": "Some messages need review."
+    },
+    {
+      "id": "emailFiltering",
+      "tick": 7,
+      "name": "Email filtering",
+      "kind": "preventive",
+      "layer": "gateway",
+      "order": 15,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 7,
+      "metricDeltas": {
+        "filteredMessages": 7
+      },
+      "explanation": "Email filtering quarantined 7 inert mock messages using sender and urgency metadata.",
+      "tradeOff": "Some messages need review."
+    },
+    {
+      "id": "emailFiltering",
+      "tick": 8,
+      "name": "Email filtering",
+      "kind": "preventive",
+      "layer": "gateway",
+      "order": 15,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 6,
+      "metricDeltas": {
+        "filteredMessages": 6
+      },
+      "explanation": "Email filtering quarantined 6 inert mock messages using sender and urgency metadata.",
+      "tradeOff": "Some messages need review."
+    },
+    {
+      "id": "emailFiltering",
+      "tick": 9,
+      "name": "Email filtering",
+      "kind": "preventive",
+      "layer": "gateway",
+      "order": 15,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 6,
+      "metricDeltas": {
+        "filteredMessages": 6
+      },
+      "explanation": "Email filtering quarantined 6 inert mock messages using sender and urgency metadata.",
+      "tradeOff": "Some messages need review."
+    },
+    {
+      "id": "mfa",
+      "tick": 9,
+      "name": "Multi-factor authentication",
+      "kind": "preventive",
+      "layer": "identity",
+      "order": 30,
+      "action": "challenged",
+      "visual": "protected",
+      "affected": 1,
+      "metricDeltas": {
+        "protectedIdentities": 1
+      },
+      "explanation": "MFA protected 1 fictional identities after mock-message interaction.",
+      "tradeOff": "Adds a sign-in step."
+    },
+    {
+      "id": "endpointProtection",
+      "tick": 9,
+      "name": "Endpoint protection",
+      "kind": "preventive",
+      "layer": "endpoint",
+      "order": 42,
+      "action": "contained",
+      "visual": "protected",
+      "affected": 1,
+      "metricDeltas": {
+        "containedEndpoints": 1
+      },
+      "explanation": "Endpoint protection contained 1 fictional interaction outcomes without opening links or attachments.",
+      "tradeOff": "May generate false positives."
+    },
+    {
+      "id": "emailFiltering",
+      "tick": 10,
+      "name": "Email filtering",
+      "kind": "preventive",
+      "layer": "gateway",
+      "order": 15,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 6,
+      "metricDeltas": {
+        "filteredMessages": 6
+      },
+      "explanation": "Email filtering quarantined 6 inert mock messages using sender and urgency metadata.",
+      "tradeOff": "Some messages need review."
+    },
+    {
+      "id": "mfa",
+      "tick": 10,
+      "name": "Multi-factor authentication",
+      "kind": "preventive",
+      "layer": "identity",
+      "order": 30,
+      "action": "challenged",
+      "visual": "protected",
+      "affected": 1,
+      "metricDeltas": {
+        "protectedIdentities": 1
+      },
+      "explanation": "MFA protected 1 fictional identities after mock-message interaction.",
+      "tradeOff": "Adds a sign-in step."
+    },
+    {
+      "id": "endpointProtection",
+      "tick": 10,
+      "name": "Endpoint protection",
+      "kind": "preventive",
+      "layer": "endpoint",
+      "order": 42,
+      "action": "contained",
+      "visual": "protected",
+      "affected": 1,
+      "metricDeltas": {
+        "containedEndpoints": 1
+      },
+      "explanation": "Endpoint protection contained 1 fictional interaction outcomes without opening links or attachments.",
+      "tradeOff": "May generate false positives."
+    },
+    {
+      "id": "emailFiltering",
+      "tick": 11,
+      "name": "Email filtering",
+      "kind": "preventive",
+      "layer": "gateway",
+      "order": 15,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 5,
+      "metricDeltas": {
+        "filteredMessages": 5
+      },
+      "explanation": "Email filtering quarantined 5 inert mock messages using sender and urgency metadata.",
+      "tradeOff": "Some messages need review."
+    },
+    {
+      "id": "mfa",
+      "tick": 11,
+      "name": "Multi-factor authentication",
+      "kind": "preventive",
+      "layer": "identity",
+      "order": 30,
+      "action": "challenged",
+      "visual": "protected",
+      "affected": 1,
+      "metricDeltas": {
+        "protectedIdentities": 1
+      },
+      "explanation": "MFA protected 1 fictional identities after mock-message interaction.",
+      "tradeOff": "Adds a sign-in step."
+    },
+    {
+      "id": "endpointProtection",
+      "tick": 11,
+      "name": "Endpoint protection",
+      "kind": "preventive",
+      "layer": "endpoint",
+      "order": 42,
+      "action": "contained",
+      "visual": "protected",
+      "affected": 1,
+      "metricDeltas": {
+        "containedEndpoints": 1
+      },
+      "explanation": "Endpoint protection contained 1 fictional interaction outcomes without opening links or attachments.",
+      "tradeOff": "May generate false positives."
+    },
+    {
+      "id": "emailFiltering",
+      "tick": 12,
+      "name": "Email filtering",
+      "kind": "preventive",
+      "layer": "gateway",
+      "order": 15,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 5,
+      "metricDeltas": {
+        "filteredMessages": 5
+      },
+      "explanation": "Email filtering quarantined 5 inert mock messages using sender and urgency metadata.",
+      "tradeOff": "Some messages need review."
+    },
+    {
+      "id": "mfa",
+      "tick": 12,
+      "name": "Multi-factor authentication",
+      "kind": "preventive",
+      "layer": "identity",
+      "order": 30,
+      "action": "challenged",
+      "visual": "protected",
+      "affected": 1,
+      "metricDeltas": {
+        "protectedIdentities": 1
+      },
+      "explanation": "MFA protected 1 fictional identities after mock-message interaction.",
+      "tradeOff": "Adds a sign-in step."
+    },
+    {
+      "id": "endpointProtection",
+      "tick": 12,
+      "name": "Endpoint protection",
+      "kind": "preventive",
+      "layer": "endpoint",
+      "order": 42,
+      "action": "contained",
+      "visual": "protected",
+      "affected": 1,
+      "metricDeltas": {
+        "containedEndpoints": 1
+      },
+      "explanation": "Endpoint protection contained 1 fictional interaction outcomes without opening links or attachments.",
+      "tradeOff": "May generate false positives."
+    },
+    {
+      "id": "emailFiltering",
+      "tick": 13,
+      "name": "Email filtering",
+      "kind": "preventive",
+      "layer": "gateway",
+      "order": 15,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 7,
+      "metricDeltas": {
+        "filteredMessages": 7
+      },
+      "explanation": "Email filtering quarantined 7 inert mock messages using sender and urgency metadata.",
+      "tradeOff": "Some messages need review."
+    },
+    {
+      "id": "mfa",
+      "tick": 13,
+      "name": "Multi-factor authentication",
+      "kind": "preventive",
+      "layer": "identity",
+      "order": 30,
+      "action": "challenged",
+      "visual": "protected",
+      "affected": 2,
+      "metricDeltas": {
+        "protectedIdentities": 2
+      },
+      "explanation": "MFA protected 2 fictional identities after mock-message interaction.",
+      "tradeOff": "Adds a sign-in step."
+    },
+    {
+      "id": "endpointProtection",
+      "tick": 13,
+      "name": "Endpoint protection",
+      "kind": "preventive",
+      "layer": "endpoint",
+      "order": 42,
+      "action": "contained",
+      "visual": "protected",
+      "affected": 2,
+      "metricDeltas": {
+        "containedEndpoints": 2
+      },
+      "explanation": "Endpoint protection contained 2 fictional interaction outcomes without opening links or attachments.",
+      "tradeOff": "May generate false positives."
+    },
+    {
+      "id": "emailFiltering",
+      "tick": 14,
+      "name": "Email filtering",
+      "kind": "preventive",
+      "layer": "gateway",
+      "order": 15,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 7,
+      "metricDeltas": {
+        "filteredMessages": 7
+      },
+      "explanation": "Email filtering quarantined 7 inert mock messages using sender and urgency metadata.",
+      "tradeOff": "Some messages need review."
+    },
+    {
+      "id": "mfa",
+      "tick": 14,
+      "name": "Multi-factor authentication",
+      "kind": "preventive",
+      "layer": "identity",
+      "order": 30,
+      "action": "challenged",
+      "visual": "protected",
+      "affected": 1,
+      "metricDeltas": {
+        "protectedIdentities": 1
+      },
+      "explanation": "MFA protected 1 fictional identities after mock-message interaction.",
+      "tradeOff": "Adds a sign-in step."
+    },
+    {
+      "id": "endpointProtection",
+      "tick": 14,
+      "name": "Endpoint protection",
+      "kind": "preventive",
+      "layer": "endpoint",
+      "order": 42,
+      "action": "contained",
+      "visual": "protected",
+      "affected": 1,
+      "metricDeltas": {
+        "containedEndpoints": 1
+      },
+      "explanation": "Endpoint protection contained 1 fictional interaction outcomes without opening links or attachments.",
+      "tradeOff": "May generate false positives."
+    },
+    {
+      "id": "emailFiltering",
+      "tick": 15,
+      "name": "Email filtering",
+      "kind": "preventive",
+      "layer": "gateway",
+      "order": 15,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 6,
+      "metricDeltas": {
+        "filteredMessages": 6
+      },
+      "explanation": "Email filtering quarantined 6 inert mock messages using sender and urgency metadata.",
+      "tradeOff": "Some messages need review."
+    },
+    {
+      "id": "mfa",
+      "tick": 15,
+      "name": "Multi-factor authentication",
+      "kind": "preventive",
+      "layer": "identity",
+      "order": 30,
+      "action": "challenged",
+      "visual": "protected",
+      "affected": 1,
+      "metricDeltas": {
+        "protectedIdentities": 1
+      },
+      "explanation": "MFA protected 1 fictional identities after mock-message interaction.",
+      "tradeOff": "Adds a sign-in step."
+    },
+    {
+      "id": "endpointProtection",
+      "tick": 15,
+      "name": "Endpoint protection",
+      "kind": "preventive",
+      "layer": "endpoint",
+      "order": 42,
+      "action": "contained",
+      "visual": "protected",
+      "affected": 1,
+      "metricDeltas": {
+        "containedEndpoints": 1
+      },
+      "explanation": "Endpoint protection contained 1 fictional interaction outcomes without opening links or attachments.",
+      "tradeOff": "May generate false positives."
+    },
+    {
+      "id": "emailFiltering",
+      "tick": 16,
+      "name": "Email filtering",
+      "kind": "preventive",
+      "layer": "gateway",
+      "order": 15,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 7,
+      "metricDeltas": {
+        "filteredMessages": 7
+      },
+      "explanation": "Email filtering quarantined 7 inert mock messages using sender and urgency metadata.",
+      "tradeOff": "Some messages need review."
+    },
+    {
+      "id": "mfa",
+      "tick": 16,
+      "name": "Multi-factor authentication",
+      "kind": "preventive",
+      "layer": "identity",
+      "order": 30,
+      "action": "challenged",
+      "visual": "protected",
+      "affected": 1,
+      "metricDeltas": {
+        "protectedIdentities": 1
+      },
+      "explanation": "MFA protected 1 fictional identities after mock-message interaction.",
+      "tradeOff": "Adds a sign-in step."
+    },
+    {
+      "id": "endpointProtection",
+      "tick": 16,
+      "name": "Endpoint protection",
+      "kind": "preventive",
+      "layer": "endpoint",
+      "order": 42,
+      "action": "contained",
+      "visual": "protected",
+      "affected": 1,
+      "metricDeltas": {
+        "containedEndpoints": 1
+      },
+      "explanation": "Endpoint protection contained 1 fictional interaction outcomes without opening links or attachments.",
+      "tradeOff": "May generate false positives."
+    },
+    {
+      "id": "emailFiltering",
+      "tick": 17,
+      "name": "Email filtering",
+      "kind": "preventive",
+      "layer": "gateway",
+      "order": 15,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 8,
+      "metricDeltas": {
+        "filteredMessages": 8
+      },
+      "explanation": "Email filtering quarantined 8 inert mock messages using sender and urgency metadata.",
+      "tradeOff": "Some messages need review."
+    },
+    {
+      "id": "mfa",
+      "tick": 17,
+      "name": "Multi-factor authentication",
+      "kind": "preventive",
+      "layer": "identity",
+      "order": 30,
+      "action": "challenged",
+      "visual": "protected",
+      "affected": 2,
+      "metricDeltas": {
+        "protectedIdentities": 2
+      },
+      "explanation": "MFA protected 2 fictional identities after mock-message interaction.",
+      "tradeOff": "Adds a sign-in step."
+    },
+    {
+      "id": "endpointProtection",
+      "tick": 17,
+      "name": "Endpoint protection",
+      "kind": "preventive",
+      "layer": "endpoint",
+      "order": 42,
+      "action": "contained",
+      "visual": "protected",
+      "affected": 2,
+      "metricDeltas": {
+        "containedEndpoints": 2
+      },
+      "explanation": "Endpoint protection contained 2 fictional interaction outcomes without opening links or attachments.",
+      "tradeOff": "May generate false positives."
+    },
+    {
+      "id": "emailFiltering",
+      "tick": 18,
+      "name": "Email filtering",
+      "kind": "preventive",
+      "layer": "gateway",
+      "order": 15,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 7,
+      "metricDeltas": {
+        "filteredMessages": 7
+      },
+      "explanation": "Email filtering quarantined 7 inert mock messages using sender and urgency metadata.",
+      "tradeOff": "Some messages need review."
+    },
+    {
+      "id": "mfa",
+      "tick": 18,
+      "name": "Multi-factor authentication",
+      "kind": "preventive",
+      "layer": "identity",
+      "order": 30,
+      "action": "challenged",
+      "visual": "protected",
+      "affected": 2,
+      "metricDeltas": {
+        "protectedIdentities": 2
+      },
+      "explanation": "MFA protected 2 fictional identities after mock-message interaction.",
+      "tradeOff": "Adds a sign-in step."
+    },
+    {
+      "id": "endpointProtection",
+      "tick": 18,
+      "name": "Endpoint protection",
+      "kind": "preventive",
+      "layer": "endpoint",
+      "order": 42,
+      "action": "contained",
+      "visual": "protected",
+      "affected": 2,
+      "metricDeltas": {
+        "containedEndpoints": 2
+      },
+      "explanation": "Endpoint protection contained 2 fictional interaction outcomes without opening links or attachments.",
+      "tradeOff": "May generate false positives."
+    },
+    {
+      "id": "emailFiltering",
+      "tick": 19,
+      "name": "Email filtering",
+      "kind": "preventive",
+      "layer": "gateway",
+      "order": 15,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 9,
+      "metricDeltas": {
+        "filteredMessages": 9
+      },
+      "explanation": "Email filtering quarantined 9 inert mock messages using sender and urgency metadata.",
+      "tradeOff": "Some messages need review."
+    },
+    {
+      "id": "mfa",
+      "tick": 19,
+      "name": "Multi-factor authentication",
+      "kind": "preventive",
+      "layer": "identity",
+      "order": 30,
+      "action": "challenged",
+      "visual": "protected",
+      "affected": 2,
+      "metricDeltas": {
+        "protectedIdentities": 2
+      },
+      "explanation": "MFA protected 2 fictional identities after mock-message interaction.",
+      "tradeOff": "Adds a sign-in step."
+    },
+    {
+      "id": "endpointProtection",
+      "tick": 19,
+      "name": "Endpoint protection",
+      "kind": "preventive",
+      "layer": "endpoint",
+      "order": 42,
+      "action": "contained",
+      "visual": "protected",
+      "affected": 2,
+      "metricDeltas": {
+        "containedEndpoints": 2
+      },
+      "explanation": "Endpoint protection contained 2 fictional interaction outcomes without opening links or attachments.",
+      "tradeOff": "May generate false positives."
+    },
+    {
+      "id": "emailFiltering",
+      "tick": 20,
+      "name": "Email filtering",
+      "kind": "preventive",
+      "layer": "gateway",
+      "order": 15,
+      "action": "filtered",
+      "visual": "interrupted",
+      "affected": 8,
+      "metricDeltas": {
+        "filteredMessages": 8
+      },
+      "explanation": "Email filtering quarantined 8 inert mock messages using sender and urgency metadata.",
+      "tradeOff": "Some messages need review."
+    },
+    {
+      "id": "mfa",
+      "tick": 20,
+      "name": "Multi-factor authentication",
+      "kind": "preventive",
+      "layer": "identity",
+      "order": 30,
+      "action": "challenged",
+      "visual": "protected",
+      "affected": 2,
+      "metricDeltas": {
+        "protectedIdentities": 2
+      },
+      "explanation": "MFA protected 2 fictional identities after mock-message interaction.",
+      "tradeOff": "Adds a sign-in step."
+    },
+    {
+      "id": "endpointProtection",
+      "tick": 20,
+      "name": "Endpoint protection",
+      "kind": "preventive",
+      "layer": "endpoint",
+      "order": 42,
+      "action": "contained",
+      "visual": "protected",
+      "affected": 2,
+      "metricDeltas": {
+        "containedEndpoints": 2
+      },
+      "explanation": "Endpoint protection contained 2 fictional interaction outcomes without opening links or attachments.",
+      "tradeOff": "May generate false positives."
+    }
+  ],
+  "peakRisk": 63,
+  "residualRisk": 9,
+  "recommendation": "Combine filtering, MFA, awareness, and endpoint monitoring.",
+  "events": [
+    {
+      "id": "phishing-1",
+      "tick": 1,
+      "time": "00:01",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "delivered",
+      "requests": 2,
+      "allowedRequests": 2,
+      "blockedRequests": 0,
+      "bytes": 480,
+      "latency": 32,
+      "severity": "info",
+      "marker": "MOCK_INBOX_BASELINE",
+      "explanation": "Normal inert messages establish the fictional inbox baseline.",
+      "scenarioState": {
+        "variant": "baseline",
+        "inertMessage": true,
+        "cues": [
+          "urgency",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "phishing-2",
+      "tick": 2,
+      "time": "00:02",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "delivered",
+      "requests": 2,
+      "allowedRequests": 2,
+      "blockedRequests": 0,
+      "bytes": 480,
+      "latency": 29,
+      "severity": "info",
+      "marker": "MOCK_INBOX_BASELINE",
+      "explanation": "Normal inert messages establish the fictional inbox baseline.",
+      "scenarioState": {
+        "variant": "baseline",
+        "inertMessage": true,
+        "cues": [
+          "urgency",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "phishing-3",
+      "tick": 3,
+      "time": "00:03",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "delivered",
+      "requests": 2,
+      "allowedRequests": 2,
+      "blockedRequests": 0,
+      "bytes": 480,
+      "latency": 30,
+      "severity": "info",
+      "marker": "MOCK_INBOX_BASELINE",
+      "explanation": "Normal inert messages establish the fictional inbox baseline.",
+      "scenarioState": {
+        "variant": "baseline",
+        "inertMessage": true,
+        "cues": [
+          "urgency",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "phishing-4",
+      "tick": 4,
+      "time": "00:04",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "workstation",
+        "name": "Employee Workstation",
+        "ip": "192.0.2.50",
+        "type": "endpoint",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "delivered",
+      "requests": 2,
+      "allowedRequests": 2,
+      "blockedRequests": 0,
+      "bytes": 480,
+      "latency": 33,
+      "severity": "info",
+      "marker": "MOCK_INBOX_BASELINE",
+      "explanation": "Normal inert messages establish the fictional inbox baseline.",
+      "scenarioState": {
+        "variant": "baseline",
+        "inertMessage": true,
+        "cues": [
+          "urgency",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "phishing-5",
+      "tick": 5,
+      "time": "00:05",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 5,
+      "allowedRequests": 1,
+      "blockedRequests": 4,
+      "bytes": 1200,
+      "latency": 31,
+      "severity": "medium",
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "explanation": "4 inert messages were filtered; 1 reached the mock inbox; 0 produced fictional user interactions.",
+      "scenarioState": {
+        "variant": "phishing",
+        "inertMessage": true,
+        "cues": [
+          "urgency",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "defense-5-emailFiltering",
+      "tick": 5,
+      "time": "00:05",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 4,
+      "allowedRequests": 0,
+      "blockedRequests": 4,
+      "bytes": 0,
+      "latency": 31,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "emailFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "gateway",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "filteredMessages": 4
+      },
+      "explanation": "Email filtering quarantined 4 inert mock messages using sender and urgency metadata."
+    },
+    {
+      "id": "phishing-6",
+      "tick": 6,
+      "time": "00:06",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 7,
+      "allowedRequests": 1,
+      "blockedRequests": 6,
+      "bytes": 1680,
+      "latency": 28,
+      "severity": "medium",
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "explanation": "6 inert messages were filtered; 1 reached the mock inbox; 0 produced fictional user interactions.",
+      "scenarioState": {
+        "variant": "phishing",
+        "inertMessage": true,
+        "cues": [
+          "urgency",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "defense-6-emailFiltering",
+      "tick": 6,
+      "time": "00:06",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 6,
+      "allowedRequests": 0,
+      "blockedRequests": 6,
+      "bytes": 0,
+      "latency": 28,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "emailFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "gateway",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "filteredMessages": 6
+      },
+      "explanation": "Email filtering quarantined 6 inert mock messages using sender and urgency metadata."
+    },
+    {
+      "id": "phishing-7",
+      "tick": 7,
+      "time": "00:07",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 8,
+      "allowedRequests": 1,
+      "blockedRequests": 7,
+      "bytes": 1920,
+      "latency": 27,
+      "severity": "medium",
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "explanation": "7 inert messages were filtered; 1 reached the mock inbox; 0 produced fictional user interactions.",
+      "scenarioState": {
+        "variant": "phishing",
+        "inertMessage": true,
+        "cues": [
+          "urgency",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "defense-7-emailFiltering",
+      "tick": 7,
+      "time": "00:07",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 7,
+      "allowedRequests": 0,
+      "blockedRequests": 7,
+      "bytes": 0,
+      "latency": 27,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "emailFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "gateway",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "filteredMessages": 7
+      },
+      "explanation": "Email filtering quarantined 7 inert mock messages using sender and urgency metadata."
+    },
+    {
+      "id": "phishing-8",
+      "tick": 8,
+      "time": "00:08",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 7,
+      "allowedRequests": 1,
+      "blockedRequests": 6,
+      "bytes": 1680,
+      "latency": 28,
+      "severity": "medium",
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "explanation": "6 inert messages were filtered; 1 reached the mock inbox; 0 produced fictional user interactions.",
+      "scenarioState": {
+        "variant": "phishing",
+        "inertMessage": true,
+        "cues": [
+          "urgency",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "defense-8-emailFiltering",
+      "tick": 8,
+      "time": "00:08",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 6,
+      "allowedRequests": 0,
+      "blockedRequests": 6,
+      "bytes": 0,
+      "latency": 28,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "emailFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "gateway",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "filteredMessages": 6
+      },
+      "explanation": "Email filtering quarantined 6 inert mock messages using sender and urgency metadata."
+    },
+    {
+      "id": "phishing-9",
+      "tick": 9,
+      "time": "00:09",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 9,
+      "allowedRequests": 3,
+      "blockedRequests": 6,
+      "bytes": 2160,
+      "latency": 26,
+      "severity": "medium",
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "explanation": "6 inert messages were filtered; 3 reached the mock inbox; 1 produced fictional user interactions.",
+      "scenarioState": {
+        "variant": "spear-phishing",
+        "inertMessage": true,
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "defense-9-emailFiltering",
+      "tick": 9,
+      "time": "00:09",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 6,
+      "allowedRequests": 0,
+      "blockedRequests": 6,
+      "bytes": 0,
+      "latency": 26,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "emailFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "gateway",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "filteredMessages": 6
+      },
+      "explanation": "Email filtering quarantined 6 inert mock messages using sender and urgency metadata."
+    },
+    {
+      "id": "defense-9-mfa",
+      "tick": 9,
+      "time": "00:09",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "challenged",
+      "requests": 1,
+      "allowedRequests": 0,
+      "blockedRequests": 1,
+      "bytes": 0,
+      "latency": 26,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "mfa",
+      "defenseKind": "preventive",
+      "defenseLayer": "identity",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedIdentities": 1
+      },
+      "explanation": "MFA protected 1 fictional identities after mock-message interaction."
+    },
+    {
+      "id": "defense-9-endpointProtection",
+      "tick": 9,
+      "time": "00:09",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "contained",
+      "requests": 1,
+      "allowedRequests": 0,
+      "blockedRequests": 1,
+      "bytes": 0,
+      "latency": 26,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "endpointProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "endpoint",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "containedEndpoints": 1
+      },
+      "explanation": "Endpoint protection contained 1 fictional interaction outcomes without opening links or attachments."
+    },
+    {
+      "id": "phishing-10",
+      "tick": 10,
+      "time": "00:10",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 9,
+      "allowedRequests": 3,
+      "blockedRequests": 6,
+      "bytes": 2160,
+      "latency": 33,
+      "severity": "medium",
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "explanation": "6 inert messages were filtered; 3 reached the mock inbox; 1 produced fictional user interactions.",
+      "scenarioState": {
+        "variant": "spear-phishing",
+        "inertMessage": true,
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "defense-10-emailFiltering",
+      "tick": 10,
+      "time": "00:10",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 6,
+      "allowedRequests": 0,
+      "blockedRequests": 6,
+      "bytes": 0,
+      "latency": 33,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "emailFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "gateway",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "filteredMessages": 6
+      },
+      "explanation": "Email filtering quarantined 6 inert mock messages using sender and urgency metadata."
+    },
+    {
+      "id": "defense-10-mfa",
+      "tick": 10,
+      "time": "00:10",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "challenged",
+      "requests": 1,
+      "allowedRequests": 0,
+      "blockedRequests": 1,
+      "bytes": 0,
+      "latency": 33,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "mfa",
+      "defenseKind": "preventive",
+      "defenseLayer": "identity",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedIdentities": 1
+      },
+      "explanation": "MFA protected 1 fictional identities after mock-message interaction."
+    },
+    {
+      "id": "defense-10-endpointProtection",
+      "tick": 10,
+      "time": "00:10",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "contained",
+      "requests": 1,
+      "allowedRequests": 0,
+      "blockedRequests": 1,
+      "bytes": 0,
+      "latency": 33,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "endpointProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "endpoint",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "containedEndpoints": 1
+      },
+      "explanation": "Endpoint protection contained 1 fictional interaction outcomes without opening links or attachments."
+    },
+    {
+      "id": "phishing-11",
+      "tick": 11,
+      "time": "00:11",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 8,
+      "allowedRequests": 3,
+      "blockedRequests": 5,
+      "bytes": 1920,
+      "latency": 30,
+      "severity": "medium",
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "explanation": "5 inert messages were filtered; 3 reached the mock inbox; 1 produced fictional user interactions.",
+      "scenarioState": {
+        "variant": "spear-phishing",
+        "inertMessage": true,
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "defense-11-emailFiltering",
+      "tick": 11,
+      "time": "00:11",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 5,
+      "allowedRequests": 0,
+      "blockedRequests": 5,
+      "bytes": 0,
+      "latency": 30,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "emailFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "gateway",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "filteredMessages": 5
+      },
+      "explanation": "Email filtering quarantined 5 inert mock messages using sender and urgency metadata."
+    },
+    {
+      "id": "defense-11-mfa",
+      "tick": 11,
+      "time": "00:11",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "challenged",
+      "requests": 1,
+      "allowedRequests": 0,
+      "blockedRequests": 1,
+      "bytes": 0,
+      "latency": 30,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "mfa",
+      "defenseKind": "preventive",
+      "defenseLayer": "identity",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedIdentities": 1
+      },
+      "explanation": "MFA protected 1 fictional identities after mock-message interaction."
+    },
+    {
+      "id": "defense-11-endpointProtection",
+      "tick": 11,
+      "time": "00:11",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "contained",
+      "requests": 1,
+      "allowedRequests": 0,
+      "blockedRequests": 1,
+      "bytes": 0,
+      "latency": 30,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "endpointProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "endpoint",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "containedEndpoints": 1
+      },
+      "explanation": "Endpoint protection contained 1 fictional interaction outcomes without opening links or attachments."
+    },
+    {
+      "id": "phishing-12",
+      "tick": 12,
+      "time": "00:12",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 8,
+      "allowedRequests": 3,
+      "blockedRequests": 5,
+      "bytes": 1920,
+      "latency": 27,
+      "severity": "medium",
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "explanation": "5 inert messages were filtered; 3 reached the mock inbox; 1 produced fictional user interactions.",
+      "scenarioState": {
+        "variant": "spear-phishing",
+        "inertMessage": true,
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "defense-12-emailFiltering",
+      "tick": 12,
+      "time": "00:12",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 5,
+      "allowedRequests": 0,
+      "blockedRequests": 5,
+      "bytes": 0,
+      "latency": 27,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "emailFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "gateway",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "filteredMessages": 5
+      },
+      "explanation": "Email filtering quarantined 5 inert mock messages using sender and urgency metadata."
+    },
+    {
+      "id": "defense-12-mfa",
+      "tick": 12,
+      "time": "00:12",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "challenged",
+      "requests": 1,
+      "allowedRequests": 0,
+      "blockedRequests": 1,
+      "bytes": 0,
+      "latency": 27,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "mfa",
+      "defenseKind": "preventive",
+      "defenseLayer": "identity",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedIdentities": 1
+      },
+      "explanation": "MFA protected 1 fictional identities after mock-message interaction."
+    },
+    {
+      "id": "defense-12-endpointProtection",
+      "tick": 12,
+      "time": "00:12",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "contained",
+      "requests": 1,
+      "allowedRequests": 0,
+      "blockedRequests": 1,
+      "bytes": 0,
+      "latency": 27,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "endpointProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "endpoint",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "containedEndpoints": 1
+      },
+      "explanation": "Endpoint protection contained 1 fictional interaction outcomes without opening links or attachments."
+    },
+    {
+      "id": "phishing-13",
+      "tick": 13,
+      "time": "00:13",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 12,
+      "allowedRequests": 5,
+      "blockedRequests": 7,
+      "bytes": 2880,
+      "latency": 27,
+      "severity": "medium",
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "explanation": "7 inert messages were filtered; 5 reached the mock inbox; 2 produced fictional user interactions.",
+      "scenarioState": {
+        "variant": "spear-phishing",
+        "inertMessage": true,
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "defense-13-emailFiltering",
+      "tick": 13,
+      "time": "00:13",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 7,
+      "allowedRequests": 0,
+      "blockedRequests": 7,
+      "bytes": 0,
+      "latency": 27,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "emailFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "gateway",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "filteredMessages": 7
+      },
+      "explanation": "Email filtering quarantined 7 inert mock messages using sender and urgency metadata."
+    },
+    {
+      "id": "defense-13-mfa",
+      "tick": 13,
+      "time": "00:13",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "challenged",
+      "requests": 2,
+      "allowedRequests": 0,
+      "blockedRequests": 2,
+      "bytes": 0,
+      "latency": 27,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "mfa",
+      "defenseKind": "preventive",
+      "defenseLayer": "identity",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedIdentities": 2
+      },
+      "explanation": "MFA protected 2 fictional identities after mock-message interaction."
+    },
+    {
+      "id": "defense-13-endpointProtection",
+      "tick": 13,
+      "time": "00:13",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "contained",
+      "requests": 2,
+      "allowedRequests": 0,
+      "blockedRequests": 2,
+      "bytes": 0,
+      "latency": 27,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "endpointProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "endpoint",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "containedEndpoints": 2
+      },
+      "explanation": "Endpoint protection contained 2 fictional interaction outcomes without opening links or attachments."
+    },
+    {
+      "id": "phishing-14",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 11,
+      "allowedRequests": 4,
+      "blockedRequests": 7,
+      "bytes": 2640,
+      "latency": 30,
+      "severity": "medium",
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "explanation": "7 inert messages were filtered; 4 reached the mock inbox; 1 produced fictional user interactions.",
+      "scenarioState": {
+        "variant": "spear-phishing",
+        "inertMessage": true,
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "defense-14-emailFiltering",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 7,
+      "allowedRequests": 0,
+      "blockedRequests": 7,
+      "bytes": 0,
+      "latency": 30,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "emailFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "gateway",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "filteredMessages": 7
+      },
+      "explanation": "Email filtering quarantined 7 inert mock messages using sender and urgency metadata."
+    },
+    {
+      "id": "defense-14-mfa",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "challenged",
+      "requests": 1,
+      "allowedRequests": 0,
+      "blockedRequests": 1,
+      "bytes": 0,
+      "latency": 30,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "mfa",
+      "defenseKind": "preventive",
+      "defenseLayer": "identity",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedIdentities": 1
+      },
+      "explanation": "MFA protected 1 fictional identities after mock-message interaction."
+    },
+    {
+      "id": "defense-14-endpointProtection",
+      "tick": 14,
+      "time": "00:14",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "contained",
+      "requests": 1,
+      "allowedRequests": 0,
+      "blockedRequests": 1,
+      "bytes": 0,
+      "latency": 30,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "endpointProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "endpoint",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "containedEndpoints": 1
+      },
+      "explanation": "Endpoint protection contained 1 fictional interaction outcomes without opening links or attachments."
+    },
+    {
+      "id": "phishing-15",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 10,
+      "allowedRequests": 4,
+      "blockedRequests": 6,
+      "bytes": 2400,
+      "latency": 29,
+      "severity": "medium",
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "explanation": "6 inert messages were filtered; 4 reached the mock inbox; 1 produced fictional user interactions.",
+      "scenarioState": {
+        "variant": "spear-phishing",
+        "inertMessage": true,
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "defense-15-emailFiltering",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 6,
+      "allowedRequests": 0,
+      "blockedRequests": 6,
+      "bytes": 0,
+      "latency": 29,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "emailFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "gateway",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "filteredMessages": 6
+      },
+      "explanation": "Email filtering quarantined 6 inert mock messages using sender and urgency metadata."
+    },
+    {
+      "id": "defense-15-mfa",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "challenged",
+      "requests": 1,
+      "allowedRequests": 0,
+      "blockedRequests": 1,
+      "bytes": 0,
+      "latency": 29,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "mfa",
+      "defenseKind": "preventive",
+      "defenseLayer": "identity",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedIdentities": 1
+      },
+      "explanation": "MFA protected 1 fictional identities after mock-message interaction."
+    },
+    {
+      "id": "defense-15-endpointProtection",
+      "tick": 15,
+      "time": "00:15",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "contained",
+      "requests": 1,
+      "allowedRequests": 0,
+      "blockedRequests": 1,
+      "bytes": 0,
+      "latency": 29,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "endpointProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "endpoint",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "containedEndpoints": 1
+      },
+      "explanation": "Endpoint protection contained 1 fictional interaction outcomes without opening links or attachments."
+    },
+    {
+      "id": "phishing-16",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 11,
+      "allowedRequests": 4,
+      "blockedRequests": 7,
+      "bytes": 2640,
+      "latency": 26,
+      "severity": "medium",
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "explanation": "7 inert messages were filtered; 4 reached the mock inbox; 1 produced fictional user interactions.",
+      "scenarioState": {
+        "variant": "spear-phishing",
+        "inertMessage": true,
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "defense-16-emailFiltering",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 7,
+      "allowedRequests": 0,
+      "blockedRequests": 7,
+      "bytes": 0,
+      "latency": 26,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "emailFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "gateway",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "filteredMessages": 7
+      },
+      "explanation": "Email filtering quarantined 7 inert mock messages using sender and urgency metadata."
+    },
+    {
+      "id": "defense-16-mfa",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "challenged",
+      "requests": 1,
+      "allowedRequests": 0,
+      "blockedRequests": 1,
+      "bytes": 0,
+      "latency": 26,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "mfa",
+      "defenseKind": "preventive",
+      "defenseLayer": "identity",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedIdentities": 1
+      },
+      "explanation": "MFA protected 1 fictional identities after mock-message interaction."
+    },
+    {
+      "id": "defense-16-endpointProtection",
+      "tick": 16,
+      "time": "00:16",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "contained",
+      "requests": 1,
+      "allowedRequests": 0,
+      "blockedRequests": 1,
+      "bytes": 0,
+      "latency": 26,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "endpointProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "endpoint",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "containedEndpoints": 1
+      },
+      "explanation": "Endpoint protection contained 1 fictional interaction outcomes without opening links or attachments."
+    },
+    {
+      "id": "phishing-17",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 13,
+      "allowedRequests": 5,
+      "blockedRequests": 8,
+      "bytes": 3120,
+      "latency": 30,
+      "severity": "medium",
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "explanation": "8 inert messages were filtered; 5 reached the mock inbox; 2 produced fictional user interactions.",
+      "scenarioState": {
+        "variant": "spear-phishing",
+        "inertMessage": true,
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "defense-17-emailFiltering",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 8,
+      "allowedRequests": 0,
+      "blockedRequests": 8,
+      "bytes": 0,
+      "latency": 30,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "emailFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "gateway",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "filteredMessages": 8
+      },
+      "explanation": "Email filtering quarantined 8 inert mock messages using sender and urgency metadata."
+    },
+    {
+      "id": "defense-17-mfa",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "challenged",
+      "requests": 2,
+      "allowedRequests": 0,
+      "blockedRequests": 2,
+      "bytes": 0,
+      "latency": 30,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "mfa",
+      "defenseKind": "preventive",
+      "defenseLayer": "identity",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedIdentities": 2
+      },
+      "explanation": "MFA protected 2 fictional identities after mock-message interaction."
+    },
+    {
+      "id": "defense-17-endpointProtection",
+      "tick": 17,
+      "time": "00:17",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "contained",
+      "requests": 2,
+      "allowedRequests": 0,
+      "blockedRequests": 2,
+      "bytes": 0,
+      "latency": 30,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "endpointProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "endpoint",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "containedEndpoints": 2
+      },
+      "explanation": "Endpoint protection contained 2 fictional interaction outcomes without opening links or attachments."
+    },
+    {
+      "id": "phishing-18",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 12,
+      "allowedRequests": 5,
+      "blockedRequests": 7,
+      "bytes": 2880,
+      "latency": 33,
+      "severity": "medium",
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "explanation": "7 inert messages were filtered; 5 reached the mock inbox; 2 produced fictional user interactions.",
+      "scenarioState": {
+        "variant": "spear-phishing",
+        "inertMessage": true,
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "defense-18-emailFiltering",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 7,
+      "allowedRequests": 0,
+      "blockedRequests": 7,
+      "bytes": 0,
+      "latency": 33,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "emailFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "gateway",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "filteredMessages": 7
+      },
+      "explanation": "Email filtering quarantined 7 inert mock messages using sender and urgency metadata."
+    },
+    {
+      "id": "defense-18-mfa",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "challenged",
+      "requests": 2,
+      "allowedRequests": 0,
+      "blockedRequests": 2,
+      "bytes": 0,
+      "latency": 33,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "mfa",
+      "defenseKind": "preventive",
+      "defenseLayer": "identity",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedIdentities": 2
+      },
+      "explanation": "MFA protected 2 fictional identities after mock-message interaction."
+    },
+    {
+      "id": "defense-18-endpointProtection",
+      "tick": 18,
+      "time": "00:18",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "contained",
+      "requests": 2,
+      "allowedRequests": 0,
+      "blockedRequests": 2,
+      "bytes": 0,
+      "latency": 33,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "endpointProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "endpoint",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "containedEndpoints": 2
+      },
+      "explanation": "Endpoint protection contained 2 fictional interaction outcomes without opening links or attachments."
+    },
+    {
+      "id": "phishing-19",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 15,
+      "allowedRequests": 6,
+      "blockedRequests": 9,
+      "bytes": 3600,
+      "latency": 28,
+      "severity": "medium",
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "explanation": "9 inert messages were filtered; 6 reached the mock inbox; 2 produced fictional user interactions.",
+      "scenarioState": {
+        "variant": "spear-phishing",
+        "inertMessage": true,
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "defense-19-emailFiltering",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 9,
+      "allowedRequests": 0,
+      "blockedRequests": 9,
+      "bytes": 0,
+      "latency": 28,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "emailFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "gateway",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "filteredMessages": 9
+      },
+      "explanation": "Email filtering quarantined 9 inert mock messages using sender and urgency metadata."
+    },
+    {
+      "id": "defense-19-mfa",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "challenged",
+      "requests": 2,
+      "allowedRequests": 0,
+      "blockedRequests": 2,
+      "bytes": 0,
+      "latency": 28,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "mfa",
+      "defenseKind": "preventive",
+      "defenseLayer": "identity",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedIdentities": 2
+      },
+      "explanation": "MFA protected 2 fictional identities after mock-message interaction."
+    },
+    {
+      "id": "defense-19-endpointProtection",
+      "tick": 19,
+      "time": "00:19",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "contained",
+      "requests": 2,
+      "allowedRequests": 0,
+      "blockedRequests": 2,
+      "bytes": 0,
+      "latency": 28,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "endpointProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "endpoint",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "containedEndpoints": 2
+      },
+      "explanation": "Endpoint protection contained 2 fictional interaction outcomes without opening links or attachments."
+    },
+    {
+      "id": "phishing-20",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 13,
+      "allowedRequests": 5,
+      "blockedRequests": 8,
+      "bytes": 3120,
+      "latency": 27,
+      "severity": "medium",
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "explanation": "8 inert messages were filtered; 5 reached the mock inbox; 2 produced fictional user interactions.",
+      "scenarioState": {
+        "variant": "spear-phishing",
+        "inertMessage": true,
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ]
+      }
+    },
+    {
+      "id": "defense-20-emailFiltering",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "filtered",
+      "requests": 8,
+      "allowedRequests": 0,
+      "blockedRequests": 8,
+      "bytes": 0,
+      "latency": 27,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "emailFiltering",
+      "defenseKind": "preventive",
+      "defenseLayer": "gateway",
+      "visualEffect": "interrupted",
+      "metricDeltas": {
+        "filteredMessages": 8
+      },
+      "explanation": "Email filtering quarantined 8 inert mock messages using sender and urgency metadata."
+    },
+    {
+      "id": "defense-20-mfa",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "challenged",
+      "requests": 2,
+      "allowedRequests": 0,
+      "blockedRequests": 2,
+      "bytes": 0,
+      "latency": 27,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "mfa",
+      "defenseKind": "preventive",
+      "defenseLayer": "identity",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "protectedIdentities": 2
+      },
+      "explanation": "MFA protected 2 fictional identities after mock-message interaction."
+    },
+    {
+      "id": "defense-20-endpointProtection",
+      "tick": 20,
+      "time": "00:20",
+      "source": {
+        "id": "internet",
+        "name": "Synthetic Internet",
+        "ip": "198.51.100.1",
+        "type": "cloud",
+        "status": "healthy"
+      },
+      "destination": {
+        "id": "email",
+        "name": "Email Gateway",
+        "ip": "192.0.2.40",
+        "type": "email",
+        "status": "healthy"
+      },
+      "protocol": "SMTP",
+      "action": "contained",
+      "requests": 2,
+      "allowedRequests": 0,
+      "blockedRequests": 2,
+      "bytes": 0,
+      "latency": 27,
+      "severity": "low",
+      "marker": "DEFENSE_TRIGGERED",
+      "defenseId": "endpointProtection",
+      "defenseKind": "preventive",
+      "defenseLayer": "endpoint",
+      "visualEffect": "protected",
+      "metricDeltas": {
+        "containedEndpoints": 2
+      },
+      "explanation": "Endpoint protection contained 2 fictional interaction outcomes without opening links or attachments."
+    }
+  ],
+  "specializedScenario": true,
+  "networkScenario": false,
+  "scenarioState": {
+    "mockMessages": 166,
+    "filteredMessages": 104,
+    "deliveredMessages": 62,
+    "interactions": 17,
+    "protectedIdentities": 17,
+    "compromisedIdentities": 0,
+    "containedEndpoints": 17,
+    "endpointRisk": 0,
+    "inbox": [
+      {
+        "id": "mock-message-20",
+        "tick": 20,
+        "sender": "project-update@fictional.test",
+        "subject": "Mock targeted project update",
+        "variant": "spear-phishing",
+        "disposition": "filtered",
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ],
+        "inert": true
+      },
+      {
+        "id": "mock-message-19",
+        "tick": 19,
+        "sender": "project-update@fictional.test",
+        "subject": "Mock targeted project update",
+        "variant": "spear-phishing",
+        "disposition": "filtered",
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ],
+        "inert": true
+      },
+      {
+        "id": "mock-message-18",
+        "tick": 18,
+        "sender": "project-update@fictional.test",
+        "subject": "Mock targeted project update",
+        "variant": "spear-phishing",
+        "disposition": "filtered",
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ],
+        "inert": true
+      },
+      {
+        "id": "mock-message-17",
+        "tick": 17,
+        "sender": "project-update@fictional.test",
+        "subject": "Mock targeted project update",
+        "variant": "spear-phishing",
+        "disposition": "filtered",
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ],
+        "inert": true
+      },
+      {
+        "id": "mock-message-16",
+        "tick": 16,
+        "sender": "project-update@fictional.test",
+        "subject": "Mock targeted project update",
+        "variant": "spear-phishing",
+        "disposition": "filtered",
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ],
+        "inert": true
+      },
+      {
+        "id": "mock-message-15",
+        "tick": 15,
+        "sender": "project-update@fictional.test",
+        "subject": "Mock targeted project update",
+        "variant": "spear-phishing",
+        "disposition": "filtered",
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ],
+        "inert": true
+      },
+      {
+        "id": "mock-message-14",
+        "tick": 14,
+        "sender": "project-update@fictional.test",
+        "subject": "Mock targeted project update",
+        "variant": "spear-phishing",
+        "disposition": "filtered",
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ],
+        "inert": true
+      },
+      {
+        "id": "mock-message-13",
+        "tick": 13,
+        "sender": "project-update@fictional.test",
+        "subject": "Mock targeted project update",
+        "variant": "spear-phishing",
+        "disposition": "filtered",
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ],
+        "inert": true
+      },
+      {
+        "id": "mock-message-12",
+        "tick": 12,
+        "sender": "project-update@fictional.test",
+        "subject": "Mock targeted project update",
+        "variant": "spear-phishing",
+        "disposition": "filtered",
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ],
+        "inert": true
+      },
+      {
+        "id": "mock-message-11",
+        "tick": 11,
+        "sender": "project-update@fictional.test",
+        "subject": "Mock targeted project update",
+        "variant": "spear-phishing",
+        "disposition": "filtered",
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ],
+        "inert": true
+      },
+      {
+        "id": "mock-message-10",
+        "tick": 10,
+        "sender": "project-update@fictional.test",
+        "subject": "Mock targeted project update",
+        "variant": "spear-phishing",
+        "disposition": "filtered",
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ],
+        "inert": true
+      },
+      {
+        "id": "mock-message-9",
+        "tick": 9,
+        "sender": "project-update@fictional.test",
+        "subject": "Mock targeted project update",
+        "variant": "spear-phishing",
+        "disposition": "filtered",
+        "cues": [
+          "targeted context",
+          "sender mismatch"
+        ],
+        "inert": true
+      }
+    ],
+    "variant": "spear-phishing"
+  },
+  "outcomeMetrics": {
+    "variant": "spear-phishing",
+    "mockMessages": 166,
+    "filteredMessages": 104,
+    "deliveredMessages": 62,
+    "interactions": 17,
+    "protectedIdentities": 17,
+    "compromisedIdentities": 0,
+    "containedEndpoints": 17,
+    "endpointRisk": 0
+  },
+  "observableEvidence": [
+    {
+      "tick": 20,
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "action": "filtered",
+      "explanation": "8 inert messages were filtered; 5 reached the mock inbox; 2 produced fictional user interactions."
+    },
+    {
+      "tick": 19,
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "action": "filtered",
+      "explanation": "9 inert messages were filtered; 6 reached the mock inbox; 2 produced fictional user interactions."
+    },
+    {
+      "tick": 18,
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "action": "filtered",
+      "explanation": "7 inert messages were filtered; 5 reached the mock inbox; 2 produced fictional user interactions."
+    },
+    {
+      "tick": 17,
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "action": "filtered",
+      "explanation": "8 inert messages were filtered; 5 reached the mock inbox; 2 produced fictional user interactions."
+    },
+    {
+      "tick": 16,
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "action": "filtered",
+      "explanation": "7 inert messages were filtered; 4 reached the mock inbox; 1 produced fictional user interactions."
+    },
+    {
+      "tick": 15,
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "action": "filtered",
+      "explanation": "6 inert messages were filtered; 4 reached the mock inbox; 1 produced fictional user interactions."
+    },
+    {
+      "tick": 14,
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "action": "filtered",
+      "explanation": "7 inert messages were filtered; 4 reached the mock inbox; 1 produced fictional user interactions."
+    },
+    {
+      "tick": 13,
+      "marker": "DECEPTIVE_MESSAGE_RISK",
+      "action": "filtered",
+      "explanation": "7 inert messages were filtered; 5 reached the mock inbox; 2 produced fictional user interactions."
+    }
+  ],
+  "schemaVersion": "2.0",
+  "summary": {
+    "identity": {
+      "scenarioId": "phishing",
+      "scenario": "Phishing & Spear Phishing",
+      "seed": 4242,
+      "difficulty": "Beginner"
+    },
+    "risk": {
+      "peak": 63,
+      "residual": 9
+    },
+    "activity": {
+      "eventCount": 60,
+      "alertCount": 30,
+      "blockedUnits": 138,
+      "detections": 0
+    },
+    "service": {
+      "peakOffered": 15,
+      "peakAllowed": 6,
+      "maximumLatency": 33,
+      "maximumErrorRate": 11,
+      "minimumAvailability": 92
+    },
+    "defenses": {
+      "triggered": 3,
+      "affectedUnits": 138,
+      "controlsHelped": [
+        "Email filtering",
+        "Multi-factor authentication",
+        "Endpoint protection"
+      ],
+      "coverageGaps": []
+    },
+    "outcomes": {
+      "variant": "spear-phishing",
+      "mockMessages": 166,
+      "filteredMessages": 104,
+      "deliveredMessages": 62,
+      "interactions": 17,
+      "protectedIdentities": 17,
+      "compromisedIdentities": 0,
+      "containedEndpoints": 17,
+      "endpointRisk": 0
+    }
+  }
+}
