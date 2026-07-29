@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: microcomp-tiny-llm-cloud
+    runtime: python
+    plan: starter
+    region: oregon
+    rootDir: llm-training-lab/cloud-service
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /healthz
+    maxShutdownDelaySeconds: 60
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.5
+      - key: MICROCOMP_CLOUD_API_KEY
+        sync: false
+      - key: MICROCOMP_CLOUD_DATA_ROOT
+        value: /tmp/microcomp-llm-cloud
+      - key: MICROCOMP_CLOUD_INACTIVITY_TTL_SECONDS
+        value: "3600"
+      - key: MICROCOMP_CLOUD_MAX_LIFETIME_SECONDS
+        value: "21600"
+      - key: MICROCOMP_CLOUD_CLEANUP_INTERVAL_SECONDS
+        value: "30"
+      - key: MICROCOMP_CLOUD_MAX_CONCURRENT_JOBS
+        value: "1"
+      - key: MICROCOMP_CLOUD_MAX_QUEUED_JOBS
+        value: "8"
+      - key: MICROCOMP_CLOUD_MAX_JOBS_PER_SESSION
+        value: "2"
+      - key: MICROCOMP_CLOUD_MAX_TRAINING_STEPS
+        value: "500"
+      - key: MICROCOMP_CLOUD_MAX_BATCH_SIZE
+        value: "8"
+      - key: MICROCOMP_CLOUD_MAX_ESTIMATED_MEMORY_BYTES
+        value: "402653184"
+      - key: MICROCOMP_CLOUD_RATE_LIMIT_REQUESTS
+        value: "60"
+      - key: MICROCOMP_CLOUD_RATE_LIMIT_WINDOW_SECONDS
+        value: "60"
+      - key: MICROCOMP_CLOUD_TORCH_THREADS
+        value: "1"
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: MKL_NUM_THREADS
+        value: "1"

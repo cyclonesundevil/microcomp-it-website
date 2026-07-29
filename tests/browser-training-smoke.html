@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Browser training smoke test</title>
+<body>
+<pre id="result">RUNNING</pre>
+<script>
+'use strict';
+
+const result = document.querySelector('#result');
+const worker = new Worker('/frontend/llm-training-lab/inference-worker.js?v=2.0');
+const protocolVersion = '1.0';
+const pending = new Map();
+let sequence = 0;
+let ticks = 0;
+let snapshots = 0;
+let completed = null;
+let persisted = false;
+const classroom = new URLSearchParams(location.search).has('classroom');
+const configuration = classroom ? {
+    vocab_size: 35,
+    context_length: 128,
+    embedding_dim: 64,
+    attention_heads: 4,
+    transformer_blocks: 3,
+    feed_forward_dim: 128,
+    dropout: 0,
+    tie_embeddings: false
+} : {
+    vocab_size: 35,
+    context_length: 8,
+    embedding_dim: 8,
+    attention_heads: 2,
+    transformer_blocks: 1,
+    feed_forward_dim: 16,
+    dropout: 0,
+    tie_embeddings: false
+};
+const requestedSteps = classroom ? 2 : 3;
+const ticker = setInterval(() => { ticks += 1; }, 10);
+
+function request(type, payload) {
+    sequence += 1;
+    const requestId = `smoke-${sequence}`;
+    return new Promise((resolve, reject) => {
+        pending.set(requestId, { resolve, reject });
+        worker.postMessage({ protocolVersion, requestId, type, payload });
+    });
+}
+
+function finish(value) {
+    clearInterval(ticker);
+    result.textContent = JSON.stringify(value);
+    document.title = value.ok ? 'PASS' : 'FAIL';
+    worker.terminate();
+}
+
+worker.addEventListener('error', event => finish({ ok: false, error: event.message }));
+worker.addEventListener('message', async event => {
+    const message = event.data;
+    if (message.type === 'TRAINING_EVENT') {
+        const trainingEvent = message.payload;
+        if (trainingEvent.eventType === 'SNAPSHOT') snapshots += 1;
+        if (trainingEvent.eventType === 'FAILED') {
+            finish({ ok: false, error: trainingEvent.data.error });
+        }
+        if (trainingEvent.eventType === 'COMPLETED') {
+            completed = trainingEvent.data;
+            try {
+                const generated = await request('GENERATE', {
+                    modelId: trainingEvent.runId,
+                    prompt: 'alert: ',
+                    options: { temperature: 1, topK: 1, maxNewTokens: 2, seed: 5 }
+                });
+                completed.generatedText = generated.text;
+            } catch (error) {
+                finish({ ok: false, error: error.message });
+            }
+        }
+        if (trainingEvent.eventType === 'PERSISTED') {
+            persisted = true;
+            try {
+                const listed = await request('LIST_SAVED_MODELS', {});
+                const saved = listed.models.find(item => item.runId === trainingEvent.runId);
+                const loaded = await request('LOAD_SAVED_MODEL', {
+                    runId: trainingEvent.runId
+                });
+                const renamed = await request('RENAME_SAVED_MODEL', {
+                    runId: trainingEvent.runId,
+                    name: 'Browser smoke model'
+                });
+                const duplicated = await request('DUPLICATE_SAVED_MODEL', {
+                    runId: trainingEvent.runId,
+                    name: 'Browser smoke copy'
+                });
+                const exported = await request('EXPORT_SAVED_MODEL', {
+                    runId: trainingEvent.runId
+                });
+                const imported = await request('IMPORT_MODEL', {
+                    fileName: 'browser-smoke-import.microcomp-model',
+                    bytes: exported.bytes
+                });
+                const importedReady = await request('LOAD_SAVED_MODEL', {
+                    runId: imported.model.runId
+                });
+                const importedGeneration = await request('GENERATE', {
+                    modelId: imported.model.runId,
+                    prompt: 'alert: ',
+                    options: { temperature: 1, topK: 1, maxNewTokens: 2, seed: 5 }
+                });
+                await request('DELETE_SAVED_MODEL', {
+                    runId: duplicated.model.runId
+                });
+                await request('DELETE_SAVED_MODEL', {
+                    runId: imported.model.runId
+                });
+                await request('DELETE_SAVED_MODEL', {
+                    runId: trainingEvent.runId
+                });
+                finish({
+                    ok: Boolean(completed) && persisted && Boolean(saved)
+                        && loaded.model.parameterCount === completed.parameterCount
+                        && renamed.model.name === 'Browser smoke model'
+                        && duplicated.model.name === 'Browser smoke copy'
+                        && exported.fileName.endsWith('.microcomp-model')
+                        && imported.checksumsVerified
+                        && importedReady.model.parameterCount === completed.parameterCount
+                        && importedGeneration.text === completed.generatedText
+                        && snapshots === requestedSteps + 1 && ticks > 0,
+                    ticks,
+                    snapshots,
+                    persisted,
+                    reloaded: Boolean(saved),
+                    portableRoundTrip: imported.checksumsVerified,
+                    step: completed?.step,
+                    trainLoss: completed?.trainLoss,
+                    validationLoss: completed?.validationLoss,
+                    elapsedSeconds: completed?.elapsedSeconds,
+                    memory: completed?.memory,
+                    generatedText: completed?.generatedText
+                });
+            } catch (error) {
+                finish({ ok: false, error: error.message });
+            }
+        }
+        return;
+    }
+    const waiting = pending.get(message.requestId);
+    if (!waiting) return;
+    pending.delete(message.requestId);
+    if (message.type === 'ERROR') waiting.reject(new Error(message.payload.message));
+    else waiting.resolve(message.payload);
+});
+
+request('START_TRAINING', {
+    runId: `browser-smoke-${Date.now()}`,
+    datasetId: 'cybersecurity-alerts-v1',
+    configuration,
+    training: {
+        learningRate: .003,
+        batchSize: 1,
+        steps: requestedSteps,
+        validationInterval: 1,
+        snapshotInterval: 1,
+        gradientClipNorm: 1,
+        seed: 5,
+        validationBatches: 1,
+        stride: configuration.context_length,
+        samplePrompt: 'alert: ',
+        sampleMaxNewTokens: 2,
+        sampleTemperature: 1,
+        sampleTopK: 1
+    }
+}).catch(error => finish({ ok: false, error: error.message }));
+
+setTimeout(() => {
+    if (document.title !== 'PASS' && document.title !== 'FAIL') {
+        finish({ ok: false, error: 'Browser training timed out.' });
+    }
+}, 30000);
+</script>
+</body>
+</html>

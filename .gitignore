@@ -18,6 +18,10 @@ backend/verify_calendar.py
 # MacOS
 .DS_Store
 **/node_modules/
+**/.venv/
+**/.pytest_cache/
+**/*.egg-info/
+llm-training-lab/python-reference/artifacts/
 mcp-server/dist/
 mcp-server/generated/
 backend/analytics.db

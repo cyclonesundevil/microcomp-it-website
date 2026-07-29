@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Training Simulation Lab | MicroComp IT</title>
+    <meta name="description" content="Configure, train, replay, and explore a real tiny language model entirely in your browser.">
+    <meta name="theme-color" content="#03050a">
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+    <script src="../theme.js?v=1.0"></script>
+    <script src="../analytics.js?v=1.0"></script>
+    <link rel="stylesheet" href="../styles.css?v=2.1">
+    <link rel="stylesheet" href="../llm-training-lab.css?v=1.4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body class="llm-lab-page">
+    <a class="skip-link" href="#lab-workspace">Skip to lab workspace</a>
+    <header class="navbar">
+        <a class="logo" href="../index.html" aria-label="MicroComp IT home"><span aria-hidden="true">▰</span> MicroComp IT</a>
+        <nav aria-label="Primary navigation">
+            <a href="../index.html">Home</a>
+            <a href="../demo-lab.html">Demo Lab</a>
+            <button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle color theme" aria-pressed="false">
+                <span aria-hidden="true">◐</span><span data-theme-label>Dark</span>
+            </button>
+            <a href="../index.html#contact" class="btn-primary">Contact</a>
+        </nav>
+    </header>
+
+    <main id="lab-workspace">
+        <section class="llm-hero" aria-labelledby="lab-title">
+            <div class="llm-hero-copy">
+                <p class="llm-kicker">MicroComp IT Demo Lab · Machine learning fundamentals</p>
+                <h1 id="lab-title">Train a tiny language model—one character at a time.</h1>
+                <p class="llm-hero-lede">
+                    Configure the same decoder-only architecture that will power a real browser trainer,
+                    inspect how text becomes tokens, and watch real training events in your browser.
+                </p>
+                <div class="hero-facts" aria-label="Lab boundaries">
+                    <span><strong>200,000</strong> parameter ceiling</span>
+                    <span><strong>Character-level</strong> tokenizer</span>
+                    <span><strong>Educational</strong> scale</span>
+                </div>
+            </div>
+            <aside class="scale-note" aria-labelledby="scale-note-title">
+                <span class="note-icon" aria-hidden="true">i</span>
+                <div>
+                    <strong id="scale-note-title">Small on purpose</strong>
+                    <p>
+                        You will train a real model in a later milestone, but it will be extremely small.
+                        Modern commercial LLMs contain billions of parameters and vastly more data. This
+                        lab is designed for understanding—not production use or factual advice.
+                    </p>
+                </div>
+            </aside>
+        </section>
+
+        <section class="mode-section" aria-labelledby="mode-heading">
+            <div class="section-intro">
+                <span class="section-number">01</span>
+                <div>
+                    <p class="llm-eyebrow">Choose where the work happens</p>
+                    <h2 id="mode-heading">Training mode</h2>
+                    <p>Privacy and retention behavior stay visible before a training run begins.</p>
+                </div>
+            </div>
+            <fieldset class="mode-grid">
+                <legend class="visually-hidden">Choose a training mode</legend>
+                <label class="mode-card mode-card-selected" data-mode-card="local">
+                    <input id="training-mode-local" type="radio" name="training-mode" value="local" checked>
+                    <span class="mode-card-top"><span class="mode-icon" aria-hidden="true">⌁</span><span class="availability-badge">Interface available</span></span>
+                    <strong>Train on This Device</strong>
+                    <span>Uses your computer’s CPU or GPU. Training data remains in this browser, and models can be saved locally or downloaded.</span>
+                    <small><span aria-hidden="true">●</span> Local worker training is available</small>
+                </label>
+                <label class="mode-card" data-mode-card="cloud">
+                    <input id="training-mode-cloud" type="radio" name="training-mode" value="cloud">
+                    <span class="mode-card-top"><span class="mode-icon" aria-hidden="true">☁</span><span class="availability-badge">Service available</span></span>
+                    <strong>Train in the MicroComp Cloud</strong>
+                    <span>Uses a managed Python service for slower devices. Models are temporary and must be downloaded before they expire.</span>
+                    <small><span aria-hidden="true">○</span> Requires a temporary cloud connection</small>
+                </label>
+            </fieldset>
+            <form id="cloud-connection-form" class="cloud-connection lab-card" hidden>
+                <div>
+                    <span class="card-label">MicroComp Cloud connection</span>
+                    <p>An operator supplies the service address and access key. Credentials remain only in this page's memory and are cleared when you leave.</p>
+                </div>
+                <label for="cloud-service-url">Service URL
+                    <input id="cloud-service-url" type="url" value="http://localhost:8090" autocomplete="url" spellcheck="false">
+                </label>
+                <label for="cloud-access-key">Access key
+                    <input id="cloud-access-key" type="password" minlength="24" autocomplete="off">
+                </label>
+                <button id="cloud-connect" class="lab-action-primary" type="submit">Connect securely</button>
+                <p id="cloud-connection-status" role="status" aria-live="polite">Not connected.</p>
+            </form>
+            <div class="privacy-banner" id="training-privacy-banner" role="note">
+                <strong id="training-privacy-title">LOCAL TRAINING</strong>
+                <span id="training-privacy-text">Training runs in a Web Worker on this device. Completed models are saved to browser storage; cancelled and incomplete runs are not persisted.</span>
+                <a href="llm-inference-capabilities.html">Open the browser inference engine &rarr;</a>
+            </div>
+        </section>
+
+        <section class="workflow-section" aria-labelledby="workflow-heading">
+            <div class="section-intro">
+                <span class="section-number">02</span>
+                <div>
+                    <p class="llm-eyebrow">Move through the model lifecycle</p>
+                    <h2 id="workflow-heading">Guided workflow</h2>
+                    <p>Each stage answers one question about how a tiny language model learns.</p>
+                </div>
+            </div>
+
+            <div class="workflow-tabs" role="tablist" aria-label="LLM training stages">
+                <button id="tab-data" type="button" role="tab" aria-selected="true" aria-controls="stage-data" data-stage="data">
+                    <span>1</span>Data
+                </button>
+                <button id="tab-tokenization" type="button" role="tab" aria-selected="false" aria-controls="stage-tokenization" data-stage="tokenization" tabindex="-1">
+                    <span>2</span>Tokenization
+                </button>
+                <button id="tab-architecture" type="button" role="tab" aria-selected="false" aria-controls="stage-architecture" data-stage="architecture" tabindex="-1">
+                    <span>3</span>Architecture
+                </button>
+                <button id="tab-training" type="button" role="tab" aria-selected="false" aria-controls="stage-training" data-stage="training" tabindex="-1">
+                    <span>4</span>Training
+                </button>
+                <button id="tab-playground" type="button" role="tab" aria-selected="false" aria-controls="stage-playground" data-stage="playground" tabindex="-1">
+                    <span>5</span>Prediction Lab
+                </button>
+                <button id="tab-analysis" type="button" role="tab" aria-selected="false" aria-controls="stage-analysis" data-stage="analysis" tabindex="-1">
+                    <span>6</span>Analysis
+                </button>
+            </div>
+
+            <div class="stage-shell">
+                <section id="stage-data" class="stage-panel" role="tabpanel" aria-labelledby="tab-data">
+                    <div class="stage-heading">
+                        <div><p class="llm-eyebrow">Stage 1 · Data</p><h2>Start with bounded, explainable text</h2></div>
+                        <span class="dataset-badge">Bundled · Synthetic · CC0</span>
+                    </div>
+                    <div class="data-layout">
+                        <article class="lab-card dataset-overview">
+                            <span class="card-label">Selected dataset</span>
+                            <h3>Synthetic Cybersecurity Alerts and Responses</h3>
+                            <p>Original fictional alert summaries paired with safe incident-response descriptions. No download or user upload is required.</p>
+                            <dl class="dataset-stats">
+                                <div><dt>Records</dt><dd id="dataset-records">30</dd></div>
+                                <div><dt>Characters</dt><dd id="dataset-characters">—</dd></div>
+                                <div><dt>Training</dt><dd id="dataset-training">24</dd></div>
+                                <div><dt>Validation</dt><dd id="dataset-validation">6</dd></div>
+                            </dl>
+                            <div class="split-visual" aria-label="Dataset split: 80 percent training and 20 percent validation">
+                                <span class="split-training" style="width:80%">80% training</span>
+                                <span class="split-validation" style="width:20%">20% validation</span>
+                            </div>
+                        </article>
+                        <article class="lab-card">
+                            <span class="card-label">Sample records</span>
+                            <ol id="dataset-samples" class="sample-records"></ol>
+                        </article>
+                    </div>
+                    <article class="lab-card character-summary">
+                        <div><span class="card-label">Most common characters</span><p>Spaces and common letters appear most often, so the model sees them most often during training.</p></div>
+                        <div id="common-characters" class="character-frequency" aria-label="Most common dataset characters"></div>
+                    </article>
+                </section>
+
+                <section id="stage-tokenization" class="stage-panel" role="tabpanel" aria-labelledby="tab-tokenization" hidden>
+                    <div class="stage-heading">
+                        <div><p class="llm-eyebrow">Stage 2 · Tokenization</p><h2>Turn characters into model-readable IDs</h2></div>
+                        <span id="vocabulary-size-badge" class="dataset-badge">35-token vocabulary</span>
+                    </div>
+                    <div class="two-column-stage">
+                        <article class="lab-card">
+                            <label class="field-label" for="tokenizer-input">Tokenizer sandbox</label>
+                            <p id="tokenizer-help" class="field-help">This teaching box only previews character IDs. It does not prompt, train, or generate with the model.</p>
+                            <textarea id="tokenizer-input" rows="5" maxlength="4096" aria-describedby="tokenizer-help tokenizer-preview-note">alert: review the log.</textarea>
+                            <div class="input-meta">
+                                <span id="tokenizer-character-count">22 characters</span>
+                                <span id="tokenizer-preview-note">Showing all 22 tokens</span>
+                            </div>
+                            <p class="inline-guidance">Unknown characters use &lt;unk&gt; · ID 3. To keep this visualization readable, at most 160 token chips are displayed.</p>
+                            <div class="prediction-example" role="note">
+                                <strong>Next-token prediction</strong>
+                                <code>alert:</code>
+                                <span aria-hidden="true">→</span>
+                                <code>space</code>
+                                <p>The model receives earlier character IDs and learns to predict the character that follows.</p>
+                            </div>
+                        </article>
+                        <article class="lab-card token-output-card">
+                            <div class="output-heading"><span class="card-label">Character tokens</span><span id="unknown-token-note" role="status"></span></div>
+                            <div id="character-tokens" class="token-strip" aria-label="Character tokens"></div>
+                            <span class="card-label token-id-label">Token IDs</span>
+                            <div id="token-ids" class="token-strip token-id-strip" aria-label="Token IDs"></div>
+                        </article>
+                    </div>
+                </section>
+
+                <section id="stage-architecture" class="stage-panel" role="tabpanel" aria-labelledby="tab-architecture" hidden>
+                    <div class="stage-heading">
+                        <div><p class="llm-eyebrow">Stage 3 · Architecture</p><h2>Shape the model without crossing the limit</h2></div>
+                        <span class="dataset-badge">Pre-normalized decoder</span>
+                    </div>
+                    <div class="architecture-layout">
+                        <form id="architecture-form" class="lab-card architecture-controls" novalidate>
+                            <div class="control-heading"><span class="card-label">Model controls</span><button id="reset-architecture" class="text-button" type="button">Reset classroom preset</button></div>
+                            <div class="control-grid">
+                                <label>Context length
+                                    <select id="context-length" name="contextLength">
+                                        <option value="32">32</option><option value="64">64</option><option value="128" selected>128</option><option value="256">256</option>
+                                    </select>
+                                    <small>Characters considered at once</small>
+                                </label>
+                                <label>Embedding dimension
+                                    <select id="embedding-dimension" name="embeddingDimension">
+                                        <option value="32">32</option><option value="48">48</option><option value="64" selected>64</option><option value="80">80</option><option value="96">96</option>
+                                    </select>
+                                    <small>Width of each token representation</small>
+                                </label>
+                                <label>Attention heads
+                                    <select id="attention-heads" name="attentionHeads">
+                                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option><option value="6">6</option><option value="8">8</option>
+                                    </select>
+                                    <small>Parallel attention views</small>
+                                </label>
+                                <label>Transformer layers
+                                    <select id="transformer-layers" name="transformerLayers">
+                                        <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option>
+                                    </select>
+                                    <small>Repeated decoder blocks</small>
+                                </label>
+                                <label>Feed-forward dimension
+                                    <select id="feed-forward-dimension" name="feedForwardDimension">
+                                        <option value="64">64</option><option value="96">96</option><option value="128" selected>128</option><option value="160">160</option><option value="192">192</option><option value="256">256</option>
+                                    </select>
+                                    <small>Width of each block’s inner network</small>
+                                </label>
+                                <label class="checkbox-control"><input id="tied-embeddings" name="tiedEmbeddings" type="checkbox"><span><strong>Tie input/output embeddings</strong><small>Reuse one weight matrix to save parameters</small></span></label>
+                            </div>
+                        </form>
+                        <aside class="lab-card parameter-budget" aria-labelledby="parameter-budget-title">
+                            <span class="card-label">Parameter budget</span>
+                            <div class="parameter-total"><strong id="parameter-budget-title"><span id="parameter-total">113,251</span></strong><span>of 200,000</span></div>
+                            <div class="budget-meter" role="progressbar" aria-label="Parameter budget used" aria-valuemin="0" aria-valuemax="200000" aria-valuenow="113251">
+                                <span id="budget-meter-fill" style="width:56.6%"></span>
+                            </div>
+                            <p id="budget-percentage">56.6% of available parameters</p>
+                            <div id="architecture-errors" class="validation-message" role="alert" hidden></div>
+                            <dl id="parameter-breakdown" class="parameter-breakdown"></dl>
+                        </aside>
+                    </div>
+                    <article class="lab-card pipeline-card">
+                        <div><span class="card-label">Visual model pipeline</span><p>Every input position can attend only to itself and earlier positions.</p></div>
+                        <ol class="model-pipeline" aria-label="Decoder-only model pipeline">
+                            <li><span>01</span><strong>Character IDs</strong><small>[batch, context]</small></li>
+                            <li><span>02</span><strong>Token + position</strong><small>learned embeddings</small></li>
+                            <li><span>03</span><strong>Decoder blocks</strong><small id="pipeline-blocks">3 × attention + FFN</small></li>
+                            <li><span>04</span><strong>Final norm</strong><small>stabilize activations</small></li>
+                            <li><span>05</span><strong>Next character</strong><small>vocabulary logits</small></li>
+                        </ol>
+                    </article>
+                </section>
+
+                <section id="stage-training" class="stage-panel" role="tabpanel" aria-labelledby="tab-training" hidden>
+                    <div class="stage-heading">
+                        <div><p class="llm-eyebrow">Stage 4 · Training</p><h2>Watch a real tiny model learn</h2></div>
+                        <span class="preview-badge" id="training-runtime-badge">Worker training · CPU reference</span>
+                    </div>
+                    <div class="training-notice" role="note">
+                        <strong id="training-notice-title">LOCAL AND OBSERVABLE</strong>
+                        <span id="training-notice-text">Training data, weights, optimizer state, and replay snapshots stay inside this browser. The UI receives metrics and bounded educational views, never model tensors.</span>
+                    </div>
+                    <form id="training-config-form" class="lab-card real-training-config">
+                        <div class="control-heading"><span class="card-label">Training controls</span><span>AdamW · all parameters · deterministic seed</span></div>
+                        <div class="training-config-grid">
+                            <label>Learning rate<input id="training-learning-rate" type="number" min="0.000001" max="1" step="0.0001" value="0.001"></label>
+                            <label>Batch size<input id="training-batch-size" type="number" min="1" max="8" step="1" value="2"></label>
+                            <label>Training steps<input id="training-steps" type="number" min="1" max="500" step="1" value="40" aria-describedby="training-expectation"></label>
+                            <label>Validation interval<input id="training-validation-interval" type="number" min="1" max="500" step="1" value="5"></label>
+                            <label>Replay snapshot interval<input id="training-snapshot-interval" type="number" min="1" max="500" step="1" value="10"></label>
+                            <label>Gradient clip norm<input id="training-gradient-clip" type="number" min="0.01" max="100" step="0.1" value="1"></label>
+                            <label>Window stride<input id="training-stride" type="number" min="1" max="256" step="1" value="128"></label>
+                            <label>Seed<input id="training-seed" type="number" min="0" max="2147483647" step="1" value="4242"></label>
+                        </div>
+                        <p id="training-expectation" class="inline-guidance" role="note"><strong>Quick demonstration:</strong> 40 steps makes the learning process visible, but generated text will usually remain fragmented or incoherent.</p>
+                    </form>
+                    <div class="training-grid">
+                        <article class="lab-card training-console">
+                            <div class="training-toolbar">
+                                <div><span class="card-label">Worker controls</span><strong id="training-status" role="status" aria-live="polite">Ready to train</strong></div>
+                                <div role="group" aria-label="Local model training controls">
+                                    <button id="training-start" class="lab-action-primary" type="button">Start training</button>
+                                    <button id="training-pause" type="button" disabled>Pause</button>
+                                    <button id="training-resume" type="button" disabled>Resume</button>
+                                    <button id="training-cancel" type="button" disabled>Cancel</button>
+                                </div>
+                            </div>
+                            <div class="preview-progress"><span id="preview-progress-fill"></span></div>
+                            <dl class="training-metrics">
+                                <div><dt>Step</dt><dd id="metric-step">0 / 40</dd></div>
+                                <div><dt>Training loss</dt><dd id="metric-train-loss">—</dd></div>
+                                <div><dt>Validation loss</dt><dd id="metric-validation-loss">—</dd></div>
+                                <div><dt>Elapsed</dt><dd id="metric-elapsed">0.0 s</dd></div>
+                                <div><dt>Tokens processed</dt><dd id="metric-tokens">0</dd></div>
+                                <div><dt>Estimated remaining</dt><dd id="metric-remaining">—</dd></div>
+                            </dl>
+                            <figure class="loss-chart">
+                                <figcaption><strong>Measured loss</strong><span><i class="train-key"></i> Training <i class="validation-key"></i> Validation</span></figcaption>
+                                <svg viewBox="0 0 600 180" role="img" aria-labelledby="loss-chart-title loss-chart-description">
+                                    <title id="loss-chart-title">Real training and validation loss</title>
+                                    <desc id="loss-chart-description">Measured loss values received from the browser training worker.</desc>
+                                    <g class="chart-grid"><line x1="35" y1="20" x2="580" y2="20"></line><line x1="35" y1="90" x2="580" y2="90"></line><line x1="35" y1="160" x2="580" y2="160"></line></g>
+                                    <polyline id="train-loss-line" class="train-loss-line" points=""></polyline>
+                                    <polyline id="validation-loss-line" class="validation-loss-line" points=""></polyline>
+                                </svg>
+                            </figure>
+                            <details class="training-event-log">
+                                <summary>Major training event log</summary>
+                                <ol id="training-events" aria-live="polite"></ol>
+                            </details>
+                        </article>
+                        <aside class="lab-card checkpoint-card">
+                            <span class="card-label">Latest real checkpoint</span>
+                            <p>Generated with the same seed and prompt at every replay snapshot:</p>
+                            <code id="checkpoint-output">Start training to create the first checkpoint.</code>
+                            <dl class="checkpoint-facts">
+                                <div><dt>Step</dt><dd id="checkpoint-step">—</dd></div>
+                                <div><dt>Loss</dt><dd id="checkpoint-loss">—</dd></div>
+                                <div><dt>Parameters</dt><dd id="checkpoint-parameters">—</dd></div>
+                                <div><dt>Memory</dt><dd id="checkpoint-memory">—</dd></div>
+                            </dl>
+                            <div class="checkpoint-explanation">
+                                <strong>What to watch</strong>
+                                <p>Loss should generally fall while embeddings, attention, and token probabilities change. Coherent spelling still does not mean the model understands an incident.</p>
+                            </div>
+                        </aside>
+                    </div>
+                    <div id="cloud-model-actions" class="cloud-model-actions lab-card" hidden>
+                        <div>
+                            <span class="card-label">Temporary cloud model</span>
+                            <strong id="cloud-model-expiry">Download this model before it expires.</strong>
+                            <p>Downloading preserves a portable copy. Saving to this browser validates the same package and makes the model persistent for local inference.</p>
+                        </div>
+                        <div>
+                            <button id="cloud-download-model" type="button">Download model</button>
+                            <button id="cloud-continue-local" class="lab-action-primary" type="button">Save and continue locally</button>
+                            <button id="cloud-delete-model" class="danger-action" type="button">Delete cloud copy</button>
+                        </div>
+                    </div>
+                    <section class="learning-explorer" aria-labelledby="learning-explorer-title">
+                        <div class="explorer-heading">
+                            <div><span class="card-label">Interactive educational module</span><h3 id="learning-explorer-title">Inside the Transformer</h3><p>Follow token flow and replay bounded observations captured from the real model whenever the selected engine provides them.</p></div>
+                            <div class="replay-controls">
+                                <label for="replay-scrubber">Replay training <output id="replay-position" for="replay-scrubber">No snapshots</output></label>
+                                <input id="replay-scrubber" type="range" min="0" max="0" value="0" disabled>
+                                <button id="replay-play" type="button" disabled>Play replay</button>
+                            </div>
+                        </div>
+                        <div class="explorer-summary" id="explorer-summary">A baseline snapshot will appear when training starts.</div>
+                        <figure class="token-flow-card">
+                            <figcaption><strong>Token flow</strong><span>Characters → embeddings → decoder blocks → logits → next token</span></figcaption>
+                            <div id="transformer-token-flow" class="transformer-token-flow" role="img" aria-label="Token flow through the transformer">Waiting for a local replay snapshot.</div>
+                        </figure>
+                        <div class="explorer-grid">
+                            <figure class="explorer-card">
+                                <figcaption><strong>Embedding evolution</strong><span id="embedding-series-label">Selected token rows across snapshots</span></figcaption>
+                                <svg id="embedding-evolution" viewBox="0 0 360 180" role="img" aria-label="Embedding values over replay snapshots"></svg>
+                            </figure>
+                            <figure class="explorer-card">
+                                <figcaption><strong>Attention matrix</strong><span><label for="attention-head">Head</label> <select id="attention-head" disabled><option value="0">1</option></select> · <span id="attention-shape">No matrix</span></span></figcaption>
+                                <div id="attention-matrix" class="attention-matrix" role="img" aria-label="Causal attention weights"></div>
+                            </figure>
+                            <figure class="explorer-card">
+                                <figcaption><strong>Logits</strong><span>Raw next-token scores</span></figcaption>
+                                <div id="explorer-logits" class="explorer-bars"></div>
+                            </figure>
+                            <figure class="explorer-card">
+                                <figcaption><strong>Probability distribution</strong><span>Softmax over the vocabulary</span></figcaption>
+                                <div id="explorer-probabilities" class="explorer-bars"></div>
+                            </figure>
+                            <article class="explorer-card next-token-card">
+                                <span class="card-label">Next-token selection</span>
+                                <strong id="selected-token">—</strong>
+                                <p id="selected-token-detail">Waiting for a checkpoint.</p>
+                            </article>
+                            <figure class="explorer-card">
+                                <figcaption><strong>Layer outputs</strong><span>Mean absolute activation magnitude</span></figcaption>
+                                <div id="layer-activations" class="explorer-bars"></div>
+                            </figure>
+                        </div>
+                    </section>
+                </section>
+
+                <section id="stage-playground" class="stage-panel" role="tabpanel" aria-labelledby="tab-playground" hidden>
+                    <div class="stage-heading">
+                        <div><p class="llm-eyebrow">Stage 5 · Prediction Lab</p><h2>Measure what training changed</h2></div>
+                        <span class="preview-badge" id="playground-model-state">Train a model first</span>
+                    </div>
+                    <section class="response-ranking-lab lab-card" aria-labelledby="response-ranking-title">
+                        <div class="ranking-heading">
+                            <div>
+                                <span class="card-label">Human-readable held-out evaluation</span>
+                                <h3 id="response-ranking-title">Choose a response plan for a security alert</h3>
+                                <p>The model scores four complete, readable response plans for an alert it did not train on. The security-area labels describe those curated plans; they are not generated text.</p>
+                            </div>
+                            <span class="dataset-badge">Measured · Readable · Honest</span>
+                        </div>
+                        <div class="ranking-controls">
+                            <label for="ranking-challenge">Held-out alert
+                                <select id="ranking-challenge"></select>
+                            </label>
+                            <div class="ranking-actions">
+                                <button id="ranking-evaluate" class="lab-action-primary" type="button" disabled>Train a model to enable comparison</button>
+                                <button id="ranking-evaluate-all" type="button" disabled>Evaluate all held-out alerts</button>
+                            </div>
+                        </div>
+                        <article class="ranking-alert">
+                            <span class="card-label">Alert presented to the model</span>
+                            <p id="ranking-alert-text">Select a saved local model to begin.</p>
+                        </article>
+                        <div id="ranking-status" class="ranking-status">
+                            <span id="ranking-status-message" role="status" aria-live="polite">Train or load a local browser model to run this evaluation.</span>
+                            <button id="ranking-training-shortcut" type="button">Go to Training</button>
+                        </div>
+                        <div id="ranking-results" hidden>
+                            <section class="human-decision" aria-labelledby="human-decision-title">
+                                <div class="human-decision-heading">
+                                    <span class="card-label">Plain-language result</span>
+                                    <h4 id="human-decision-title">What did the trained model choose?</h4>
+                                </div>
+                                <div class="human-decision-grid">
+                                    <article>
+                                        <span>Model recommendation</span>
+                                        <strong id="ranking-selected-area">—</strong>
+                                        <p id="ranking-selected-response"></p>
+                                    </article>
+                                    <article>
+                                        <span>Held-out reference</span>
+                                        <strong id="ranking-reference-area">—</strong>
+                                        <p id="ranking-reference-response"></p>
+                                    </article>
+                                    <article class="decision-outcome">
+                                        <span>Result</span>
+                                        <strong id="ranking-human-outcome">—</strong>
+                                        <p id="ranking-human-explanation"></p>
+                                    </article>
+                                </div>
+                            </section>
+                            <details class="ranking-evidence">
+                                <summary>Inspect the measured ranking evidence</summary>
+                            <div class="ranking-summary">
+                                <article><span>Untrained baseline</span><strong id="baseline-correct-rank">—</strong><small id="baseline-correct-loss">Correct-response rank</small></article>
+                                <article><span>Trained model</span><strong id="trained-correct-rank">—</strong><small id="trained-correct-loss">Correct-response rank</small></article>
+                                <article><span>Selected response</span><strong id="ranking-selected-result">—</strong><small>Compared with held-out answer</small></article>
+                                <article><span>Characters scored</span><strong id="ranking-character-count">—</strong><small>Equal prefix of every candidate</small></article>
+                            </div>
+                            <div id="ranking-verdict" class="ranking-verdict"></div>
+                            <div class="ranking-table-wrap">
+                                <table class="ranking-table">
+                                    <caption>Readable response candidates ranked by measured average next-character loss</caption>
+                                    <thead><tr><th scope="col">Response candidate</th><th scope="col">Baseline rank/loss</th><th scope="col">Trained rank/loss</th><th scope="col">Relative score</th><th scope="col">Result</th></tr></thead>
+                                    <tbody id="ranking-table-body"></tbody>
+                                </table>
+                            </div>
+                            <section class="character-microscope" aria-labelledby="character-microscope-title">
+                                <div>
+                                    <span class="card-label">Correct-response microscope</span>
+                                    <h4 id="character-microscope-title">Inspect an actual next-character decision</h4>
+                                    <p id="ranking-correct-response"></p>
+                                </div>
+                                <label for="ranking-character-position">Character position
+                                    <select id="ranking-character-position"></select>
+                                </label>
+                                <div class="character-comparison">
+                                    <article><span>Expected</span><strong id="ranking-expected-character">—</strong></article>
+                                    <article><span>Baseline predicted</span><strong id="ranking-baseline-character">—</strong></article>
+                                    <article><span>Trained predicted</span><strong id="ranking-trained-character">—</strong></article>
+                                </div>
+                                <div>
+                                    <span class="card-label">Trained model’s top five choices</span>
+                                    <div id="ranking-probabilities" class="explorer-bars"></div>
+                                </div>
+                            </section>
+                            </details>
+                        </div>
+                        <section id="ranking-set-results" class="ranking-set-results" hidden aria-labelledby="ranking-set-title">
+                            <div>
+                                <span class="card-label">All held-out alerts</span>
+                                <h4 id="ranking-set-title">Readable evaluation scorecard</h4>
+                                <p id="ranking-set-summary"></p>
+                            </div>
+                            <div class="ranking-set-metrics">
+                                <article><span>Untrained baseline</span><strong id="ranking-set-baseline">—</strong></article>
+                                <article><span>Trained model</span><strong id="ranking-set-trained">—</strong></article>
+                                <article><span>Change</span><strong id="ranking-set-change">—</strong></article>
+                            </div>
+                            <div class="ranking-table-wrap">
+                                <table class="ranking-table ranking-set-table">
+                                    <caption>Model-selected response area compared with the held-out reference</caption>
+                                    <thead><tr><th scope="col">Held-out alert</th><th scope="col">Model selected</th><th scope="col">Reference</th><th scope="col">Result</th></tr></thead>
+                                    <tbody id="ranking-set-table-body"></tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </section>
+                    <details class="advanced-generation">
+                        <summary>Advanced experiment: Why tiny models struggle with open-ended generation</summary>
+                        <p>Free generation is preserved as a limitations demonstration. Readable response ranking above is the recommended educational activity.</p>
+                        <div class="playground-layout">
+                        <form id="playground-form" class="lab-card playground-controls">
+                            <label class="field-label" for="prompt-input">Prompt</label>
+                            <p id="playground-expectation" class="field-help">The tiny model continues characters; it is not an instruction-following chatbot and may produce incoherent text.</p>
+                            <div class="prompt-examples" role="group" aria-label="Curated prompt starters">
+                                <span>Try an in-vocabulary starter:</span>
+                                <button type="button" data-prompt-example="alert: ">alert:</button>
+                                <button type="button" data-prompt-example="response: ">response:</button>
+                                <button type="button" data-prompt-example="alert: repeated sign-in failures">sign-in alert</button>
+                            </div>
+                            <textarea id="prompt-input" rows="5" maxlength="240" aria-describedby="playground-expectation prompt-context-status prompt-vocabulary-warning">alert: </textarea>
+                            <div class="prompt-guidance">
+                                <p id="prompt-context-status" role="status">7 characters · all fit in the 128-character context.</p>
+                                <p id="prompt-vocabulary-warning" role="status">All prompt characters are in the model vocabulary.</p>
+                            </div>
+                            <div class="slider-control">
+                                <label for="temperature">Temperature <output id="temperature-value" for="temperature">0.8</output></label>
+                                <input id="temperature" type="range" min="0.1" max="1.5" step="0.1" value="0.8">
+                                <small>Lower is more predictable; higher introduces more variety.</small>
+                            </div>
+                            <div class="playground-settings">
+                                <label>Top-k<input id="top-k" type="number" min="1" max="35" value="12"></label>
+                                <label>Maximum new output characters<input id="maximum-tokens" type="number" min="1" max="160" value="80"></label>
+                                <label>Seed<input id="generation-seed" type="number" min="0" max="2147483647" value="4242"></label>
+                            </div>
+                            <button id="playground-generate" class="lab-action-primary" type="submit" disabled>Generate with trained model</button>
+                        </form>
+                        <article class="lab-card generated-output-card">
+                            <div class="output-heading"><span class="card-label">Prompt and generated continuation</span><span id="playground-engine-label">Real worker inference</span></div>
+                            <div id="chat-history" class="chat-history" aria-live="polite"></div>
+                            <pre id="generated-output" tabindex="0" aria-live="polite">Complete a local training run to use the model here.</pre>
+                            <button id="clear-chat" type="button">Clear generation history</button>
+                            <p><strong>Remember:</strong> This tiny model learns character patterns from a small synthetic dataset. Its output is educational, not reliable cybersecurity guidance.</p>
+                        </article>
+                        </div>
+                    </details>
+                    <section class="my-models lab-card" aria-labelledby="my-models-title">
+                        <div class="my-models-heading">
+                            <div>
+                                <span class="card-label">Browser model library</span>
+                                <h3 id="my-models-title">My Models</h3>
+                                <p>Completed models stay in this browser until you delete them or clear site storage. Export a portable copy for durable backup.</p>
+                            </div>
+                            <div class="my-models-toolbar">
+                                <button id="refresh-models" type="button">Refresh</button>
+                                <button id="import-model-button" class="lab-action-primary" type="button">Import model</button>
+                                <input id="import-model-file" class="visually-hidden" type="file" accept=".microcomp-model,application/zip">
+                            </div>
+                        </div>
+                        <p id="model-library-status" class="model-library-status" role="status" aria-live="polite">Loading models stored in this browser…</p>
+                        <div id="my-models-grid" class="my-models-grid" aria-live="polite"></div>
+                    </section>
+                </section>
+
+                <section id="stage-analysis" class="stage-panel" role="tabpanel" aria-labelledby="tab-analysis" hidden>
+                    <div class="stage-heading">
+                        <div><p class="llm-eyebrow">Stage 6 · Analysis</p><h2>Interpret behavior, not just a loss number</h2></div>
+                        <span class="dataset-badge">Plain-language guide</span>
+                    </div>
+                    <div class="analysis-grid">
+                        <article class="concept-card"><span>01</span><h3>Underfitting</h3><p>The model has not learned enough structure. Both training and validation loss remain high, and output looks mostly random.</p></article>
+                        <article class="concept-card"><span>02</span><h3>Overfitting</h3><p>Training loss continues falling while validation loss worsens. The model is fitting its lessons more than unseen examples.</p></article>
+                        <article class="concept-card"><span>03</span><h3>Memorization</h3><p>A tiny dataset can be repeated instead of understood. Familiar phrases alone are not evidence of reasoning.</p></article>
+                        <article class="concept-card"><span>04</span><h3>Generalization</h3><p>Useful patterns carry into held-out validation records, even when exact wording was not present during training.</p></article>
+                        <article class="concept-card"><span>05</span><h3>Temperature</h3><p>Lower values favor likely characters. Higher values increase variation and usually increase mistakes in a tiny model.</p></article>
+                        <article class="concept-card"><span>06</span><h3>Model size</h3><p>More width and layers add capacity and computation. The 200,000-parameter ceiling keeps tradeoffs visible and bounded.</p></article>
+                    </div>
+                    <aside class="tiny-model-limitations" aria-labelledby="limitations-title">
+                        <div><span aria-hidden="true">≠</span><h3 id="limitations-title">A tiny model is not a miniature commercial assistant</h3></div>
+                        <p>It has a short context, a character vocabulary, little data, no factual grounding, and no safety classifier. Never use its output for cybersecurity decisions, diagnosis, legal guidance, or other consequential work.</p>
+                    </aside>
+                    <section class="training-report lab-card" aria-labelledby="training-report-title">
+                        <div class="training-report-heading">
+                            <div><span class="card-label">Actual session report</span><h3 id="training-report-title">What Happened During Training?</h3></div>
+                            <span id="training-report-source">Waiting for a completed session</span>
+                        </div>
+                        <div id="training-report-content">
+                            <p>Complete or load a model with training history to generate a measured, plain-language report.</p>
+                        </div>
+                    </section>
+                </section>
+
+                <div class="stage-navigation" aria-label="Workflow stage navigation">
+                    <button id="previous-stage" type="button" disabled>← Previous stage</button>
+                    <span id="stage-position" role="status">Stage 1 of 6 · Data</span>
+                    <button id="next-stage" class="lab-action-primary" type="button">Next: Tokenization →</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="llm-live-region" class="visually-hidden" aria-live="polite"></div>
+    <footer class="site-footer">
+        <div class="footer-brand">▰ <span>MicroComp IT Solutions</span></div>
+        <div class="footer-details">
+            <span>LLM Training Simulation Lab</span>
+            <a href="../demo-lab.html">Demo Lab</a>
+            <a href="../index.html#contact">Contact</a>
+        </div>
+    </footer>
+
+    <script src="../llm-training-lab/datasets.js?v=1.0"></script>
+    <script src="../llm-training-lab/tokenizer.js?v=1.0"></script>
+    <script src="../llm-training-lab/parameter-count.js?v=1.0"></script>
+    <script src="../llm-training-lab/local-training-client.js?v=1.2"></script>
+    <script src="../llm-training-lab/cloud-training-client.js?v=1.0"></script>
+    <script src="../llm-training-lab/training-report.js?v=1.0"></script>
+    <script src="../llm-training-lab/transformer-visualization.js?v=1.0"></script>
+    <script src="../llm-training-lab.js?v=3.4"></script>
+</body>
+</html>

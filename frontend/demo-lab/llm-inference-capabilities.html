@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiny LLM Browser Inference | MicroComp IT</title>
+    <meta name="description" content="Inspect and run the MicroComp Tiny LLM browser inference engine with Python compatibility checks.">
+    <meta name="theme-color" content="#07101d">
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+    <script src="../theme.js?v=1.0"></script>
+    <script src="../analytics.js?v=1.0"></script>
+    <link rel="stylesheet" href="../styles.css?v=2.1">
+    <link rel="stylesheet" href="../llm-inference.css?v=1.1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body class="inference-page">
+    <a class="skip-link" href="#inference-workspace">Skip to inference workspace</a>
+    <header class="navbar">
+        <a class="logo" href="../index.html" aria-label="MicroComp IT home"><span aria-hidden="true">&#9648;</span> MicroComp IT</a>
+        <nav aria-label="Primary navigation">
+            <a href="../index.html">Home</a>
+            <a href="../demo-lab.html">Demo Lab</a>
+            <a href="llm-training-simulation.html">Training Lab</a>
+            <button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle color theme" aria-pressed="false">
+                <span aria-hidden="true">&#9680;</span><span data-theme-label>Dark</span>
+            </button>
+            <a href="../index.html#contact" class="btn-primary">Contact</a>
+        </nav>
+    </header>
+
+    <main id="inference-workspace">
+        <section class="inference-hero" aria-labelledby="inference-title">
+            <div>
+                <p class="inference-kicker">Tiny LLM &middot; Specification v1</p>
+                <h1 id="inference-title">Browser inference, with the model kept off the UI thread.</h1>
+                <p class="inference-lede">
+                    This milestone constructs the character-level decoder, performs causal forward
+                    propagation, produces logits, and generates text. It does not train or modify weights.
+                </p>
+                <div class="boundary-badges" aria-label="Implementation boundaries">
+                    <span>Inference only</span>
+                    <span>Worker-owned tensors</span>
+                    <span>200,000 parameter maximum</span>
+                </div>
+            </div>
+            <aside class="runtime-summary" aria-labelledby="runtime-heading">
+                <span class="summary-label">Selected runtime</span>
+                <h2 id="runtime-heading"><span class="status-dot pending" id="runtime-dot" aria-hidden="true"></span><span id="selected-runtime">Detecting&hellip;</span></h2>
+                <p id="runtime-reason">The worker is checking this browser and loading the Python parity fixture.</p>
+                <div id="engine-status" class="engine-status" role="status" aria-live="polite">Starting inference worker&hellip;</div>
+            </aside>
+        </section>
+
+        <section class="inference-section" aria-labelledby="capability-heading">
+            <div class="section-heading-row">
+                <div><span class="section-index">01</span><p class="inference-kicker">Runtime visibility</p><h2 id="capability-heading">Browser capabilities</h2></div>
+                <p>Availability and active use are reported separately, so a detected API is never presented as an enabled accelerator.</p>
+            </div>
+            <div class="capability-grid">
+                <article class="capability-card" id="webgpu-card">
+                    <span class="capability-icon" aria-hidden="true">GPU</span>
+                    <div><h3>WebGPU</h3><p>Modern GPU compute interface.</p></div>
+                    <strong class="capability-state pending" id="webgpu-state">Checking</strong>
+                    <small id="webgpu-detail">Waiting for the worker probe.</small>
+                </article>
+                <article class="capability-card" id="wasm-card">
+                    <span class="capability-icon" aria-hidden="true">WASM</span>
+                    <div><h3>WebAssembly</h3><p>Portable compiled browser runtime.</p></div>
+                    <strong class="capability-state pending" id="wasm-state">Checking</strong>
+                    <small id="wasm-detail">Waiting for the worker probe.</small>
+                </article>
+                <article class="capability-card" id="cpu-card">
+                    <span class="capability-icon" aria-hidden="true">CPU</span>
+                    <div><h3>CPU fallback</h3><p>Specification-first float32 kernels.</p></div>
+                    <strong class="capability-state pending" id="cpu-state">Checking</strong>
+                    <small id="cpu-detail">Waiting for the worker probe.</small>
+                </article>
+            </div>
+        </section>
+
+        <section class="inference-section worker-section" aria-labelledby="worker-heading">
+            <div class="section-heading-row">
+                <div><span class="section-index">02</span><p class="inference-kicker">Execution boundary</p><h2 id="worker-heading">UI remains responsive</h2></div>
+                <p>Only commands, metadata, generated text, and requested logits cross the worker boundary.</p>
+            </div>
+            <div class="worker-boundary" role="img" aria-label="UI thread sends inference requests to a Web Worker that exclusively owns model weights and activations">
+                <article><span>UI thread</span><strong>Controls and results</strong><small>No model tensors</small></article>
+                <div class="boundary-arrow"><span>requests</span><b aria-hidden="true">&rarr;</b><span>results</span></div>
+                <article class="worker-node"><span>Web Worker</span><strong>Tokenizer + model + inference</strong><small>Weights and activations stay here</small></article>
+            </div>
+        </section>
+
+        <section class="inference-section" aria-labelledby="parity-heading">
+            <div class="section-heading-row">
+                <div><span class="section-index">03</span><p class="inference-kicker">Cross-engine contract</p><h2 id="parity-heading">Python compatibility</h2></div>
+                <p>The browser loads deterministic weights and expected outputs produced by the Python reference implementation.</p>
+            </div>
+            <div class="parity-layout">
+                <article class="parity-panel">
+                    <div class="panel-heading"><h3>Parity checks</h3><span id="parity-summary" class="summary-pill pending">Waiting</span></div>
+                    <ul class="parity-list" id="parity-list">
+                        <li data-check="tokenizer"><span aria-hidden="true">&middot;</span>Tokenizer IDs</li>
+                        <li data-check="parameterCount"><span aria-hidden="true">&middot;</span>Parameter count</li>
+                        <li data-check="tensorNamesAndShapes"><span aria-hidden="true">&middot;</span>Tensor names and shapes</li>
+                        <li data-check="manifest"><span aria-hidden="true">&middot;</span>Manifest validation</li>
+                        <li data-check="logits"><span aria-hidden="true">&middot;</span>Forward logits</li>
+                        <li data-check="generation"><span aria-hidden="true">&middot;</span>Deterministic generation</li>
+                    </ul>
+                    <dl class="parity-metrics">
+                        <div><dt>Maximum logit error</dt><dd id="maximum-logit-error">&mdash;</dd></div>
+                        <div><dt>Allowed tolerance</dt><dd id="logit-tolerance">&mdash;</dd></div>
+                    </dl>
+                </article>
+                <article class="model-panel">
+                    <div class="panel-heading"><h3>Loaded model</h3><span class="summary-pill" id="model-state">Loading</span></div>
+                    <dl class="model-facts">
+                        <div><dt>Architecture</dt><dd id="model-architecture">&mdash;</dd></div>
+                        <div><dt>Parameters</dt><dd id="model-parameters">&mdash;</dd></div>
+                        <div><dt>Context</dt><dd id="model-context">&mdash;</dd></div>
+                        <div><dt>Vocabulary</dt><dd id="model-vocabulary">&mdash;</dd></div>
+                        <div><dt>Blocks / heads</dt><dd id="model-blocks">&mdash;</dd></div>
+                        <div><dt>Tensors</dt><dd id="model-tensor-count">&mdash;</dd></div>
+                    </dl>
+                    <details>
+                        <summary>Inspect canonical tensor table</summary>
+                        <div class="tensor-table-wrap">
+                            <table>
+                                <thead><tr><th scope="col">Tensor</th><th scope="col">Shape</th><th scope="col">Parameters</th></tr></thead>
+                                <tbody id="tensor-table-body"></tbody>
+                            </table>
+                        </div>
+                    </details>
+                </article>
+            </div>
+        </section>
+
+        <section class="inference-section" aria-labelledby="playground-heading">
+            <div class="section-heading-row">
+                <div><span class="section-index">04</span><p class="inference-kicker">Engine verification only</p><h2 id="playground-heading">Untrained fixture check</h2></div>
+                <p>This is not a trained language model. It verifies execution and Python compatibility using only the characters <strong>a</strong>, <strong>b</strong>, and space.</p>
+            </div>
+            <div class="playground-grid">
+                <form id="inference-form" class="inference-controls">
+                    <label for="inference-prompt">Prompt</label>
+                    <textarea id="inference-prompt" rows="4" maxlength="240" disabled>ab</textarea>
+                    <p id="inference-prompt-guidance" class="fixture-guidance" role="status">Compatible fixture prompt. Supported characters: a, b, and space.</p>
+                    <div class="control-grid">
+                        <label for="inference-temperature">Temperature
+                            <input id="inference-temperature" type="number" min="0.05" max="5" step="0.05" value="1" disabled>
+                        </label>
+                        <label for="inference-top-k">Top-k
+                            <input id="inference-top-k" type="number" min="1" max="7" value="1" disabled>
+                        </label>
+                        <label for="inference-maximum">Maximum new tokens
+                            <input id="inference-maximum" type="number" min="1" max="64" value="4" disabled>
+                        </label>
+                        <label for="inference-seed">Seed
+                            <input id="inference-seed" type="number" min="0" max="2147483647" value="7" disabled>
+                        </label>
+                    </div>
+                    <div class="action-row">
+                        <button id="generate-button" class="inference-primary" type="submit" disabled>Generate text</button>
+                        <button id="forward-button" type="button" disabled>Inspect fixture logits</button>
+                    </div>
+                </form>
+                <article class="inference-output">
+                    <span class="summary-label">Worker result</span>
+                    <pre id="inference-output" tabindex="0" aria-live="polite">Waiting for the model&hellip;</pre>
+                    <div id="logit-output" hidden>
+                        <h3>Last-position logits</h3>
+                        <div class="logit-list" id="logit-list"></div>
+                    </div>
+                </article>
+            </div>
+            <aside class="milestone-boundary" role="note">
+                <strong>Want a usable comparison?</strong>
+                <span>This page is a low-level engine check, not the training experience. No optimizer, gradients, training loop, or model mutation occurs here. <a href="llm-training-simulation.html#stage-training">Open the Training Lab</a>, complete or load a local model, then use its Prediction Lab.</span>
+            </aside>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-brand">&#9648; <span>MicroComp IT Solutions</span></div>
+        <div class="footer-details">
+            <span>Tiny LLM Browser Inference</span>
+            <a href="llm-training-simulation.html">Training Lab</a>
+            <a href="../demo-lab.html">Demo Lab</a>
+        </div>
+    </footer>
+    <script src="../llm-inference-page.js?v=1.1"></script>
+</body>
+</html>

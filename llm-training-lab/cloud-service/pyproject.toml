@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "microcomp-llm-cloud-service"
+version = "1.0.0"
+description = "Bounded temporary FastAPI training service for the MicroComp Tiny LLM"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+    "fastapi==0.140.13",
+    "uvicorn==0.51.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["microcomp_cloud*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
