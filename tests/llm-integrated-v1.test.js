@@ -145,7 +145,7 @@ test('tokenizer sandbox and Playground communicate their distinct limits', () =>
     assert.match(controller, /will become <unk>/);
     assert.match(controller, /model will use only the newest/);
     assert.match(controller, /addEventListener\('pageshow'/);
-    assert.match(page, /llm-training-lab\.css\?v=1\.4/);
+    assert.match(page, /llm-training-lab\.css\?v=1\.5/);
     assert.match(page, /llm-training-lab\.js\?v=3\.4/);
 });
 

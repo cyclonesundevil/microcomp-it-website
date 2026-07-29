@@ -40,6 +40,11 @@ except ZoneInfoNotFoundError:
 
 app = Quart(__name__, static_folder=frontend_dir, static_url_path="")
 
+NOINDEX_PATHS = {
+    "/preview-review.html",
+    "/demo-lab/llm-training-simulation.html",
+}
+
 
 @app.after_request
 async def add_cache_headers(response):
@@ -49,6 +54,8 @@ async def add_cache_headers(response):
         response.headers["Expires"] = "0"
     if request.path.startswith("/api/nfl/"):
         response.headers["Access-Control-Allow-Origin"] = "*"
+    if request.path in NOINDEX_PATHS:
+        response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
     if should_track_pageview(response):
         visitor_id = request.cookies.get("mc_visitor_id") or str(uuid.uuid4())
         record_pageview(visitor_id)

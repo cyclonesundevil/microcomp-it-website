@@ -140,7 +140,7 @@ test('prediction comparison exposes its training prerequisite instead of a silen
     );
     assert.ok(page.includes('Train a model to enable comparison'));
     assert.ok(page.includes('id="ranking-training-shortcut"'));
-    assert.ok(page.includes('llm-training-lab.css?v=1.4'));
+    assert.ok(page.includes('llm-training-lab.css?v=1.5'));
     assert.ok(page.includes('llm-training-lab.js?v=3.4'));
     assert.match(controller, /showStage\(3, \{ focusTab: true, focusPanel: true \}\)/);
     assert.match(controller, /#ranking-status-message/);

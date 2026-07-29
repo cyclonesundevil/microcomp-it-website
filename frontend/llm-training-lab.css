@@ -2189,6 +2189,23 @@
     border-color: var(--llm-border);
 }
 
+.llm-review-context {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--llm-border);
+    color: var(--llm-muted);
+    background: var(--llm-panel);
+    font-size: .82rem;
+}
+
+.llm-review-context a {
+    color: var(--llm-cyan);
+    font-weight: 800;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .llm-lab-page *,
     .llm-lab-page *::before,

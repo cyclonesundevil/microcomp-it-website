@@ -2985,6 +2985,18 @@ nav a:hover:not(.btn-primary) {
     color: var(--accent-blue);
 }
 
+.footer-details .preview-review-link {
+    padding-left: .75rem;
+    border-left: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    font-size: .82rem;
+}
+
+.footer-details .preview-review-link:hover,
+.footer-details .preview-review-link:focus-visible {
+    color: var(--accent-blue);
+}
+
 :root[data-theme="light"] .hero::before,
 :root[data-theme="light"] .hero::after {
     opacity: 0.16;

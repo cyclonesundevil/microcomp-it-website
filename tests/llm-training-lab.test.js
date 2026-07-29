@@ -105,10 +105,10 @@ test('training and playground are connected to real worker execution', () => {
     assert.doesNotMatch(page, /Not model-generated|No model is training/);
 });
 
-test('canonical routes remain available without public homepage or directory links', () => {
+test('canonical simulator route remains available without public directory discovery', () => {
     assert.ok(fs.existsSync(pagePath));
     const redirect = fs.readFileSync(path.join(root, 'frontend/llm-training-lab.html'), 'utf8');
-    assert.match(redirect, /demo-lab\/llm-training-simulation\.html/);
+    assert.doesNotMatch(redirect, /demo-lab\/llm-training-simulation\.html/);
     assert.doesNotMatch(directory, /demo-lab\/llm-training-simulation\.html/);
     assert.doesNotMatch(directory, /LLM Training Simulation Lab/);
     assert.doesNotMatch(homepage, /demo-lab\/llm-training-simulation\.html/);

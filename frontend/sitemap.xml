@@ -13,12 +13,6 @@
       <priority>0.7</priority>
    </url>
    <url>
-      <loc>https://microcompit.com/demo-lab/llm-training-simulation.html</loc>
-      <lastmod>2026-07-28</lastmod>
-      <changefreq>monthly</changefreq>
-      <priority>0.8</priority>
-   </url>
-   <url>
       <loc>https://microcompit.com/demo-lab/llm-inference-capabilities.html</loc>
       <lastmod>2026-07-28</lastmod>
       <changefreq>monthly</changefreq>
