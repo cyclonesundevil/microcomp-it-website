@@ -604,6 +604,8 @@ nav a:hover:not(.btn-primary) {
 
 /* Black Hole Playground */
 .black-hole-page {
+    --black-hole-amber: #f2b35f;
+    --black-hole-ivory: #fff4dc;
     background: #03050a;
 }
 
@@ -615,8 +617,9 @@ nav a:hover:not(.btn-primary) {
     align-items: center;
     gap: 3rem;
     background:
-        radial-gradient(circle at 70% 20%, rgba(255, 75, 120, 0.16), transparent 30%),
-        linear-gradient(135deg, rgba(0, 240, 255, 0.08), transparent 34%),
+        radial-gradient(circle at 72% 24%, rgba(225, 126, 45, 0.14), transparent 32%),
+        radial-gradient(circle at 18% 72%, rgba(84, 106, 132, 0.1), transparent 30%),
+        linear-gradient(135deg, rgba(242, 179, 95, 0.055), transparent 36%),
         #03050a;
 }
 
@@ -631,15 +634,23 @@ nav a:hover:not(.btn-primary) {
     max-width: 760px;
 }
 
+.black-hole-hero .black-hole-scope {
+    margin-top: 1rem;
+    padding-left: 1rem;
+    border-left: 3px solid var(--black-hole-amber);
+    font-size: 0.92rem;
+    line-height: 1.6;
+}
+
 .black-hole-readouts {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
     gap: 0.9rem;
 }
 
 .black-hole-readouts div {
     padding: 1.15rem;
-    border: 1px solid rgba(0, 240, 255, 0.16);
+    border: 1px solid rgba(242, 179, 95, 0.2);
     border-radius: 8px;
     background: rgba(10, 15, 30, 0.68);
 }
@@ -654,7 +665,7 @@ nav a:hover:not(.btn-primary) {
 }
 
 .black-hole-readouts strong {
-    color: var(--text-primary);
+    color: var(--black-hole-ivory);
     font-size: 1.28rem;
 }
 
@@ -663,8 +674,8 @@ nav a:hover:not(.btn-primary) {
     min-height: 84vh;
     overflow: hidden;
     background: #02040a;
-    border-top: 1px solid rgba(0, 240, 255, 0.12);
-    border-bottom: 1px solid rgba(0, 240, 255, 0.12);
+    border-top: 1px solid rgba(242, 179, 95, 0.13);
+    border-bottom: 1px solid rgba(242, 179, 95, 0.13);
 }
 
 .black-hole-controls {
@@ -674,23 +685,38 @@ nav a:hover:not(.btn-primary) {
     z-index: 3;
     display: flex;
     flex-direction: column;
-    gap: 1.15rem;
-    width: min(330px, 28vw);
-    padding: 1.4rem;
-    border: 1px solid rgba(0, 240, 255, 0.16);
+    gap: 0.9rem;
+    width: min(390px, 32vw);
+    padding: 1.2rem;
+    border: 1px solid rgba(242, 179, 95, 0.2);
     border-radius: 8px;
     background: rgba(10, 15, 30, 0.74);
 }
 
+.black-hole-mode-selector {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.black-hole-mode-category {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: #c1cad6;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
 .black-hole-mode-toggle {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.55rem;
 }
 
 .black-hole-mode-toggle button {
     min-height: 38px;
-    border: 1px solid rgba(0, 240, 255, 0.22);
+    border: 1px solid rgba(185, 196, 210, 0.22);
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.04);
     color: var(--text-primary);
@@ -698,10 +724,50 @@ nav a:hover:not(.btn-primary) {
     cursor: pointer;
 }
 
+.black-hole-mode-toggle button:focus-visible {
+    outline: 3px solid rgba(242, 179, 95, 0.28);
+    outline-offset: 2px;
+}
+
 .black-hole-mode-toggle button.active,
 .black-hole-mode-toggle button:hover {
-    border-color: var(--accent-blue);
-    background: rgba(0, 240, 255, 0.12);
+    border-color: var(--black-hole-amber);
+    background: rgba(242, 179, 95, 0.13);
+}
+
+.black-hole-mode-summary {
+    display: grid;
+    gap: 0.38rem;
+    padding: 0.85rem;
+    border: 1px solid rgba(242, 179, 95, 0.16);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.black-hole-mode-summary > span {
+    color: var(--black-hole-amber);
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.black-hole-mode-summary > strong {
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.black-hole-mode-summary p,
+.black-hole-mode-summary small {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
+
+.black-hole-mode-summary small {
+    padding-top: 0.35rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .black-hole-controls label {
@@ -713,13 +779,49 @@ nav a:hover:not(.btn-primary) {
 }
 
 .black-hole-controls label span {
-    color: var(--accent-blue);
+    color: var(--black-hole-amber);
     font-size: 0.86rem;
 }
 
 .black-hole-controls input[type="range"] {
     width: 100%;
-    accent-color: var(--accent-blue);
+    accent-color: var(--black-hole-amber);
+}
+
+.black-hole-controls > small {
+    display: block;
+    margin-top: -0.7rem;
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    line-height: 1.45;
+}
+
+.black-hole-controls label.control-disabled {
+    opacity: 0.54;
+}
+
+.black-hole-controls input:disabled {
+    cursor: not-allowed;
+}
+
+.black-hole-reset-view {
+    min-height: 40px;
+    border: 1px solid rgba(242, 179, 95, 0.48);
+    border-radius: 8px;
+    background: rgba(242, 179, 95, 0.09);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.black-hole-reset-view:hover,
+.black-hole-reset-view:focus-visible {
+    border-color: var(--black-hole-amber);
+    background: rgba(242, 179, 95, 0.16);
+    outline: 3px solid rgba(242, 179, 95, 0.24);
+    outline-offset: 2px;
 }
 
 .black-hole-scene {
@@ -754,7 +856,7 @@ nav a:hover:not(.btn-primary) {
 
 .black-hole-notes {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1.25rem;
     padding: 5rem 5%;
     background: var(--bg-dark);
@@ -768,7 +870,7 @@ nav a:hover:not(.btn-primary) {
 }
 
 .black-hole-notes i {
-    color: var(--accent-blue);
+    color: var(--black-hole-amber);
     font-size: 1.45rem;
     margin-bottom: 1rem;
 }
@@ -776,6 +878,119 @@ nav a:hover:not(.btn-primary) {
 .black-hole-notes p {
     color: var(--text-secondary);
     font-size: 0.95rem;
+}
+
+.black-hole-notes .black-hole-method {
+    grid-column: 1 / -1;
+    padding: 1.4rem 1.6rem;
+    border: 1px solid rgba(242, 179, 95, 0.2);
+    border-radius: 8px;
+    background: rgba(0, 240, 255, 0.045);
+}
+
+.black-hole-method h3 {
+    margin-bottom: 0.6rem;
+}
+
+.black-hole-method .black-hole-sources {
+    margin-top: 0.75rem;
+    font-size: 0.84rem;
+}
+
+.black-hole-sources a {
+    color: var(--black-hole-amber);
+}
+
+.black-hole-legend-marker {
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 999px;
+}
+
+.black-hole-legend-marker.gravity {
+    background: #fff0c7;
+    box-shadow: 0 0 14px rgba(255, 190, 96, 0.65);
+}
+
+.black-hole-legend-marker.plasma {
+    background: #a93d20;
+    box-shadow: 0 0 12px rgba(188, 73, 34, 0.46);
+}
+
+.black-hole-legend-marker.dot,
+.black-hole-legend-marker.ring,
+.black-hole-legend-marker.orbit,
+.black-hole-legend-marker.wave {
+    border: 1px solid rgba(255, 244, 220, 0.9);
+    background: transparent;
+}
+
+.black-hole-legend-marker.dot {
+    border-color: rgba(255, 244, 220, 0.9);
+    background: rgba(255, 186, 92, 0.2);
+}
+
+.black-hole-legend-marker.line,
+.black-hole-legend-marker.ray,
+.black-hole-legend-marker.axis {
+    width: 1.3rem;
+    height: 0.16rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #b7c3d1, #fff3d8, #c59052);
+    box-shadow: 0 0 10px rgba(255, 190, 96, 0.3);
+}
+
+.black-hole-legend-marker.starfield {
+    border: 1px solid rgba(190, 204, 220, 0.4);
+    background:
+        radial-gradient(circle at 28% 32%, #ffffff 0 9%, transparent 11%),
+        radial-gradient(circle at 70% 66%, #a9bfd8 0 8%, transparent 10%),
+        #080b10;
+}
+
+.black-hole-legend-marker.ring {
+    box-shadow: 0 0 8px rgba(255, 190, 96, 0.42);
+}
+
+.black-hole-legend-marker.shadow {
+    border: 1px solid #738092;
+    background: #000000;
+}
+
+.black-hole-legend-marker.wave {
+    border-color: #a9bfd8;
+    box-shadow: inset 0 0 0 2px #080b10, inset 0 0 0 3px #a9bfd8;
+}
+
+.black-hole-legend-marker.caustic {
+    width: 0.65rem;
+    height: 0.65rem;
+    border: 1px solid #ffd6a1;
+    border-radius: 2px;
+    transform: rotate(45deg);
+}
+
+.black-hole-legend-marker.grid {
+    border: 1px solid #8191a6;
+    border-radius: 2px;
+    background:
+        linear-gradient(90deg, transparent 44%, #8191a6 45% 55%, transparent 56%),
+        linear-gradient(transparent 44%, #8191a6 45% 55%, transparent 56%);
+}
+
+.black-hole-legend-marker.orbit {
+    border-color: #f2b35f;
+}
+
+.black-hole-legend-marker.axis {
+    background: repeating-linear-gradient(
+        90deg,
+        #8191a6 0 0.2rem,
+        transparent 0.2rem 0.34rem
+    );
+    box-shadow: none;
 }
 
 /* Universe Scale Explorer */
@@ -3078,6 +3293,22 @@ nav a:hover:not(.btn-primary) {
 :root[data-theme="light"] .universe-notes {
     --text-primary: #142235;
     --text-secondary: #536174;
+}
+
+:root[data-theme="light"] .black-hole-hero {
+    background:
+        radial-gradient(circle at 72% 24%, rgba(190, 96, 28, 0.13), transparent 32%),
+        radial-gradient(circle at 18% 72%, rgba(84, 106, 132, 0.09), transparent 30%),
+        var(--page-gradient-base);
+}
+
+:root[data-theme="light"] .black-hole-readouts strong {
+    color: #142235;
+}
+
+:root[data-theme="light"] .black-hole-notes i,
+:root[data-theme="light"] .black-hole-sources a {
+    color: #864414;
 }
 
 :root[data-theme="light"] .black-hole-playground .black-hole-controls,

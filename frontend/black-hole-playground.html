@@ -5,11 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Black Hole Playground | MicroComp IT</title>
-    <meta name="description" content="Interactive black hole toy model for exploring mass, spin, observer angle, time dilation, lensing, and redshift.">
+    <meta name="description" content="Interactive educational Kerr black hole model for exploring event-horizon scale, spin, the prograde ISCO, time dilation, redshift, and viewing angle.">
     <meta name="theme-color" content="#03050a">
     <script src="theme.js?v=1.0"></script>
     <script src="analytics.js?v=1.0"></script>
-    <link rel="stylesheet" href="styles.css?v=2.3">
+    <link rel="stylesheet" href="styles.css?v=2.5">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -28,7 +28,6 @@
                 <i class="fa-solid fa-moon"></i>
                 <span data-theme-label>Dark</span>
             </button>
-            <a href="index.html#contact" class="btn-primary">Contact</a>
         </nav>
     </header>
 
@@ -38,33 +37,62 @@
                 <p class="science-kicker">Demo Lab</p>
                 <h1>Black Hole Playground</h1>
                 <p>
-                    Explore how mass, spin, and viewing angle change a visual toy model of gravitational time dilation,
-                    lensing distortion, and redshift near a compact object.
+                    Explore how mass and spin set the scale of a Kerr black hole and its innermost stable orbit,
+                    while viewing angle changes the simplified Doppler-brightness contrast of the disk.
+                </p>
+                <p class="black-hole-scope">
+                    The readouts use general-relativistic Kerr equations for an ideal prograde equatorial orbit.
+                    The 3D scene is an educational illustration, not a real-time ray trace.
                 </p>
             </div>
             <div class="black-hole-readouts" aria-live="polite">
                 <div>
-                    <span>Time dilation</span>
-                    <strong id="bh-time-readout">2.18x</strong>
+                    <span>Horizon diameter</span>
+                    <strong id="bh-horizon-readout">180.3 km</strong>
                 </div>
                 <div>
-                    <span>Lensing strength</span>
-                    <strong id="bh-lensing-readout">1.42</strong>
+                    <span>Prograde ISCO</span>
+                    <strong id="bh-isco-readout">4.54 r_g</strong>
                 </div>
                 <div>
-                    <span>Redshift</span>
-                    <strong id="bh-redshift-readout">0.31 z</strong>
+                    <span>ISCO clock ratio</span>
+                    <strong id="bh-time-readout">1.60×</strong>
+                </div>
+                <div>
+                    <span>ISCO grav. redshift</span>
+                    <strong id="bh-redshift-readout">z = 0.34</strong>
+                </div>
+                <div>
+                    <span>Disk brightness contrast</span>
+                    <strong id="bh-doppler-readout">13.5×</strong>
                 </div>
             </div>
         </section>
 
         <section class="black-hole-playground" aria-label="Interactive black hole model">
             <div class="black-hole-controls" aria-label="Black hole playground controls">
-                <div class="black-hole-mode-toggle" role="group" aria-label="Black hole visualization mode">
-                    <button type="button" class="active" data-bh-mode="disk">Accretion Disk</button>
-                    <button type="button" data-bh-mode="lensing">Lensing View</button>
-                    <button type="button" data-bh-mode="wave">Wave Optics</button>
-                    <button type="button" data-bh-mode="well">Spacetime Well</button>
+                <div class="black-hole-mode-selector" aria-label="Black hole visualization mode">
+                    <div>
+                        <span class="black-hole-mode-category">Observable appearance</span>
+                        <div class="black-hole-mode-toggle" role="group" aria-label="Observable appearance modes">
+                            <button type="button" class="active" data-bh-mode="disk" aria-pressed="true">Accretion Disk</button>
+                            <button type="button" data-bh-mode="lensing" aria-pressed="false">Lensing View</button>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="black-hole-mode-category">Conceptual diagrams</span>
+                        <div class="black-hole-mode-toggle" role="group" aria-label="Conceptual diagram modes">
+                            <button type="button" data-bh-mode="wave" aria-pressed="false">Wave Optics</button>
+                            <button type="button" data-bh-mode="well" aria-pressed="false">Spacetime Well</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="black-hole-mode-summary" aria-live="polite">
+                    <span id="bh-mode-badge">Rendered approximation</span>
+                    <strong id="bh-mode-title">Accretion disk</strong>
+                    <p id="bh-mode-description">A simplified view of hot orbiting material, Doppler asymmetry, the black-hole shadow, and secondary lensed disk images.</p>
+                    <small id="bh-mode-interaction">Drag horizontally to orbit. Drag vertically—or use Observer angle—to change inclination.</small>
                 </div>
 
                 <label>
@@ -74,42 +102,67 @@
                 </label>
                 <label>
                     Spin
-                    <span id="bh-spin-value">0.42 a</span>
-                    <input id="bh-spin" type="range" min="0" max="99" value="42">
+                    <span id="bh-spin-value">0.42 a*</span>
+                    <input id="bh-spin" type="range" min="0" max="99" value="42" aria-describedby="bh-spin-help">
                 </label>
+                <small id="bh-spin-help">a* is dimensionless: 0 is non-rotating; 0.99 is rapidly rotating.</small>
                 <label>
                     Observer angle
                     <span id="bh-angle-value">48 degrees</span>
-                    <input id="bh-angle" type="range" min="0" max="85" value="48">
+                    <input id="bh-angle" type="range" min="0" max="85" value="48" aria-describedby="bh-angle-help">
                 </label>
+                <small id="bh-angle-help">0° is face-on. Use this slider or drag vertically; horizontal dragging changes azimuth without changing inclination.</small>
+                <button id="bh-reset-view" class="black-hole-reset-view" type="button">
+                    <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+                    Reset view
+                </button>
             </div>
 
             <div id="black-hole-scene" class="black-hole-scene" aria-label="Rotatable black hole visualization"></div>
 
-            <div class="black-hole-legend">
-                <span><i class="legend-swatch gravity"></i> hot accretion side</span>
-                <span><i class="legend-swatch plasma"></i> redshifted side</span>
-                <span><i class="legend-dot"></i> photon ring</span>
-                <span><i class="legend-line"></i> curved light path</span>
+            <div id="bh-mode-legend" class="black-hole-legend" aria-live="polite">
+                <span><i class="black-hole-legend-marker gravity" aria-hidden="true"></i> Doppler-brightened side</span>
+                <span><i class="black-hole-legend-marker plasma" aria-hidden="true"></i> receding, dimmer side</span>
+                <span><i class="black-hole-legend-marker dot" aria-hidden="true"></i> photon ring</span>
+                <span><i class="black-hole-legend-marker line" aria-hidden="true"></i> lensed disk image</span>
             </div>
         </section>
 
-        <section class="black-hole-notes">
+        <section class="black-hole-notes" aria-label="How to interpret the model">
             <div>
-                <i class="fa-solid fa-clock"></i>
-                <h3>Time Dilation</h3>
-                <p>Higher mass and closer visual orbiting regions increase the displayed time dilation readout.</p>
+                <i class="fa-solid fa-ruler"></i>
+                <h3>Mass sets physical scale</h3>
+                <p>One gravitational radius is GM/c². Increasing mass enlarges the horizon and ISCO in kilometers, but does not change their dimensionless radii.</p>
             </div>
             <div>
                 <i class="fa-solid fa-circle-notch"></i>
-                <h3>Lensing</h3>
-                <p>The photon ring and background star distortion strengthen as the compact-object model becomes more extreme.</p>
+                <h3>Spin moves the ISCO</h3>
+                <p>The prograde Kerr ISCO contracts from 6 r_g at zero spin toward the horizon as spin approaches its theoretical limit.</p>
             </div>
             <div>
-                <i class="fa-solid fa-temperature-high"></i>
-                <h3>Redshift</h3>
-                <p>Spin and viewing angle change the contrast between the hotter approaching side and dimmer redshifted side.</p>
+                <i class="fa-solid fa-clock"></i>
+                <h3>Readouts share one reference</h3>
+                <p>Clock ratio and gravitational redshift are evaluated at the prograde ISCO. They are model quantities relative to a distant observer, not measurements of a particular real disk.</p>
             </div>
+            <div>
+                <i class="fa-solid fa-eye"></i>
+                <h3>Angle changes appearance</h3>
+                <p>The brightness ratio uses a simplified special-relativistic Doppler estimate. Exact images require ray tracing, radiative transfer, and a physical accretion-flow model.</p>
+            </div>
+            <aside class="black-hole-method">
+                <h3>Model boundary</h3>
+                <p>
+                    Assumptions: an uncharged Kerr black hole, dimensionless spin 0 ≤ a* &lt; 1, and a prograde
+                    equatorial test particle at the ISCO. Calculations use G = c = M = 1 before converting lengths
+                    with r_g = GM/c². The colored disk, photon ring, light paths, and spacetime well are qualitative.
+                </p>
+                <p class="black-hole-sources">
+                    Background:
+                    <a href="https://imagine.gsfc.nasa.gov/educators/blackholes/imagine/page22.html" target="_blank" rel="noopener">NASA event-horizon scale</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="https://arxiv.org/abs/2209.03579" target="_blank" rel="noopener">Kerr ISCO reference</a>
+                </p>
+            </aside>
         </section>
     </main>
 
@@ -122,7 +175,6 @@
             <span>Black Hole Playground</span>
             <span class="build-stamp" data-build-stamp>Site updated: June 16, 2026 16:45:49 MST</span>
             <a href="demo-lab.html">Demo Lab</a>
-            <a href="index.html#contact">Contact</a>
         </div>
     </footer>
 
@@ -134,7 +186,7 @@
             }
         }
     </script>
-    <script type="module" src="black-hole-playground.js?v=1.2"></script>
+    <script type="module" src="black-hole-playground.js?v=1.7"></script>
 </body>
 
 </html>
