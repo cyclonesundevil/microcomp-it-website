@@ -40,6 +40,27 @@
     --shadow-soft: rgba(35, 59, 82, 0.14);
 }
 
+:root[data-theme="moderate"] {
+    --bg-dark: #263445;
+    --accent-blue: #73dce8;
+    --accent-glow: rgba(115, 220, 232, 0.28);
+    --accent-purple: #d5a6ff;
+    --primary-button-text: #10232b;
+    --primary-button-hover: #9ce8f0;
+    --primary-button-active: #55c4d1;
+    --text-primary: #f7f9fc;
+    --text-secondary: #cbd5e1;
+    --glass-bg: rgba(43, 58, 76, 0.88);
+    --glass-border: rgba(151, 225, 233, 0.48);
+    --surface-soft: rgba(255, 255, 255, 0.08);
+    --surface-panel: rgba(38, 52, 69, 0.92);
+    --nav-bg: rgba(31, 43, 58, 0.94);
+    --footer-bg: rgba(27, 38, 51, 0.98);
+    --page-gradient-base: #263445;
+    --page-section-bg: #303f52;
+    --shadow-soft: rgba(5, 12, 20, 0.3);
+}
+
 * {
     margin: 0;
     padding: 0;

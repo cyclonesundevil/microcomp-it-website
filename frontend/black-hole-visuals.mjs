@@ -50,9 +50,9 @@ export const BLACK_HOLE_MODES = Object.freeze({
         title: 'Wave-optics diagram',
         badge: 'Teaching abstraction',
         description: 'A conceptual view of propagating wavefronts, path interference, and caustic structure near a compact lens.',
-        interaction: 'This is a fixed teaching diagram rather than an observational image.',
-        sceneLabel: 'Conceptual wave-optics diagram near a compact gravitational lens',
-        rotatable: false,
+        interaction: 'Drag to rotate the teaching diagram and inspect the wavefronts, paths, and caustic structure from different angles.',
+        sceneLabel: 'Rotatable conceptual wave-optics diagram near a compact gravitational lens',
+        rotatable: true,
         legend: Object.freeze([
             Object.freeze({ marker: 'wave', label: 'wavefront' }),
             Object.freeze({ marker: 'ray', label: 'propagation path' }),
