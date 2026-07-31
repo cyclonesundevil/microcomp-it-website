@@ -7,9 +7,10 @@ import {
     BLACK_HOLE_MODES,
     BLACK_HOLE_PALETTE,
     createSeededRandom,
+    getBlackHoleRenderProfile,
     LENSING_FRAGMENT_SHADER,
     LENSING_VERTEX_SHADER
-} from './black-hole-visuals.mjs';
+} from './black-hole-visuals.mjs?v=2.0';
 
 const container = document.getElementById('black-hole-scene');
 
@@ -26,6 +27,11 @@ if (container) {
     };
     const modeButtons = document.querySelectorAll('[data-bh-mode]');
     const resetViewButton = document.getElementById('bh-reset-view');
+    const animationToggle = document.getElementById('bh-animation-toggle');
+    const animationToggleIcon = animationToggle?.querySelector('i');
+    const animationToggleLabel = animationToggle?.querySelector('span');
+    const renderStatus = document.getElementById('bh-render-status');
+    const webglFallback = document.getElementById('bh-webgl-fallback');
     const angleLabel = inputs.angle.closest('label');
     const angleHelp = document.getElementById('bh-angle-help');
     const modeSummary = {
@@ -50,16 +56,28 @@ if (container) {
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 90);
     camera.position.set(0, 10.7, 11.9);
 
-    const renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        preserveDrawingBuffer: true
-    });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.92;
-    container.appendChild(renderer.domElement);
+    let renderer;
+    try {
+        renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            // Keep paused and reduced-motion views visible between repaints.
+            preserveDrawingBuffer: true
+        });
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 0.92;
+        container.appendChild(renderer.domElement);
+    } catch (error) {
+        console.error('Black Hole Playground could not initialize WebGL.', error);
+        container.classList.add('context-unavailable');
+        if (webglFallback) webglFallback.hidden = false;
+        if (animationToggle) animationToggle.disabled = true;
+        if (renderStatus) {
+            renderStatus.textContent = 'Interactive 3D view unavailable.';
+        }
+    }
 
+    if (renderer) {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.07;
@@ -81,7 +99,25 @@ if (container) {
     waveGroup.position.x = 1.05;
     wellGroup.position.x = 0.75;
     root.add(accretionGroup, lensingGroup, waveGroup, wellGroup);
-    let activeMode = 'disk';
+    const requestedMode = new URLSearchParams(window.location.search).get(
+        'mode'
+    );
+    let activeMode = BLACK_HOLE_MODES[requestedMode]
+        ? requestedMode
+        : 'disk';
+    const reducedMotionQuery = window.matchMedia(
+        '(prefers-reduced-motion: reduce)'
+    );
+    let userPaused = reducedMotionQuery.matches;
+    let contextAvailable = true;
+    let animationFrameId = null;
+    let lastFrameTime = 0;
+    let lastAnimatedTime = 0;
+    let renderProfile = getBlackHoleRenderProfile({
+        width: container.getBoundingClientRect().width,
+        devicePixelRatio: window.devicePixelRatio || 1,
+        reducedMotion: userPaused
+    });
 
     const starPositions = [];
     const starColors = [];
@@ -655,10 +691,12 @@ if (container) {
         ));
         if (Number(inputs.angle.value) === angle) {
             update();
+            if (userPaused) renderStaticScene();
             return;
         }
         inputs.angle.value = String(angle);
         update();
+        if (userPaused) renderStaticScene();
     }
 
     function resetObserverView() {
@@ -671,6 +709,7 @@ if (container) {
             0
         );
         update();
+        renderStaticScene();
     }
 
     function renderModeLegend(items) {
@@ -720,11 +759,23 @@ if (container) {
         resize();
     }
 
+    function storeModeInUrl(mode) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('mode', mode);
+        window.history.replaceState({}, '', url);
+    }
+
     function resize() {
         const rect = container.getBoundingClientRect();
         const width = Math.max(320, Math.floor(rect.width));
         const height = Math.max(420, Math.floor(rect.height));
         const narrow = width < 620;
+        renderProfile = getBlackHoleRenderProfile({
+            width,
+            devicePixelRatio: window.devicePixelRatio || 1,
+            reducedMotion: userPaused
+        });
+        renderer.setPixelRatio(renderProfile.pixelRatio);
         positionCameraForObserverAngle(
             Number(inputs.angle.value),
             cameraDistanceForMode(narrow)
@@ -733,20 +784,26 @@ if (container) {
         camera.updateProjectionMatrix();
         root.scale.setScalar(activeMode === 'well' ? (narrow ? 0.72 : 0.86) : (narrow ? 0.76 : 0.9));
         renderer.setSize(width, height, false);
+        renderStaticScene();
     }
 
-    function animate(now) {
+    function renderScene(now, advanceMotion) {
         const model = state();
-        const time = now * 0.001;
+        if (advanceMotion) lastAnimatedTime = now;
+        const time = lastAnimatedTime * 0.001;
 
         diskUniforms.uTime.value = time;
-        innerGlow.rotation.z -= 0.0008 + model.spin * 0.0012;
+        if (advanceMotion) {
+            innerGlow.rotation.z -= 0.0008 + model.spin * 0.0012;
+        }
         photonRing.rotation.z = Math.sin(time * 0.32) * 0.018;
         photonRingGlow.rotation.z = photonRing.rotation.z;
-        lensHalo.rotation.z -= 0.0006 + model.spin * 0.0008;
-        lensBands.forEach((band, index) => {
-            band.rotation.z += 0.00018 + index * 0.000025;
-        });
+        if (advanceMotion) {
+            lensHalo.rotation.z -= 0.0006 + model.spin * 0.0008;
+            lensBands.forEach((band, index) => {
+                band.rotation.z += 0.00018 + index * 0.000025;
+            });
+        }
         wavePhotonRing.rotation.z = Math.sin(time * 0.9) * 0.08;
         wavefronts.forEach((wave, index) => {
             const travel = ((time * (0.38 + model.spin * 0.12) + index * 0.24) % 1);
@@ -759,12 +816,14 @@ if (container) {
                 ? Math.max(0, 0.08 + lensPass * 0.22 + (1 - Math.abs(travel - 0.5) * 1.8) * 0.16)
                 : 0;
         });
-        causticArcs.forEach((arc, index) => {
-            arc.rotation.z += 0.0018 + index * 0.0004 + model.spin * 0.001;
-        });
-        wellOrbit.rotation.z += 0.004 + model.spin * 0.008;
-        wellColumn.rotation.y += 0.003;
-        stars.rotation.y += 0.00008;
+        if (advanceMotion) {
+            causticArcs.forEach((arc, index) => {
+                arc.rotation.z += 0.0018 + index * 0.0004 + model.spin * 0.001;
+            });
+            wellOrbit.rotation.z += 0.004 + model.spin * 0.008;
+            wellColumn.rotation.y += 0.003;
+            stars.rotation.y += 0.00008;
+        }
         shadowGlow.material.opacity =
             0.12 + Math.sin(time * 0.45) * 0.012 + model.massScale * 0.035;
 
@@ -775,16 +834,96 @@ if (container) {
         lensingGroup.quaternion.copy(camera.quaternion);
         waveGroup.quaternion.copy(camera.quaternion);
         renderer.render(scene, camera);
-        requestAnimationFrame(animate);
+        window.__blackHoleReady = true;
+        container.dataset.renderStatus = 'ready';
+        container.classList.remove('context-unavailable');
+        if (webglFallback) webglFallback.hidden = true;
+        const runtimeIndicator = document.getElementById(
+            'bh-runtime-indicator'
+        );
+        if (runtimeIndicator) {
+            runtimeIndicator.textContent = '3D view ready';
+            runtimeIndicator.classList.remove('failed');
+            runtimeIndicator.classList.add('ready');
+        }
+    }
+
+    function renderStaticScene() {
+        if (!contextAvailable || !renderer) return;
+        renderScene(lastAnimatedTime || performance.now(), false);
+    }
+
+    function shouldAnimate() {
+        return contextAvailable
+            && !userPaused
+            && !document.hidden;
+    }
+
+    function scheduleAnimation() {
+        if (!shouldAnimate() || animationFrameId !== null) return;
+        animationFrameId = requestAnimationFrame(animate);
+    }
+
+    function stopAnimation() {
+        if (animationFrameId === null) return;
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+
+    function animate(now) {
+        animationFrameId = null;
+        if (!shouldAnimate()) return;
+        const minimumFrameDuration =
+            1000 / renderProfile.maximumFramesPerSecond;
+        if (now - lastFrameTime >= minimumFrameDuration) {
+            lastFrameTime = now;
+            renderScene(now, true);
+        }
+        scheduleAnimation();
+    }
+
+    function updateAnimationControl(message) {
+        const paused = userPaused || !contextAvailable;
+        if (!animationToggle) return;
+        animationToggle.disabled = !contextAvailable;
+        animationToggle.setAttribute('aria-pressed', String(paused));
+        animationToggleLabel.textContent = paused
+            ? 'Resume motion'
+            : 'Pause motion';
+        animationToggleIcon.className = paused
+            ? 'fa-solid fa-play'
+            : 'fa-solid fa-pause';
+        if (message && renderStatus) renderStatus.textContent = message;
+    }
+
+    function setAnimationPaused(paused, message) {
+        userPaused = paused;
+        renderProfile = getBlackHoleRenderProfile({
+            width: container.getBoundingClientRect().width,
+            devicePixelRatio: window.devicePixelRatio || 1,
+            reducedMotion: paused
+        });
+        renderer.setPixelRatio(renderProfile.pixelRatio);
+        updateAnimationControl(message);
+        if (paused) {
+            stopAnimation();
+            renderStaticScene();
+        } else {
+            scheduleAnimation();
+        }
     }
 
     [inputs.mass, inputs.spin].forEach((input) => {
-        input.addEventListener('input', update);
+        input.addEventListener('input', () => {
+            update();
+            renderStaticScene();
+        });
     });
 
     inputs.angle.addEventListener('input', () => {
         positionCameraForObserverAngle(Number(inputs.angle.value));
         update();
+        renderStaticScene();
     });
 
     controls.addEventListener('change', syncObserverAngleFromCamera);
@@ -792,12 +931,123 @@ if (container) {
     resetViewButton?.addEventListener('click', resetObserverView);
 
     modeButtons.forEach((button) => {
-        button.addEventListener('click', () => setMode(button.dataset.bhMode));
+        button.addEventListener('click', () => {
+            setMode(button.dataset.bhMode);
+            storeModeInUrl(button.dataset.bhMode);
+        });
     });
 
-    window.addEventListener('resize', resize);
+    animationToggle?.addEventListener('click', () => {
+        const paused = !userPaused;
+        setAnimationPaused(
+            paused,
+            paused ? 'Scene motion paused.' : 'Scene motion resumed.'
+        );
+    });
+
+    container.addEventListener('keydown', (event) => {
+        const config = BLACK_HOLE_MODES[activeMode];
+        if (event.key === 'Home') {
+            event.preventDefault();
+            resetObserverView();
+            if (renderStatus) {
+                renderStatus.textContent = 'Observer view reset.';
+            }
+            return;
+        }
+        if (!config.rotatable) return;
+
+        const angleStep = event.shiftKey ? 5 : 2;
+        const azimuthStep = event.shiftKey ? 0.16 : 0.08;
+        if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+            event.preventDefault();
+            const direction = event.key === 'ArrowUp' ? -1 : 1;
+            inputs.angle.value = String(THREE.MathUtils.clamp(
+                Number(inputs.angle.value) + direction * angleStep,
+                Number(inputs.angle.min),
+                Number(inputs.angle.max)
+            ));
+            positionCameraForObserverAngle(Number(inputs.angle.value));
+            update();
+            renderStaticScene();
+        } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+            event.preventDefault();
+            const direction = event.key === 'ArrowLeft' ? -1 : 1;
+            positionCameraForObserverAngle(
+                Number(inputs.angle.value),
+                camera.position.distanceTo(controls.target),
+                controls.getAzimuthalAngle() + direction * azimuthStep
+            );
+            update();
+            renderStaticScene();
+        }
+    });
+
+    renderer.domElement.addEventListener('webglcontextlost', (event) => {
+        event.preventDefault();
+        contextAvailable = false;
+        stopAnimation();
+        container.classList.add('context-unavailable');
+        if (webglFallback) webglFallback.hidden = false;
+        updateAnimationControl('The 3D graphics context was lost.');
+    });
+
+    renderer.domElement.addEventListener('webglcontextrestored', () => {
+        contextAvailable = true;
+        container.classList.remove('context-unavailable');
+        if (webglFallback) webglFallback.hidden = true;
+        updateAnimationControl('The 3D graphics context was restored.');
+        resize();
+        scheduleAnimation();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            stopAnimation();
+        } else {
+            renderStaticScene();
+            scheduleAnimation();
+        }
+    });
+
+    const handleReducedMotionChange = (event) => {
+        setAnimationPaused(
+            event.matches,
+            event.matches
+                ? 'Motion paused to follow your reduced-motion preference.'
+                : 'Motion resumed after your reduced-motion preference changed.'
+        );
+    };
+    if (typeof reducedMotionQuery.addEventListener === 'function') {
+        reducedMotionQuery.addEventListener(
+            'change',
+            handleReducedMotionChange
+        );
+    } else {
+        reducedMotionQuery.addListener(handleReducedMotionChange);
+    }
+
+    if ('ResizeObserver' in window) {
+        const resizeObserver = new ResizeObserver(resize);
+        resizeObserver.observe(container);
+    } else {
+        window.addEventListener('resize', resize);
+    }
+
     setMode(activeMode);
     resize();
     update();
-    requestAnimationFrame(animate);
+    updateAnimationControl(
+        userPaused
+            ? 'Motion paused to follow your reduced-motion preference.'
+            : 'Scene motion is active.'
+    );
+    renderStaticScene();
+    scheduleAnimation();
+    requestAnimationFrame(() => {
+        resize();
+        renderStaticScene();
+        scheduleAnimation();
+    });
+    }
 }

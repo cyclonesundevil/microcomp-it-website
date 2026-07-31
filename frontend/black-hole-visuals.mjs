@@ -85,6 +85,27 @@ export function createSeededRandom(seed = 0x5f3759df) {
     };
 }
 
+export function getBlackHoleRenderProfile({
+    width = 1280,
+    devicePixelRatio = 1,
+    reducedMotion = false
+} = {}) {
+    const safeWidth = Number.isFinite(width) ? Math.max(0, width) : 1280;
+    const safePixelRatio = Number.isFinite(devicePixelRatio)
+        ? Math.max(1, devicePixelRatio)
+        : 1;
+    const compact = safeWidth < 700;
+
+    return Object.freeze({
+        compact,
+        pixelRatio: Math.min(
+            safePixelRatio,
+            reducedMotion ? 1 : (compact ? 1.25 : 1.75)
+        ),
+        maximumFramesPerSecond: reducedMotion ? 0 : (compact ? 30 : 60)
+    });
+}
+
 export const ACCRETION_DISK_VERTEX_SHADER = `
 varying vec2 vDiskPosition;
 

@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#03050a">
     <script src="theme.js?v=1.0"></script>
     <script src="analytics.js?v=1.0"></script>
-    <link rel="stylesheet" href="styles.css?v=2.5">
+    <link rel="stylesheet" href="styles.css?v=2.7">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -118,7 +118,39 @@
                 </button>
             </div>
 
-            <div id="black-hole-scene" class="black-hole-scene" aria-label="Rotatable black hole visualization"></div>
+            <div
+                id="black-hole-scene"
+                class="black-hole-scene"
+                role="group"
+                tabindex="0"
+                aria-label="Rotatable black hole visualization"
+                aria-describedby="bh-scene-help"
+                aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home"
+            >
+                <div id="bh-webgl-fallback" class="black-hole-fallback" hidden>
+                    <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                    <strong>Interactive 3D view unavailable</strong>
+                    <p>Your browser or graphics settings could not start WebGL. The scientific readouts and explanatory material remain available.</p>
+                    <button id="bh-retry-renderer" type="button">Reload 3D view</button>
+                    <details id="bh-error-details" hidden>
+                        <summary>Technical details</summary>
+                        <code id="bh-error-message">No browser error was reported.</code>
+                    </details>
+                </div>
+                <noscript>
+                    <p class="black-hole-noscript">JavaScript is required for the interactive 3D view. The scientific explanation remains available below.</p>
+                </noscript>
+            </div>
+
+            <div class="black-hole-scene-actions">
+                <span id="bh-runtime-indicator">Starting local 3D renderer…</span>
+                <button id="bh-animation-toggle" type="button" aria-pressed="false">
+                    <i class="fa-solid fa-pause" aria-hidden="true"></i>
+                    <span>Pause motion</span>
+                </button>
+                <p id="bh-scene-help">In rotatable modes, drag the scene or use the arrow keys. Press Home to reset the view.</p>
+                <span id="bh-render-status" class="sr-only" role="status" aria-live="polite"></span>
+            </div>
 
             <div id="bh-mode-legend" class="black-hole-legend" aria-live="polite">
                 <span><i class="black-hole-legend-marker gravity" aria-hidden="true"></i> Doppler-brightened side</span>
@@ -181,12 +213,60 @@
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+                "three": "./vendor/three/three.module.js",
+                "three/addons/": "./vendor/three/addons/"
             }
         }
     </script>
-    <script type="module" src="black-hole-playground.js?v=1.7"></script>
+    <script>
+        window.__blackHoleReady = false;
+        window.__blackHoleStartupError = '';
+        window.addEventListener('error', function (event) {
+            window.__blackHoleStartupError =
+                event.message || 'Unknown JavaScript startup error';
+        });
+        window.addEventListener('unhandledrejection', function (event) {
+            window.__blackHoleStartupError =
+                event.reason?.message
+                || String(event.reason || 'Unhandled startup rejection');
+        });
+        document.getElementById('bh-retry-renderer')?.addEventListener(
+            'click',
+            function () {
+                window.location.reload();
+            }
+        );
+        window.setTimeout(function () {
+            if (window.__blackHoleReady) return;
+            const scene = document.getElementById('black-hole-scene');
+            const fallback = document.getElementById('bh-webgl-fallback');
+            const animation = document.getElementById('bh-animation-toggle');
+            const status = document.getElementById('bh-render-status');
+            const indicator = document.getElementById('bh-runtime-indicator');
+            const details = document.getElementById('bh-error-details');
+            const errorMessage = document.getElementById('bh-error-message');
+            scene?.classList.add('context-unavailable');
+            if (fallback) fallback.hidden = false;
+            if (animation) animation.disabled = true;
+            if (indicator) {
+                indicator.textContent = window.__blackHoleStartupError
+                    ? '3D startup failed: ' + window.__blackHoleStartupError
+                    : '3D startup did not complete';
+                indicator.classList.add('failed');
+            }
+            if (window.__blackHoleStartupError) {
+                if (details) details.hidden = false;
+                if (errorMessage) {
+                    errorMessage.textContent = window.__blackHoleStartupError;
+                }
+            }
+            if (status) {
+                status.textContent =
+                    'The local 3D renderer did not finish starting.';
+            }
+        }, 5000);
+    </script>
+    <script type="module" src="black-hole-playground.js?v=2.3"></script>
 </body>
 
 </html>

@@ -1,6 +1,7 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
@@ -16,6 +17,29 @@ const page = fs.readFileSync(
     path.join(frontend, 'black-hole-playground.html'),
     'utf8'
 );
+const localThree = path.join(
+    frontend,
+    'vendor',
+    'three',
+    'three.module.js'
+);
+const localOrbitControls = path.join(
+    frontend,
+    'vendor',
+    'three',
+    'addons',
+    'controls',
+    'OrbitControls.js'
+);
+const localThreeLicense = path.join(frontend, 'vendor', 'three', 'LICENSE');
+
+function sha256(file) {
+    return crypto
+        .createHash('sha256')
+        .update(fs.readFileSync(file))
+        .digest('hex')
+        .toUpperCase();
+}
 
 test('seeded visual randomness is deterministic and bounded', async () => {
     const { createSeededRandom } = await import(pathToFileURL(visualsPath).href);
@@ -29,6 +53,80 @@ test('seeded visual randomness is deterministic and bounded', async () => {
         assert.ok(value >= 0 && value < 1);
     });
     assert.ok(new Set(firstSequence).size > 1);
+});
+
+test('render profiles bound pixel density and motion by viewport capability', async () => {
+    const { getBlackHoleRenderProfile } = await import(
+        pathToFileURL(visualsPath).href
+    );
+
+    assert.deepEqual(
+        getBlackHoleRenderProfile({
+            width: 480,
+            devicePixelRatio: 3,
+            reducedMotion: false
+        }),
+        {
+            compact: true,
+            pixelRatio: 1.25,
+            maximumFramesPerSecond: 30
+        }
+    );
+    assert.deepEqual(
+        getBlackHoleRenderProfile({
+            width: 1280,
+            devicePixelRatio: 2,
+            reducedMotion: false
+        }),
+        {
+            compact: false,
+            pixelRatio: 1.75,
+            maximumFramesPerSecond: 60
+        }
+    );
+    assert.deepEqual(
+        getBlackHoleRenderProfile({
+            width: 1280,
+            devicePixelRatio: 3,
+            reducedMotion: true
+        }),
+        {
+            compact: false,
+            pixelRatio: 1,
+            maximumFramesPerSecond: 0
+        }
+    );
+});
+
+test('pinned Three.js runtime is served locally with a startup watchdog', () => {
+    assert.ok(fs.statSync(localThree).size > 1_000_000);
+    assert.ok(fs.statSync(localOrbitControls).size > 20_000);
+    assert.equal(
+        sha256(localThree),
+        '5916C8DFB5F4E3EEDE312DE305345868D4A0A8105383B080C6985565D6E79B46'
+    );
+    assert.equal(
+        sha256(localOrbitControls),
+        'F260591EF315AA04888152E7F121865214E33FB54727145CF4E4445058DB1297'
+    );
+    assert.match(fs.readFileSync(localThreeLicense, 'utf8'), /MIT License/);
+    assert.match(page, /"three": "\.\/vendor\/three\/three\.module\.js"/);
+    assert.match(page, /"three\/addons\/": "\.\/vendor\/three\/addons\/"/);
+    assert.doesNotMatch(page, /unpkg\.com\/three/);
+    assert.match(page, /window\.__blackHoleReady = false/);
+    assert.match(page, /window\.__blackHoleStartupError/);
+    assert.match(page, /id="bh-runtime-indicator"/);
+    assert.match(page, /id="bh-retry-renderer"/);
+    assert.match(page, /id="bh-error-details"/);
+    assert.match(page, /id="bh-error-message"/);
+    assert.match(page, /window\.location\.reload\(\)/);
+    assert.match(page, /local 3D renderer did not finish starting/);
+    assert.match(controller, /window\.__blackHoleReady = true/);
+    assert.match(controller, /dataset\.renderStatus = 'ready'/);
+    assert.match(controller, /black-hole-visuals\.mjs\?v=2\.0/);
+    assert.match(controller, /URLSearchParams\(window\.location\.search\)/);
+    assert.match(controller, /storeModeInUrl/);
+    assert.match(controller, /window\.history\.replaceState/);
 });
 
 test('mode contract separates observable appearances from conceptual diagrams', async () => {
@@ -107,6 +205,16 @@ test('controller uses restrained deterministic rendering rather than flat neon d
     assert.match(controller, /button\.setAttribute\('aria-pressed'/);
     assert.match(controller, /container\.setAttribute\('aria-label'/);
     assert.match(controller, /renderModeLegend\(config\.legend\)/);
+    assert.match(controller, /getBlackHoleRenderProfile/);
+    assert.match(controller, /prefers-reduced-motion: reduce/);
+    assert.match(controller, /document\.addEventListener\('visibilitychange'/);
+    assert.match(controller, /webglcontextlost/);
+    assert.match(controller, /webglcontextrestored/);
+    assert.match(controller, /ResizeObserver/);
+    assert.match(controller, /requestAnimationFrame\(\(\) => \{\s*resize\(\)/);
+    assert.match(controller, /container\.addEventListener\('keydown'/);
+    assert.match(controller, /cancelAnimationFrame/);
+    assert.match(controller, /preserveDrawingBuffer: true/);
     assert.doesNotMatch(controller, /diskGroup\.rotation\.z \+=/);
 });
 
@@ -120,7 +228,12 @@ test('page legend distinguishes illustrative paths from calculated readouts', ()
     assert.match(page, /id="bh-mode-description"/);
     assert.match(page, /id="bh-mode-interaction"/);
     assert.match(page, /id="bh-reset-view"/);
+    assert.match(page, /id="bh-animation-toggle"/);
+    assert.match(page, /id="bh-webgl-fallback"/);
+    assert.match(page, /id="bh-render-status"/);
+    assert.match(page, /aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home"/);
     assert.match(page, /drag vertically/);
     assert.match(page, /horizontal dragging changes azimuth/);
-    assert.match(page, /black-hole-playground\.js\?v=1\.7/);
+    assert.match(page, /styles\.css\?v=2\.7/);
+    assert.match(page, /black-hole-playground\.js\?v=2\.3/);
 });
