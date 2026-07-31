@@ -145,7 +145,7 @@ test('mode contract separates observable appearances from conceptual diagrams', 
     assert.equal(BLACK_HOLE_MODES.well.category, 'Conceptual diagram');
     assert.equal(BLACK_HOLE_MODES.disk.rotatable, true);
     assert.equal(BLACK_HOLE_MODES.lensing.rotatable, false);
-    assert.equal(BLACK_HOLE_MODES.wave.rotatable, false);
+    assert.equal(BLACK_HOLE_MODES.wave.rotatable, true);
     assert.equal(BLACK_HOLE_MODES.well.rotatable, true);
     Object.values(BLACK_HOLE_MODES).forEach(mode => {
         assert.ok(mode.description);
@@ -200,6 +200,7 @@ test('controller uses restrained deterministic rendering rather than flat neon d
     assert.match(controller, /inputs\.angle\.value = String\(angle\)/);
     assert.match(controller, /uBeamingAngle\.value/);
     assert.match(controller, /photonRing\.quaternion\.copy\(camera\.quaternion\)/);
+    assert.doesNotMatch(controller, /waveGroup\.quaternion\.copy\(camera\.quaternion\)/);
     assert.match(controller, /controls\.enabled = config\.rotatable/);
     assert.match(controller, /inputs\.angle\.disabled = !config\.rotatable/);
     assert.match(controller, /button\.setAttribute\('aria-pressed'/);
@@ -235,5 +236,5 @@ test('page legend distinguishes illustrative paths from calculated readouts', ()
     assert.match(page, /drag vertically/);
     assert.match(page, /horizontal dragging changes azimuth/);
     assert.match(page, /styles\.css\?v=2\.7/);
-    assert.match(page, /black-hole-playground\.js\?v=2\.3/);
+    assert.match(page, /black-hole-playground\.js\?v=2\.4/);
 });

@@ -832,7 +832,6 @@ if (container) {
         photonRingGlow.quaternion.copy(camera.quaternion);
         lensArcGroup.quaternion.copy(camera.quaternion);
         lensingGroup.quaternion.copy(camera.quaternion);
-        waveGroup.quaternion.copy(camera.quaternion);
         renderer.render(scene, camera);
         window.__blackHoleReady = true;
         container.dataset.renderStatus = 'ready';
