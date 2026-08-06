@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#03050a">
     <script src="theme.js?v=1.1"></script>
     <script src="analytics.js?v=1.0"></script>
-    <link rel="stylesheet" href="styles.css?v=2.7">
+    <link rel="stylesheet" href="styles.css?v=2.8">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -108,10 +108,17 @@
                 <small id="bh-spin-help">a* is dimensionless: 0 is non-rotating; 0.99 is rapidly rotating.</small>
                 <label>
                     Observer angle
-                    <span id="bh-angle-value">48 degrees</span>
-                    <input id="bh-angle" type="range" min="0" max="85" value="48" aria-describedby="bh-angle-help">
+                    <span id="bh-angle-value">85 degrees</span>
+                    <input id="bh-angle" type="range" min="0" max="120" step="1" value="85" list="bh-angle-ticks" aria-describedby="bh-angle-help">
+                    <datalist id="bh-angle-ticks">
+                        <option value="0" label="0°"></option>
+                        <option value="30" label="30°"></option>
+                        <option value="60" label="60°"></option>
+                        <option value="90" label="90°"></option>
+                        <option value="120" label="120°"></option>
+                    </datalist>
                 </label>
-                <small id="bh-angle-help">0° is face-on. Use this slider or drag vertically; horizontal dragging changes azimuth without changing inclination.</small>
+                <small id="bh-angle-help">0° is face-on, 90° is edge-on, and angles above 90° view the disk from below. Use this slider or drag vertically; horizontal dragging changes azimuth.</small>
                 <button id="bh-reset-view" class="black-hole-reset-view" type="button">
                     <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
                     Reset view
@@ -266,7 +273,7 @@
             }
         }, 5000);
     </script>
-    <script type="module" src="black-hole-playground.js?v=2.4"></script>
+    <script type="module" src="black-hole-playground.js?v=3.1"></script>
 </body>
 
 </html>

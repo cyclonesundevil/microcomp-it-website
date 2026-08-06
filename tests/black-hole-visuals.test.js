@@ -17,6 +17,10 @@ const page = fs.readFileSync(
     path.join(frontend, 'black-hole-playground.html'),
     'utf8'
 );
+const styles = fs.readFileSync(
+    path.join(frontend, 'styles.css'),
+    'utf8'
+);
 const localThree = path.join(
     frontend,
     'vendor',
@@ -103,11 +107,11 @@ test('pinned Three.js runtime is served locally with a startup watchdog', () => 
     assert.ok(fs.statSync(localOrbitControls).size > 20_000);
     assert.equal(
         sha256(localThree),
-        '5916C8DFB5F4E3EEDE312DE305345868D4A0A8105383B080C6985565D6E79B46'
+        '61718C7D4F2C65BE011B954F51661079FBD3FA9839380CCE38CF71C06153EDDB'
     );
     assert.equal(
         sha256(localOrbitControls),
-        'F260591EF315AA04888152E7F121865214E33FB54727145CF4E4445058DB1297'
+        '0BF542ED8DBBC4253BFAAE96C2D56B7CDF1825409FE4EEB2C0959E347C2772B4'
     );
     assert.match(fs.readFileSync(localThreeLicense, 'utf8'), /MIT License/);
     assert.match(page, /"three": "\.\/vendor\/three\/three\.module\.js"/);
@@ -123,7 +127,7 @@ test('pinned Three.js runtime is served locally with a startup watchdog', () => 
     assert.match(page, /local 3D renderer did not finish starting/);
     assert.match(controller, /window\.__blackHoleReady = true/);
     assert.match(controller, /dataset\.renderStatus = 'ready'/);
-    assert.match(controller, /black-hole-visuals\.mjs\?v=2\.0/);
+    assert.match(controller, /black-hole-visuals\.mjs\?v=2\.6/);
     assert.match(controller, /URLSearchParams\(window\.location\.search\)/);
     assert.match(controller, /storeModeInUrl/);
     assert.match(controller, /window\.history\.replaceState/);
@@ -170,6 +174,100 @@ test('procedural disk shader exposes continuous radial flow, temperature, and be
     assert.match(shader, /radialHeat/);
     assert.match(shader, /whiteHot/);
     assert.match(shader, /approaching/);
+});
+
+test('relativistic disk projection includes direct, secondary, and photon-ring images', async () => {
+    const visuals = await import(pathToFileURL(visualsPath).href);
+    const vertex = visuals.RELATIVISTIC_DISK_VERTEX_SHADER;
+    const shader = visuals.RELATIVISTIC_DISK_FRAGMENT_SHADER;
+
+    assert.match(vertex, /varying vec2 vUv/);
+    assert.match(shader, /uniform float uInclination/);
+    assert.match(shader, /uniform float uSpin/);
+    assert.match(shader, /uniform float uInnerRadius/);
+    assert.match(shader, /directRadius/);
+    assert.match(shader, /upperRadius/);
+    assert.match(shader, /lowerRadius/);
+    assert.match(shader, /higherOrderVisibility/);
+    assert.match(shader, /observerSide/);
+    assert.match(shader, /horizontalSpan/);
+    assert.match(shader, /viewCos/);
+    assert.match(shader, /viewSin/);
+    assert.match(shader, /Deliberate overscan/);
+    assert.match(shader, /photon sub-rings/);
+    assert.match(shader, /critical/);
+    assert.match(shader, /approaching/);
+});
+
+test('observer angle contract is exactly 0 through 120 degrees', async () => {
+    const visuals = await import(pathToFileURL(visualsPath).href);
+
+    assert.equal(visuals.OBSERVER_ANGLE_MIN_DEGREES, 0);
+    assert.equal(visuals.OBSERVER_ANGLE_MAX_DEGREES, 120);
+    assert.equal(visuals.normalizeObserverAngle(0), 0);
+    assert.equal(visuals.normalizeObserverAngle(30), 0.25);
+    assert.equal(visuals.normalizeObserverAngle(60), 0.5);
+    assert.equal(visuals.normalizeObserverAngle(90), 0.75);
+    assert.equal(visuals.normalizeObserverAngle(120), 1);
+    assert.equal(visuals.normalizeObserverAngle(-1), 0);
+    assert.equal(visuals.normalizeObserverAngle(121), 1);
+    assert.throws(
+        () => visuals.normalizeObserverAngle(Number.NaN),
+        /finite number/
+    );
+});
+
+test('controller keeps observer slider, camera, and shader on one angle contract', () => {
+    assert.match(controller, /OBSERVER_ANGLE_MIN_DEGREES/);
+    assert.match(controller, /OBSERVER_ANGLE_MAX_DEGREES/);
+    assert.match(controller, /normalizeObserverAngle\(angle\)/);
+    assert.match(controller, /controls\.minPolarAngle/);
+    assert.match(controller, /controls\.maxPolarAngle/);
+    assert.match(controller, /dataset\.observerAngle/);
+    assert.match(controller, /dataset\.shaderInclination/);
+    assert.match(controller, /dataset\.cameraPolarAngle/);
+    assert.match(controller, /inputs\.angle\.min/);
+    assert.match(controller, /inputs\.angle\.max/);
+    assert.doesNotMatch(controller, /clamp\(angleDegrees,\s*0\.5/);
+});
+
+test('accretion disk mass and spin controls update visible shader state', () => {
+    assert.match(controller, /\[inputs\.mass, inputs\.spin\]/);
+    assert.match(controller, /relativisticDiskUniforms\.uSpin\.value = model\.spin/);
+    assert.match(controller, /relativisticDiskUniforms\.uInnerRadius\.value/);
+    assert.match(controller, /model\.physics\.iscoRadiusRg/);
+    assert.match(controller, /relativisticDisk\.scale\.setScalar/);
+    assert.match(controller, /model\.massScale/);
+    assert.match(controller, /renderStaticScene\(\)/);
+});
+
+test('all visualization modes preserve their rendering and rotation contracts', async () => {
+    const { BLACK_HOLE_MODES } = await import(
+        pathToFileURL(visualsPath).href
+    );
+
+    assert.equal(BLACK_HOLE_MODES.disk.rotatable, true);
+    assert.equal(BLACK_HOLE_MODES.lensing.rotatable, false);
+    assert.equal(BLACK_HOLE_MODES.wave.rotatable, true);
+    assert.equal(BLACK_HOLE_MODES.well.rotatable, true);
+    for (const mode of ['disk', 'lensing', 'wave', 'well']) {
+        assert.match(controller, new RegExp(
+            `${mode === 'disk' ? 'accretion' : mode}Group\\.visible = mode === '${mode}'`
+        ));
+        assert.match(page, new RegExp(`data-bh-mode="${mode}"`));
+    }
+    assert.match(controller, /controls\.enabled = config\.rotatable/);
+    assert.match(controller, /modeObserverAngles/);
+    assert.match(controller, /modeMaximumAngle/);
+    assert.match(controller, /diskMode[\s\S]+OBSERVER_ANGLE_MAX_DEGREES[\s\S]+85/);
+    assert.match(controller, /activeMode === 'disk'/);
+    assert.match(controller, /activeMode === 'lensing'/);
+    assert.match(controller, /activeMode === 'wave'/);
+    assert.match(controller, /activeMode === 'well'/);
+    assert.match(controller, /handlingControlChange/);
+    assert.match(controller, /controls\.enableDamping = false/);
+    assert.match(styles, /\.black-hole-scene canvas[\s\S]+touch-action: none/);
+    assert.match(styles, /\.black-hole-scene canvas:active[\s\S]+cursor: grabbing/);
 });
 
 test('lensing shader remaps the deterministic stellar backdrop', async () => {
@@ -235,6 +333,9 @@ test('page legend distinguishes illustrative paths from calculated readouts', ()
     assert.match(page, /aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home"/);
     assert.match(page, /drag vertically/);
     assert.match(page, /horizontal dragging changes azimuth/);
-    assert.match(page, /styles\.css\?v=2\.7/);
-    assert.match(page, /black-hole-playground\.js\?v=2\.4/);
+    assert.match(page, /styles\.css\?v=2\.8/);
+    assert.match(page, /id="bh-angle"[^>]+min="0"[^>]+max="120"/);
+    assert.match(page, /id="bh-angle-ticks"/);
+    assert.match(page, /value="120" label="120°"/);
+    assert.match(page, /black-hole-playground\.js\?v=3\.1/);
 });

@@ -9,8 +9,13 @@ import {
     createSeededRandom,
     getBlackHoleRenderProfile,
     LENSING_FRAGMENT_SHADER,
-    LENSING_VERTEX_SHADER
-} from './black-hole-visuals.mjs?v=2.0';
+    LENSING_VERTEX_SHADER,
+    normalizeObserverAngle,
+    OBSERVER_ANGLE_MAX_DEGREES,
+    OBSERVER_ANGLE_MIN_DEGREES,
+    RELATIVISTIC_DISK_FRAGMENT_SHADER,
+    RELATIVISTIC_DISK_VERTEX_SHADER
+} from './black-hole-visuals.mjs?v=2.6';
 
 const container = document.getElementById('black-hole-scene');
 
@@ -79,13 +84,19 @@ if (container) {
 
     if (renderer) {
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
+    // Immediate rotation prevents residual drag momentum from leaking into a
+    // newly selected visualization mode.
+    controls.enableDamping = false;
     controls.dampingFactor = 0.07;
     controls.enablePan = false;
     controls.minDistance = 7;
     controls.maxDistance = 22;
-    controls.minPolarAngle = THREE.MathUtils.degToRad(0.5);
-    controls.maxPolarAngle = THREE.MathUtils.degToRad(85);
+    controls.minPolarAngle = THREE.MathUtils.degToRad(
+        OBSERVER_ANGLE_MIN_DEGREES
+    );
+    controls.maxPolarAngle = THREE.MathUtils.degToRad(
+        OBSERVER_ANGLE_MAX_DEGREES
+    );
     controls.target.set(0, 0, 0);
 
     const root = new THREE.Group();
@@ -105,6 +116,12 @@ if (container) {
     let activeMode = BLACK_HOLE_MODES[requestedMode]
         ? requestedMode
         : 'disk';
+    const modeObserverAngles = {
+        disk: Number(inputs.angle.value),
+        lensing: 48,
+        wave: 48,
+        well: 48
+    };
     const reducedMotionQuery = window.matchMedia(
         '(prefers-reduced-motion: reduce)'
     );
@@ -258,6 +275,37 @@ if (container) {
         makeLensedDiskArc(-1.08, 0xa94920, 0.12, 0.027)
     ];
     lensArcGroup.add(...lensArcs);
+
+    const relativisticDiskUniforms = {
+        uTime: { value: 0 },
+        uSpin: { value: 0.42 },
+        uInclination: { value: 85 / 120 },
+        uDoppler: { value: 0.5 },
+        uAzimuth: { value: 0 },
+        uInnerRadius: { value: 0.52 }
+    };
+    const relativisticDisk = new THREE.Mesh(
+        new THREE.PlaneGeometry(10.6, 6),
+        new THREE.ShaderMaterial({
+            uniforms: relativisticDiskUniforms,
+            vertexShader: RELATIVISTIC_DISK_VERTEX_SHADER,
+            fragmentShader: RELATIVISTIC_DISK_FRAGMENT_SHADER,
+            transparent: true,
+            depthWrite: false,
+            depthTest: false
+        })
+    );
+    relativisticDisk.renderOrder = 20;
+    accretionGroup.add(relativisticDisk);
+
+    // Retain the legacy meshes for inexpensive fallback/reference modes, but
+    // the observable disk is now one coherent relativistic screen image.
+    horizon.visible = false;
+    shadowGlow.visible = false;
+    photonRing.visible = false;
+    photonRingGlow.visible = false;
+    diskGroup.visible = false;
+    lensArcGroup.visible = false;
 
     function makeLensingTexture() {
         const canvas = document.createElement('canvas');
@@ -561,7 +609,7 @@ if (container) {
         const spin = Number(inputs.spin.value) / 100;
         const angle = Number(inputs.angle.value);
         const massScale = (mass - 8) / 82;
-        const angleScale = angle / 85;
+        const angleScale = normalizeObserverAngle(angle);
         const physics = computeBlackHoleModel({
             massSolar: mass,
             spin,
@@ -597,6 +645,7 @@ if (container) {
         readouts.doppler.textContent =
             `${model.physics.dopplerBrightnessContrast.toFixed(1)}\u00d7`;
 
+        if (activeMode === 'disk') {
         const spinHorizonScale = model.physics.horizonRadiusRg / 2;
         const horizonScale =
             (0.86 + model.massScale * 0.5) * spinHorizonScale;
@@ -622,13 +671,26 @@ if (container) {
         );
         diskUniforms.uBeamingAngle.value =
             observerDiskAzimuth - Math.PI / 2;
+        relativisticDiskUniforms.uSpin.value = model.spin;
+        relativisticDiskUniforms.uInclination.value = model.angleScale;
+        relativisticDiskUniforms.uDoppler.value = diskUniforms.uDoppler.value;
+        relativisticDiskUniforms.uInnerRadius.value = THREE.MathUtils.lerp(
+            0.36,
+            0.66,
+            THREE.MathUtils.clamp(model.physics.iscoRadiusRg / 6, 0, 1)
+        );
+        relativisticDiskUniforms.uAzimuth.value =
+            observerDiskAzimuth - Math.PI / 2;
+        relativisticDisk.scale.setScalar(0.82 + model.massScale * 0.36);
         lensArcGroup.scale.setScalar(0.9 + model.lensing * 0.18);
         lensArcs.forEach((arc, index) => {
             arc.material.opacity = index === 0
                 ? 0.14 + model.lensing * 0.045
                 : 0.055 + model.lensing * 0.018;
         });
+        }
 
+        if (activeMode === 'lensing') {
         lensShadow.scale.setScalar(0.92 + model.massScale * 0.44);
         lensHalo.scale.setScalar(0.9 + model.lensing * 0.22);
         lensingUniforms.uStrength.value = model.lensing;
@@ -639,7 +701,9 @@ if (container) {
             band.material.opacity = 0.055 + model.lensing * 0.026 - index * 0.003;
         });
         rebuildLightRays(model);
+        }
 
+        if (activeMode === 'wave') {
         waveShadow.scale.setScalar(0.92 + model.massScale * 0.44);
         wavePhotonRing.scale.setScalar(0.9 + model.lensing * 0.22);
         waveRayGroup.scale.set(1 + model.lensing * 0.04, 1 + model.angleScale * 0.08, 1);
@@ -647,7 +711,9 @@ if (container) {
             arc.scale.set(1 + model.lensing * 0.06, 0.8 + model.angleScale * 0.22, 1);
             arc.material.opacity = 0.05 + model.lensing * 0.03 - index * 0.006;
         });
+        }
 
+        if (activeMode === 'well') {
         wellMesh.geometry.dispose();
         wellMesh.geometry = makeWellGeometry(2.25 + model.massScale * 2.1, model.spin * 2.2);
         wellCore.scale.setScalar(0.9 + model.lensing * 0.06);
@@ -656,9 +722,20 @@ if (container) {
         wellHorizon.scale.setScalar(0.92 + model.massScale * 0.45);
         wellColumn.scale.set(1 + model.spin * 0.35, 1 + model.massScale * 0.28, 1 + model.spin * 0.35);
         wellOrbit.scale.setScalar(0.88 + model.lensing * 0.18);
+        }
+        container.dataset.observerAngle = String(model.angle);
+        container.dataset.shaderInclination = model.angleScale.toFixed(6);
+        container.dataset.cameraPolarAngle = THREE.MathUtils.radToDeg(
+            controls.getPolarAngle()
+        ).toFixed(3);
+        container.dataset.cameraAzimuth = THREE.MathUtils.radToDeg(
+            controls.getAzimuthalAngle()
+        ).toFixed(3);
+        container.dataset.activeMode = activeMode;
     }
 
     let synchronizingObserver = false;
+    let handlingControlChange = false;
 
     function cameraDistanceForMode(narrow) {
         if (activeMode === 'well') return narrow ? 14.5 : 12.5;
@@ -671,7 +748,11 @@ if (container) {
         azimuth = controls.getAzimuthalAngle()
     ) {
         const inclination = THREE.MathUtils.degToRad(
-            THREE.MathUtils.clamp(angleDegrees, 0.5, 85)
+            THREE.MathUtils.clamp(
+                angleDegrees,
+                OBSERVER_ANGLE_MIN_DEGREES,
+                OBSERVER_ANGLE_MAX_DEGREES
+            )
         );
         const radial = Math.sin(inclination) * distance;
         synchronizingObserver = true;
@@ -685,26 +766,42 @@ if (container) {
     }
 
     function syncObserverAngleFromCamera() {
-        if (synchronizingObserver) return;
+        if (synchronizingObserver || handlingControlChange) return;
+        handlingControlChange = true;
         const angle = Math.round(THREE.MathUtils.radToDeg(
             controls.getPolarAngle()
         ));
         if (Number(inputs.angle.value) === angle) {
-            update();
+            const observerVector = camera.position.clone().sub(controls.target);
+            const observerDiskAzimuth = Math.atan2(
+                observerVector.z,
+                observerVector.x
+            );
+            diskUniforms.uBeamingAngle.value =
+                observerDiskAzimuth - Math.PI / 2;
+            relativisticDiskUniforms.uAzimuth.value =
+                observerDiskAzimuth - Math.PI / 2;
+            container.dataset.cameraPolarAngle =
+                THREE.MathUtils.radToDeg(controls.getPolarAngle()).toFixed(3);
+            container.dataset.cameraAzimuth =
+                THREE.MathUtils.radToDeg(controls.getAzimuthalAngle()).toFixed(3);
             if (userPaused) renderStaticScene();
+            handlingControlChange = false;
             return;
         }
         inputs.angle.value = String(angle);
         update();
         if (userPaused) renderStaticScene();
+        handlingControlChange = false;
     }
 
     function resetObserverView() {
         controls.target.set(0, activeMode === 'well' ? -0.65 : 0, 0);
-        inputs.angle.value = '48';
+        const resetAngle = activeMode === 'disk' ? 85 : 48;
+        inputs.angle.value = String(resetAngle);
         const narrow = container.getBoundingClientRect().width < 620;
         positionCameraForObserverAngle(
-            48,
+            resetAngle,
             cameraDistanceForMode(narrow),
             0
         );
@@ -727,7 +824,24 @@ if (container) {
     function setMode(mode) {
         const config = BLACK_HOLE_MODES[mode];
         if (!config) return;
+        modeObserverAngles[activeMode] = Number(inputs.angle.value);
         activeMode = mode;
+        const diskMode = mode === 'disk';
+        const modeMinimumAngle = diskMode
+            ? OBSERVER_ANGLE_MIN_DEGREES
+            : 0.5;
+        const modeMaximumAngle = diskMode
+            ? OBSERVER_ANGLE_MAX_DEGREES
+            : 85;
+        inputs.angle.min = String(diskMode ? 0 : 1);
+        inputs.angle.max = String(modeMaximumAngle);
+        inputs.angle.value = String(THREE.MathUtils.clamp(
+            modeObserverAngles[mode],
+            modeMinimumAngle,
+            modeMaximumAngle
+        ));
+        controls.minPolarAngle = THREE.MathUtils.degToRad(modeMinimumAngle);
+        controls.maxPolarAngle = THREE.MathUtils.degToRad(modeMaximumAngle);
         accretionGroup.visible = mode === 'disk';
         lensingGroup.visible = mode === 'lensing';
         waveGroup.visible = mode === 'wave';
@@ -736,9 +850,11 @@ if (container) {
         inputs.angle.disabled = !config.rotatable;
         angleLabel?.classList.toggle('control-disabled', !config.rotatable);
         if (angleHelp) {
-            angleHelp.textContent = config.rotatable
-                ? '0° is face-on. Use this slider or drag vertically; horizontal dragging changes azimuth without changing inclination.'
-                : 'Observer angle is held in this fixed-frame mode.';
+            angleHelp.textContent = !config.rotatable
+                ? 'Observer angle is held in this fixed-frame mode.'
+                : diskMode
+                    ? '0° is face-on, 90° is edge-on, and angles above 90° view the disk from below. Use this slider or drag vertically; horizontal dragging changes azimuth.'
+                    : 'Use this 1°–85° slider or drag vertically to change the teaching-diagram view; horizontal dragging changes azimuth.';
         }
         modeButtons.forEach((button) => {
             const selected = button.dataset.bhMode === mode;
@@ -756,7 +872,10 @@ if (container) {
         } else {
             controls.target.set(0, 0, 0);
         }
+        const dampingEnabled = controls.enableDamping;
+        controls.enableDamping = false;
         resize();
+        controls.enableDamping = dampingEnabled;
     }
 
     function storeModeInUrl(mode) {
@@ -784,6 +903,7 @@ if (container) {
         camera.updateProjectionMatrix();
         root.scale.setScalar(activeMode === 'well' ? (narrow ? 0.72 : 0.86) : (narrow ? 0.76 : 0.9));
         renderer.setSize(width, height, false);
+        update();
         renderStaticScene();
     }
 
@@ -793,6 +913,7 @@ if (container) {
         const time = lastAnimatedTime * 0.001;
 
         diskUniforms.uTime.value = time;
+        relativisticDiskUniforms.uTime.value = time;
         if (advanceMotion) {
             innerGlow.rotation.z -= 0.0008 + model.spin * 0.0012;
         }
@@ -831,6 +952,7 @@ if (container) {
         photonRing.quaternion.copy(camera.quaternion);
         photonRingGlow.quaternion.copy(camera.quaternion);
         lensArcGroup.quaternion.copy(camera.quaternion);
+        relativisticDisk.quaternion.copy(camera.quaternion);
         lensingGroup.quaternion.copy(camera.quaternion);
         renderer.render(scene, camera);
         window.__blackHoleReady = true;
@@ -918,6 +1040,8 @@ if (container) {
             renderStaticScene();
         });
     });
+
+    inputs.angle.step = '1';
 
     inputs.angle.addEventListener('input', () => {
         positionCameraForObserverAngle(Number(inputs.angle.value));

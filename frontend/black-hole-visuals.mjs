@@ -14,6 +14,17 @@ export const BLACK_HOLE_PALETTE = Object.freeze({
     grid: 0x8191a6
 });
 
+export const OBSERVER_ANGLE_MIN_DEGREES = 0;
+export const OBSERVER_ANGLE_MAX_DEGREES = 120;
+
+export function normalizeObserverAngle(angleDegrees) {
+    const angle = Number(angleDegrees);
+    if (!Number.isFinite(angle)) {
+        throw new TypeError('angleDegrees must be a finite number');
+    }
+    return Math.min(1, Math.max(0, angle / OBSERVER_ANGLE_MAX_DEGREES));
+}
+
 export const BLACK_HOLE_MODES = Object.freeze({
     disk: Object.freeze({
         category: 'Observable appearance',
@@ -112,6 +123,186 @@ varying vec2 vDiskPosition;
 void main() {
     vDiskPosition = position.xy;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
+export const RELATIVISTIC_DISK_VERTEX_SHADER = `
+varying vec2 vUv;
+
+void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
+/*
+ * Fast screen-space approximation of the image produced by null-geodesic
+ * tracing around a Kerr black hole.  The direct equatorial image, primary
+ * lensed image, secondary image and exponentially compressed photon
+ * sub-rings are evaluated together so their silhouettes remain coherent.
+ */
+export const RELATIVISTIC_DISK_FRAGMENT_SHADER = `
+precision highp float;
+
+varying vec2 vUv;
+uniform float uTime;
+uniform float uSpin;
+uniform float uInclination;
+uniform float uDoppler;
+uniform float uAzimuth;
+uniform float uInnerRadius;
+
+float hash(vec2 p) {
+    p = fract(p * vec2(127.1, 311.7));
+    p += dot(p, p + 34.17);
+    return fract(p.x * p.y);
+}
+
+float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(
+        mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0)), f.x),
+        f.y
+    );
+}
+
+float lineGlow(float distanceToLine, float width) {
+    return exp(-pow(distanceToLine / max(width, 0.0005), 2.0));
+}
+
+vec3 thermalColor(float heat) {
+    vec3 deepRed = vec3(0.16, 0.0015, 0.0);
+    vec3 red = vec3(0.92, 0.018, 0.001);
+    vec3 orange = vec3(1.0, 0.20, 0.005);
+    vec3 gold = vec3(1.0, 0.58, 0.055);
+    vec3 color = mix(deepRed, red, smoothstep(0.02, 0.28, heat));
+    color = mix(color, orange, smoothstep(0.22, 0.62, heat));
+    return mix(color, gold, smoothstep(0.66, 1.0, heat));
+}
+
+void main() {
+    float inclination = clamp(uInclination, 0.0, 1.0);
+    float observerAngle = inclination * 2.09439510239;
+    float observerSide = cos(observerAngle) < 0.0 ? -1.0 : 1.0;
+    float edge = pow(max(sin(observerAngle), 0.0), 1.55);
+    float higherOrderVisibility = smoothstep(0.72, 0.97, edge);
+    // Deliberate overscan keeps every lensed image inside the shader plane.
+    // A wider face-on coordinate span also cancels the rectangular plane's
+    // aspect ratio, while preserving the desired width near edge-on.
+    float horizontalSpan = mix(6.72, 4.5, edge);
+    vec2 p = (vUv - 0.5) * vec2(horizontalSpan, 3.8);
+    float viewCos = cos(uAzimuth);
+    float viewSin = sin(uAzimuth);
+    p = mat2(viewCos, -viewSin, viewSin, viewCos) * p;
+    p.y *= observerSide;
+    float projectedHeight = mix(0.78, 0.055, edge);
+    float phase = uTime * (0.08 + uSpin * 0.15);
+
+    float azimuth = atan(p.y / max(projectedHeight, 0.025), p.x);
+    float directRadius = length(vec2(p.x, p.y / max(projectedHeight, 0.025)));
+    float directWindow = smoothstep(uInnerRadius, uInnerRadius + 0.05, directRadius)
+        * (1.0 - smoothstep(1.67, 1.82, directRadius));
+    float directTexture = 0.58
+        + 0.24 * noise(vec2(directRadius * 31.0, azimuth * 8.0 - phase))
+        + 0.18 * sin(directRadius * 115.0 - azimuth * 9.0 + phase * 8.0);
+    directTexture = clamp(directTexture, 0.08, 1.0);
+    float directHeat = directWindow
+        * pow(clamp(
+            1.0 - (directRadius - uInnerRadius) / (1.82 - uInnerRadius),
+            0.0,
+            1.0
+        ), 0.58)
+        * directTexture;
+
+    // The primary image of the far side: nested arches compressed toward the
+    // critical curve. Frame dragging shifts the curve slightly with spin.
+    float spinShift = uSpin * 0.16;
+    float upperY = p.y + 0.015;
+    float upperRadius = length(vec2(
+        (p.x - spinShift) / 1.0,
+        upperY / mix(0.78, 0.96, edge)
+    ));
+    float upperMask = smoothstep(-0.035, 0.025, upperY)
+        * (1.0 - smoothstep(1.62, 1.78, upperRadius))
+        * smoothstep(0.48, 0.535, upperRadius);
+    float upperAngle = atan(
+        upperY / mix(0.78, 0.96, edge),
+        p.x - spinShift
+    );
+    float upperDistortion = noise(vec2(
+        upperRadius * 18.0 - phase * 0.7,
+        upperAngle * 4.0 + phase
+    ));
+    float upperBands = 0.11
+        + 0.48 * pow(0.5 + 0.5 * sin(
+            upperRadius * 49.0
+                + upperDistortion * 1.35
+                + sin(upperAngle * 7.0 - phase) * 0.34
+        ), 5.0)
+        + 0.18 * pow(0.5 + 0.5 * sin(upperRadius * 101.0), 9.0);
+    float upperHeat = upperMask
+        * pow(clamp(1.78 - upperRadius, 0.0, 1.25), 0.42)
+        * upperBands * higherOrderVisibility;
+
+    // First underside image. It is dimmer and vertically compressed, as a
+    // geodesic tracer shows for a nearly edge-on optically thin disk.
+    vec2 lowerCenter = vec2(p.x + spinShift * 0.45, p.y + 0.31);
+    float lowerRadius = length(vec2(lowerCenter.x / 0.73, lowerCenter.y / 0.43));
+    float lowerMask = smoothstep(0.48, 0.515, lowerRadius)
+        * (1.0 - smoothstep(0.94, 1.04, lowerRadius))
+        * (1.0 - smoothstep(0.055, 0.12, p.y));
+    float lowerBands = 0.075
+        + 0.42 * pow(0.5 + 0.5 * sin(
+            lowerRadius * 51.0 - phase * 2.0
+        ), 6.0)
+        + 0.14 * pow(0.5 + 0.5 * sin(lowerRadius * 105.0), 10.0);
+    float lowerHeat = lowerMask
+        * pow(clamp(1.08 - lowerRadius, 0.0, 0.58), 0.32)
+        * lowerBands * higherOrderVisibility;
+
+    // Successive photon sub-rings accumulate exponentially close to the
+    // critical curve instead of appearing as one arbitrary torus.
+    float criticalX = 0.59 - uSpin * 0.10;
+    float critical = length(vec2((p.x - spinShift) / criticalX, p.y / 0.62));
+    float photon = lineGlow(abs(critical - 1.0), 0.012);
+    photon += lineGlow(abs(critical - 1.035), 0.007) * 0.48;
+    photon += lineGlow(abs(critical - 1.052), 0.004) * 0.25;
+    photon *= mix(0.38, 1.0, higherOrderVisibility);
+    photon *= 1.0 - smoothstep(0.87, 1.04, inclination)
+        * smoothstep(-0.015, 0.025, p.y);
+
+    float approaching = 0.5 + 0.5 * cos(azimuth - uAzimuth);
+    float beaming = mix(0.74, 0.82 + uDoppler * 0.42, approaching);
+    float lensBeaming = mix(0.78, 1.08, approaching);
+    float totalHeat = directHeat * beaming + upperHeat * lensBeaming
+        + lowerHeat * mix(0.76, 1.04, approaching);
+    vec3 color = thermalColor(totalHeat) * totalHeat * 1.75;
+    color += vec3(1.0, 0.27, 0.015) * photon * (0.42 + uDoppler * 0.2);
+
+    float bloom = lineGlow(abs(p.y), mix(0.12, 0.035, edge))
+        * (1.0 - smoothstep(1.15, 1.92, abs(p.x))) * 0.055;
+    color += vec3(0.7, 0.018, 0.0) * bloom;
+
+    float visibleEmission = clamp(
+        directWindow
+            + upperMask * higherOrderVisibility
+            + lowerMask * higherOrderVisibility
+            + photon
+            + bloom * 5.0,
+        0.0,
+        1.0
+    );
+    float shadowShape = length(vec2(
+        (p.x - spinShift) / (criticalX * 0.98),
+        (p.y - 0.01) / 0.61
+    ));
+    float shadowAlpha = 1.0 - smoothstep(0.96, 1.015, shadowShape);
+    float alpha = max(shadowAlpha, visibleEmission);
+    if (alpha < 0.004) discard;
+    gl_FragColor = vec4(color, alpha);
 }
 `;
 
