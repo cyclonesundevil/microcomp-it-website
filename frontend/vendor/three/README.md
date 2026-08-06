@@ -12,8 +12,8 @@ does not depend on a third-party CDN during use.
 
 | File | SHA-256 |
 | --- | --- |
-| `three.module.js` | `5916C8DFB5F4E3EEDE312DE305345868D4A0A8105383B080C6985565D6E79B46` |
-| `addons/controls/OrbitControls.js` | `F260591EF315AA04888152E7F121865214E33FB54727145CF4E4445058DB1297` |
+| `three.module.js` | `61718C7D4F2C65BE011B954F51661079FBD3FA9839380CCE38CF71C06153EDDB` |
+| `addons/controls/OrbitControls.js` | `0BF542ED8DBBC4253BFAAE96C2D56B7CDF1825409FE4EEB2C0959E347C2772B4` |
 
 When updating Three.js, replace both runtime files from the same upstream
 release, update these hashes, and rerun `node --test tests/*.test.js`.

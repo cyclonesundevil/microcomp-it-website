@@ -72,6 +72,25 @@ test('spin contracts the prograde ISCO and viewing angle only changes Doppler co
     assert.equal(fastInclined.gravitationalRedshift, fastFaceOn.gravitationalRedshift);
 });
 
+test('observer angles above the disk plane remain valid through 120 degrees', async () => {
+    const { computeBlackHoleModel } = await import(modelUrl);
+    const above = computeBlackHoleModel({
+        massSolar: 32,
+        spin: 0.42,
+        observerAngleDegrees: 60
+    });
+    const below = computeBlackHoleModel({
+        massSolar: 32,
+        spin: 0.42,
+        observerAngleDegrees: 120
+    });
+
+    assert.equal(below.observerAngleDegrees, 120);
+    assert.ok(Math.abs(
+        above.dopplerBrightnessContrast - below.dopplerBrightnessContrast
+    ) < 1e-10);
+});
+
 test('calculator rejects nonphysical inputs', async () => {
     const { computeBlackHoleModel } = await import(modelUrl);
     const valid = {
@@ -88,8 +107,8 @@ test('calculator rejects nonphysical inputs', async () => {
         /less than 1/
     );
     assert.throws(
-        () => computeBlackHoleModel({ ...valid, observerAngleDegrees: 91 }),
-        /from 0 to 90/
+        () => computeBlackHoleModel({ ...valid, observerAngleDegrees: 121 }),
+        /from 0 to 120/
     );
 });
 
