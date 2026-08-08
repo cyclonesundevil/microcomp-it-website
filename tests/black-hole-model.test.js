@@ -72,7 +72,7 @@ test('spin contracts the prograde ISCO and viewing angle only changes Doppler co
     assert.equal(fastInclined.gravitationalRedshift, fastFaceOn.gravitationalRedshift);
 });
 
-test('observer angles above the disk plane remain valid through 120 degrees', async () => {
+test('observer angles cover both sides of the disk through 180 degrees', async () => {
     const { computeBlackHoleModel } = await import(modelUrl);
     const above = computeBlackHoleModel({
         massSolar: 32,
@@ -89,6 +89,13 @@ test('observer angles above the disk plane remain valid through 120 degrees', as
     assert.ok(Math.abs(
         above.dopplerBrightnessContrast - below.dopplerBrightnessContrast
     ) < 1e-10);
+    const oppositeFace = computeBlackHoleModel({
+        massSolar: 32,
+        spin: 0.42,
+        observerAngleDegrees: 180
+    });
+    assert.equal(oppositeFace.observerAngleDegrees, 180);
+    assert.ok(Math.abs(oppositeFace.dopplerBrightnessContrast - 1) < 1e-10);
 });
 
 test('calculator rejects nonphysical inputs', async () => {
@@ -107,8 +114,8 @@ test('calculator rejects nonphysical inputs', async () => {
         /less than 1/
     );
     assert.throws(
-        () => computeBlackHoleModel({ ...valid, observerAngleDegrees: 121 }),
-        /from 0 to 120/
+        () => computeBlackHoleModel({ ...valid, observerAngleDegrees: 181 }),
+        /from 0 to 180/
     );
 });
 
@@ -129,6 +136,6 @@ test('playground labels the approximation and no longer displays invented lensin
     assert.match(page, /ISCO clock ratio/);
     assert.match(page, /Disk brightness contrast/);
     assert.doesNotMatch(page, /Lensing strength/);
-    assert.match(controller, /from '\.\/black-hole-model\.mjs'/);
+    assert.match(controller, /from '\.\/black-hole-model\.mjs\?v=3\.0'/);
     assert.doesNotMatch(controller, /massScale \* 2\.8/);
 });

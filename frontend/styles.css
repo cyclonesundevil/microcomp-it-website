@@ -1047,7 +1047,8 @@ nav a:hover:not(.btn-primary) {
 
 .black-hole-legend {
     position: absolute;
-    left: 5%;
+    left: calc(5% + min(390px, 32vw) + 1.5rem);
+    right: 5%;
     bottom: 2rem;
     z-index: 2;
     display: flex;
@@ -1254,6 +1255,7 @@ nav a:hover:not(.btn-primary) {
     .black-hole-legend {
         position: relative;
         left: auto;
+        right: auto;
         bottom: auto;
         padding: 1rem 5% 1.5rem;
     }

@@ -15,7 +15,7 @@ export const BLACK_HOLE_PALETTE = Object.freeze({
 });
 
 export const OBSERVER_ANGLE_MIN_DEGREES = 0;
-export const OBSERVER_ANGLE_MAX_DEGREES = 120;
+export const OBSERVER_ANGLE_MAX_DEGREES = 180;
 
 export function normalizeObserverAngle(angleDegrees) {
     const angle = Number(angleDegrees);
@@ -185,7 +185,7 @@ vec3 thermalColor(float heat) {
 
 void main() {
     float inclination = clamp(uInclination, 0.0, 1.0);
-    float observerAngle = inclination * 2.09439510239;
+    float observerAngle = inclination * 3.14159265359;
     float observerSide = cos(observerAngle) < 0.0 ? -1.0 : 1.0;
     float edge = pow(max(sin(observerAngle), 0.0), 1.55);
     float higherOrderVisibility = smoothstep(0.72, 0.97, edge);

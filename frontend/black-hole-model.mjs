@@ -79,8 +79,8 @@ export function computeBlackHoleModel({
     if (a < 0 || a >= 1) {
         throw new RangeError('spin must be at least 0 and less than 1');
     }
-    if (angle < 0 || angle > 120) {
-        throw new RangeError('observerAngleDegrees must be from 0 to 120');
+    if (angle < 0 || angle > 180) {
+        throw new RangeError('observerAngleDegrees must be from 0 to 180');
     }
 
     const gravitationalRadiusKm =

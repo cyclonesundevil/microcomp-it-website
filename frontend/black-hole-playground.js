@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { computeBlackHoleModel } from './black-hole-model.mjs';
+import { computeBlackHoleModel } from './black-hole-model.mjs?v=3.0';
 import {
     ACCRETION_DISK_FRAGMENT_SHADER,
     ACCRETION_DISK_VERTEX_SHADER,
@@ -15,7 +15,7 @@ import {
     OBSERVER_ANGLE_MIN_DEGREES,
     RELATIVISTIC_DISK_FRAGMENT_SHADER,
     RELATIVISTIC_DISK_VERTEX_SHADER
-} from './black-hole-visuals.mjs?v=2.6';
+} from './black-hole-visuals.mjs?v=3.0';
 
 const container = document.getElementById('black-hole-scene');
 
@@ -219,7 +219,7 @@ if (container) {
     const diskUniforms = {
         uTime: { value: 0 },
         uSpin: { value: 0.42 },
-        uInclination: { value: 48 / 85 },
+        uInclination: { value: 85 / 180 },
         uDoppler: { value: 0.5 },
         uBeamingAngle: { value: 0 }
     };
@@ -279,7 +279,7 @@ if (container) {
     const relativisticDiskUniforms = {
         uTime: { value: 0 },
         uSpin: { value: 0.42 },
-        uInclination: { value: 85 / 120 },
+        uInclination: { value: 85 / 180 },
         uDoppler: { value: 0.5 },
         uAzimuth: { value: 0 },
         uInnerRadius: { value: 0.52 }
@@ -826,14 +826,9 @@ if (container) {
         if (!config) return;
         modeObserverAngles[activeMode] = Number(inputs.angle.value);
         activeMode = mode;
-        const diskMode = mode === 'disk';
-        const modeMinimumAngle = diskMode
-            ? OBSERVER_ANGLE_MIN_DEGREES
-            : 0.5;
-        const modeMaximumAngle = diskMode
-            ? OBSERVER_ANGLE_MAX_DEGREES
-            : 85;
-        inputs.angle.min = String(diskMode ? 0 : 1);
+        const modeMinimumAngle = OBSERVER_ANGLE_MIN_DEGREES;
+        const modeMaximumAngle = OBSERVER_ANGLE_MAX_DEGREES;
+        inputs.angle.min = String(modeMinimumAngle);
         inputs.angle.max = String(modeMaximumAngle);
         inputs.angle.value = String(THREE.MathUtils.clamp(
             modeObserverAngles[mode],
@@ -852,9 +847,7 @@ if (container) {
         if (angleHelp) {
             angleHelp.textContent = !config.rotatable
                 ? 'Observer angle is held in this fixed-frame mode.'
-                : diskMode
-                    ? '0° is face-on, 90° is edge-on, and angles above 90° view the disk from below. Use this slider or drag vertically; horizontal dragging changes azimuth.'
-                    : 'Use this 1°–85° slider or drag vertically to change the teaching-diagram view; horizontal dragging changes azimuth.';
+                : 'Use this 0°–180° slider or drag vertically to move from the top view, through edge-on at 90°, to the underside; horizontal dragging changes azimuth.';
         }
         modeButtons.forEach((button) => {
             const selected = button.dataset.bhMode === mode;

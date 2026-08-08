@@ -127,7 +127,8 @@ test('pinned Three.js runtime is served locally with a startup watchdog', () => 
     assert.match(page, /local 3D renderer did not finish starting/);
     assert.match(controller, /window\.__blackHoleReady = true/);
     assert.match(controller, /dataset\.renderStatus = 'ready'/);
-    assert.match(controller, /black-hole-visuals\.mjs\?v=2\.6/);
+    assert.match(controller, /black-hole-visuals\.mjs\?v=3\.0/);
+    assert.match(controller, /black-hole-model\.mjs\?v=3\.0/);
     assert.match(controller, /URLSearchParams\(window\.location\.search\)/);
     assert.match(controller, /storeModeInUrl/);
     assert.match(controller, /window\.history\.replaceState/);
@@ -199,18 +200,18 @@ test('relativistic disk projection includes direct, secondary, and photon-ring i
     assert.match(shader, /approaching/);
 });
 
-test('observer angle contract is exactly 0 through 120 degrees', async () => {
+test('observer angle contract is exactly 0 through 180 degrees', async () => {
     const visuals = await import(pathToFileURL(visualsPath).href);
 
     assert.equal(visuals.OBSERVER_ANGLE_MIN_DEGREES, 0);
-    assert.equal(visuals.OBSERVER_ANGLE_MAX_DEGREES, 120);
+    assert.equal(visuals.OBSERVER_ANGLE_MAX_DEGREES, 180);
     assert.equal(visuals.normalizeObserverAngle(0), 0);
-    assert.equal(visuals.normalizeObserverAngle(30), 0.25);
-    assert.equal(visuals.normalizeObserverAngle(60), 0.5);
-    assert.equal(visuals.normalizeObserverAngle(90), 0.75);
-    assert.equal(visuals.normalizeObserverAngle(120), 1);
+    assert.equal(visuals.normalizeObserverAngle(45), 0.25);
+    assert.equal(visuals.normalizeObserverAngle(90), 0.5);
+    assert.equal(visuals.normalizeObserverAngle(135), 0.75);
+    assert.equal(visuals.normalizeObserverAngle(180), 1);
     assert.equal(visuals.normalizeObserverAngle(-1), 0);
-    assert.equal(visuals.normalizeObserverAngle(121), 1);
+    assert.equal(visuals.normalizeObserverAngle(181), 1);
     assert.throws(
         () => visuals.normalizeObserverAngle(Number.NaN),
         /finite number/
@@ -258,8 +259,10 @@ test('all visualization modes preserve their rendering and rotation contracts', 
     }
     assert.match(controller, /controls\.enabled = config\.rotatable/);
     assert.match(controller, /modeObserverAngles/);
-    assert.match(controller, /modeMaximumAngle/);
-    assert.match(controller, /diskMode[\s\S]+OBSERVER_ANGLE_MAX_DEGREES[\s\S]+85/);
+    assert.match(controller, /modeMinimumAngle = OBSERVER_ANGLE_MIN_DEGREES/);
+    assert.match(controller, /modeMaximumAngle = OBSERVER_ANGLE_MAX_DEGREES/);
+    assert.doesNotMatch(controller, /modeMaximumAngle[\s\S]{0,100}: 85/);
+    assert.match(controller, /Use this 0°–180° slider/);
     assert.match(controller, /activeMode === 'disk'/);
     assert.match(controller, /activeMode === 'lensing'/);
     assert.match(controller, /activeMode === 'wave'/);
@@ -333,9 +336,20 @@ test('page legend distinguishes illustrative paths from calculated readouts', ()
     assert.match(page, /aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home"/);
     assert.match(page, /drag vertically/);
     assert.match(page, /horizontal dragging changes azimuth/);
-    assert.match(page, /styles\.css\?v=2\.8/);
-    assert.match(page, /id="bh-angle"[^>]+min="0"[^>]+max="120"/);
+    assert.match(page, /styles\.css\?v=3\.0/);
+    assert.match(page, /id="bh-angle"[^>]+min="0"[^>]+max="180"/);
     assert.match(page, /id="bh-angle-ticks"/);
-    assert.match(page, /value="120" label="120°"/);
-    assert.match(page, /black-hole-playground\.js\?v=3\.1/);
+    assert.match(page, /value="180" label="180°"/);
+    assert.match(page, /black-hole-playground\.js\?v=3\.3/);
+});
+
+test('desktop legend reserves the control panel footprint and stacks on narrow screens', () => {
+    assert.match(
+        styles,
+        /\.black-hole-legend\s*\{[^}]*left:\s*calc\(5% \+ min\(390px, 32vw\) \+ 1\.5rem\);[^}]*right:\s*5%;/s
+    );
+    assert.match(
+        styles,
+        /@media \(max-width: 900px\)[\s\S]*?\.black-hole-legend\s*\{[^}]*position:\s*relative;[^}]*left:\s*auto;[^}]*right:\s*auto;/
+    );
 });

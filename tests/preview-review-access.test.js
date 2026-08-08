@@ -97,11 +97,11 @@ test('both preview pages contain canonical and noindex metadata', () => {
     });
     assert.match(
         preview,
-        /<link rel="canonical" href="https:\/\/www\.microcompit\.com\/preview-review\.html">/
+        /<link rel="canonical" href="https:\/\/microcompit\.com\/preview-review\.html">/
     );
     assert.match(
         simulator,
-        /<link rel="canonical" href="https:\/\/www\.microcompit\.com\/demo-lab\/llm-training-simulation\.html">/
+        /<link rel="canonical" href="https:\/\/microcompit\.com\/demo-lab\/llm-training-simulation\.html">/
     );
 });
 
