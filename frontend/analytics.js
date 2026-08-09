@@ -83,6 +83,37 @@
         }).catch(() => {});
     }
 
+    function sendInteraction(eventName, details = {}) {
+        const allowedDetails = {};
+        ['category', 'persona', 'source', 'outcome', 'messageNumber', 'responseTimeMs', 'errorType'].forEach((key) => {
+            const value = details[key];
+            if (typeof value === 'string' || typeof value === 'number') {
+                allowedDetails[key] = value;
+            }
+        });
+        const data = JSON.stringify({
+            eventType: 'interaction',
+            eventName: String(eventName || '').slice(0, 80),
+            sessionId,
+            path: pagePath(),
+            referrer: document.referrer,
+            userAgent: navigator.userAgent,
+            ...allowedDetails
+        });
+        if (navigator.sendBeacon) {
+            navigator.sendBeacon('/api/track', data);
+            return;
+        }
+        fetch('/api/track', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: data,
+            keepalive: true
+        }).catch(() => {});
+    }
+
+    window.microcompTrack = sendInteraction;
+
     ['click', 'keydown', 'pointerdown', 'scroll', 'touchstart'].forEach((eventName) => {
         window.addEventListener(eventName, markActivity, { passive: true });
     });

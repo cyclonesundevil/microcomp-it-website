@@ -532,6 +532,12 @@ def ensure_analytics_schema(conn):
         ("max_scroll_percent", "INTEGER DEFAULT 0"),
         ("last_activity_age_seconds", "INTEGER DEFAULT 0"),
         ("event_reason", "TEXT"),
+        ("event_name", "TEXT"),
+        ("event_category", "TEXT"),
+        ("event_persona", "TEXT"),
+        ("event_source", "TEXT"),
+        ("event_outcome", "TEXT"),
+        ("event_value", "INTEGER DEFAULT 0"),
     ):
         add_column_if_missing(c, "visitors", column_name, column_type)
 
@@ -863,7 +869,7 @@ async def track_visitor():
             ip_address = client_ip()
             metadata = analytics_metadata(ip_address, req_data)
             event_type = req_data.get("eventType") or "active_time"
-            if event_type not in {"active_time", "time_spent"}:
+            if event_type not in {"active_time", "time_spent", "interaction"}:
                 event_type = "active_time"
             wall_time_seconds = bounded_int(
                 req_data.get("wallTimeSeconds", req_data.get("timeSpentSeconds")),
@@ -892,8 +898,9 @@ async def track_visitor():
                     user_agent, referrer, browser, os, device_type, is_bot,
                     country, region, city, timezone, utm_source, utm_medium, utm_campaign,
                     active_time_seconds, active_time_delta_seconds, wall_time_seconds,
-                    interaction_count, max_scroll_percent, last_activity_age_seconds, event_reason
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    interaction_count, max_scroll_percent, last_activity_age_seconds, event_reason,
+                    event_name, event_category, event_persona, event_source, event_outcome, event_value
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     req_data.get('sessionId'), req_data.get('path'), wall_time_seconds, ip_address, event_type,
                     metadata.get("user_agent"), metadata.get("referrer"), metadata.get("browser"),
@@ -902,7 +909,13 @@ async def track_visitor():
                     metadata.get("timezone"), metadata.get("utm_source"), metadata.get("utm_medium"),
                     metadata.get("utm_campaign"), active_time_seconds, active_time_delta_seconds,
                     wall_time_seconds, interaction_count, max_scroll_percent, last_activity_age_seconds,
-                    req_data.get("reason")
+                    str(req_data.get("reason") or "")[:80],
+                    str(req_data.get("eventName") or "")[:80],
+                    str(req_data.get("category") or "")[:80],
+                    str(req_data.get("persona") or "")[:40],
+                    str(req_data.get("source") or "")[:80],
+                    str(req_data.get("outcome") or "")[:80],
+                    bounded_int(req_data.get("responseTimeMs", req_data.get("messageNumber")), maximum=3_600_000)
                 )
             )
             conn.commit()
@@ -1276,6 +1289,39 @@ async def admin_dashboard():
         LIMIT 25
     """)
     recent_engagement = c.fetchall()
+
+    c.execute("""
+        SELECT
+            COUNT(DISTINCT CASE WHEN event_name = 'chat_open' THEN session_id END),
+            COUNT(DISTINCT CASE WHEN event_name = 'chat_message_sent' THEN session_id END),
+            COUNT(CASE WHEN event_name = 'chat_message_sent' THEN 1 END),
+            COUNT(CASE WHEN event_name = 'chat_response' AND event_outcome = 'success' THEN 1 END),
+            COUNT(DISTINCT CASE WHEN event_name IN ('voice_start', 'voice_connected') THEN session_id END)
+        FROM visitors
+        WHERE event_type = 'interaction' AND event_category = 'homepage_agent'
+    """)
+    agent_open_sessions, agent_engaged_sessions, agent_messages, agent_successes, agent_voice_sessions = c.fetchone()
+
+    c.execute("""
+        SELECT COALESCE(NULLIF(event_persona, ''), 'unknown'),
+               COUNT(DISTINCT session_id),
+               COUNT(CASE WHEN event_name = 'chat_message_sent' THEN 1 END)
+        FROM visitors
+        WHERE event_type = 'interaction' AND event_category = 'homepage_agent'
+        GROUP BY COALESCE(NULLIF(event_persona, ''), 'unknown')
+        ORDER BY COUNT(CASE WHEN event_name = 'chat_message_sent' THEN 1 END) DESC
+    """)
+    agent_personas = c.fetchall()
+
+    c.execute("""
+        SELECT timestamp, event_name, event_persona, event_source, event_outcome,
+               event_value, session_id, device_type
+        FROM visitors
+        WHERE event_type = 'interaction' AND event_category = 'homepage_agent'
+        ORDER BY timestamp DESC
+        LIMIT 30
+    """)
+    recent_agent_events = c.fetchall()
     
     # Get recent visitors
     c.execute("""
@@ -1348,6 +1394,28 @@ async def admin_dashboard():
             f"<td>{html_lib.escape(str(browser or 'Unknown'))} / {html_lib.escape(str(os_name or 'Unknown'))}</td>"
             "</tr>"
         )
+
+    agent_persona_html = "".join(
+        "<tr>"
+        f"<td>{html_lib.escape(str(persona).title())}</td>"
+        f"<td>{sessions}</td>"
+        f"<td>{messages}</td>"
+        "</tr>"
+        for persona, sessions, messages in agent_personas
+    ) or '<tr><td colspan="3">No agent interactions recorded yet.</td></tr>'
+
+    agent_events_html = "".join(
+        "<tr>"
+        f"<td>{html_lib.escape(format_arizona_timestamp(ts))}</td>"
+        f"<td>{html_lib.escape(str(event_name or ''))}</td>"
+        f"<td>{html_lib.escape(str(persona or 'unknown').title())}</td>"
+        f"<td>{html_lib.escape(str(source or ''))}</td>"
+        f"<td>{html_lib.escape(str(outcome or ''))}</td>"
+        f"<td>{html_lib.escape(str(value or 0))}</td>"
+        f"<td>{html_lib.escape(str(device_type or 'Unknown'))}</td>"
+        "</tr>"
+        for ts, event_name, persona, source, outcome, value, session_id, device_type in recent_agent_events
+    ) or '<tr><td colspan="7">No agent interactions recorded yet.</td></tr>'
 
     avg_active_seconds = int(active_total_seconds / active_sessions_count) if active_sessions_count else 0
     
@@ -1460,6 +1528,47 @@ async def admin_dashboard():
                 <div class="stat-card">
                     <div class="stat-number">{avg_scroll_percent:.0f}%</div>
                     <div class="stat-label">Avg Scroll Depth</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><i class="fa-solid fa-comments"></i> Homepage Agent Engagement</h2>
+                <p class="timezone-note">Counts interaction events only. Visitor prompts and assistant responses are never stored in analytics.</p>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">{agent_open_sessions}</div>
+                        <div class="stat-label">Opened Chat</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{agent_engaged_sessions}</div>
+                        <div class="stat-label">Sent a Message</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{agent_messages}</div>
+                        <div class="stat-label">Messages Sent</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{agent_successes}</div>
+                        <div class="stat-label">Successful Responses</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{agent_voice_sessions}</div>
+                        <div class="stat-label">Voice Sessions</div>
+                    </div>
+                </div>
+                <h3>Engagement by assistant</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Assistant</th><th>Sessions</th><th>Messages</th></tr></thead>
+                        <tbody>{agent_persona_html}</tbody>
+                    </table>
+                </div>
+                <h3>Recent agent events</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Time</th><th>Event</th><th>Assistant</th><th>Source</th><th>Outcome</th><th>Value</th><th>Device</th></tr></thead>
+                        <tbody>{agent_events_html}</tbody>
+                    </table>
                 </div>
             </div>
 

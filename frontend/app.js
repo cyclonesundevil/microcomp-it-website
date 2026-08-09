@@ -33,19 +33,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('chatbot-container');
     const msgContainer = document.getElementById('chatbot-messages');
 
+    function trackAgentEvent(eventName, details = {}) {
+        window.microcompTrack?.(eventName, {
+            category: 'homepage_agent',
+            ...details
+        });
+    }
+
     toggleBtn.addEventListener('click', () => {
         container.classList.toggle('chatbot-hidden');
         if (!container.classList.contains('chatbot-hidden')) {
+            trackAgentEvent('chat_open', { source: 'floating_toggle', persona: personaSelector?.value || 'it' });
             document.getElementById('chat-input-field').focus();
+        } else {
+            trackAgentEvent('chat_close', { source: 'floating_toggle', persona: personaSelector?.value || 'it' });
         }
     });
 
     closeBtn.addEventListener('click', () => {
         container.classList.add('chatbot-hidden');
+        trackAgentEvent('chat_close', { source: 'close_button', persona: personaSelector?.value || 'it' });
     });
 
-    window.openChatbot = function () {
+    window.openChatbot = function (source = 'page_cta') {
+        const wasHidden = container.classList.contains('chatbot-hidden');
         container.classList.remove('chatbot-hidden');
+        if (wasHidden) {
+            trackAgentEvent('chat_open', { source, persona: personaSelector?.value || 'it' });
+        }
         document.getElementById('chat-input-field').focus();
     };
 
@@ -86,13 +101,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Manage conversation history for Gemini logic
     let chatHistory = [];
+    let userMessageCount = 0;
 
     window.openCareerAgent = function () {
         if (personaSelector) {
             personaSelector.value = 'career';
             resetChatForPersona('career');
         }
-        window.openChatbot();
+        window.openChatbot('career_agent_cta');
     };
 
     function addMessageToDOM(text, sender) {
@@ -125,6 +141,13 @@ document.addEventListener('DOMContentLoaded', () => {
     async function sendMessage() {
         const text = inputField.value.trim();
         if (!text) return;
+        const persona = personaSelector.value;
+        const requestStartedAt = performance.now();
+        userMessageCount += 1;
+        trackAgentEvent('chat_message_sent', {
+            persona,
+            messageNumber: userMessageCount
+        });
 
         // 1. Show user message
         addMessageToDOM(text, 'user');
@@ -138,7 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showTypingIndicator();
 
         try {
-            const persona = personaSelector.value;
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {
@@ -156,17 +178,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (data.error) {
                 addMessageToDOM("⚠️ System Error: Our engineers are currently offline.", 'bot');
+                trackAgentEvent('chat_response', {
+                    persona,
+                    outcome: 'api_error',
+                    messageNumber: userMessageCount,
+                    responseTimeMs: Math.round(performance.now() - requestStartedAt)
+                });
                 // Remove the failed user message from history
                 chatHistory.pop();
             } else {
                 addMessageToDOM(data.response, 'bot');
                 chatHistory.push({ "role": "model", "parts": [data.response] });
+                trackAgentEvent('chat_response', {
+                    persona,
+                    outcome: 'success',
+                    messageNumber: userMessageCount,
+                    responseTimeMs: Math.round(performance.now() - requestStartedAt)
+                });
             }
 
         } catch (err) {
             console.error(err);
             removeTypingIndicator();
             addMessageToDOM("⚠️ Network Error connecting to server.", 'bot');
+            trackAgentEvent('chat_response', {
+                persona,
+                outcome: 'network_error',
+                messageNumber: userMessageCount,
+                responseTimeMs: Math.round(performance.now() - requestStartedAt)
+            });
             chatHistory.pop();
         }
     }
@@ -177,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.startQuote = function () {
-        window.openChatbot();
+        window.openChatbot('quote_cta');
         if (chatHistory.length === 0) {
             inputField.value = "I would like to get a quote for IT services.";
             sendMessage();
@@ -193,18 +233,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let nextPlayTime = 0;
 
     async function startVoiceSession() {
+        const persona = personaSelector.value;
+        trackAgentEvent('voice_start', { persona, source: 'microphone_button' });
         try {
             mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
             nextPlayTime = audioContext.currentTime;
 
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const persona = personaSelector.value;
             const wsUrl = `${protocol}//${window.location.host}/api/voice-chat?persona=${persona}`;
             ws = new WebSocket(wsUrl);
             ws.binaryType = "arraybuffer";
 
             ws.onopen = () => {
+                trackAgentEvent('voice_connected', { persona, outcome: 'success' });
                 micBtn.classList.add('active');
                 addMessageToDOM("Voice session connected. Start speaking... 🎙️ (Note: Audio responses may take up to 5 seconds to process, please be patient.)", 'bot');
                 
@@ -260,6 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             ws.onclose = () => {
+                trackAgentEvent('voice_end', { persona, outcome: 'socket_closed' });
                 stopVoiceSession();
                 addMessageToDOM("Voice session ended.", 'bot');
             };
@@ -267,6 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             console.error("Voice init error:", err);
             addMessageToDOM("Error accessing microphone.", 'bot');
+            trackAgentEvent('voice_error', { persona, outcome: 'permission_or_setup_error' });
             stopVoiceSession();
         }
     }
@@ -303,6 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (personaSelector) {
         personaSelector.addEventListener('change', () => {
             resetChatForPersona(personaSelector.value);
+            trackAgentEvent('persona_change', { persona: personaSelector.value });
         });
         resetChatForPersona(personaSelector.value);
 
