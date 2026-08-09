@@ -6,6 +6,14 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const script = fs.readFileSync(path.join(root, 'frontend/theme.js'), 'utf8');
 const styles = fs.readFileSync(path.join(root, 'frontend/styles.css'), 'utf8');
+const stampedPages = [
+    'index.html',
+    'demo-lab.html',
+    'black-hole-playground.html',
+    'lensing-simulator.html',
+    'nfl-predictor.html',
+    'universe-explorer.html'
+];
 
 function luminance(hex) {
     const channels = hex.match(/[a-f\d]{2}/gi).map(value => {
@@ -37,4 +45,19 @@ test('moderate palette defines accessible core color pairs', () => {
     assert.ok(contrastRatio('cbd5e1', '263445') >= 4.5, 'secondary text must meet WCAG AA');
     assert.ok(contrastRatio('10232b', '73dce8') >= 4.5, 'primary button must meet WCAG AA');
     assert.ok(contrastRatio('73dce8', '263445') >= 3, 'accent UI components must meet WCAG AA');
+});
+
+test('shared theme script refreshes every public footer build stamp', () => {
+    assert.match(script, /function updateBuildStamp\(\)/);
+    assert.match(script, /new Date\(document\.lastModified\)/);
+    assert.match(script, /timeZone: 'America\/Phoenix'/);
+    assert.match(script, /querySelectorAll\('\[data-build-stamp\]'\)/);
+    assert.match(script, /updateBuildStamp\(\)/);
+
+    for (const relativePath of stampedPages) {
+        const page = fs.readFileSync(path.join(root, 'frontend', relativePath), 'utf8');
+        assert.match(page, /theme\.js\?v=1\.2/, relativePath);
+        assert.match(page, /data-build-stamp>Site update date loading\.\.\.<\/span>/, relativePath);
+        assert.doesNotMatch(page, /Site updated: (?:June|July|August)/, relativePath);
+    }
 });

@@ -38,10 +38,33 @@
         });
     }
 
+    function updateBuildStamp() {
+        const modifiedDate = new Date(document.lastModified);
+        if (Number.isNaN(modifiedDate.getTime())) return;
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/Phoenix',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+        const parts = Object.fromEntries(
+            formatter.formatToParts(modifiedDate).map(part => [part.type, part.value])
+        );
+        const formatted = `${parts.month} ${parts.day}, ${parts.year} ${parts.hour}:${parts.minute}:${parts.second} MST`;
+        document.querySelectorAll('[data-build-stamp]').forEach((stamp) => {
+            stamp.textContent = `Site updated: ${formatted}`;
+        });
+    }
+
     applyTheme(preferredTheme());
 
     document.addEventListener('DOMContentLoaded', () => {
         applyTheme(preferredTheme());
+        updateBuildStamp();
         document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
             button.addEventListener('click', () => {
                 const currentIndex = themes.indexOf(root.dataset.theme);
