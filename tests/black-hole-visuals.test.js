@@ -127,7 +127,7 @@ test('pinned Three.js runtime is served locally with a startup watchdog', () => 
     assert.match(page, /local 3D renderer did not finish starting/);
     assert.match(controller, /window\.__blackHoleReady = true/);
     assert.match(controller, /dataset\.renderStatus = 'ready'/);
-    assert.match(controller, /black-hole-visuals\.mjs\?v=3\.0/);
+    assert.match(controller, /black-hole-visuals\.mjs\?v=3\.1/);
     assert.match(controller, /black-hole-model\.mjs\?v=3\.0/);
     assert.match(controller, /URLSearchParams\(window\.location\.search\)/);
     assert.match(controller, /storeModeInUrl/);
@@ -142,16 +142,19 @@ test('mode contract separates observable appearances from conceptual diagrams', 
         'disk',
         'lensing',
         'wave',
-        'well'
+        'well',
+        'binary'
     ]);
     assert.equal(BLACK_HOLE_MODES.disk.category, 'Observable appearance');
     assert.equal(BLACK_HOLE_MODES.lensing.category, 'Observable appearance');
     assert.equal(BLACK_HOLE_MODES.wave.category, 'Conceptual diagram');
     assert.equal(BLACK_HOLE_MODES.well.category, 'Conceptual diagram');
+    assert.equal(BLACK_HOLE_MODES.binary.category, 'Dynamical spacetime');
     assert.equal(BLACK_HOLE_MODES.disk.rotatable, true);
     assert.equal(BLACK_HOLE_MODES.lensing.rotatable, false);
     assert.equal(BLACK_HOLE_MODES.wave.rotatable, true);
     assert.equal(BLACK_HOLE_MODES.well.rotatable, true);
+    assert.equal(BLACK_HOLE_MODES.binary.rotatable, true);
     Object.values(BLACK_HOLE_MODES).forEach(mode => {
         assert.ok(mode.description);
         assert.ok(mode.interaction);
@@ -251,7 +254,8 @@ test('all visualization modes preserve their rendering and rotation contracts', 
     assert.equal(BLACK_HOLE_MODES.lensing.rotatable, false);
     assert.equal(BLACK_HOLE_MODES.wave.rotatable, true);
     assert.equal(BLACK_HOLE_MODES.well.rotatable, true);
-    for (const mode of ['disk', 'lensing', 'wave', 'well']) {
+    assert.equal(BLACK_HOLE_MODES.binary.rotatable, true);
+    for (const mode of ['disk', 'lensing', 'wave', 'well', 'binary']) {
         assert.match(controller, new RegExp(
             `${mode === 'disk' ? 'accretion' : mode}Group\\.visible = mode === '${mode}'`
         ));
@@ -336,11 +340,11 @@ test('page legend distinguishes illustrative paths from calculated readouts', ()
     assert.match(page, /aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home"/);
     assert.match(page, /drag vertically/);
     assert.match(page, /horizontal dragging changes azimuth/);
-    assert.match(page, /styles\.css\?v=3\.0/);
+    assert.match(page, /styles\.css\?v=3\.1/);
     assert.match(page, /id="bh-angle"[^>]+min="0"[^>]+max="180"/);
     assert.match(page, /id="bh-angle-ticks"/);
     assert.match(page, /value="180" label="180°"/);
-    assert.match(page, /black-hole-playground\.js\?v=3\.3/);
+    assert.match(page, /black-hole-playground\.js\?v=4\.5/);
 });
 
 test('desktop legend reserves the control panel footprint and stacks on narrow screens', () => {

@@ -26,8 +26,8 @@ test('all styled public pages use the same shared stylesheet release', () => {
     for (const relativePath of [...publicPages, 'preview-review.html']) {
         assert.match(
             read(relativePath),
-            /(?:\.\.\/)?styles\.css\?v=3\.0/,
-            `${relativePath} does not use shared stylesheet v3.0`
+            /(?:\.\.\/)?styles\.css\?v=3\.1/,
+            `${relativePath} does not use shared stylesheet v3.1`
         );
     }
 });

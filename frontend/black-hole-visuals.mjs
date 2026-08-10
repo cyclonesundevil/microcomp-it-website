@@ -85,6 +85,21 @@ export const BLACK_HOLE_MODES = Object.freeze({
             Object.freeze({ marker: 'orbit', label: 'reference orbit' }),
             Object.freeze({ marker: 'axis', label: 'spin-axis guide' })
         ])
+    }),
+    binary: Object.freeze({
+        category: 'Dynamical spacetime',
+        title: 'Binary black hole merger',
+        badge: 'GR approximation',
+        description: 'Two compact horizons evolve through an adaptive quasi-circular inspiral, phenomenological plunge and merger, and Kerr ringdown.',
+        interaction: 'Adjust the binary parameters, playback speed, observer polarization angle, and camera independently.',
+        sceneLabel: 'Rotatable binary black hole inspiral, merger, ringdown, and amplified gravitational-wave visualization',
+        rotatable: true,
+        legend: Object.freeze([
+            Object.freeze({ marker: 'shadow', label: 'black-hole horizons' }),
+            Object.freeze({ marker: 'orbit', label: 'center-of-mass orbits' }),
+            Object.freeze({ marker: 'wave', label: 'amplified quadrupolar wavefronts' }),
+            Object.freeze({ marker: 'grid', label: 'spacetime reference grid' })
+        ])
     })
 });
 

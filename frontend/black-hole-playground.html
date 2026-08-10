@@ -5,11 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Black Hole Playground | MicroComp IT</title>
-    <meta name="description" content="Interactive educational Kerr black hole model for exploring event-horizon scale, spin, the prograde ISCO, time dilation, redshift, and viewing angle.">
+    <meta name="description" content="Interactive educational Kerr black hole and binary-merger playground with orbital decay, gravitational-wave chirps, ringdown, horizon scale, spin, and lensing models.">
     <meta name="theme-color" content="#03050a">
     <script src="theme.js?v=1.2"></script>
     <script src="analytics.js?v=1.0"></script>
-    <link rel="stylesheet" href="styles.css?v=3.0">
+    <link rel="stylesheet" href="styles.css?v=3.1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -36,34 +36,34 @@
             <div class="black-hole-copy">
                 <p class="science-kicker">Demo Lab</p>
                 <h1>Black Hole Playground</h1>
-                <p>
+                <p id="bh-hero-description">
                     Explore how mass and spin set the scale of a Kerr black hole and its innermost stable orbit,
                     while viewing angle changes the simplified Doppler-brightness contrast of the disk.
                 </p>
-                <p class="black-hole-scope">
+                <p id="bh-hero-scope" class="black-hole-scope">
                     The readouts use general-relativistic Kerr equations for an ideal prograde equatorial orbit.
                     The 3D scene is an educational illustration, not a real-time ray trace.
                 </p>
             </div>
             <div class="black-hole-readouts" aria-live="polite">
                 <div>
-                    <span>Horizon diameter</span>
+                    <span id="bh-readout-label-1">Horizon diameter</span>
                     <strong id="bh-horizon-readout">180.3 km</strong>
                 </div>
                 <div>
-                    <span>Prograde ISCO</span>
+                    <span id="bh-readout-label-2">Prograde ISCO</span>
                     <strong id="bh-isco-readout">4.54 r_g</strong>
                 </div>
                 <div>
-                    <span>ISCO clock ratio</span>
+                    <span id="bh-readout-label-3">ISCO clock ratio</span>
                     <strong id="bh-time-readout">1.60×</strong>
                 </div>
                 <div>
-                    <span>ISCO grav. redshift</span>
+                    <span id="bh-readout-label-4">ISCO grav. redshift</span>
                     <strong id="bh-redshift-readout">z = 0.34</strong>
                 </div>
                 <div>
-                    <span>Disk brightness contrast</span>
+                    <span id="bh-readout-label-5">Disk brightness contrast</span>
                     <strong id="bh-doppler-readout">13.5×</strong>
                 </div>
             </div>
@@ -86,6 +86,12 @@
                             <button type="button" data-bh-mode="well" aria-pressed="false">Spacetime Well</button>
                         </div>
                     </div>
+                    <div>
+                        <span class="black-hole-mode-category">Dynamical spacetime</span>
+                        <div class="black-hole-mode-toggle black-hole-mode-toggle-single" role="group" aria-label="Dynamical spacetime modes">
+                            <button type="button" data-bh-mode="binary" aria-pressed="false">Binary Black Hole Merger</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="black-hole-mode-summary" aria-live="polite">
@@ -95,6 +101,7 @@
                     <small id="bh-mode-interaction">Drag horizontally to orbit. Drag vertically—or use Observer angle—to change inclination.</small>
                 </div>
 
+                <div id="bh-single-controls" class="black-hole-single-controls">
                 <label>
                     Mass
                     <span id="bh-mass-value">32 solar masses</span>
@@ -125,6 +132,28 @@
                     <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
                     Reset view
                 </button>
+                </div>
+
+                <div id="bh-binary-controls" class="binary-merger-controls" hidden>
+                    <label>Black hole 1 mass <span id="binary-m1-value">36 M☉</span><input id="binary-m1" type="range" min="5" max="100" value="36"></label>
+                    <label>Black hole 2 mass <span id="binary-m2-value">29 M☉</span><input id="binary-m2" type="range" min="5" max="100" value="29"></label>
+                    <label>Initial separation <span id="binary-separation-value">15.9 GM/c²</span><input id="binary-separation" type="range" min="12" max="100" value="15.9" step="0.1"></label>
+                    <label>Observer inclination <span id="binary-inclination-value">35°</span><input id="binary-inclination" type="range" min="0" max="90" value="35"></label>
+                    <label>Simulation playback speed <span id="binary-speed-value">0.25×</span><input id="binary-speed" type="range" min="0" max="6" value="2" step="1"></label>
+                    <p class="control-help">Default playback is quarter-speed. Visual pacing automatically limits phase advance near merger and ringdown so each regime remains observable.</p>
+                    <label>Spacetime visual amplification <span id="binary-amplification-value">10¹⁹×</span><input id="binary-amplification" type="range" min="0" max="4" value="2" step="1"></label>
+                    <label>Camera view <select id="binary-camera"><option value="inclined">Inclined 3D</option><option value="cinematic">Cinematic evolution</option><option value="top">Top / orbital plane</option><option value="wave">Wave zone</option><option value="follow">Follow center of mass</option></select></label>
+                    <div class="binary-toggle-grid">
+                        <label><input id="binary-show-grid" type="checkbox" checked> Spacetime grid</label>
+                        <label><input id="binary-show-waves" type="checkbox" checked> Wavefronts</label>
+                        <label><input id="binary-show-trails" type="checkbox" checked> Orbital trails</label>
+                        <label><input id="binary-show-waveform" type="checkbox" checked> Waveform</label>
+                    </div>
+                    <div class="binary-button-row">
+                        <button id="binary-restart" type="button"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Restart</button>
+                        <button id="binary-step" type="button"><i class="fa-solid fa-forward-step" aria-hidden="true"></i> Single step</button>
+                    </div>
+                </div>
             </div>
 
             <div
@@ -151,6 +180,44 @@
                 </noscript>
             </div>
 
+            <aside id="binary-merger-panel" class="binary-merger-panel" hidden aria-live="polite">
+                <div class="binary-regime-row"><span>Current regime</span><strong id="binary-regime">INSPIRAL</strong></div>
+                <div class="binary-progress-block">
+                    <div><span>Merger evolution</span><strong id="binary-progress-value">80.0%</strong></div>
+                    <input id="binary-progress" type="range" min="0" max="100" step="0.1" value="80" aria-label="Binary merger evolution progress" aria-describedby="binary-progress-detail">
+                    <div class="binary-progress-stages" aria-hidden="true"><span>Inspiral</span><span>82 Plunge</span><span>89 Merger</span><span>94 Ringdown</span><span>100 Kerr</span></div>
+                    <small id="binary-progress-detail">Drag to scrub through the physics-connected merger evolution</small>
+                </div>
+                <p class="binary-amplification-notice">Spacetime deformation visually amplified</p>
+                <dl class="binary-telemetry">
+                    <div><dt>Total mass</dt><dd id="binary-total-mass">65 M☉</dd></div>
+                    <div><dt>Mass ratio q</dt><dd id="binary-q">0.806</dd></div>
+                    <div><dt>Reduced mass μ</dt><dd id="binary-mu">16.06 M☉</dd></div>
+                    <div><dt>Symmetric ratio η</dt><dd id="binary-eta">0.247</dd></div>
+                    <div><dt>Chirp mass M<sub>c</sub></dt><dd id="binary-chirp">28.10 M☉</dd></div>
+                    <div><dt>Separation</dt><dd id="binary-live-separation">1,526 km</dd></div>
+                    <div><dt>Orbital angular frequency</dt><dd id="binary-omega">0 rad/s</dd></div>
+                    <div><dt>GW frequency</dt><dd id="binary-frequency">0 Hz</dd></div>
+                    <div><dt>Orbital velocity</dt><dd id="binary-velocity">0 c</dd></div>
+                    <div><dt>Radiated power</dt><dd id="binary-power">0 W</dd></div>
+                    <div><dt>Cumulative GW energy</dt><dd id="binary-energy">0 J</dd></div>
+                    <div><dt>Estimated time to merger</dt><dd id="binary-time-left">—</dd></div>
+                </dl>
+                <div id="binary-waveform-wrap" class="binary-waveform-wrap">
+                    <canvas id="binary-waveform" width="640" height="190" aria-label="Live gravitational-wave plus and cross polarization waveform"></canvas>
+                    <span><i class="waveform-plus" aria-hidden="true"></i> h+ <i class="waveform-cross" aria-hidden="true"></i> h× · strain shown with automatic display scaling</span>
+                </div>
+                <details class="binary-physics-model">
+                    <summary>Physics / Model</summary>
+                    <p><strong>Inspiral:</strong> quasi-circular quadrupole energy loss with 1PN and 1.5PN flux corrections; f<sub>GW</sub> = 2f<sub>orbit</sub>.</p>
+                    <p><strong>Late inspiral / merger:</strong> smooth EOB-inspired plunge interpolation beginning at 6 GM/c². It is not numerical relativity.</p>
+                    <p><strong>Remnant:</strong> compact nonspinning numerical-relativity-inspired mass and spin fits.</p>
+                    <p><strong>Ringdown:</strong> fitted Kerr l=m=2 fundamental quasi-normal mode, h ∝ exp(−t/τ) cos(2πft+φ).</p>
+                    <p>Strain assumes a reference distance of 400 Mpc. Object sizes, spatial distance, time playback, and strain display use separate visual transforms.</p>
+                    <p><strong>Visual layer:</strong> the shader grid, quadrupolar lobes, common-horizon morph, power-driven flash, and shape oscillation are amplified teaching graphics driven by the physical state—not additional field-equation solutions.</p>
+                </details>
+            </aside>
+
             <div class="black-hole-scene-actions">
                 <span id="bh-runtime-indicator">Starting local 3D renderer…</span>
                 <button id="bh-animation-toggle" type="button" aria-pressed="false">
@@ -170,27 +237,31 @@
         </section>
 
         <section class="black-hole-notes" aria-label="How to interpret the model">
-            <div>
+            <div class="binary-education" data-binary-education hidden><i class="fa-solid fa-arrows-spin"></i><h3>Inspiral</h3><p>The black holes lose orbital energy and angular momentum through gravitational radiation. Separation falls while orbital frequency rises.</p></div>
+            <div class="binary-education" data-binary-education hidden><i class="fa-solid fa-wave-square"></i><h3>Chirp</h3><p>Gravitational-wave frequency and amplitude rise rapidly as the horizons approach.</p></div>
+            <div class="binary-education" data-binary-education hidden><i class="fa-solid fa-circle-nodes"></i><h3>Merger</h3><p>The horizons combine and the system emits its strongest gravitational radiation.</p></div>
+            <div class="binary-education" data-binary-education hidden><i class="fa-solid fa-bell"></i><h3>Ringdown</h3><p>The distorted remnant settles toward a Kerr black hole through damped quasi-normal-mode radiation.</p></div>
+            <div data-single-education>
                 <i class="fa-solid fa-ruler"></i>
                 <h3>Mass sets physical scale</h3>
                 <p>One gravitational radius is GM/c². Increasing mass enlarges the horizon and ISCO in kilometers, but does not change their dimensionless radii.</p>
             </div>
-            <div>
+            <div data-single-education>
                 <i class="fa-solid fa-circle-notch"></i>
                 <h3>Spin moves the ISCO</h3>
                 <p>The prograde Kerr ISCO contracts from 6 r_g at zero spin toward the horizon as spin approaches its theoretical limit.</p>
             </div>
-            <div>
+            <div data-single-education>
                 <i class="fa-solid fa-clock"></i>
                 <h3>Readouts share one reference</h3>
                 <p>Clock ratio and gravitational redshift are evaluated at the prograde ISCO. They are model quantities relative to a distant observer, not measurements of a particular real disk.</p>
             </div>
-            <div>
+            <div data-single-education>
                 <i class="fa-solid fa-eye"></i>
                 <h3>Angle changes appearance</h3>
                 <p>The brightness ratio uses a simplified special-relativistic Doppler estimate. Exact images require ray tracing, radiative transfer, and a physical accretion-flow model.</p>
             </div>
-            <aside class="black-hole-method">
+            <aside class="black-hole-method" data-single-education>
                 <h3>Model boundary</h3>
                 <p>
                     Assumptions: an uncharged Kerr black hole, dimensionless spin 0 ≤ a* &lt; 1, and a prograde
@@ -275,7 +346,7 @@
             }
         }, 5000);
     </script>
-    <script type="module" src="black-hole-playground.js?v=3.3"></script>
+    <script type="module" src="black-hole-playground.js?v=4.5"></script>
 </body>
 
 </html>

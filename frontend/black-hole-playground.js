@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { BinaryBlackHolePhysics } from './binary-black-hole-physics.mjs?v=1.3';
+import { BinaryMergerRenderer, drawBinaryWaveform } from './binary-black-hole-renderer.mjs?v=1.1';
 import { computeBlackHoleModel } from './black-hole-model.mjs?v=3.0';
 import {
     ACCRETION_DISK_FRAGMENT_SHADER,
@@ -15,7 +17,7 @@ import {
     OBSERVER_ANGLE_MIN_DEGREES,
     RELATIVISTIC_DISK_FRAGMENT_SHADER,
     RELATIVISTIC_DISK_VERTEX_SHADER
-} from './black-hole-visuals.mjs?v=3.0';
+} from './black-hole-visuals.mjs?v=3.1';
 
 const container = document.getElementById('black-hole-scene');
 
@@ -53,6 +55,35 @@ if (container) {
         redshift: document.getElementById('bh-redshift-readout'),
         doppler: document.getElementById('bh-doppler-readout')
     };
+    const readoutLabels = [1, 2, 3, 4, 5].map(index => document.getElementById(`bh-readout-label-${index}`));
+    const singleControls = document.getElementById('bh-single-controls');
+    const binaryControls = document.getElementById('bh-binary-controls');
+    const controlsPanel = document.querySelector('.black-hole-controls');
+    const heroDescription = document.getElementById('bh-hero-description');
+    const heroScope = document.getElementById('bh-hero-scope');
+    const binaryPanel = document.getElementById('binary-merger-panel');
+    const binaryProgressBar = document.getElementById('binary-progress');
+    const binaryProgressDetail = document.getElementById('binary-progress-detail');
+    const binaryWaveformWrap = document.getElementById('binary-waveform-wrap');
+    const binaryWaveformCanvas = document.getElementById('binary-waveform');
+    const binaryInputs = {
+        m1: document.getElementById('binary-m1'),
+        m2: document.getElementById('binary-m2'),
+        separation: document.getElementById('binary-separation'),
+        inclination: document.getElementById('binary-inclination'),
+        speed: document.getElementById('binary-speed'),
+        amplification: document.getElementById('binary-amplification'),
+        camera: document.getElementById('binary-camera'),
+        showGrid: document.getElementById('binary-show-grid'),
+        showWaves: document.getElementById('binary-show-waves'),
+        showTrails: document.getElementById('binary-show-trails'),
+        showWaveform: document.getElementById('binary-show-waveform')
+    };
+    const binaryLabels = Object.fromEntries([
+        'm1', 'm2', 'separation', 'inclination', 'speed', 'amplification', 'regime',
+        'total-mass', 'q', 'mu', 'eta', 'chirp', 'live-separation', 'omega',
+        'frequency', 'velocity', 'power', 'energy', 'time-left', 'progress'
+    ].map(name => [name, document.getElementById(`binary-${name}-value`) || document.getElementById(`binary-${name}`)]));
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(BLACK_HOLE_PALETTE.space);
@@ -105,11 +136,13 @@ if (container) {
     const lensingGroup = new THREE.Group();
     const waveGroup = new THREE.Group();
     const wellGroup = new THREE.Group();
+    const binaryRenderer = new BinaryMergerRenderer();
+    const binaryGroup = binaryRenderer.group;
     accretionGroup.position.x = 0.65;
     lensingGroup.position.x = 1.05;
     waveGroup.position.x = 1.05;
     wellGroup.position.x = 0.75;
-    root.add(accretionGroup, lensingGroup, waveGroup, wellGroup);
+    root.add(accretionGroup, lensingGroup, waveGroup, wellGroup, binaryGroup);
     const requestedMode = new URLSearchParams(window.location.search).get(
         'mode'
     );
@@ -120,8 +153,15 @@ if (container) {
         disk: Number(inputs.angle.value),
         lensing: 48,
         wave: 48,
-        well: 48
+        well: 48,
+        binary: 35
     };
+    let binaryPhysics = new BinaryBlackHolePhysics();
+    let binarySnapshot = binaryPhysics.snapshot();
+    let binaryWaveformSamples = [];
+    let binaryEmissions = [];
+    let lastBinaryWallTime = null;
+    let lastEmissionPhase = -Infinity;
     const reducedMotionQuery = window.matchMedia(
         '(prefers-reduced-motion: reduce)'
     );
@@ -604,6 +644,132 @@ if (container) {
     wellOrbit.rotation.x = Math.PI / 2.25;
     wellCore.add(wellOrbit);
 
+    const playbackSpeeds = [0.05, 0.1, 0.25, 0.5, 1, 2, 4];
+    const maxVisualPhaseAdvance = 0.14;
+    const amplificationLevels = [0.25, 0.5, 1, 1.5, 2];
+    const cinematicCameraPosition = new THREE.Vector3();
+    const cinematicCameraTarget = new THREE.Vector3();
+    const cinematicCameraSpherical = new THREE.Spherical();
+
+    function binaryOptions() {
+        return {
+            showGrid: binaryInputs.showGrid.checked,
+            showWaves: binaryInputs.showWaves.checked,
+            showTrails: binaryInputs.showTrails.checked,
+            amplification: amplificationLevels[Number(binaryInputs.amplification.value)] || 1
+        };
+    }
+
+    function configureBinary(reset = true) {
+        binaryPhysics.configure({
+            m1Solar: Number(binaryInputs.m1.value),
+            m2Solar: Number(binaryInputs.m2.value),
+            initialSeparationRg: Number(binaryInputs.separation.value),
+            inclinationDegrees: Number(binaryInputs.inclination.value),
+            distanceMpc: 400
+        });
+        binarySnapshot = binaryPhysics.snapshot();
+        if (reset) {
+            binaryWaveformSamples = [];
+            binaryEmissions = [];
+            lastEmissionPhase = -Infinity;
+            lastBinaryWallTime = null;
+        }
+        updateBinaryTelemetry();
+    }
+
+    function formatScientific(value, digits = 2) {
+        return Number.isFinite(value) ? value.toExponential(digits) : '—';
+    }
+
+    function updateBinaryTelemetry() {
+        const s = binarySnapshot;
+        binaryLabels.m1.textContent = `${s.masses.m1Solar} M☉`;
+        binaryLabels.m2.textContent = `${s.masses.m2Solar} M☉`;
+        binaryLabels.separation.textContent = `${binaryInputs.separation.value} GM/c²`;
+        binaryLabels.inclination.textContent = `${binaryInputs.inclination.value}°`;
+        binaryLabels.speed.textContent = `${playbackSpeeds[Number(binaryInputs.speed.value)]}×`;
+        binaryLabels.amplification.textContent = `${['2.5×10¹⁸', '5×10¹⁸', '10¹⁹', '1.5×10¹⁹', '2×10¹⁹'][Number(binaryInputs.amplification.value)]}`;
+        binaryLabels.regime.textContent = s.regime;
+        const progressPercent = Math.min(100, Math.max(0, s.evolutionProgress * 100));
+        binaryLabels.progress.textContent = `${progressPercent.toFixed(1)}%`;
+        binaryProgressBar.value = progressPercent;
+        binaryProgressBar.style.setProperty('--merger-progress', `${progressPercent}%`);
+        binaryProgressBar.setAttribute('aria-valuetext', `${progressPercent.toFixed(1)} percent, ${s.regime.toLowerCase()}`);
+        binaryProgressDetail.textContent = s.finished
+            ? 'Evolution complete · drag backward to inspect an earlier regime'
+            : `${s.regime.toLowerCase()} · drag to inspect any point in the evolution`;
+        binaryLabels['total-mass'].textContent = `${s.masses.totalSolar.toFixed(1)} M☉`;
+        binaryLabels.q.textContent = s.masses.q.toFixed(3);
+        binaryLabels.mu.textContent = `${s.masses.reducedSolar.toFixed(2)} M☉`;
+        binaryLabels.eta.textContent = s.masses.eta.toFixed(4);
+        binaryLabels.chirp.textContent = `${s.masses.chirpSolar.toFixed(2)} M☉`;
+        binaryLabels['live-separation'].textContent = s.separationM > 0
+            ? `${(s.separationM / 1000).toLocaleString(undefined, { maximumFractionDigits: 0 })} km (${s.separationRg.toFixed(2)} GM/c²)`
+            : 'Merged horizon';
+        binaryLabels.omega.textContent = `${s.orbitalOmegaRadS.toFixed(1)} rad/s`;
+        binaryLabels.frequency.textContent = `${s.gwFrequencyHz.toFixed(1)} Hz`;
+        binaryLabels.velocity.textContent = `${s.velocityC.toFixed(3)} c`;
+        binaryLabels.power.textContent = `${formatScientific(s.powerW)} W`;
+        binaryLabels.energy.textContent = `${formatScientific(s.cumulativeEnergyJ)} J`;
+        binaryLabels['time-left'].textContent = s.timeToMergerS == null ? 'Not applicable' : `${s.timeToMergerS.toFixed(2)} s`;
+
+        if (activeMode === 'binary') {
+            const topLabels = ['Current regime', 'GW frequency', 'Separation', 'Radiated energy', 'Remnant / time left'];
+            topLabels.forEach((text, index) => { readoutLabels[index].textContent = text; });
+            readouts.horizon.textContent = s.regime;
+            readouts.isco.textContent = `${s.gwFrequencyHz.toFixed(1)} Hz`;
+            readouts.time.textContent = s.separationM > 0 ? `${s.separationRg.toFixed(2)} GM/c²` : 'Merged';
+            readouts.redshift.textContent = `${formatScientific(s.cumulativeEnergyJ)} J`;
+            readouts.doppler.textContent = s.finished
+                ? `${s.remnant.finalMassSolar.toFixed(2)} M☉, a*=${s.remnant.finalSpin.toFixed(3)}`
+                : s.timeToMergerS == null ? 'Forming Kerr remnant' : `${s.timeToMergerS.toFixed(2)} s`;
+        }
+    }
+
+    function recordBinarySample(sample) {
+        if (!Number.isFinite(sample.hPlus) || !Number.isFinite(sample.hCross)) return;
+        binaryWaveformSamples.push({ hPlus: sample.hPlus, hCross: sample.hCross });
+        if (binaryWaveformSamples.length > 520) binaryWaveformSamples.splice(0, binaryWaveformSamples.length - 520);
+        const wavePhase = sample.regime === 'RINGDOWN' ? sample.mergerPhase : sample.phase;
+        if (wavePhase - lastEmissionPhase >= Math.PI / 2) {
+            lastEmissionPhase = wavePhase;
+            binaryEmissions.push({
+                timeS: sample.timeS,
+                phase: wavePhase,
+                relativeAmplitude: Math.min(1, sample.strainAmplitude / 1e-21)
+            });
+            if (binaryEmissions.length > 14) binaryEmissions.shift();
+        }
+    }
+
+    function applyBinaryCamera() {
+        if (binaryInputs.camera.value === 'cinematic') {
+            controls.enabled = false;
+            updateBinaryCinematicCamera(lastAnimatedTime * 0.001, true);
+            return;
+        }
+        controls.enabled = true;
+        const distance = binaryInputs.camera.value === 'wave' ? 22 : 15;
+        const angle = binaryInputs.camera.value === 'top' ? 0.5 : binaryInputs.camera.value === 'inclined' ? 55 : 38;
+        positionCameraForObserverAngle(angle, distance, binaryInputs.camera.value === 'follow' ? controls.getAzimuthalAngle() : 0);
+    }
+
+    function updateBinaryCinematicCamera(time, immediate = false) {
+        const progress = binarySnapshot.evolutionProgress;
+        const approach = THREE.MathUtils.smoothstep(progress, 0.8, 0.9);
+        const release = THREE.MathUtils.smoothstep(progress, 0.9, 0.97);
+        const distance = THREE.MathUtils.lerp(15.5, 11.2, approach) + release * 5.2;
+        const polarDegrees = THREE.MathUtils.lerp(57, 42, release);
+        const azimuth = time * 0.075 + progress * 0.7;
+        cinematicCameraSpherical.set(distance, THREE.MathUtils.degToRad(polarDegrees), azimuth);
+        cinematicCameraPosition.setFromSpherical(cinematicCameraSpherical);
+        if (immediate) camera.position.copy(cinematicCameraPosition);
+        else camera.position.lerp(cinematicCameraPosition, 0.035);
+        cinematicCameraTarget.set(0, progress > 0.94 ? 0.18 : 0, 0);
+        controls.target.lerp(cinematicCameraTarget, immediate ? 1 : 0.05);
+    }
+
     function state() {
         const mass = Number(inputs.mass.value);
         const spin = Number(inputs.spin.value) / 100;
@@ -628,11 +794,22 @@ if (container) {
     }
 
     function update() {
+        if (activeMode === 'binary') {
+            updateBinaryTelemetry();
+            binaryRenderer.update(binarySnapshot, binaryOptions(), binaryEmissions);
+            binaryWaveformWrap.hidden = !binaryInputs.showWaveform.checked;
+            if (binaryInputs.showWaveform.checked) drawBinaryWaveform(binaryWaveformCanvas, binaryWaveformSamples);
+            container.dataset.activeMode = activeMode;
+            return;
+        }
         const model = state();
 
         labels.mass.textContent = `${model.mass} solar masses`;
         labels.spin.textContent = `${model.spin.toFixed(2)} a*`;
         labels.angle.textContent = `${model.angle} degrees`;
+
+        ['Horizon diameter', 'Prograde ISCO', 'ISCO clock ratio', 'ISCO grav. redshift', 'Disk brightness contrast']
+            .forEach((text, index) => { readoutLabels[index].textContent = text; });
 
         readouts.horizon.textContent =
             `${model.physics.horizonDiameterKm.toFixed(1)} km`;
@@ -739,6 +916,7 @@ if (container) {
 
     function cameraDistanceForMode(narrow) {
         if (activeMode === 'well') return narrow ? 14.5 : 12.5;
+        if (activeMode === 'binary') return narrow ? 19 : 15;
         return narrow ? 18.5 : 16;
     }
 
@@ -797,6 +975,11 @@ if (container) {
 
     function resetObserverView() {
         controls.target.set(0, activeMode === 'well' ? -0.65 : 0, 0);
+        if (activeMode === 'binary') {
+            applyBinaryCamera();
+            renderStaticScene();
+            return;
+        }
         const resetAngle = activeMode === 'disk' ? 85 : 48;
         inputs.angle.value = String(resetAngle);
         const narrow = container.getBoundingClientRect().width < 620;
@@ -841,6 +1024,24 @@ if (container) {
         lensingGroup.visible = mode === 'lensing';
         waveGroup.visible = mode === 'wave';
         wellGroup.visible = mode === 'well';
+        binaryGroup.visible = mode === 'binary';
+        const binaryMode = mode === 'binary';
+        singleControls.hidden = binaryMode;
+        binaryControls.hidden = !binaryMode;
+        binaryPanel.hidden = !binaryMode;
+        controlsPanel.classList.toggle('binary-active', binaryMode);
+        heroDescription.textContent = binaryMode
+            ? 'Follow two stellar-mass black holes as gravitational radiation removes orbital energy, drives a chirp, combines the horizons, and leaves a ringing Kerr remnant.'
+            : 'Explore how mass and spin set the scale of a Kerr black hole and its innermost stable orbit, while viewing angle changes the simplified Doppler-brightness contrast of the disk.';
+        heroScope.textContent = binaryMode
+            ? 'The inspiral uses a post-Newtonian-corrected quadrupole flux, followed by a phenomenological plunge and fitted Kerr ringdown. It is an educational approximation, not numerical relativity.'
+            : 'The readouts use general-relativistic Kerr equations for an ideal prograde equatorial orbit. The 3D scene is an educational illustration, not a real-time ray trace.';
+        document.querySelectorAll('[data-binary-education]').forEach((element) => {
+            element.hidden = !binaryMode;
+        });
+        document.querySelectorAll('[data-single-education]').forEach((element) => {
+            element.hidden = binaryMode;
+        });
         controls.enabled = config.rotatable;
         inputs.angle.disabled = !config.rotatable;
         angleLabel?.classList.toggle('control-disabled', !config.rotatable);
@@ -865,6 +1066,10 @@ if (container) {
         } else {
             controls.target.set(0, 0, 0);
         }
+        if (binaryMode) {
+            configureBinary(true);
+            applyBinaryCamera();
+        }
         const dampingEnabled = controls.enableDamping;
         controls.enableDamping = false;
         resize();
@@ -888,13 +1093,17 @@ if (container) {
             reducedMotion: userPaused
         });
         renderer.setPixelRatio(renderProfile.pixelRatio);
-        positionCameraForObserverAngle(
-            Number(inputs.angle.value),
-            cameraDistanceForMode(narrow)
-        );
+        if (activeMode === 'binary') {
+            applyBinaryCamera();
+        } else {
+            positionCameraForObserverAngle(
+                Number(inputs.angle.value),
+                cameraDistanceForMode(narrow)
+            );
+        }
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
-        root.scale.setScalar(activeMode === 'well' ? (narrow ? 0.72 : 0.86) : (narrow ? 0.76 : 0.9));
+        root.scale.setScalar(activeMode === 'well' ? (narrow ? 0.72 : 0.86) : activeMode === 'binary' ? (narrow ? 0.72 : 0.86) : (narrow ? 0.76 : 0.9));
         renderer.setSize(width, height, false);
         update();
         renderStaticScene();
@@ -904,6 +1113,34 @@ if (container) {
         const model = state();
         if (advanceMotion) lastAnimatedTime = now;
         const time = lastAnimatedTime * 0.001;
+
+        if (activeMode === 'binary') {
+            if (advanceMotion) {
+                const wallDelta = lastBinaryWallTime == null ? 0 : Math.min(0.1, Math.max(0, (now - lastBinaryWallTime) / 1000));
+                lastBinaryWallTime = now;
+                const requestedPhysicalDelta = wallDelta * playbackSpeeds[Number(binaryInputs.speed.value)];
+                const phaseRate = binarySnapshot.regime === 'RINGDOWN'
+                    ? Math.PI * 2 * binarySnapshot.ringdown.frequencyHz
+                    : Math.max(binarySnapshot.orbitalOmegaRadS, 1e-6);
+                // Cap phase advance between rendered frames so the millisecond
+                // merger and ringdown remain observable. The underlying frequency,
+                // flux, trajectory, and waveform equations are unchanged.
+                const physicalDelta = Math.min(
+                    requestedPhysicalDelta,
+                    maxVisualPhaseAdvance / phaseRate
+                );
+                if (physicalDelta > 0 && !binarySnapshot.finished) {
+                    binarySnapshot = binaryPhysics.advance(physicalDelta, recordBinarySample);
+                }
+            } else if (lastBinaryWallTime == null) {
+                lastBinaryWallTime = now;
+            }
+            updateBinaryTelemetry();
+            binaryRenderer.update(binarySnapshot, binaryOptions(), binaryEmissions);
+            binaryWaveformWrap.hidden = !binaryInputs.showWaveform.checked;
+            if (binaryInputs.showWaveform.checked) drawBinaryWaveform(binaryWaveformCanvas, binaryWaveformSamples);
+            if (binaryInputs.camera.value === 'cinematic') updateBinaryCinematicCamera(time);
+        }
 
         diskUniforms.uTime.value = time;
         relativisticDiskUniforms.uTime.value = time;
@@ -1023,6 +1260,7 @@ if (container) {
             stopAnimation();
             renderStaticScene();
         } else {
+            if (activeMode === 'binary') lastBinaryWallTime = null;
             scheduleAnimation();
         }
     }
@@ -1032,6 +1270,56 @@ if (container) {
             update();
             renderStaticScene();
         });
+    });
+
+    [binaryInputs.m1, binaryInputs.m2, binaryInputs.separation].forEach((input) => {
+        input.addEventListener('input', () => {
+            configureBinary(true);
+            renderStaticScene();
+        });
+    });
+
+    binaryInputs.inclination.addEventListener('input', () => {
+        binarySnapshot = binaryPhysics.setInclination(Number(binaryInputs.inclination.value));
+        updateBinaryTelemetry();
+        renderStaticScene();
+    });
+
+    binaryProgressBar.addEventListener('input', () => {
+        binarySnapshot = binaryPhysics.seekEvolutionProgress(Number(binaryProgressBar.value) / 100);
+        binaryWaveformSamples = [];
+        binaryEmissions = [];
+        lastEmissionPhase = -Infinity;
+        lastBinaryWallTime = null;
+        recordBinarySample(binarySnapshot);
+        update();
+        renderStaticScene();
+    });
+
+    [binaryInputs.speed, binaryInputs.amplification, binaryInputs.showGrid,
+        binaryInputs.showWaves, binaryInputs.showTrails, binaryInputs.showWaveform]
+        .forEach((input) => input.addEventListener('input', () => {
+            updateBinaryTelemetry();
+            renderStaticScene();
+        }));
+
+    binaryInputs.camera.addEventListener('change', () => {
+        applyBinaryCamera();
+        renderStaticScene();
+    });
+
+    document.getElementById('binary-restart')?.addEventListener('click', () => {
+        configureBinary(true);
+        setAnimationPaused(false, 'Binary merger restarted.');
+        renderStaticScene();
+    });
+
+    document.getElementById('binary-step')?.addEventListener('click', () => {
+        setAnimationPaused(true, 'Binary merger advanced by one physical integration step.');
+        const dt = Math.min(0.02, Math.max(1e-5, 0.08 / Math.max(binarySnapshot.orbitalOmegaRadS, 1)));
+        binarySnapshot = binaryPhysics.advance(dt, recordBinarySample);
+        update();
+        renderStaticScene();
     });
 
     inputs.angle.step = '1';
