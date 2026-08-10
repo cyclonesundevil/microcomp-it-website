@@ -945,6 +945,51 @@ nav a:hover:not(.btn-primary) {
     overflow-wrap: anywhere;
 }
 
+.binary-energy-budget {
+    margin: 0.75rem 0;
+    padding: 0.65rem;
+    border: 1px solid rgba(255, 189, 105, 0.18);
+    border-radius: 7px;
+    background: rgba(255, 173, 85, 0.035);
+}
+
+.binary-energy-budget > div:first-child,
+.binary-energy-budget > p {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.65rem;
+    margin: 0;
+    color: #b9c9da;
+    font-size: 0.61rem;
+}
+
+.binary-energy-budget strong { color: #ffe0b0; }
+
+.binary-energy-track {
+    height: 0.48rem;
+    margin: 0.45rem 0;
+    overflow: hidden;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #26374e, #182435);
+}
+
+.binary-energy-track i {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #69b7ff, #ffb45f);
+    box-shadow: 0 0 8px rgba(255, 180, 95, 0.5);
+}
+
+.binary-energy-budget small {
+    display: block;
+    margin-top: 0.45rem;
+    color: #8498ae;
+    font-size: 0.57rem;
+    line-height: 1.35;
+}
+
 .binary-waveform-wrap canvas {
     display: block;
     width: 100%;
@@ -960,6 +1005,45 @@ nav a:hover:not(.btn-primary) {
     color: #93a0b2;
     font-size: 0.6rem;
 }
+
+.binary-instruments {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin-top: 0.7rem;
+}
+
+.binary-instruments > div {
+    min-width: 0;
+    padding: 0.45rem;
+    border: 1px solid rgba(111, 174, 255, 0.16);
+    border-radius: 7px;
+    background: rgba(1, 5, 14, 0.68);
+}
+
+.binary-instruments h3 {
+    margin: 0 0 0.35rem;
+    color: #d6e2f0;
+    font-size: 0.65rem;
+}
+
+.binary-instruments canvas {
+    display: block;
+    width: 100%;
+    height: 112px;
+    border-radius: 5px;
+}
+
+.binary-instruments strong,
+.binary-instruments small {
+    display: block;
+    margin-top: 0.3rem;
+    color: #91a7be;
+    font-size: 0.55rem;
+    line-height: 1.35;
+}
+
+.binary-instruments strong { color: #ffcf91; }
 
 .waveform-plus,
 .waveform-cross {
@@ -1516,8 +1600,33 @@ nav a:hover:not(.btn-primary) {
 }
 
 @media (max-width: 560px) {
+    .black-hole-page {
+        overflow-x: hidden;
+    }
+
+    .black-hole-page .navbar,
+    .black-hole-page .navbar nav {
+        flex-wrap: wrap;
+    }
+
+    .black-hole-page .navbar {
+        gap: 0.65rem;
+        padding: 1rem 5%;
+    }
+
+    .black-hole-page .navbar nav {
+        justify-content: flex-end;
+        gap: 0.7rem;
+    }
+
+    .black-hole-copy {
+        min-width: 0;
+    }
+
     .black-hole-hero h1 {
-        font-size: 2.1rem;
+        max-width: 100%;
+        font-size: 1.9rem;
+        overflow-wrap: anywhere;
     }
 
     .black-hole-readouts,
@@ -1532,6 +1641,14 @@ nav a:hover:not(.btn-primary) {
 
     .black-hole-scene-actions {
         flex-direction: column;
+    }
+
+    .black-hole-mode-toggle {
+        grid-template-columns: 1fr;
+    }
+
+    .binary-instruments {
+        grid-template-columns: 1fr;
     }
 }
 

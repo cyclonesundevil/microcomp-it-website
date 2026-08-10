@@ -1,8 +1,14 @@
 import * as THREE from 'three';
 
+export function gravitationalWaveRadiusRg(observationTimeS, emissionTimeS, gravitationalTimeS) {
+    return Math.max(0, (observationTimeS - emissionTimeS) / gravitationalTimeS);
+}
+
 const GRID_VERTEX_SHADER = `
-    uniform float uPhase;
-    uniform float uTime;
+    uniform float uWavePhase;
+    uniform float uWavelengthRg;
+    uniform float uPlusWeight;
+    uniform float uCrossWeight;
     uniform float uStrength;
     varying vec2 vGrid;
     varying float vDisplacement;
@@ -11,12 +17,17 @@ const GRID_VERTEX_SHADER = `
         vGrid = position.xy;
         float radius = length(position.xy);
         float angle = atan(position.y, position.x);
-        float envelope = 1.0 - smoothstep(2.0, 15.0, radius);
-        float quadrupole = cos(2.0 * (angle - uPhase));
-        float traveling = sin(radius * 2.25 - uTime * 0.34);
-        float deformation = uStrength * envelope * quadrupole * (0.34 + 0.66 * traveling);
+        float envelope = 1.0 - smoothstep(7.0, 16.0, radius);
+        float radialRg = pow(max(radius * 2.4, 0.0), 1.65);
+        float retardedPhase = uWavePhase - 6.2831853 * radialRg / max(uWavelengthRg, 3.0);
+        float plus = uPlusWeight * cos(retardedPhase);
+        float cross = uCrossWeight * sin(retardedPhase);
+        mat2 tidalTensor = mat2(plus, cross, cross, -plus);
         vec3 transformed = position;
-        transformed.z += deformation - uStrength * 0.22 * exp(-radius * 0.22);
+        transformed.xy += uStrength * 0.055 * envelope * tidalTensor * position.xy;
+        float quadrupole = cos(2.0 * angle) * plus + sin(2.0 * angle) * cross;
+        float deformation = uStrength * 0.028 * envelope * quadrupole;
+        transformed.z += deformation;
         vDisplacement = deformation;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(transformed, 1.0);
     }
@@ -113,24 +124,43 @@ function setHorizonOpacity(horizon, opacity) {
     horizon.userData.rim.material.uniforms.uOpacity.value = bounded * 0.72;
 }
 
-function trailLine(color) {
-    const points = [];
-    const colors = [];
-    const dim = new THREE.Color(color).multiplyScalar(0.08);
-    const bright = new THREE.Color(color);
-    for (let index = 0; index <= 112; index += 1) {
-        const fraction = index / 112;
-        const angle = -Math.PI * 2 * (1 - fraction);
-        points.push(new THREE.Vector3(Math.cos(angle), 0.015, Math.sin(angle)));
-        const shade = dim.clone().lerp(bright, fraction ** 2.4);
-        colors.push(shade.r, shade.g, shade.b);
-    }
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-    return new THREE.Line(
+function trailLine(color, capacity = 420) {
+    const geometry = new THREE.BufferGeometry();
+    const positions = new THREE.BufferAttribute(new Float32Array(capacity * 3), 3);
+    const colors = new THREE.BufferAttribute(new Float32Array(capacity * 3), 3);
+    positions.setUsage(THREE.DynamicDrawUsage);
+    colors.setUsage(THREE.DynamicDrawUsage);
+    geometry.setAttribute('position', positions);
+    geometry.setAttribute('color', colors);
+    geometry.setDrawRange(0, 0);
+    const line = new THREE.Line(
         geometry,
         new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.72 })
     );
+    line.userData = { capacity, color: new THREE.Color(color) };
+    return line;
+}
+
+function updateTrail(line, samples, positionKey) {
+    const { capacity, color } = line.userData;
+    const positions = line.geometry.getAttribute('position');
+    const colors = line.geometry.getAttribute('color');
+    const start = Math.max(0, samples.length - capacity);
+    let drawIndex = 0;
+    for (let sampleIndex = start; sampleIndex < samples.length; sampleIndex += 1) {
+        const sample = samples[sampleIndex];
+        if (!(sample.separationM > 0) || !sample[positionKey]) continue;
+        const separationVisual = 1.7 + Math.sqrt(Math.max(0, sample.separationRg - 1)) * 0.48;
+        const physicalPosition = sample[positionKey];
+        const visualRatio = separationVisual / sample.separationM;
+        positions.setXYZ(drawIndex, physicalPosition[0] * visualRatio, 0.18, physicalPosition[1] * visualRatio);
+        const fade = (sampleIndex - start + 1) / Math.max(1, samples.length - start);
+        colors.setXYZ(drawIndex, color.r * fade ** 2, color.g * fade ** 2, color.b * fade ** 2);
+        drawIndex += 1;
+    }
+    positions.needsUpdate = true;
+    colors.needsUpdate = true;
+    line.geometry.setDrawRange(0, drawIndex);
 }
 
 export class BinaryMergerRenderer {
@@ -140,8 +170,10 @@ export class BinaryMergerRenderer {
             new THREE.PlaneGeometry(30, 30, 72, 72),
             new THREE.ShaderMaterial({
                 uniforms: {
-                    uPhase: { value: 0 },
-                    uTime: { value: 0 },
+                    uWavePhase: { value: 0 },
+                    uWavelengthRg: { value: 200 },
+                    uPlusWeight: { value: 1 },
+                    uCrossWeight: { value: 1 },
                     uStrength: { value: 0 }
                 },
                 vertexShader: GRID_VERTEX_SHADER,
@@ -179,7 +211,7 @@ export class BinaryMergerRenderer {
         this.mergerFlash.visible = false;
         this.group.add(this.mergerFlash);
 
-        this.wavefronts = Array.from({ length: 14 }, (_, index) => {
+        this.wavefronts = Array.from({ length: 28 }, (_, index) => {
             const wave = new THREE.Mesh(
                 new THREE.TorusGeometry(1, 0.012 + index * 0.0005, 8, 96),
                 new THREE.ShaderMaterial({
@@ -200,7 +232,7 @@ export class BinaryMergerRenderer {
         });
     }
 
-    update(snapshot, options, emissions) {
+    update(snapshot, options, emissions, trailSamples = []) {
         const total = snapshot.masses.totalSolar;
         const separationVisual = snapshot.separationRg > 0
             ? 1.7 + Math.sqrt(Math.max(0, snapshot.separationRg - 1)) * 0.48
@@ -213,12 +245,22 @@ export class BinaryMergerRenderer {
         this.secondary.position.set(-cos * r2, 0.18, -sin * r2);
         const primaryScale = 0.34 + 0.48 * Math.sqrt(snapshot.masses.m1Solar / total);
         const secondaryScale = 0.34 + 0.48 * Math.sqrt(snapshot.masses.m2Solar / total);
-        this.primary.scale.setScalar(primaryScale);
-        this.secondary.scale.setScalar(secondaryScale);
-        this.trail1.scale.setScalar(r1);
-        this.trail2.scale.setScalar(r2);
-        this.trail1.rotation.y = -snapshot.phase;
-        this.trail2.rotation.y = -snapshot.phase + Math.PI;
+        const tidalProgress = Math.min(1, Math.max(0, (snapshot.evolutionProgress - 0.81) / 0.13));
+        const tidalStretch = 0.065 * tidalProgress ** 2;
+        this.primary.rotation.y = -snapshot.phase;
+        this.secondary.rotation.y = -snapshot.phase;
+        this.primary.scale.set(
+            primaryScale * (1 + tidalStretch),
+            primaryScale * (1 - tidalStretch * 0.35),
+            primaryScale * (1 - tidalStretch * 0.5)
+        );
+        this.secondary.scale.set(
+            secondaryScale * (1 + tidalStretch),
+            secondaryScale * (1 - tidalStretch * 0.35),
+            secondaryScale * (1 - tidalStretch * 0.5)
+        );
+        updateTrail(this.trail1, trailSamples, 'body1PositionM');
+        updateTrail(this.trail2, trailSamples, 'body2PositionM');
 
         const merged = snapshot.regime === 'RINGDOWN' || snapshot.regime === 'FINAL KERR BLACK HOLE';
         const mergerStart = 0.82 + 0.12 * 0.58;
@@ -249,9 +291,17 @@ export class BinaryMergerRenderer {
         );
 
         this.grid.visible = options.showGrid;
-        const visualDeformation = options.amplification * Math.min(0.65, snapshot.strainAmplitude * 5e19);
-        this.grid.material.uniforms.uPhase.value = snapshot.phase;
-        this.grid.material.uniforms.uTime.value = snapshot.mergerPhase || snapshot.phase;
+        const wavePhase = snapshot.regime === 'RINGDOWN' || snapshot.regime === 'FINAL KERR BLACK HOLE'
+            ? snapshot.mergerPhase
+            : 2 * snapshot.phase;
+        const inclination = snapshot.inclinationDegrees * Math.PI / 180;
+        const plusWeight = (1 + Math.cos(inclination) ** 2) / 2;
+        const crossWeight = Math.cos(inclination);
+        const visualDeformation = options.amplification * (0.1 + Math.min(0.65, snapshot.strainAmplitude * 5e19));
+        this.grid.material.uniforms.uWavePhase.value = wavePhase;
+        this.grid.material.uniforms.uWavelengthRg.value = snapshot.gwWavelengthRg;
+        this.grid.material.uniforms.uPlusWeight.value = options.polarization === 'cross' ? 0 : plusWeight;
+        this.grid.material.uniforms.uCrossWeight.value = options.polarization === 'plus' ? 0 : crossWeight;
         this.grid.material.uniforms.uStrength.value = visualDeformation;
 
         const planckLuminosity = 3.62831e52;
@@ -271,17 +321,37 @@ export class BinaryMergerRenderer {
             }
             // Physical propagation is c*age. Only the render mapping from r/rg
             // to scene units is square-root compressed to span the wave zone.
-            const radiusRg = Math.max(0, (snapshot.timeS - emission.timeS) / snapshot.masses.gravitationalTimeS);
+            const radiusRg = gravitationalWaveRadiusRg(
+                snapshot.timeS,
+                emission.timeS,
+                snapshot.masses.gravitationalTimeS
+            );
             const radius = 1.2 + Math.sqrt(radiusRg) * 0.5;
-            const quadrupole = 0.08 * options.amplification * emission.relativeAmplitude;
-            wave.scale.set(radius * (1 + quadrupole * Math.cos(2 * emission.phase)), radius * (1 - quadrupole * Math.cos(2 * emission.phase)), radius);
-            wave.material.uniforms.uPhase.value = emission.phase;
-            wave.material.uniforms.uOpacity.value = Math.max(0, 0.34 - radius / 64);
+            const selectedStrain = options.polarization === 'plus'
+                ? Math.abs(emission.hPlus)
+                : options.polarization === 'cross'
+                    ? Math.abs(emission.hCross)
+                    : Math.hypot(emission.hPlus, emission.hCross);
+            const response = Math.min(1, selectedStrain / Math.max(1e-30, emission.strainAmplitude));
+            const selectedAmplitude = emission.displayAmplitude * Math.sqrt(response);
+            const quadrupole = 0.12 * options.amplification * selectedAmplitude;
+            wave.scale.set(
+                radius * (1 + quadrupole * Math.cos(emission.gwPhase)),
+                radius * (1 - quadrupole * Math.cos(emission.gwPhase)),
+                radius
+            );
+            wave.material.uniforms.uPhase.value = options.polarization === 'plus'
+                ? 0
+                : options.polarization === 'cross'
+                    ? Math.PI / 4
+                    : emission.polarizationAxis;
+            const powerIntensity = 0.55 + 0.45 * Math.min(1, Math.sqrt(emission.powerW / 5.5e48));
+            wave.material.uniforms.uOpacity.value = selectedAmplitude * powerIntensity * Math.max(0, 0.78 - radius / 50);
         });
     }
 }
 
-export function drawBinaryWaveform(canvas, samples) {
+export function drawBinaryWaveform(canvas, samples, polarization = 'both') {
     if (!canvas) return;
     const context = canvas.getContext('2d');
     const width = canvas.width;
@@ -295,8 +365,13 @@ export function drawBinaryWaveform(canvas, samples) {
     context.lineTo(width, height / 2);
     context.stroke();
     if (samples.length < 2) return;
-    const peak = Math.max(1e-30, ...samples.flatMap(sample => [Math.abs(sample.hPlus), Math.abs(sample.hCross)]));
-    for (const [key, color] of [['hPlus', '#ffbd69'], ['hCross', '#70b7ff']]) {
+    const series = polarization === 'plus'
+        ? [['hPlus', '#ffbd69']]
+        : polarization === 'cross'
+            ? [['hCross', '#70b7ff']]
+            : [['hPlus', '#ffbd69'], ['hCross', '#70b7ff']];
+    const peak = Math.max(1e-30, ...samples.flatMap(sample => series.map(([key]) => Math.abs(sample[key]))));
+    for (const [key, color] of series) {
         context.strokeStyle = color;
         context.lineWidth = 1.5;
         context.beginPath();

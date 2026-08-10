@@ -230,7 +230,7 @@ test('homepage prominently promotes the cybersecurity simulation lab', () => {
         'Launch the Cybersecurity Lab',
         'href="demo-lab/cybersecurity-simulation.html"',
         'Defensive learning with no real targets or attack traffic',
-        'styles.css?v=3.1', 'homepage-cyber-promo.css?v=1.3'
+        'styles.css?v=3.2', 'homepage-cyber-promo.css?v=1.3'
     ].forEach(marker => assert.ok(homePage.includes(marker), `homepage promotion missing: ${marker}`));
     [
         '.cyber-lab-promo {', '.cyber-lab-promo-visual',

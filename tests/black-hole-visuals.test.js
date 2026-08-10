@@ -340,11 +340,11 @@ test('page legend distinguishes illustrative paths from calculated readouts', ()
     assert.match(page, /aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home"/);
     assert.match(page, /drag vertically/);
     assert.match(page, /horizontal dragging changes azimuth/);
-    assert.match(page, /styles\.css\?v=3\.1/);
+    assert.match(page, /styles\.css\?v=3\.2/);
     assert.match(page, /id="bh-angle"[^>]+min="0"[^>]+max="180"/);
     assert.match(page, /id="bh-angle-ticks"/);
     assert.match(page, /value="180" label="180°"/);
-    assert.match(page, /black-hole-playground\.js\?v=4\.5/);
+    assert.match(page, /black-hole-playground\.js\?v=4\.6/);
 });
 
 test('desktop legend reserves the control panel footprint and stacks on narrow screens', () => {

@@ -112,6 +112,8 @@ export class BinaryBlackHolePhysics {
         this.mergerPhase = 0;
         this.mergerAmplitude = 0;
         this._refresh();
+        const initialProgress = this._evolutionProgress();
+        if (initialProgress > 0) return this.seekEvolutionProgress(initialProgress);
         return this.snapshot();
     }
 
@@ -167,7 +169,7 @@ export class BinaryBlackHolePhysics {
             const separation4 = referenceM ** 4 - fraction * (referenceM ** 4 - endpointM ** 4);
             this.separationM = separation4 ** 0.25;
             this.phase = this._inspiralPhaseAt(this.separationM);
-            this.mergerPhase = this.phase;
+            this.mergerPhase = 2 * this.phase;
             this.timeS = inspiralDurationCoefficient * (referenceM ** 4 - separation4);
             this.cumulativeEnergyJ = G * M * mu / 2 * (1 / this.separationM - 1 / referenceM);
             this.regime = this.separationM / rg <= 12 ? 'LATE INSPIRAL' : 'INSPIRAL';
@@ -176,18 +178,19 @@ export class BinaryBlackHolePhysics {
             this.separationM = endpointM;
             this.plungeElapsedS = fraction * plungeDuration;
             this.phase = this._plungePhaseAt(fraction);
-            this.mergerPhase = this.phase;
+            this.mergerPhase = 2 * this.phase;
             this.timeS = inspiralEndTime + this.plungeElapsedS;
             this.cumulativeEnergyJ = Math.max(inspiralEndEnergy, targetEnergy * fraction ** 3);
             this.regime = fraction < 0.58 ? 'LATE INSPIRAL' : 'MERGER';
         } else {
             const fraction = (target - 0.94) / 0.06;
             const plungeEndPhase = this._plungePhaseAt(1);
+            const plungeEndWavePhase = 2 * plungeEndPhase;
             this.separationM = endpointM;
             this.plungeElapsedS = plungeDuration;
             this.phase = plungeEndPhase;
             this.ringdownElapsedS = fraction * 8 * this.ringdown.dampingTimeS;
-            this.mergerPhase = plungeEndPhase + TWO_PI * this.ringdown.frequencyHz * this.ringdownElapsedS;
+            this.mergerPhase = plungeEndWavePhase + TWO_PI * this.ringdown.frequencyHz * this.ringdownElapsedS;
             this.timeS = inspiralEndTime + plungeDuration + this.ringdownElapsedS;
             this.cumulativeEnergyJ = targetEnergy;
             this.regime = target >= 1 ? 'FINAL KERR BLACK HOLE' : 'RINGDOWN';
@@ -210,15 +213,15 @@ export class BinaryBlackHolePhysics {
         return { omega, powerW, drdt, velocityC, timeToMergerS, pnFlux };
     }
 
-    _strain(omega, separationM, phase, amplitudeScale = 1) {
+    _strain(omega, separationM, phase, amplitudeScale = 1, phaseMultiplier = 2) {
         const i = this.inclinationDegrees * Math.PI / 180;
         const cosI = Math.cos(i);
         const distanceM = this.distanceMpc * MPC_METERS;
         const base = 4 * G * this.masses.reducedKg * omega ** 2 * separationM ** 2 /
             (C ** 4 * distanceM) * amplitudeScale;
         return {
-            hPlus: base * (1 + cosI ** 2) / 2 * Math.cos(2 * phase),
-            hCross: base * cosI * Math.sin(2 * phase),
+            hPlus: base * (1 + cosI ** 2) / 2 * Math.cos(phaseMultiplier * phase),
+            hCross: base * cosI * Math.sin(phaseMultiplier * phase),
             strainAmplitude: Math.abs(base)
         };
     }
@@ -272,7 +275,7 @@ export class BinaryBlackHolePhysics {
             separationM = 0;
             const decay = Math.exp(-this.ringdownElapsedS / this.ringdown.dampingTimeS);
             const peakSeparation = 2 * this.remnant.horizonRadiusKm * 1000;
-            strain = this._strain(omega, peakSeparation, this.mergerPhase, 3.2 * decay);
+            strain = this._strain(omega, peakSeparation, this.mergerPhase, 3.2 * decay, 1);
             powerW = inspiral.powerW * decay ** 2;
         } else {
             strain = this._strain(omega, separationM, this.phase);
@@ -284,6 +287,8 @@ export class BinaryBlackHolePhysics {
             orbitalOmegaRadS: omega,
             orbitFrequencyHz: omega / TWO_PI,
             gwFrequencyHz: omega / Math.PI,
+            gwWavelengthM: C / (omega / Math.PI),
+            gwWavelengthRg: 1 / ((omega / Math.PI) * this.masses.gravitationalTimeS),
             powerW,
             velocityC: inspiral.velocityC,
             timeToMergerS: !this.plunging && (this.regime === 'INSPIRAL' || this.regime === 'LATE INSPIRAL')
@@ -337,7 +342,7 @@ export class BinaryBlackHolePhysics {
                 if (progress >= 1) {
                     this.regime = 'RINGDOWN';
                     this.ringdownElapsedS = 0;
-                    this.mergerPhase = this.phase;
+                    this.mergerPhase = 2 * this.phase;
                 }
             } else if (this.regime === 'RINGDOWN') {
                 this.ringdownElapsedS += dt;
@@ -368,6 +373,7 @@ export class BinaryBlackHolePhysics {
             finished: this.finished,
             cumulativeEnergyJ: this.cumulativeEnergyJ,
             masses: this.masses,
+            inclinationDegrees: this.inclinationDegrees,
             remnant: this.remnant,
             ringdown: this.ringdown,
             evolutionProgress: this._evolutionProgress(),

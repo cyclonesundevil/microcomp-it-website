@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#03050a">
     <script src="theme.js?v=1.2"></script>
     <script src="analytics.js?v=1.0"></script>
-    <link rel="stylesheet" href="styles.css?v=3.1">
+    <link rel="stylesheet" href="styles.css?v=3.2">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -139,6 +139,7 @@
                     <label>Black hole 2 mass <span id="binary-m2-value">29 M☉</span><input id="binary-m2" type="range" min="5" max="100" value="29"></label>
                     <label>Initial separation <span id="binary-separation-value">15.9 GM/c²</span><input id="binary-separation" type="range" min="12" max="100" value="15.9" step="0.1"></label>
                     <label>Observer inclination <span id="binary-inclination-value">35°</span><input id="binary-inclination" type="range" min="0" max="90" value="35"></label>
+                    <label>GW polarization <select id="binary-polarization"><option value="both">h+ and h×</option><option value="plus">h+ only</option><option value="cross">h× only</option></select></label>
                     <label>Simulation playback speed <span id="binary-speed-value">0.25×</span><input id="binary-speed" type="range" min="0" max="6" value="2" step="1"></label>
                     <p class="control-help">Default playback is quarter-speed. Visual pacing automatically limits phase advance near merger and ringdown so each regime remains observable.</p>
                     <label>Spacetime visual amplification <span id="binary-amplification-value">10¹⁹×</span><input id="binary-amplification" type="range" min="0" max="4" value="2" step="1"></label>
@@ -148,6 +149,7 @@
                         <label><input id="binary-show-waves" type="checkbox" checked> Wavefronts</label>
                         <label><input id="binary-show-trails" type="checkbox" checked> Orbital trails</label>
                         <label><input id="binary-show-waveform" type="checkbox" checked> Waveform</label>
+                        <label><input id="binary-show-detector" type="checkbox" checked> Detector view</label>
                     </div>
                     <div class="binary-button-row">
                         <button id="binary-restart" type="button"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Restart</button>
@@ -203,10 +205,29 @@
                     <div><dt>Cumulative GW energy</dt><dd id="binary-energy">0 J</dd></div>
                     <div><dt>Estimated time to merger</dt><dd id="binary-time-left">—</dd></div>
                 </dl>
+                <section class="binary-energy-budget" aria-label="Binary mass-energy budget">
+                    <div><span>Initial mass-energy</span><strong id="binary-initial-energy">0 J</strong></div>
+                    <div class="binary-energy-track" role="img"><i id="binary-energy-radiated-bar"></i></div>
+                    <p><span id="binary-energy-radiated">0 J radiated</span><span id="binary-energy-remaining">0 J remaining</span></p>
+                    <small>Initial mass-energy − emitted GW energy ≈ remaining system energy. At completion this reconciles with the fitted remnant mass.</small>
+                </section>
                 <div id="binary-waveform-wrap" class="binary-waveform-wrap">
                     <canvas id="binary-waveform" width="640" height="190" aria-label="Live gravitational-wave plus and cross polarization waveform"></canvas>
                     <span><i class="waveform-plus" aria-hidden="true"></i> h+ <i class="waveform-cross" aria-hidden="true"></i> h× · strain shown with automatic display scaling</span>
                 </div>
+                <section id="binary-instruments" class="binary-instruments" aria-label="Gravitational-wave polarization and detector response">
+                    <div>
+                        <h3>Tensor polarization</h3>
+                        <canvas id="binary-polarization-ring" width="240" height="180" aria-label="Test-particle ring response to the selected gravitational-wave polarization"></canvas>
+                        <small>h+ stretches horizontally/vertically; h× is rotated 45°. Deformation visually amplified.</small>
+                    </div>
+                    <div id="binary-detector-wrap">
+                        <h3>Educational detector</h3>
+                        <canvas id="binary-detector" width="320" height="190" aria-label="Simplified Michelson interferometer response"></canvas>
+                        <strong id="binary-detector-strain">Physical strain h ≈ 0</strong>
+                        <small>Detector deformation visually amplified. Real mirror displacement is not shown to scale.</small>
+                    </div>
+                </section>
                 <details class="binary-physics-model">
                     <summary>Physics / Model</summary>
                     <p><strong>Inspiral:</strong> quasi-circular quadrupole energy loss with 1PN and 1.5PN flux corrections; f<sub>GW</sub> = 2f<sub>orbit</sub>.</p>
@@ -214,7 +235,8 @@
                     <p><strong>Remnant:</strong> compact nonspinning numerical-relativity-inspired mass and spin fits.</p>
                     <p><strong>Ringdown:</strong> fitted Kerr l=m=2 fundamental quasi-normal mode, h ∝ exp(−t/τ) cos(2πft+φ).</p>
                     <p>Strain assumes a reference distance of 400 Mpc. Object sizes, spatial distance, time playback, and strain display use separate visual transforms.</p>
-                    <p><strong>Visual layer:</strong> the shader grid, quadrupolar lobes, common-horizon morph, power-driven flash, and shape oscillation are amplified teaching graphics driven by the physical state—not additional field-equation solutions.</p>
+                    <p><strong>Wave propagation:</strong> fronts are emitted at fixed GW-phase intervals and advance by c(t−t<sub>emit</sub>). Their scene-space radius is compressed, but emission timing and physical propagation are not.</p>
+                    <p><strong>Visual layer:</strong> the grid is a two-dimensional reference lattice for in-plane tidal stretch/compression—not a sagging membrane or literal extra dimension. Its shader deformation, quadrupolar lobes, common-horizon morph, power-driven flash, and shape oscillation are amplified teaching graphics driven by the physical state—not additional field-equation solutions.</p>
                 </details>
             </aside>
 
@@ -346,7 +368,7 @@
             }
         }, 5000);
     </script>
-    <script type="module" src="black-hole-playground.js?v=4.5"></script>
+    <script type="module" src="black-hole-playground.js?v=4.6"></script>
 </body>
 
 </html>
