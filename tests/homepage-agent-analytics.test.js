@@ -36,7 +36,7 @@ test('shared analytics exposes a bounded custom-event transport', () => {
     assert.match(analytics, /eventType: 'interaction'/);
     assert.match(analytics, /'category', 'persona', 'source', 'outcome', 'messageNumber', 'responseTimeMs', 'errorType'/);
     assert.doesNotMatch(analytics, /prompt|messageText|responseText|history/);
-    assert.match(homepage, /analytics\.js\?v=1\.1/);
+    assert.match(homepage, /analytics\.js\?v=1\.2/);
     assert.match(homepage, /app\.js\?v=1\.8/);
 });
 
@@ -55,4 +55,22 @@ test('backend stores and reports agent event metadata without conversation conte
     assert.match(backend, /Homepage Agent Engagement/);
     assert.match(backend, /Visitor prompts and assistant responses are never stored in analytics/);
     assert.match(backend, /event_category = 'homepage_agent'/);
+});
+
+test('contact submissions cannot leak message fields into analytics paths', () => {
+    assert.match(homepage, /<form id="contact-form"[^>]*method="post"[^>]*action="\/api\/contact"/);
+    assert.match(analytics, /return window\.location\.pathname/);
+    assert.doesNotMatch(analytics, /window\.location\.search/);
+    assert.match(backend, /def sanitized_analytics_path/);
+    assert.match(backend, /sanitized_analytics_path\(req_data\.get\('path'\)\)/);
+    assert.match(backend, /elif index == path_index:/);
+    assert.match(backend, /sanitized_referrer\(value\)/);
+});
+
+test('admin distinguishes contact filtering and delivery without storing message bodies', () => {
+    assert.match(backend, /CREATE TABLE IF NOT EXISTS contact_events/);
+    assert.match(backend, /Contact Form Delivery/);
+    assert.match(backend, /record_contact_event\(submission_id, "filtered"/);
+    assert.match(backend, /record_contact_event\([\s\S]*?"delivered"/);
+    assert.match(backend, /Names, full email addresses, and message contents are not stored here/);
 });

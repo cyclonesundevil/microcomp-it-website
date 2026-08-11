@@ -26,7 +26,7 @@
     <meta property="twitter:description" content="Enterprise Software Engineering, AI Automation, and Cybersecurity for Small Businesses. We keep your business running smoothly so you can focus on growth.">
     <meta property="twitter:image" content="https://microcompit.com/og-image.png">
     <script src="theme.js?v=1.2"></script>
-    <script src="analytics.js?v=1.1"></script>
+    <script src="analytics.js?v=1.2"></script>
     <link rel="stylesheet" href="styles.css?v=3.2">
     <link rel="stylesheet" href="homepage-cyber-promo.css?v=1.3">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -380,7 +380,7 @@
         <div class="glass-card contact-card">
             <h2>Get in Touch</h2>
             <p>Send us a message directly and our engineers will reach out immediately.</p>
-            <form id="contact-form" class="contact-form">
+            <form id="contact-form" class="contact-form" method="post" action="/api/contact">
                 <div class="form-group bot-trap" aria-hidden="true">
                     <label for="contact-website">Website</label>
                     <input type="text" id="contact-website" name="website" tabindex="-1" autocomplete="off">

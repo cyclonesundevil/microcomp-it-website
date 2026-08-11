@@ -17,7 +17,7 @@
     let lastTickAt = Date.now();
 
     function pagePath() {
-        return `${window.location.pathname}${window.location.search}`;
+        return window.location.pathname;
     }
 
     function updateScrollDepth() {

@@ -147,36 +147,40 @@ def silent_contact_success():
     return jsonify({"success": True})
 
 
-def is_suspicious_contact_submission(data, message):
+def contact_filter_reason(data, message):
     honeypot = str(data.get("website", "")).strip()
     if honeypot:
-        return True
+        return "honeypot"
 
     user_agent = request.headers.get("User-Agent", "").lower()
     if not user_agent or any(blocked in user_agent for blocked in CONTACT_BLOCKED_USER_AGENTS):
-        return True
+        return "blocked_user_agent"
 
     started_at = str(data.get("started_at", "")).strip()
     try:
         started_ms = int(float(started_at))
         elapsed_seconds = (datetime.datetime.now(datetime.UTC).timestamp() * 1000 - started_ms) / 1000
     except (TypeError, ValueError):
-        return True
+        return "missing_or_invalid_start_time"
 
     if elapsed_seconds < CONTACT_MIN_SUBMIT_SECONDS or elapsed_seconds > CONTACT_MAX_SUBMIT_SECONDS:
-        return True
+        return "invalid_completion_time"
 
     lowered_message = message.lower()
     if len(message) < 8:
-        return True
+        return "message_too_short"
 
     if len(re.findall(r"https?://|www\.", lowered_message)) > 2:
-        return True
+        return "excessive_links"
 
     if len(set(message)) < 5:
-        return True
+        return "low_content_variation"
 
-    return False
+    return ""
+
+
+def is_suspicious_contact_submission(data, message):
+    return bool(contact_filter_reason(data, message))
 
 
 def add_column_if_missing(cursor, table_name, column_name, column_type):
@@ -266,6 +270,21 @@ def utm_values_from_path(path):
     }
 
 
+def sanitized_analytics_path(path):
+    parsed = urlparse(str(path or ""))
+    clean_path = parsed.path or "/"
+    if not clean_path.startswith("/"):
+        clean_path = f"/{clean_path}"
+    return clean_path[:500]
+
+
+def sanitized_referrer(referrer):
+    parsed = urlparse(str(referrer or ""))
+    if not parsed.scheme or not parsed.netloc:
+        return sanitized_analytics_path(parsed.path) if parsed.path else ""
+    return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"[:500]
+
+
 def lookup_ip_geo(ip_address):
     if is_private_or_local_ip(ip_address):
         return {}
@@ -306,7 +325,7 @@ def analytics_metadata(ip_address, client_payload=None):
     user_agent = client_payload.get("userAgent") or request.headers.get("User-Agent", "")
 
     metadata = {
-        "referrer": str(referrer)[:500],
+        "referrer": sanitized_referrer(referrer),
         **parse_user_agent(user_agent),
         **utm_values_from_path(path),
         **lookup_ip_geo(ip_address)
@@ -541,6 +560,51 @@ def ensure_analytics_schema(conn):
     ):
         add_column_if_missing(c, "visitors", column_name, column_type)
 
+    c.execute('''CREATE TABLE IF NOT EXISTS contact_events
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  submission_id TEXT,
+                  status TEXT,
+                  source TEXT,
+                  detail TEXT,
+                  email_delivered INTEGER DEFAULT 0,
+                  discord_delivered INTEGER DEFAULT 0,
+                  ip_address TEXT,
+                  email_domain TEXT,
+                  is_bot INTEGER DEFAULT 0,
+                  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+
+
+def record_contact_event(submission_id, status, source, email="", detail="", email_delivered=False, discord_delivered=False):
+    """Audit contact handling without retaining names, addresses, or message contents."""
+    try:
+        email_domain = email.rsplit("@", 1)[-1].lower()[:120] if "@" in email else ""
+        ip_address = client_ip()
+        user_agent = request.headers.get("User-Agent", "")
+        db_path = get_analytics_db_path()
+        conn = sqlite3.connect(db_path)
+        ensure_analytics_schema(conn)
+        conn.execute(
+            """INSERT INTO contact_events (
+                   submission_id, status, source, detail, email_delivered,
+                   discord_delivered, ip_address, email_domain, is_bot
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                submission_id,
+                status[:40],
+                source[:40],
+                detail[:120],
+                1 if email_delivered else 0,
+                1 if discord_delivered else 0,
+                ip_address,
+                email_domain,
+                parse_user_agent(user_agent).get("is_bot", 0),
+            )
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Contact audit error: {e}")
+
 
 def should_track_pageview(response) -> bool:
     if request.method != "GET":
@@ -556,7 +620,7 @@ def record_pageview(visitor_id: str) -> None:
     try:
         ip_address = client_ip()
         metadata = analytics_metadata(ip_address)
-        path = request.full_path.rstrip("?") or request.path
+        path = sanitized_analytics_path(request.path)
 
         db_path = get_analytics_db_path()
         conn = sqlite3.connect(db_path)
@@ -752,17 +816,25 @@ def call_doctor(patient_name: str, callback_number: str, summary: str) -> str:
 
 @app.route("/api/contact", methods=["POST"])
 async def contact_form():
+    submission_id = str(uuid.uuid4())
+    submission_source = "json"
     try:
-        data = await request.get_json() or {}
+        data = await request.get_json(silent=True)
+        if not isinstance(data, dict):
+            submission_source = "native_form"
+            data = (await request.form).to_dict()
         name = str(data.get("name", "")).strip()
         email = str(data.get("email", "")).strip()
         message = str(data.get("message", "")).strip()
 
-        if is_suspicious_contact_submission(data, message):
-            print(f"Filtered suspicious contact submission from {client_ip()}.")
+        filter_reason = contact_filter_reason(data, message)
+        if filter_reason:
+            record_contact_event(submission_id, "filtered", submission_source, email, filter_reason)
+            print(f"Filtered suspicious contact submission from {client_ip()}: {filter_reason}.")
             return silent_contact_success()
 
         if contact_rate_limited(client_ip()):
+            record_contact_event(submission_id, "rate_limited", submission_source, email, "hourly_limit")
             print(f"Rate limited contact submission from {client_ip()}.")
             return jsonify({
                 "success": False,
@@ -770,15 +842,19 @@ async def contact_form():
             }), 429
 
         if not name or not email or not message:
+            record_contact_event(submission_id, "rejected", submission_source, email, "missing_required_fields")
             return jsonify({"success": False, "error": "All fields are required."}), 400
 
         if len(name) > 100:
+            record_contact_event(submission_id, "rejected", submission_source, email, "name_too_long")
             return jsonify({"success": False, "error": "Name must be 100 characters or fewer."}), 400
 
         if not is_valid_email(email):
+            record_contact_event(submission_id, "rejected", submission_source, email, "invalid_email")
             return jsonify({"success": False, "error": "Please enter a valid email address."}), 400
 
         if len(message) > 5000:
+            record_contact_event(submission_id, "rejected", submission_source, email, "message_too_long")
             return jsonify({"success": False, "error": "Message must be 5000 characters or fewer."}), 400
         
         delivery_results = {
@@ -843,20 +919,35 @@ async def contact_form():
             print("WARNING: SMTP_EMAIL and/or SMTP_PASSWORD not set in environment. Email not sent.")
             
         if delivery_results["discord"] or delivery_results["email"]:
+            delivered_channels = "+".join(
+                channel for channel, delivered in delivery_results.items() if delivered
+            )
+            record_contact_event(
+                submission_id,
+                "delivered",
+                submission_source,
+                email,
+                delivered_channels,
+                email_delivered=delivery_results["email"],
+                discord_delivered=delivery_results["discord"],
+            )
             return jsonify({"success": True, "delivered": delivery_results})
 
         if not discord_webhook and not (smtp_email and smtp_password and receiver_email):
+            record_contact_event(submission_id, "delivery_failed", submission_source, email, "not_configured")
             return jsonify({
                 "success": False,
                 "error": "Contact delivery is not configured. Please try again later."
             }), 503
 
+        record_contact_event(submission_id, "delivery_failed", submission_source, email, "configured_channels_failed")
         return jsonify({
             "success": False,
             "error": "Message received, but notification delivery failed. Please try again later.",
             "delivery_errors": delivery_errors
         }), 502
     except Exception as e:
+        record_contact_event(submission_id, "delivery_failed", submission_source, detail="unexpected_error")
         print(f"Contact form error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -902,7 +993,7 @@ async def track_visitor():
                     event_name, event_category, event_persona, event_source, event_outcome, event_value
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    req_data.get('sessionId'), req_data.get('path'), wall_time_seconds, ip_address, event_type,
+                    req_data.get('sessionId'), sanitized_analytics_path(req_data.get('path')), wall_time_seconds, ip_address, event_type,
                     metadata.get("user_agent"), metadata.get("referrer"), metadata.get("browser"),
                     metadata.get("os"), metadata.get("device_type"), metadata.get("is_bot"),
                     metadata.get("country"), metadata.get("region"), metadata.get("city"),
@@ -948,6 +1039,8 @@ async def download_analytics():
     
     col_names = [description[0] for description in c.description]
     timestamp_index = col_names.index("timestamp") if "timestamp" in col_names else -1
+    path_index = col_names.index("path") if "path" in col_names else -1
+    referrer_index = col_names.index("referrer") if "referrer" in col_names else -1
     export_col_names = []
     for col_name in col_names:
         if col_name == "timestamp":
@@ -963,6 +1056,10 @@ async def download_analytics():
         for index, value in enumerate(row):
             if index == timestamp_index:
                 export_row.extend([format_arizona_timestamp(value), value])
+            elif index == path_index:
+                export_row.append(sanitized_analytics_path(value))
+            elif index == referrer_index:
+                export_row.append(sanitized_referrer(value))
             else:
                 export_row.append(value)
         writer.writerow(export_row)
@@ -1322,6 +1419,25 @@ async def admin_dashboard():
         LIMIT 30
     """)
     recent_agent_events = c.fetchall()
+
+    c.execute("""
+        SELECT
+            COUNT(CASE WHEN status = 'delivered' THEN 1 END),
+            COUNT(CASE WHEN status = 'filtered' THEN 1 END),
+            COUNT(CASE WHEN status = 'delivery_failed' THEN 1 END),
+            COUNT(CASE WHEN status IN ('rejected', 'rate_limited') THEN 1 END)
+        FROM contact_events
+    """)
+    contact_delivered, contact_filtered, contact_delivery_failed, contact_rejected = c.fetchone()
+
+    c.execute("""
+        SELECT timestamp, status, source, detail, email_delivered, discord_delivered,
+               email_domain, is_bot, ip_address
+        FROM contact_events
+        ORDER BY timestamp DESC
+        LIMIT 30
+    """)
+    recent_contact_events = c.fetchall()
     
     # Get recent visitors
     c.execute("""
@@ -1360,14 +1476,14 @@ async def admin_dashboard():
     visitors_html = ""
     for ip, path, ts, browser, os_name, device_type, is_bot, country, region, city, referrer, utm_source, utm_campaign in recent_visitors:
         location = ", ".join(part for part in (city, region, country) if part) or "Unknown"
-        source = utm_source or referrer or "Direct"
+        source = utm_source or sanitized_referrer(referrer) or "Direct"
         campaign = utm_campaign or ""
         local_ts = format_arizona_timestamp(ts)
         visitors_html += (
             "<tr>"
             f"<td>{html_lib.escape(local_ts)}</td>"
             f"<td>{html_lib.escape(str(ip or ''))}</td>"
-            f"<td>{html_lib.escape(str(path or ''))}</td>"
+            f"<td>{html_lib.escape(sanitized_analytics_path(path))}</td>"
             f"<td>{html_lib.escape(str(device_type or 'Unknown'))}</td>"
             f"<td>{html_lib.escape(str(browser or 'Unknown'))} / {html_lib.escape(str(os_name or 'Unknown'))}</td>"
             f"<td>{'Yes' if is_bot else 'No'}</td>"
@@ -1383,7 +1499,7 @@ async def admin_dashboard():
         engagement_html += (
             "<tr>"
             f"<td>{html_lib.escape(local_ts)}</td>"
-            f"<td>{html_lib.escape(str(path or ''))}</td>"
+            f"<td>{html_lib.escape(sanitized_analytics_path(path))}</td>"
             f"<td>{html_lib.escape(format_duration(active_seconds))}</td>"
             f"<td>{html_lib.escape(format_duration(active_delta))}</td>"
             f"<td>{html_lib.escape(format_duration(wall_seconds))}</td>"
@@ -1416,6 +1532,21 @@ async def admin_dashboard():
         "</tr>"
         for ts, event_name, persona, source, outcome, value, session_id, device_type in recent_agent_events
     ) or '<tr><td colspan="7">No agent interactions recorded yet.</td></tr>'
+
+    contact_events_html = "".join(
+        "<tr>"
+        f"<td>{html_lib.escape(format_arizona_timestamp(ts))}</td>"
+        f"<td>{html_lib.escape(str(status or ''))}</td>"
+        f"<td>{html_lib.escape(str(source or ''))}</td>"
+        f"<td>{html_lib.escape(str(detail or ''))}</td>"
+        f"<td>{'Yes' if email_delivered else 'No'}</td>"
+        f"<td>{'Yes' if discord_delivered else 'No'}</td>"
+        f"<td>{html_lib.escape(str(email_domain or ''))}</td>"
+        f"<td>{'Yes' if is_bot else 'No'}</td>"
+        f"<td>{html_lib.escape(str(ip or ''))}</td>"
+        "</tr>"
+        for ts, status, source, detail, email_delivered, discord_delivered, email_domain, is_bot, ip in recent_contact_events
+    ) or '<tr><td colspan="9">No contact-form events recorded yet.</td></tr>'
 
     avg_active_seconds = int(active_total_seconds / active_sessions_count) if active_sessions_count else 0
     
@@ -1568,6 +1699,36 @@ async def admin_dashboard():
                     <table>
                         <thead><tr><th>Time</th><th>Event</th><th>Assistant</th><th>Source</th><th>Outcome</th><th>Value</th><th>Device</th></tr></thead>
                         <tbody>{agent_events_html}</tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><i class="fa-solid fa-envelope-circle-check"></i> Contact Form Delivery</h2>
+                <p class="timezone-note">Shows whether a submission was filtered, rejected, delivered, or failed delivery. Names, full email addresses, and message contents are not stored here.</p>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">{contact_delivered}</div>
+                        <div class="stat-label">Delivered</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{contact_filtered}</div>
+                        <div class="stat-label">Filtered</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{contact_delivery_failed}</div>
+                        <div class="stat-label">Delivery Failed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{contact_rejected}</div>
+                        <div class="stat-label">Rejected / Limited</div>
+                    </div>
+                </div>
+                <h3>Recent contact events</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Time</th><th>Status</th><th>Source</th><th>Detail</th><th>Email</th><th>Discord</th><th>Email domain</th><th>Bot</th><th>IP</th></tr></thead>
+                        <tbody>{contact_events_html}</tbody>
                     </table>
                 </div>
             </div>
