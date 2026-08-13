@@ -5,6 +5,62 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeBtn = document.getElementById('chatbot-close');
     const container = document.getElementById('chatbot-container');
     const msgContainer = document.getElementById('chatbot-messages');
+    const turnstileWidgets = new Map();
+    const chatVerificationStorageKey = 'microcompChatVerification';
+    let chatVerificationSessionToken = sessionStorage.getItem(chatVerificationStorageKey) || '';
+    let turnstileConfig = { turnstileEnabled: false, turnstileSiteKey: '', chatVerificationRequired: false };
+
+    const turnstileReady = fetch('/api/public-config')
+        .then((response) => response.ok ? response.json() : Promise.reject(new Error('Configuration unavailable')))
+        .then((config) => {
+            turnstileConfig = config;
+            if (chatVerificationSessionToken) {
+                turnstileConfig.chatVerificationRequired = false;
+            }
+            if (!config.turnstileEnabled || !config.turnstileSiteKey) return;
+            return new Promise((resolve, reject) => {
+                window.onTurnstileReady = resolve;
+                const script = document.createElement('script');
+                script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileReady';
+                script.async = true;
+                script.defer = true;
+                script.onerror = () => reject(new Error('Verification could not be loaded'));
+                document.head.appendChild(script);
+            });
+        })
+        .catch((error) => {
+            console.warn('Turnstile configuration error:', error);
+            return null;
+        });
+
+    async function requestTurnstileToken(action, containerId) {
+        await turnstileReady;
+        if (!turnstileConfig.turnstileEnabled) return '';
+        if (!window.turnstile) throw new Error('Verification is unavailable. Please refresh and try again.');
+
+        return new Promise((resolve, reject) => {
+            const slot = document.getElementById(containerId);
+            if (!slot) return reject(new Error('Verification could not be displayed.'));
+            const previousWidget = turnstileWidgets.get(containerId);
+            if (previousWidget !== undefined) {
+                window.turnstile.remove(previousWidget);
+                turnstileWidgets.delete(containerId);
+            }
+            const widgetId = window.turnstile.render(slot, {
+                sitekey: turnstileConfig.turnstileSiteKey,
+                action,
+                execution: 'execute',
+                appearance: 'interaction-only',
+                size: 'flexible',
+                theme: 'auto',
+                callback: resolve,
+                'error-callback': () => reject(new Error('Verification failed. Please try again.')),
+                'expired-callback': () => reject(new Error('Verification expired. Please try again.'))
+            });
+            turnstileWidgets.set(containerId, widgetId);
+            window.turnstile.execute(widgetId);
+        });
+    }
 
     function trackAgentEvent(eventName, details = {}) {
         window.microcompTrack?.(eventName, {
@@ -61,11 +117,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const starterPrompts = {
+        it: [
+            ['I need IT support', 'I need IT support and would like help narrowing down the problem.'],
+            ['I am concerned about security', 'I am concerned about my business cybersecurity. What should I check first?'],
+            ['I want to automate a process', 'I want to automate a business process. Help me identify a practical starting point.']
+        ],
+        career: [
+            ['Summarize Jose\'s background', 'Please summarize Jose\'s technology background and strongest areas.'],
+            ['Discuss role fit', 'I would like to discuss whether Jose is a fit for a technology role.'],
+            ['Request a conversation', 'I would like to arrange a professional conversation with Jose.']
+        ],
+        podiatry: [
+            ['Ask a general question', 'I have a general health question and would like educational guidance.'],
+            ['Prepare for a visit', 'What information should I prepare before contacting a medical office?'],
+            ['Appointment information', 'I would like general information about arranging an appointment.']
+        ]
+    };
+
+    function addStarterPrompts(persona) {
+        const choices = starterPrompts[persona] || starterPrompts.it;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'chat-starters';
+        wrapper.setAttribute('aria-label', 'Suggested questions');
+        choices.forEach(([label, prompt]) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'chat-starter';
+            button.textContent = label;
+            button.addEventListener('click', () => {
+                inputField.value = prompt;
+                sendMessage();
+            });
+            wrapper.appendChild(button);
+        });
+        msgContainer.appendChild(wrapper);
+    }
+
     function resetChatForPersona(persona) {
         const intro = personaIntroductions[persona] || personaIntroductions.it;
         chatHistory = [];
         msgContainer.innerHTML = '';
         addMessageToDOM(intro.message, 'bot');
+        addStarterPrompts(persona);
         inputField.placeholder = intro.placeholder;
         if (chatbotTitleText) {
             chatbotTitleText.textContent = intro.title;
@@ -116,6 +210,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!text) return;
         const persona = personaSelector.value;
         const requestStartedAt = performance.now();
+        let turnstileToken = '';
+        sendBtn.disabled = true;
+        inputField.disabled = true;
+        try {
+            await turnstileReady;
+            if (turnstileConfig.chatVerificationRequired) {
+                turnstileToken = await requestTurnstileToken('chat_start', 'chat-turnstile');
+            }
+        } catch (error) {
+            addMessageToDOM(error.message || 'Human verification failed. Please try again.', 'bot');
+            sendBtn.disabled = false;
+            inputField.disabled = false;
+            inputField.focus();
+            return;
+        }
         userMessageCount += 1;
         trackAgentEvent('chat_message_sent', {
             persona,
@@ -124,6 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 1. Show user message
         addMessageToDOM(text, 'user');
+        msgContainer.querySelector('.chat-starters')?.remove();
         inputField.value = '';
         inputField.focus();
 
@@ -142,7 +252,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     message: text,
                     history: chatHistory.slice(0, -1), // Send all history except the one we just added
-                    persona: persona
+                    persona: persona,
+                    turnstileToken,
+                    verificationSessionToken: chatVerificationSessionToken
                 })
             });
 
@@ -150,7 +262,17 @@ document.addEventListener('DOMContentLoaded', () => {
             removeTypingIndicator();
 
             if (data.error) {
-                addMessageToDOM("⚠️ System Error: Our engineers are currently offline.", 'bot');
+                if (data.verificationRequired) {
+                    turnstileConfig.chatVerificationRequired = true;
+                    chatVerificationSessionToken = '';
+                    sessionStorage.removeItem(chatVerificationStorageKey);
+                }
+                addMessageToDOM(
+                    data.verificationRequired
+                        ? 'Human verification is required. Please send your message again to retry.'
+                        : '⚠️ System Error: Our engineers are currently offline.',
+                    'bot'
+                );
                 trackAgentEvent('chat_response', {
                     persona,
                     outcome: 'api_error',
@@ -160,6 +282,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Remove the failed user message from history
                 chatHistory.pop();
             } else {
+                turnstileConfig.chatVerificationRequired = false;
+                if (data.verificationSessionToken) {
+                    chatVerificationSessionToken = data.verificationSessionToken;
+                    sessionStorage.setItem(chatVerificationStorageKey, chatVerificationSessionToken);
+                }
                 addMessageToDOM(data.response, 'bot');
                 chatHistory.push({ "role": "model", "parts": [data.response] });
                 trackAgentEvent('chat_response', {
@@ -181,6 +308,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 responseTimeMs: Math.round(performance.now() - requestStartedAt)
             });
             chatHistory.pop();
+        } finally {
+            sendBtn.disabled = false;
+            inputField.disabled = false;
+            inputField.focus();
         }
     }
 
@@ -364,10 +495,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 email: document.getElementById('contact-email').value.trim(),
                 message: document.getElementById('contact-message').value.trim(),
                 website: document.getElementById('contact-website')?.value.trim() || '',
-                started_at: startedAtField?.value || ''
+                started_at: startedAtField?.value || '',
+                turnstileToken: ''
             };
             
             try {
+                data.turnstileToken = await requestTurnstileToken('contact_submit', 'contact-turnstile');
                 const res = await fetch('/api/contact', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

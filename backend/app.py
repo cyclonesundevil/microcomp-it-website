@@ -22,6 +22,9 @@ import io
 import traceback
 import re
 import uuid
+import base64
+import hashlib
+import hmac
 import html as html_lib
 from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -96,6 +99,9 @@ CONTACT_RATE_LIMIT_WINDOW_SECONDS = 60 * 60
 CONTACT_RATE_LIMIT_MAX = 6
 CONTACT_MIN_SUBMIT_SECONDS = 2
 CONTACT_MAX_SUBMIT_SECONDS = 60 * 60 * 24
+TURNSTILE_SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+TURNSTILE_CHAT_COOKIE = "mc_chat_verified"
+TURNSTILE_CHAT_COOKIE_MAX_AGE = 60 * 60 * 4
 
 
 def request_bool(name, default=False):
@@ -126,6 +132,79 @@ def client_ip():
     if ip_address:
         return str(ip_address).split(",")[0].strip()
     return "unknown"
+
+
+def turnstile_enabled():
+    return bool(os.getenv("TURNSTILE_SITE_KEY") and os.getenv("TURNSTILE_SECRET_KEY"))
+
+
+async def verify_turnstile(token, expected_action):
+    """Validate a single-use Turnstile token with Cloudflare."""
+    if not turnstile_enabled():
+        return True, "disabled"
+    if not isinstance(token, str) or not token or len(token) > 2048:
+        return False, "missing_token"
+
+    payload = {
+        "secret": os.getenv("TURNSTILE_SECRET_KEY"),
+        "response": token,
+        "remoteip": client_ip(),
+        "idempotency_key": str(uuid.uuid4()),
+    }
+    try:
+        response = await asyncio.to_thread(
+            requests.post,
+            TURNSTILE_SITEVERIFY_URL,
+            data=payload,
+            timeout=5,
+        )
+        result = response.json()
+    except (requests.RequestException, ValueError) as exc:
+        print(f"Turnstile validation unavailable: {exc}")
+        return False, "verification_unavailable"
+
+    if not result.get("success"):
+        errors = result.get("error-codes") or ["verification_failed"]
+        return False, ",".join(str(error) for error in errors)[:200]
+    if expected_action and result.get("action") != expected_action:
+        return False, "action_mismatch"
+    return True, "verified"
+
+
+def create_chat_verification_token():
+    issued_at = str(int(datetime.datetime.now(datetime.UTC).timestamp()))
+    user_agent = request.headers.get("User-Agent", "")[:500]
+    message = f"{issued_at}|{user_agent}".encode("utf-8")
+    secret = os.getenv("TURNSTILE_SIGNING_SECRET") or os.getenv("TURNSTILE_SECRET_KEY", "")
+    signature = hmac.new(secret.encode("utf-8"), message, hashlib.sha256).digest()
+    return f"{issued_at}.{base64.urlsafe_b64encode(signature).decode('ascii').rstrip('=')}"
+
+
+def is_valid_chat_verification_token(value):
+    if not turnstile_enabled():
+        return True
+    value = str(value or "")
+    try:
+        issued_at, supplied_signature = value.split(".", 1)
+        age = int(datetime.datetime.now(datetime.UTC).timestamp()) - int(issued_at)
+    except (TypeError, ValueError):
+        return False
+    if age < 0 or age > TURNSTILE_CHAT_COOKIE_MAX_AGE:
+        return False
+    user_agent = request.headers.get("User-Agent", "")[:500]
+    message = f"{issued_at}|{user_agent}".encode("utf-8")
+    secret = os.getenv("TURNSTILE_SIGNING_SECRET") or os.getenv("TURNSTILE_SECRET_KEY", "")
+    expected = base64.urlsafe_b64encode(
+        hmac.new(secret.encode("utf-8"), message, hashlib.sha256).digest()
+    ).decode("ascii").rstrip("=")
+    return hmac.compare_digest(supplied_signature, expected)
+
+
+def has_valid_chat_verification(provided_token=""):
+    return (
+        is_valid_chat_verification_token(provided_token)
+        or is_valid_chat_verification_token(request.cookies.get(TURNSTILE_CHAT_COOKIE, ""))
+    )
 
 
 def contact_rate_limited(ip_address):
@@ -826,6 +905,16 @@ async def contact_form():
         name = str(data.get("name", "")).strip()
         email = str(data.get("email", "")).strip()
         message = str(data.get("message", "")).strip()
+
+        turnstile_valid, turnstile_reason = await verify_turnstile(
+            data.get("turnstileToken"), "contact_submit"
+        )
+        if not turnstile_valid:
+            record_contact_event(submission_id, "rejected", submission_source, email, f"turnstile:{turnstile_reason}")
+            return jsonify({
+                "success": False,
+                "error": "We could not verify this submission. Please retry the verification."
+            }), 403
 
         filter_reason = contact_filter_reason(data, message)
         if filter_reason:
@@ -1824,6 +1913,15 @@ async def admin_dashboard():
 async def index():
     return await send_from_directory(app.static_folder, "index.html")
 
+
+@app.route("/api/public-config")
+async def public_config():
+    return jsonify({
+        "turnstileSiteKey": os.getenv("TURNSTILE_SITE_KEY", ""),
+        "turnstileEnabled": turnstile_enabled(),
+        "chatVerificationRequired": turnstile_enabled() and not has_valid_chat_verification(),
+    })
+
 def get_system_prompt(persona="it", is_voice=False):
     now_str = datetime.datetime.now().isoformat()
     if persona == "podiatry":
@@ -1929,7 +2027,9 @@ Our Core IT Services:
 Guidelines:
 - Keep responses concise (1-2 short paragraphs maximum).
 - Always be polite, professional, and slightly enthusiastic.
-- If they ask a technical question (e.g., "my internet is slow"), give a brief, helpful technical tip, but then immediately state that our team can implement a permanent, enterprise-grade solution for them.
+- Provide value before asking for contact details: respond to the visitor's first substantive question with useful guidance, a short diagnostic checklist, or a clarifying question tailored to their situation.
+- Do not request a name, email address, phone number, or appointment in the first assistant response. Contact details should only be requested after useful guidance has been provided and the visitor signals interest in professional help or scheduling.
+- If they ask a technical question (e.g., "my internet is slow"), give a brief, helpful technical tip and explain when the symptoms may require professional help.
 - Ask questions back to gauge their business size and current IT setup.
 - If they ask for pricing or complex setups, offer to schedule a free 30-minute IT consultation with one of our senior engineers.
 - If they agree to a consultation, ask for their Name, Email, and Preferred Date/Time. Once you have this information, use the `book_consultation` tool to schedule it on the calendar.
@@ -1953,6 +2053,19 @@ async def chat():
 
     if not user_message:
         return jsonify({"error": "Message is required"}), 400
+
+    newly_verified = False
+    if not has_valid_chat_verification(data.get("verificationSessionToken")):
+        turnstile_valid, turnstile_reason = await verify_turnstile(
+            data.get("turnstileToken"), "chat_start"
+        )
+        if not turnstile_valid:
+            return jsonify({
+                "error": "Human verification is required before starting the chat.",
+                "verificationRequired": True,
+                "reason": turnstile_reason,
+            }), 403
+        newly_verified = turnstile_enabled()
 
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
@@ -1984,7 +2097,22 @@ async def chat():
             config=config
         )
 
-        return jsonify({"response": response.text})
+        verification_session_token = create_chat_verification_token() if newly_verified else ""
+        result = jsonify({
+            "response": response.text,
+            "verificationSessionToken": verification_session_token,
+        })
+        if newly_verified:
+            result.set_cookie(
+                TURNSTILE_CHAT_COOKIE,
+                verification_session_token,
+                max_age=TURNSTILE_CHAT_COOKIE_MAX_AGE,
+                httponly=True,
+                secure=request.scheme == "https",
+                samesite="Lax",
+                path="/",
+            )
+        return result
 
     except Exception as e:
         import traceback

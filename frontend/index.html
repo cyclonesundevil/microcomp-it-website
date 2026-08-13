@@ -399,6 +399,7 @@
                     <textarea id="contact-message" name="message" rows="4" required maxlength="5000" placeholder="Describe your IT needs..."></textarea>
                 </div>
                 <button type="submit" class="btn-primary w-100" id="contact-submit-btn">Send Message <i class="fa-solid fa-paper-plane"></i></button>
+                <div id="contact-turnstile" class="turnstile-slot" aria-live="polite"></div>
                 <div id="contact-response" class="contact-response-msg hidden"></div>
             </form>
         </div>
@@ -430,6 +431,7 @@
                 you looking to upgrade your business infrastructure?
             </div>
         </div>
+        <div id="chat-turnstile" class="turnstile-slot turnstile-slot-chat" aria-live="polite"></div>
         <div class="chatbot-input">
             <button id="mic-btn" title="Ask via Voice"><i class="fa-solid fa-microphone"></i></button>
             <input type="text" id="chat-input-field" placeholder="Type your computing issue here...">

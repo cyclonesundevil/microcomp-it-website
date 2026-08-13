@@ -3641,6 +3641,21 @@ nav a:hover:not(.btn-primary) {
     border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
+.turnstile-slot {
+    min-height: 0;
+    margin-top: 0.75rem;
+}
+
+.turnstile-slot:empty {
+    display: none;
+}
+
+.turnstile-slot-chat {
+    margin: 0;
+    padding: 0 1rem;
+    background: rgba(3, 5, 10, 0.5);
+}
+
 /* Chatbot UI */
 .chatbot-toggle {
     position: fixed;
@@ -3774,6 +3789,32 @@ nav a:hover:not(.btn-primary) {
     font-weight: 500;
     align-self: flex-end;
     border-bottom-right-radius: 4px;
+}
+
+.chat-starters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-self: stretch;
+}
+
+.chat-starter {
+    padding: 0.55rem 0.7rem;
+    border: 1px solid rgba(0, 240, 255, 0.35);
+    border-radius: 999px;
+    background: rgba(0, 240, 255, 0.08);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.chat-starter:hover,
+.chat-starter:focus-visible {
+    border-color: var(--accent-blue);
+    background: rgba(0, 240, 255, 0.16);
+    outline: none;
 }
 
 .chatbot-input {
