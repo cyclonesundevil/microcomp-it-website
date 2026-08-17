@@ -488,7 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending verification...';
             
             const data = {
                 name: document.getElementById('contact-name').value.trim(),
@@ -512,7 +512,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (result.success) {
                     responseMsg.className = 'contact-response-msg success';
-                    responseMsg.innerText = "Message sent successfully! We will be in touch shortly.";
+                    responseMsg.innerText = result.verificationPending
+                        ? (result.message || "Check your email and verify your address to deliver the message.")
+                        : (result.message || "Message sent successfully! We will be in touch shortly.");
                     contactForm.reset();
                     refreshContactStartedAt();
                 } else {

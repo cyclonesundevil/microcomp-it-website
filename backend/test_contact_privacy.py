@@ -1,4 +1,5 @@
 import os
+import re
 import sqlite3
 import sys
 import tempfile
@@ -23,8 +24,11 @@ class ContactPrivacyTests(unittest.IsolatedAsyncioTestCase):
         self.db_path = str(Path(self.temp_dir.name) / "analytics.db")
         os.environ["ANALYTICS_DB_PATH"] = self.db_path
         self.client = app.test_client()
+        self.turnstile_patcher = patch.object(app_module, "turnstile_enabled", return_value=False)
+        self.turnstile_patcher.start()
 
     async def asyncTearDown(self):
+        self.turnstile_patcher.stop()
         self.temp_dir.cleanup()
 
     def test_sanitizers_remove_query_values_and_fragments(self):
@@ -83,7 +87,7 @@ class ContactPrivacyTests(unittest.IsolatedAsyncioTestCase):
             ("filtered", "native_form", "missing_or_invalid_start_time", "example.net"),
         )
 
-    async def test_valid_json_submission_audits_mocked_email_delivery(self):
+    async def test_valid_json_submission_requires_email_verification_then_acknowledges(self):
         previous_values = {
             name: os.environ.get(name)
             for name in ("SMTP_EMAIL", "SMTP_PASSWORD", "CONTACT_EMAIL_RECEIVER", "DISCORD_WEBHOOK_URL")
@@ -106,7 +110,36 @@ class ContactPrivacyTests(unittest.IsolatedAsyncioTestCase):
                     },
                     headers={"User-Agent": "Mozilla/5.0"},
                 )
-                smtp.assert_called_once_with("smtp.gmail.com", 587)
+                self.assertEqual(response.status_code, 202)
+                response_data = await response.get_json()
+                self.assertTrue(response_data["verificationPending"])
+
+                smtp_server = smtp.return_value.__enter__.return_value
+                self.assertEqual(smtp_server.send_message.call_count, 1)
+                verification_email = smtp_server.send_message.call_args.args[0]
+                self.assertEqual(verification_email["To"], "customer@acme-corp.com")
+                verification_body = verification_email.get_payload()[0].get_payload(decode=True).decode()
+                token_match = re.search(r"/api/contact/verify\?token=([^\s]+)", verification_body)
+                self.assertIsNotNone(token_match)
+                token = token_match.group(1)
+
+                preview = await self.client.get(f"/api/contact/verify?token={token}")
+                self.assertEqual(preview.status_code, 200)
+                self.assertEqual(smtp_server.send_message.call_count, 1)
+
+                verified = await self.client.post("/api/contact/verify", form={"token": token})
+                self.assertEqual(verified.status_code, 200)
+                self.assertEqual(smtp_server.send_message.call_count, 3)
+
+                reused = await self.client.post("/api/contact/verify", form={"token": token})
+                self.assertEqual(reused.status_code, 410)
+                self.assertEqual(smtp_server.send_message.call_count, 3)
+
+                staff_email = smtp_server.send_message.call_args_list[1].args[0]
+                acknowledgement = smtp_server.send_message.call_args_list[2].args[0]
+                self.assertEqual(staff_email["To"], "owner@microcompit.com")
+                self.assertEqual(staff_email["Reply-To"], "customer@acme-corp.com")
+                self.assertEqual(acknowledgement["To"], "customer@acme-corp.com")
         finally:
             for name, value in previous_values.items():
                 if value is None:
@@ -114,18 +147,21 @@ class ContactPrivacyTests(unittest.IsolatedAsyncioTestCase):
                 else:
                     os.environ[name] = value
 
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue((await response.get_json())["delivered"]["email"])
-
         conn = sqlite3.connect(self.db_path)
         try:
             event = conn.execute(
-                "SELECT status, source, detail, email_delivered, discord_delivered, email_domain "
+                "SELECT status, source, detail, email_delivered, discord_delivered, "
+                "acknowledgement_delivered, email_domain "
                 "FROM contact_events ORDER BY id DESC LIMIT 1"
             ).fetchone()
+            pending_count = conn.execute("SELECT COUNT(*) FROM pending_contact_submissions").fetchone()[0]
         finally:
             conn.close()
-        self.assertEqual(event, ("delivered", "json", "email", 1, 0, "acme-corp.com"))
+        self.assertEqual(
+            event,
+            ("verified_delivered", "json", "email+acknowledgement", 1, 0, 1, "acme-corp.com"),
+        )
+        self.assertEqual(pending_count, 0)
 
 
 if __name__ == "__main__":

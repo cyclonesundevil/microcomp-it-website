@@ -25,6 +25,7 @@ import uuid
 import base64
 import hashlib
 import hmac
+import secrets
 import html as html_lib
 from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -102,6 +103,7 @@ CONTACT_MAX_SUBMIT_SECONDS = 60 * 60 * 24
 TURNSTILE_SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 TURNSTILE_CHAT_COOKIE = "mc_chat_verified"
 TURNSTILE_CHAT_COOKIE_MAX_AGE = 60 * 60 * 4
+CONTACT_VERIFICATION_MAX_AGE = 60 * 60 * 24
 
 
 def request_bool(name, default=False):
@@ -224,6 +226,186 @@ def contact_rate_limited(ip_address):
 
 def silent_contact_success():
     return jsonify({"success": True})
+
+
+def contact_token_hash(token):
+    return hashlib.sha256(str(token or "").encode("utf-8")).hexdigest()
+
+
+def smtp_settings():
+    sender = os.getenv("SMTP_EMAIL", "").strip()
+    password = os.getenv("SMTP_PASSWORD", "").strip()
+    return sender, password
+
+
+def send_smtp_message(recipient, subject, body, reply_to=""):
+    sender, password = smtp_settings()
+    if not sender or not password or not recipient:
+        raise RuntimeError("SMTP email delivery is not configured.")
+
+    msg = MIMEMultipart()
+    msg["From"] = sender
+    msg["To"] = recipient
+    if reply_to:
+        msg["Reply-To"] = reply_to
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain"))
+
+    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        server.starttls()
+        server.login(sender, password)
+        server.send_message(msg)
+
+
+def contact_public_base_url():
+    configured = os.getenv("CONTACT_PUBLIC_BASE_URL", "").strip().rstrip("/")
+    return configured or request.url_root.rstrip("/")
+
+
+def store_pending_contact(submission_id, source, name, email, message):
+    token = secrets.token_urlsafe(32)
+    now = int(datetime.datetime.now(datetime.UTC).timestamp())
+    conn = sqlite3.connect(get_analytics_db_path())
+    ensure_analytics_schema(conn)
+    conn.execute("DELETE FROM pending_contact_submissions WHERE expires_at < ?", (now,))
+    conn.execute(
+        """INSERT INTO pending_contact_submissions (
+               submission_id, token_hash, name, email, message, source, created_at, expires_at
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            submission_id,
+            contact_token_hash(token),
+            name,
+            email,
+            message,
+            source,
+            now,
+            now + CONTACT_VERIFICATION_MAX_AGE,
+        ),
+    )
+    conn.commit()
+    conn.close()
+    return token
+
+
+def pending_contact_for_token(token):
+    now = int(datetime.datetime.now(datetime.UTC).timestamp())
+    conn = sqlite3.connect(get_analytics_db_path())
+    ensure_analytics_schema(conn)
+    conn.execute("DELETE FROM pending_contact_submissions WHERE expires_at < ?", (now,))
+    row = conn.execute(
+        """SELECT submission_id, name, email, message, source
+           FROM pending_contact_submissions
+           WHERE token_hash = ? AND expires_at >= ?""",
+        (contact_token_hash(token), now),
+    ).fetchone()
+    conn.commit()
+    conn.close()
+    return row
+
+
+def delete_pending_contact(submission_id):
+    conn = sqlite3.connect(get_analytics_db_path())
+    conn.execute("DELETE FROM pending_contact_submissions WHERE submission_id = ?", (submission_id,))
+    conn.commit()
+    conn.close()
+
+
+def send_contact_verification(email, name, token):
+    verification_url = f"{contact_public_base_url()}/api/contact/verify?token={token}"
+    body = f"""Hello {name},
+
+We received a contact request using this email address on the MicroComp IT website.
+
+Please verify that you initiated the request by opening this secure link:
+{verification_url}
+
+The link expires in 24 hours. If you did not submit the request, you can ignore this email and no message will be delivered to our team.
+
+MicroComp IT Solutions
+"""
+    send_smtp_message(
+        email,
+        "Verify your MicroComp IT contact request",
+        body,
+    )
+
+
+def send_contact_acknowledgement(email, name):
+    body = f"""Hello {name},
+
+Your email address has been verified and your message was delivered to the MicroComp IT team.
+
+This is your confirmation that we received the contact request. A team member will review it and follow up as soon as possible.
+
+If you did not make this request, please reply to this email and let us know.
+
+MicroComp IT Solutions
+"""
+    send_smtp_message(
+        email,
+        "We received your verified MicroComp IT request",
+        body,
+    )
+
+
+def deliver_verified_contact(name, email, message):
+    results = {"discord": False, "email": False, "acknowledgement": False}
+    errors = []
+    discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
+
+    if discord_webhook:
+        payload = {
+            "embeds": [{
+                "title": "New verified website lead",
+                "color": 3447003,
+                "fields": [
+                    {"name": "Name", "value": name, "inline": True},
+                    {"name": "Email", "value": email, "inline": True},
+                    {"name": "Message", "value": message},
+                ],
+            }],
+        }
+        try:
+            response = requests.post(discord_webhook, json=payload, timeout=10)
+            if 200 <= response.status_code < 300:
+                results["discord"] = True
+            else:
+                errors.append(f"Discord returned HTTP {response.status_code}.")
+        except Exception as exc:
+            print(f"FAILED to send verified contact to Discord: {exc}")
+            errors.append("Discord notification failed.")
+
+    sender, password = smtp_settings()
+    receiver = os.getenv("CONTACT_EMAIL_RECEIVER", sender).strip()
+    if sender and password and receiver:
+        try:
+            body = (
+                "A visitor verified their email address for this website contact request.\n\n"
+                f"Name: {name}\nEmail: {email}\n\nMessage:\n{message}"
+            )
+            send_smtp_message(
+                receiver,
+                f"Verified Website Lead: {name}",
+                body,
+                reply_to=email,
+            )
+            results["email"] = True
+        except Exception as exc:
+            print(f"FAILED to send verified contact email: {exc}")
+            errors.append("Staff email notification failed.")
+    else:
+        errors.append("Staff email notification is not configured.")
+
+    if results["discord"] or results["email"]:
+        try:
+            send_contact_acknowledgement(email, name)
+            results["acknowledgement"] = True
+        except Exception as exc:
+            print(f"FAILED to send contact acknowledgement: {exc}")
+            errors.append("Visitor acknowledgement failed.")
+
+    return results, errors
 
 
 def contact_filter_reason(data, message):
@@ -647,13 +829,39 @@ def ensure_analytics_schema(conn):
                   detail TEXT,
                   email_delivered INTEGER DEFAULT 0,
                   discord_delivered INTEGER DEFAULT 0,
+                  acknowledgement_delivered INTEGER DEFAULT 0,
                   ip_address TEXT,
                   email_domain TEXT,
                   is_bot INTEGER DEFAULT 0,
                   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+    add_column_if_missing(
+        c,
+        "contact_events",
+        "acknowledgement_delivered",
+        "INTEGER DEFAULT 0",
+    )
+
+    c.execute('''CREATE TABLE IF NOT EXISTS pending_contact_submissions
+                 (submission_id TEXT PRIMARY KEY,
+                  token_hash TEXT UNIQUE NOT NULL,
+                  name TEXT NOT NULL,
+                  email TEXT NOT NULL,
+                  message TEXT NOT NULL,
+                  source TEXT NOT NULL,
+                  created_at INTEGER NOT NULL,
+                  expires_at INTEGER NOT NULL)''')
 
 
-def record_contact_event(submission_id, status, source, email="", detail="", email_delivered=False, discord_delivered=False):
+def record_contact_event(
+    submission_id,
+    status,
+    source,
+    email="",
+    detail="",
+    email_delivered=False,
+    discord_delivered=False,
+    acknowledgement_delivered=False,
+):
     """Audit contact handling without retaining names, addresses, or message contents."""
     try:
         email_domain = email.rsplit("@", 1)[-1].lower()[:120] if "@" in email else ""
@@ -665,8 +873,9 @@ def record_contact_event(submission_id, status, source, email="", detail="", ema
         conn.execute(
             """INSERT INTO contact_events (
                    submission_id, status, source, detail, email_delivered,
-                   discord_delivered, ip_address, email_domain, is_bot
-               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   discord_delivered, acknowledgement_delivered, ip_address,
+                   email_domain, is_bot
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 submission_id,
                 status[:40],
@@ -674,6 +883,7 @@ def record_contact_event(submission_id, status, source, email="", detail="", ema
                 detail[:120],
                 1 if email_delivered else 0,
                 1 if discord_delivered else 0,
+                1 if acknowledgement_delivered else 0,
                 ip_address,
                 email_domain,
                 parse_user_agent(user_agent).get("is_bot", 0),
@@ -946,99 +1156,159 @@ async def contact_form():
             record_contact_event(submission_id, "rejected", submission_source, email, "message_too_long")
             return jsonify({"success": False, "error": "Message must be 5000 characters or fewer."}), 400
         
-        delivery_results = {
-            "discord": False,
-            "email": False
-        }
-        delivery_errors = []
-
-        discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
-        if discord_webhook:
-            payload = {
-                "embeds": [{
-                    "title": "🚨 New Website Lead",
-                    "color": 3447003,
-                    "fields": [
-                        {"name": "Name", "value": name, "inline": True},
-                        {"name": "Email", "value": email, "inline": True},
-                        {"name": "Message", "value": message}
-                    ]
-                }]
-            }
-            try:
-                resp = requests.post(discord_webhook, json=payload, timeout=10)
-                print(f"Discord Webhook Response: {resp.status_code} - {resp.text}")
-                if 200 <= resp.status_code < 300:
-                    delivery_results["discord"] = True
-                else:
-                    delivery_errors.append(f"Discord returned HTTP {resp.status_code}.")
-            except Exception as e:
-                print(f"FAILED to send to Discord: {e}")
-                delivery_errors.append("Discord notification failed.")
-        else:
-            print("WARNING: DISCORD_WEBHOOK_URL not set in environment.")
-
-        # --- Email Sending Logic ---
-        smtp_email = os.getenv("SMTP_EMAIL")
-        smtp_password = os.getenv("SMTP_PASSWORD")
-        # Default to sending the email to the same address used for SMTP if receiver is not specified
-        receiver_email = os.getenv("CONTACT_EMAIL_RECEIVER", smtp_email)
-
-        if smtp_email and smtp_password and receiver_email:
-            msg = MIMEMultipart()
-            msg['From'] = smtp_email
-            msg['To'] = receiver_email
-            msg['Reply-To'] = email
-            msg['Subject'] = f"New Website Lead: {name}"
-
-            body = f"You have received a new contact form submission from the website.\n\nName: {name}\nEmail: {email}\n\nMessage:\n{message}"
-            msg.attach(MIMEText(body, 'plain'))
-
-            try:
-                with smtplib.SMTP('smtp.gmail.com', 587) as server:
-                    server.starttls()
-                    server.login(smtp_email, smtp_password)
-                    server.send_message(msg)
-                delivery_results["email"] = True
-                print("Email notification successfully sent.")
-            except Exception as e:
-                print(f"FAILED to send email notification: {e}")
-                delivery_errors.append("Email notification failed.")
-        else:
-            print("WARNING: SMTP_EMAIL and/or SMTP_PASSWORD not set in environment. Email not sent.")
-            
-        if delivery_results["discord"] or delivery_results["email"]:
-            delivered_channels = "+".join(
-                channel for channel, delivered in delivery_results.items() if delivered
-            )
-            record_contact_event(
-                submission_id,
-                "delivered",
-                submission_source,
-                email,
-                delivered_channels,
-                email_delivered=delivery_results["email"],
-                discord_delivered=delivery_results["discord"],
-            )
-            return jsonify({"success": True, "delivered": delivery_results})
-
-        if not discord_webhook and not (smtp_email and smtp_password and receiver_email):
+        smtp_email, smtp_password = smtp_settings()
+        if not smtp_email or not smtp_password:
             record_contact_event(submission_id, "delivery_failed", submission_source, email, "not_configured")
             return jsonify({
                 "success": False,
-                "error": "Contact delivery is not configured. Please try again later."
+                "error": "Email verification is not configured. Please try again later."
             }), 503
 
-        record_contact_event(submission_id, "delivery_failed", submission_source, email, "configured_channels_failed")
+        token = store_pending_contact(
+            submission_id,
+            submission_source,
+            name,
+            email,
+            message,
+        )
+        try:
+            await asyncio.to_thread(send_contact_verification, email, name, token)
+        except Exception as exc:
+            delete_pending_contact(submission_id)
+            record_contact_event(submission_id, "delivery_failed", submission_source, email, "verification_email_failed")
+            print(f"FAILED to send contact verification email: {exc}")
+            return jsonify({
+                "success": False,
+                "error": "We could not send the verification email. Please try again later."
+            }), 502
+
+        record_contact_event(submission_id, "pending_verification", submission_source, email, "verification_email_sent")
         return jsonify({
-            "success": False,
-            "error": "Message received, but notification delivery failed. Please try again later.",
-            "delivery_errors": delivery_errors
-        }), 502
+            "success": True,
+            "verificationPending": True,
+            "message": "Check your email and verify your address to deliver the message."
+        }), 202
     except Exception as e:
         record_contact_event(submission_id, "delivery_failed", submission_source, detail="unexpected_error")
         print(f"Contact form error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+def contact_verification_page(title, message, token="", error=False):
+    safe_title = html_lib.escape(title)
+    safe_message = html_lib.escape(message)
+    form_html = ""
+    if token:
+        safe_token = html_lib.escape(token, quote=True)
+        form_html = f"""
+            <form method="post" action="/api/contact/verify">
+                <input type="hidden" name="token" value="{safe_token}">
+                <button type="submit">Verify and send my message</button>
+            </form>
+        """
+    accent = "#dc2626" if error else "#047b91"
+    return Response(
+        f"""<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{safe_title} | MicroComp IT</title>
+    <style>
+        body {{ margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 1.5rem;
+               box-sizing: border-box; background: #f5f8fb; color: #142235;
+               font-family: Inter, system-ui, sans-serif; }}
+        main {{ width: min(34rem, 100%); padding: 2rem; box-sizing: border-box; border-radius: 16px;
+                background: white; border: 1px solid rgba(4,123,145,.2);
+                box-shadow: 0 18px 50px rgba(35,59,82,.16); }}
+        .eyebrow {{ color: {accent}; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }}
+        h1 {{ margin: .5rem 0 .75rem; }}
+        p {{ color: #536174; line-height: 1.6; }}
+        button, a {{ display: inline-flex; margin-top: 1rem; padding: .8rem 1.1rem; border: 0;
+                     border-radius: 8px; background: {accent}; color: white; font: inherit;
+                     font-weight: 800; text-decoration: none; cursor: pointer; }}
+    </style>
+</head>
+<body>
+    <main>
+        <div class="eyebrow">MicroComp IT Solutions</div>
+        <h1>{safe_title}</h1>
+        <p>{safe_message}</p>
+        {form_html}
+        {'' if token else '<a href="/">Return to the website</a>'}
+    </main>
+</body>
+</html>""",
+        content_type="text/html; charset=utf-8",
+    )
+
+
+@app.route("/api/contact/verify", methods=["GET", "POST"])
+async def verify_contact_email():
+    if request.method == "GET":
+        token = request.args.get("token", "")
+        pending = pending_contact_for_token(token) if token else None
+        if not pending:
+            response = contact_verification_page(
+                "Verification link unavailable",
+                "This verification link is invalid, expired, or has already been used.",
+                error=True,
+            )
+            response.status_code = 410
+            return response
+        return contact_verification_page(
+            "Confirm your contact request",
+            "Verify your email address to deliver your message to our team. This final confirmation prevents unauthorized submissions.",
+            token=token,
+        )
+
+    form = await request.form
+    token = str(form.get("token", ""))
+    pending = pending_contact_for_token(token) if token else None
+    if not pending:
+        response = contact_verification_page(
+            "Verification link unavailable",
+            "This verification link is invalid, expired, or has already been used.",
+            error=True,
+        )
+        response.status_code = 410
+        return response
+
+    submission_id, name, email, message, source = pending
+    results, errors = await asyncio.to_thread(
+        deliver_verified_contact,
+        name,
+        email,
+        message,
+    )
+    staff_delivered = results["discord"] or results["email"]
+    if not staff_delivered:
+        record_contact_event(submission_id, "delivery_failed", source, email, "verified_delivery_failed")
+        response = contact_verification_page(
+            "We could not deliver your message",
+            "Your address was verified, but delivery is temporarily unavailable. Please retry this verification link shortly.",
+            error=True,
+        )
+        response.status_code = 502
+        return response
+
+    delete_pending_contact(submission_id)
+    delivered_channels = "+".join(name for name, delivered in results.items() if delivered)
+    record_contact_event(
+        submission_id,
+        "verified_delivered",
+        source,
+        email,
+        delivered_channels,
+        email_delivered=results["email"],
+        discord_delivered=results["discord"],
+        acknowledgement_delivered=results["acknowledgement"],
+    )
+    if results["acknowledgement"]:
+        message_text = "Your email is verified, your message was delivered, and a confirmation email has been sent to you."
+    else:
+        message_text = "Your email is verified and your message was delivered. We could not send the confirmation email, but our team received your request."
+    return contact_verification_page("Request verified", message_text)
 
 @app.route("/api/track", methods=["POST"])
 async def track_visitor():
@@ -1511,7 +1781,7 @@ async def admin_dashboard():
 
     c.execute("""
         SELECT
-            COUNT(CASE WHEN status = 'delivered' THEN 1 END),
+            COUNT(CASE WHEN status IN ('delivered', 'verified_delivered') THEN 1 END),
             COUNT(CASE WHEN status = 'filtered' THEN 1 END),
             COUNT(CASE WHEN status = 'delivery_failed' THEN 1 END),
             COUNT(CASE WHEN status IN ('rejected', 'rate_limited') THEN 1 END)
@@ -1521,7 +1791,7 @@ async def admin_dashboard():
 
     c.execute("""
         SELECT timestamp, status, source, detail, email_delivered, discord_delivered,
-               email_domain, is_bot, ip_address
+               acknowledgement_delivered, email_domain, is_bot, ip_address
         FROM contact_events
         ORDER BY timestamp DESC
         LIMIT 30
@@ -1630,12 +1900,13 @@ async def admin_dashboard():
         f"<td>{html_lib.escape(str(detail or ''))}</td>"
         f"<td>{'Yes' if email_delivered else 'No'}</td>"
         f"<td>{'Yes' if discord_delivered else 'No'}</td>"
+        f"<td>{'Yes' if acknowledgement_delivered else 'No'}</td>"
         f"<td>{html_lib.escape(str(email_domain or ''))}</td>"
         f"<td>{'Yes' if is_bot else 'No'}</td>"
         f"<td>{html_lib.escape(str(ip or ''))}</td>"
         "</tr>"
-        for ts, status, source, detail, email_delivered, discord_delivered, email_domain, is_bot, ip in recent_contact_events
-    ) or '<tr><td colspan="9">No contact-form events recorded yet.</td></tr>'
+        for ts, status, source, detail, email_delivered, discord_delivered, acknowledgement_delivered, email_domain, is_bot, ip in recent_contact_events
+    ) or '<tr><td colspan="10">No contact-form events recorded yet.</td></tr>'
 
     avg_active_seconds = int(active_total_seconds / active_sessions_count) if active_sessions_count else 0
     
@@ -1794,7 +2065,7 @@ async def admin_dashboard():
 
             <div class="card">
                 <h2><i class="fa-solid fa-envelope-circle-check"></i> Contact Form Delivery</h2>
-                <p class="timezone-note">Shows whether a submission was filtered, rejected, delivered, or failed delivery. Names, full email addresses, and message contents are not stored here.</p>
+                <p class="timezone-note">Shows verification and delivery outcomes. Pending contact details are stored temporarily until verification or expiration; the audit log retains no names, full email addresses, or message contents.</p>
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-number">{contact_delivered}</div>
@@ -1816,7 +2087,7 @@ async def admin_dashboard():
                 <h3>Recent contact events</h3>
                 <div class="table-wrap">
                     <table>
-                        <thead><tr><th>Time</th><th>Status</th><th>Source</th><th>Detail</th><th>Email</th><th>Discord</th><th>Email domain</th><th>Bot</th><th>IP</th></tr></thead>
+                        <thead><tr><th>Time</th><th>Status</th><th>Source</th><th>Detail</th><th>Staff email</th><th>Discord</th><th>Acknowledgement</th><th>Email domain</th><th>Bot</th><th>IP</th></tr></thead>
                         <tbody>{contact_events_html}</tbody>
                     </table>
                 </div>
