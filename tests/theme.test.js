@@ -10,6 +10,7 @@ const stampedPages = [
     'index.html',
     'demo-lab.html',
     'black-hole-playground.html',
+    'quantum-playground.html',
     'lensing-simulator.html',
     'nfl-predictor.html',
     'universe-explorer.html'

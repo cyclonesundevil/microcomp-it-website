@@ -11,6 +11,7 @@ const publicPages = [
     'index.html',
     'demo-lab.html',
     'black-hole-playground.html',
+    'quantum-playground.html',
     'lensing-simulator.html',
     'universe-explorer.html',
     'nfl-predictor.html',

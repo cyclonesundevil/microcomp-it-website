@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Playground — Break Reality | MicroComp IT</title>
+    <meta name="description" content="Explore quantum interference, Bell correlations, and explicit candidate reality models through sampled browser experiments.">
+    <meta name="theme-color" content="#03050a">
+    <script src="theme.js?v=1.2"></script>
+    <script src="analytics.js?v=1.2"></script>
+    <link rel="stylesheet" href="styles.css?v=3.2">
+    <link rel="stylesheet" href="quantum-playground.css?v=1.8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="quantum-page">
+    <a class="quantum-skip-link" href="#quantum-workbench">Skip to the active experiment</a>
+    <header class="navbar">
+        <div class="logo"><i class="fa-solid fa-server"></i> MicroComp IT</div>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="demo-lab.html">Demo Lab</a>
+            <button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle color theme" aria-pressed="false">
+                <i class="fa-solid fa-moon"></i>
+                <span data-theme-label>Dark</span>
+            </button>
+        </nav>
+    </header>
+
+    <main>
+        <section class="quantum-hero">
+            <div>
+                <p class="science-kicker">Interactive quantum laboratory</p>
+                <h1>Quantum Playground — Break Reality</h1>
+                <p>Emit particles one at a time. Every detection is unpredictable, yet repeated trials reveal the probability distribution prepared by the source.</p>
+            </div>
+            <aside>
+                <span>Phase 9 learning experience</span>
+                <strong>Probability → interference → information → correlations</strong>
+                <p>Real probability calculation, sampled event by event. The flight pulse is an interface cue—not an observed quantum trajectory.</p>
+            </aside>
+        </section>
+
+        <nav class="quantum-learning-path" aria-label="Guided quantum experiment progression">
+            <div>
+                <p class="quantum-panel-label">Guided progression</p>
+                <p>Move from probability, through interference and information, to correlations and tests of classes of physical explanations.</p>
+            </div>
+            <ol>
+                <li><button type="button" data-guide-experiment="single">Single Particle</button></li>
+                <li><button type="button" data-guide-experiment="double-slit">Double Slit</button></li>
+                <li><button type="button" data-guide-experiment="which-path">Which-Path</button></li>
+                <li><button type="button" data-guide-experiment="decoherence">Decoherence</button></li>
+                <li><button type="button" data-guide-experiment="quantum-eraser">Quantum Eraser</button></li>
+                <li><button type="button" data-guide-experiment="entanglement">Entanglement</button></li>
+                <li><button type="button" data-guide-experiment="bell-test">Bell / CHSH</button></li>
+                <li><button type="button" data-guide-experiment="build-reality">Build Reality</button></li>
+            </ol>
+        </nav>
+
+        <section id="quantum-workbench" class="quantum-workbench" tabindex="-1" aria-label="Quantum Playground experiment">
+            <aside class="quantum-experiments" aria-label="Experiment selector">
+                <p class="quantum-panel-label">Choose an experiment</p>
+                <div id="quantum-experiment-list" class="quantum-experiment-list" role="list" aria-label="Available experiments">
+                    <button type="button" class="active" data-experiment="single" aria-pressed="true">Single Particle <span>Live</span></button>
+                    <button type="button" data-experiment="double-slit" aria-pressed="false">Double Slit <span>Live</span></button>
+                    <button type="button" data-experiment="which-path" aria-pressed="false">Which-Path <span>Live</span></button>
+                    <button type="button" data-experiment="decoherence" aria-pressed="false">Decoherence <span>Live</span></button>
+                    <button type="button" data-experiment="quantum-eraser" aria-pressed="false">Quantum Eraser <span>Live</span></button>
+                    <button type="button" data-experiment="entanglement" aria-pressed="false">Entanglement <span>Live</span></button>
+                    <button type="button" data-experiment="bell-test" aria-pressed="false">Bell Test <span>Live</span></button>
+                    <button type="button" data-experiment="build-reality" aria-pressed="false">Build Your Own Reality <span>Live</span></button>
+                </div>
+            </aside>
+
+            <div class="quantum-stage-panel">
+                <div class="quantum-stage-header">
+                    <div>
+                        <span id="quantum-status-badge" role="status" aria-live="polite">Ready</span>
+                        <h2 id="quantum-experiment-title" tabindex="-1">Single Particle</h2>
+                    </div>
+                    <p id="quantum-event-count">0 detections</p>
+                </div>
+                <p id="quantum-experiment-intro" class="quantum-experiment-intro">Prepare a probability distribution, emit one event at a time, and watch stable statistics emerge from unpredictable detections.</p>
+
+                <div class="quantum-stage" id="quantum-stage">
+                    <canvas id="quantum-canvas" width="900" height="520" role="img" aria-label="Detector showing sampled particle impacts and expected probability curve" aria-describedby="quantum-live-summary quantum-visual-note">The calculated numerical results and a textual description of this visualization are available immediately below the canvas.</canvas>
+                    <div id="quantum-flight-pulse" class="quantum-flight-pulse" aria-hidden="true"></div>
+                    <p id="quantum-empty-state" class="quantum-empty-state">No observations yet. Emit one event or a batch to begin.</p>
+                    <noscript>JavaScript is required to run the interactive detector. The scientific explanation remains available below.</noscript>
+                </div>
+
+                <div class="quantum-readouts" role="status" aria-live="polite" aria-atomic="true" aria-label="Experiment numerical results">
+                    <div><span id="quantum-total-label">Total detections</span><strong id="quantum-total-readout">0</strong></div>
+                    <div><span id="quantum-mean-label">Sample mean</span><strong id="quantum-mean-readout">0.000</strong></div>
+                    <div><span id="quantum-spread-label">Sample spread</span><strong id="quantum-spread-readout">0.000</strong></div>
+                    <div><span>Random mode</span><strong id="quantum-random-readout">Seeded</strong></div>
+                </div>
+                <details class="quantum-seeing">
+                    <summary>What am I seeing?</summary>
+                    <p id="quantum-seeing-copy">The teal curve is calculated from the prepared probability model. Purple marks are sampled observations. Decorative source and motion effects are illustrative.</p>
+                </details>
+                <p id="quantum-live-summary" class="sr-only" aria-live="polite">Detector is ready with zero detections.</p>
+            </div>
+
+            <aside class="quantum-controls" aria-label="Simulation controls">
+                <p class="quantum-panel-label">Experiment controls</p>
+                <label>
+                    <span id="quantum-batch-label">Batch size</span>
+                    <select id="quantum-batch-size">
+                        <option value="10">10 particles</option>
+                        <option value="100" selected>100 particles</option>
+                        <option value="500">500 particles</option>
+                        <option value="1000">1,000 particles</option>
+                    </select>
+                </label>
+                <label class="quantum-checkbox">
+                    <input id="quantum-fixed-seed" type="checkbox" checked>
+                    <span>Deterministic seed</span>
+                </label>
+                <label>
+                    Seed
+                    <input id="quantum-seed" type="text" value="quantum-phase-1" maxlength="80" autocomplete="off">
+                </label>
+                <div id="quantum-double-slit-controls" class="quantum-parameter-group" hidden>
+                    <label>
+                        Slit width <span id="quantum-slit-width-value">12 μm</span>
+                        <input id="quantum-slit-width" type="range" min="4" max="30" step="1" value="12">
+                    </label>
+                    <label>
+                        Slit separation <span id="quantum-slit-separation-value">40 μm</span>
+                        <input id="quantum-slit-separation" type="range" min="12" max="100" step="1" value="40">
+                    </label>
+                    <label>
+                        Wavelength <span id="quantum-wavelength-value">550 nm</span>
+                        <input id="quantum-wavelength" type="range" min="380" max="700" step="5" value="550">
+                    </label>
+                    <label>
+                        Screen distance <span id="quantum-screen-distance-value">1.00 m</span>
+                        <input id="quantum-screen-distance" type="range" min="50" max="200" step="5" value="100">
+                    </label>
+                </div>
+                <div id="quantum-which-path-controls" class="quantum-parameter-group" hidden>
+                    <label class="quantum-checkbox">
+                        <input id="quantum-which-path-detector" type="checkbox">
+                        <span>Which-Path Detector</span>
+                    </label>
+                    <p><strong id="quantum-marker-state">OFF — indistinguishable markers</strong></p>
+                </div>
+                <div id="quantum-decoherence-controls" class="quantum-parameter-group" hidden>
+                    <label>
+                        Coherence / environmental overlap <span id="quantum-coherence-value">γ = 0.50</span>
+                        <input id="quantum-coherence" type="range" min="0" max="1" step="0.05" value="0.5">
+                    </label>
+                    <div class="quantum-complementarity" aria-live="polite">
+                        <span>Visibility <strong id="quantum-visibility">V = 0.50</strong></span>
+                        <span>Distinguishability <strong id="quantum-distinguishability">D = 0.87</strong></span>
+                    </div>
+                    <p>Ideal pure symmetric model: <code>V² + D² = 1</code>. More generally, <code>V² + D² ≤ 1</code>.</p>
+                </div>
+                <div id="quantum-eraser-controls" class="quantum-parameter-group" hidden>
+                    <p>Detector event view</p>
+                    <div class="quantum-view-switcher" role="group" aria-label="Quantum eraser event subset">
+                        <button type="button" data-eraser-view="all" aria-pressed="true">All events</button>
+                        <button type="button" data-eraser-view="plus" aria-pressed="false">Marker +</button>
+                        <button type="button" data-eraser-view="minus" aria-pressed="false">Marker −</button>
+                    </div>
+                    <div class="quantum-branch-counts" aria-live="polite">
+                        <span>+ events <strong id="quantum-plus-count">0</strong></span>
+                        <span>− events <strong id="quantum-minus-count">0</strong></span>
+                    </div>
+                    <p>The conditioned curves are normalized for comparison; joint branch weights remain in the physics model.</p>
+                </div>
+                <div id="quantum-entanglement-controls" class="quantum-parameter-group" hidden>
+                    <label>
+                        Alice analyzer <span id="quantum-alice-angle-value">0°</span>
+                        <input id="quantum-alice-angle" type="range" min="0" max="180" step="0.5" value="0">
+                    </label>
+                    <label>
+                        Bob analyzer <span id="quantum-bob-angle-value">22.5°</span>
+                        <input id="quantum-bob-angle" type="range" min="0" max="180" step="0.5" value="22.5">
+                    </label>
+                    <div class="quantum-joint-counts" aria-label="Joint outcome counts">
+                        <span>++ <strong id="quantum-count-pp">0</strong></span>
+                        <span>+− <strong id="quantum-count-pm">0</strong></span>
+                        <span>−+ <strong id="quantum-count-mp">0</strong></span>
+                        <span>−− <strong id="quantum-count-mm">0</strong></span>
+                    </div>
+                    <div class="quantum-local-marginals" aria-live="polite">
+                        <p><strong>Alice local</strong><span id="quantum-alice-marginal">+: 0.000 · −: 0.000</span></p>
+                        <p><strong>Bob local</strong><span id="quantum-bob-marginal">+: 0.000 · −: 0.000</span></p>
+                    </div>
+                    <p>The Born-rule reference predicts exact 50/50 local marginals independent of the remote analyzer. Finite streams approach that prediction; correlation appears when paired records are compared.</p>
+                </div>
+                <div id="quantum-chsh-controls" class="quantum-parameter-group" hidden>
+                    <label>
+                        Physical model
+                        <select id="quantum-chsh-model">
+                            <option value="quantum">Quantum Model</option>
+                            <option value="local">Local Hidden-Variable Model</option>
+                        </select>
+                    </label>
+                    <button id="quantum-chsh-preset" type="button" class="quantum-inline-button">Maximum-violation preset</button>
+                    <div class="quantum-angle-grid">
+                        <label>Alice a <span id="quantum-chsh-a-value">0°</span><input id="quantum-chsh-a" type="range" min="0" max="180" step="0.5" value="0"></label>
+                        <label>Alice a′ <span id="quantum-chsh-ap-value">45°</span><input id="quantum-chsh-ap" type="range" min="0" max="180" step="0.5" value="45"></label>
+                        <label>Bob b <span id="quantum-chsh-b-value">22.5°</span><input id="quantum-chsh-b" type="range" min="0" max="180" step="0.5" value="22.5"></label>
+                        <label>Bob b′ <span id="quantum-chsh-bp-value">157.5°</span><input id="quantum-chsh-bp" type="range" min="0" max="180" step="0.5" value="157.5"></label>
+                    </div>
+                    <p><code>b′=157.5°</code> is polarization-equivalent to <code>−22.5°</code>.</p>
+                    <div class="quantum-chsh-cohorts" aria-label="CHSH setting cohort results">
+                        <p><strong>E(a,b)</strong><span id="quantum-chsh-ab">N 0 · E 0.000 · A+ 0.000 · B+ 0.000</span></p>
+                        <p><strong>E(a,b′)</strong><span id="quantum-chsh-abp">N 0 · E 0.000 · A+ 0.000 · B+ 0.000</span></p>
+                        <p><strong>E(a′,b)</strong><span id="quantum-chsh-apb">N 0 · E 0.000 · A+ 0.000 · B+ 0.000</span></p>
+                        <p><strong>E(a′,b′)</strong><span id="quantum-chsh-apbp">N 0 · E 0.000 · A+ 0.000 · B+ 0.000</span></p>
+                    </div>
+                    <div class="quantum-chsh-summary" aria-live="polite">
+                        <span>Measured S <strong id="quantum-chsh-s">0.000</strong></span>
+                        <span>Measured |S| <strong id="quantum-chsh-abs-s">0.000</strong></span>
+                        <span>Expected S <strong id="quantum-chsh-expected-s">−2.828</strong></span>
+                        <span>Approx. σS <strong id="quantum-chsh-sigma">—</strong></span>
+                    </div>
+                    <p>Local Bell bound: <strong>2</strong> · Quantum Tsirelson bound: <strong>2√2 ≈ 2.828</strong>. Bounds constrain expectation/asymptotic values; finite estimates can fluctuate.</p>
+                </div>
+                <div id="quantum-reality-controls" class="quantum-parameter-group quantum-reality-controls" hidden>
+                    <h3>Can You Reproduce Quantum Mechanics?</h3>
+                    <label>
+                        Candidate mechanism
+                        <select id="quantum-reality-mode">
+                            <option value="local">Local hidden-variable builder</option>
+                            <option value="measurement-dependent">Setting-dependent hidden source</option>
+                            <option value="nonlocal-quantum">Quantum Born Joint Reference</option>
+                        </select>
+                    </label>
+                    <label>
+                        Hidden-variable distribution
+                        <select id="quantum-reality-hidden-distribution">
+                            <option value="uniform">Uniform λ ∈ [0,π)</option>
+                            <option value="axial-biased">Axially biased source</option>
+                        </select>
+                    </label>
+                    <label>
+                        Local response shape
+                        <select id="quantum-reality-response-shape">
+                            <option value="threshold">Deterministic threshold</option>
+                            <option value="soft">Stochastic soft response</option>
+                        </select>
+                    </label>
+                    <label>Hidden-source bias <span id="quantum-reality-bias-value">0.00</span><input id="quantum-reality-bias" type="range" min="0" max="0.8" step="0.05" value="0"></label>
+                    <label>Response softness <span id="quantum-reality-softness-value">0.35</span><input id="quantum-reality-softness" type="range" min="0.05" max="1" step="0.05" value="0.35"></label>
+                    <label>Independent local noise <span id="quantum-reality-local-noise-value">0.00</span><input id="quantum-reality-local-noise" type="range" min="0" max="0.5" step="0.025" value="0"></label>
+                    <label>Shared-source flip noise <span id="quantum-reality-shared-noise-value">0.00</span><input id="quantum-reality-shared-noise" type="range" min="0" max="0.5" step="0.025" value="0"></label>
+                    <label>Setting dependence <span id="quantum-reality-dependence-value">0.75</span><input id="quantum-reality-dependence" type="range" min="0" max="1" step="0.05" value="0.75"></label>
+                    <button id="quantum-reality-benchmark" type="button" class="quantum-inline-button">Run balanced benchmark</button>
+
+                    <section class="quantum-assumption-ledger" aria-labelledby="quantum-ledger-title">
+                        <h3 id="quantum-ledger-title">Assumption Ledger</h3>
+                        <dl>
+                            <div><dt>Locality</dt><dd id="quantum-ledger-locality">Preserved</dd></div>
+                            <div><dt>Measurement independence</dt><dd id="quantum-ledger-independence">Preserved</dd></div>
+                            <div><dt>No-signaling</dt><dd id="quantum-ledger-signaling">Awaiting conditional-marginal test</dd></div>
+                            <div><dt>Responses</dt><dd id="quantum-ledger-response">Deterministic</dd></div>
+                            <div><dt>Additional assumptions</dt><dd id="quantum-ledger-additional">Uniform hidden variable</dd></div>
+                        </dl>
+                    </section>
+
+                    <section class="quantum-reality-diagnostics" role="status" aria-live="polite" aria-atomic="true" aria-label="Candidate evaluation numerical results">
+                        <div><span>CHSH S</span><strong id="quantum-reality-s">—</strong></div>
+                        <div><span>Full-curve RMSE</span><strong id="quantum-reality-rmse">—</strong></div>
+                        <div><span>Alice signal Δ</span><strong id="quantum-reality-alice-signal">—</strong></div>
+                        <div><span>Bob signal Δ</span><strong id="quantum-reality-bob-signal">—</strong></div>
+                    </section>
+                    <ol class="quantum-challenges">
+                        <li><strong>Challenge 1:</strong> reproduce equal-angle anticorrelation. <span id="quantum-challenge-one">Awaiting data</span></li>
+                        <li><strong>Challenge 2:</strong> reproduce the full quantum correlation curve. <span id="quantum-challenge-two">Awaiting data</span></li>
+                        <li><strong>Challenge 3:</strong> reproduce the Bell violation while preserving locality and measurement independence. <span id="quantum-challenge-three">Awaiting data</span></li>
+                    </ol>
+                    <div id="quantum-reality-verdict" class="quantum-reality-verdict" data-level="incomplete" aria-live="polite">
+                        <strong>Benchmark incomplete</strong>
+                        <p>Run all predetermined angle pairs before drawing a conclusion.</p>
+                    </div>
+                    <details class="quantum-trial-audit">
+                        <summary>Latest auditable trial</summary>
+                        <code id="quantum-reality-audit">No trial emitted.</code>
+                    </details>
+                    <p><code>σS</code> remains an approximate standard error, not a rigorous p-value or an “N-sigma proof.” No arbitrary code or direct S control is accepted.</p>
+                </div>
+                <div class="quantum-control-buttons">
+                    <button id="quantum-emit-one" type="button"><i class="fa-solid fa-atom" aria-hidden="true"></i> Emit one</button>
+                    <button id="quantum-emit-batch" type="button"><i class="fa-solid fa-burst" aria-hidden="true"></i> Emit batch</button>
+                    <button id="quantum-run-toggle" type="button" aria-pressed="false"><i class="fa-solid fa-play" aria-hidden="true"></i> Run</button>
+                    <button id="quantum-reset" type="button" class="secondary"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reset</button>
+                </div>
+                <p id="quantum-control-note">A fixed seed makes the same reset-and-run sequence reproducible.</p>
+            </aside>
+        </section>
+
+        <section class="quantum-explanation" aria-label="Experiment explanation">
+            <article>
+                <p class="quantum-panel-label">Observation</p>
+                <h2 id="quantum-observation-title">Random events build a stable pattern</h2>
+                <p id="quantum-observation-copy">One detection cannot reveal the prepared distribution. As the sample grows, the histogram approaches the teal expected-probability curve.</p>
+            </article>
+            <article>
+                <p class="quantum-panel-label">Explanation</p>
+                <h2 id="quantum-physics-title">What is calculated?</h2>
+                <p id="quantum-physics-copy">Phase 1 samples a normalized Gaussian <code>|ψ(x)|²</code> across a dimensionless detector. It represents a prepared wavepacket, not a claim that the particle follows the animated line.</p>
+            </article>
+            <details>
+                <summary>Show the math</summary>
+                <p id="quantum-math-copy">The detector probability is proportional to <code>exp[-(x-μ)²/(2σ²)]</code>, then normalized so the discrete probabilities sum to one. Each impact is drawn independently from that distribution.</p>
+            </details>
+            <p id="quantum-visual-note" class="quantum-visual-note"><strong>Visual model:</strong> source pulse and detector glow are illustrative UI choices. Detector positions and expected probabilities come from the model.</p>
+        </section>
+
+        <details class="quantum-glossary">
+            <summary>Quantum Playground glossary and tooltips</summary>
+            <p>Focus or hover a term for its short definition. Expand this panel to read every definition together.</p>
+            <div class="quantum-glossary-grid">
+                <p><dfn tabindex="0" data-tooltip="A quantum state combining alternatives whose complex amplitudes can interfere.">Superposition</dfn><span>A state combining alternatives whose complex amplitudes can interfere.</span></p>
+                <p><dfn tabindex="0" data-tooltip="A stable phase relationship that permits interference terms to remain observable.">Coherence</dfn><span>A stable phase relationship that permits interference.</span></p>
+                <p><dfn tabindex="0" data-tooltip="Suppression of reduced-state coherence through correlations with unobserved degrees of freedom.">Decoherence</dfn><span>Suppression of reduced-state coherence through unobserved correlations.</span></p>
+                <p><dfn tabindex="0" data-tooltip="A joint state that cannot be factored into independent states for its subsystems.">Entanglement</dfn><span>A joint state not factorizable into independent subsystem states.</span></p>
+                <p><dfn tabindex="0" data-tooltip="The factorization condition that each local outcome depends only on its local setting and shared hidden variables.">Bell locality</dfn><span>Local outcomes depend only on the local setting and shared hidden variables.</span></p>
+                <p><dfn tabindex="0" data-tooltip="The assumption that analyzer-setting choices do not condition the hidden-variable distribution.">Measurement independence</dfn><span>Settings do not condition the hidden-variable distribution.</span></p>
+                <p><dfn tabindex="0" data-tooltip="A four-correlation Bell-test quantity used to compare quantum predictions with Bell-local model bounds.">CHSH</dfn><span>A four-correlation Bell-test quantity.</span></p>
+                <p><dfn tabindex="0" data-tooltip="The operational condition that remote choices cannot change locally observable outcome probabilities.">No-signaling</dfn><span>Remote choices cannot change locally observable probabilities.</span></p>
+                <p><dfn tabindex="0" data-tooltip="An additional model variable used to specify or probabilistically influence outcomes.">Hidden variable</dfn><span>An additional model variable used to specify or influence outcomes.</span></p>
+                <p><dfn tabindex="0" data-tooltip="The rule assigning outcome probabilities from squared quantum projection amplitudes.">Born rule</dfn><span>Outcome probabilities are squared quantum projection amplitudes.</span></p>
+            </div>
+        </details>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-brand"><i class="fa-solid fa-server"></i><span>MicroComp IT Solutions</span></div>
+        <div class="footer-details">
+            <span>Quantum Playground</span>
+            <span class="build-stamp" data-build-stamp>Site update date loading...</span>
+            <a href="demo-lab.html">Demo Lab</a>
+        </div>
+    </footer>
+
+    <script type="module" src="quantum-playground.js?v=1.8"></script>
+</body>
+
+</html>
