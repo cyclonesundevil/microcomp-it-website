@@ -23,6 +23,11 @@ import {
     RealityExperiment,
     createRealityCandidate
 } from './quantum-reality-model.mjs?v=1.1';
+import {
+    createDetectionApparatusGeometry,
+    createIllustrativeEmissionCoordinates,
+    detectorPointForBin
+} from './quantum-apparatus-geometry.mjs?v=1.0';
 
 const EXPERIMENTS = Object.freeze({
     single: { title: 'Single Particle', phase: 'Live' },
@@ -34,15 +39,17 @@ const EXPERIMENTS = Object.freeze({
     'bell-test': { title: 'Bell / CHSH Test', phase: 'Live' },
     'build-reality': { title: 'Build Your Own Reality', phase: 'Live' }
 });
+const SLIT_EXPERIMENTS = Object.freeze(['double-slit', 'which-path', 'decoherence', 'quantum-eraser']);
+const DETECTOR_EXPERIMENTS = Object.freeze(['single', ...SLIT_EXPERIMENTS]);
 
 const EXPERIMENT_GUIDANCE = Object.freeze({
     single: {
         intro: 'Prepare a probability distribution, emit one event at a time, and watch stable statistics emerge from unpredictable detections.',
-        seeing: 'The teal curve is the calculated probability distribution. Purple marks are sampled detections. The source pulse is an interface cue, not a measured trajectory.'
+        seeing: 'The teal curve is the calculated probability distribution. Purple marks are sampled detections. The source flash and propagation cue are illustrative, not a measured trajectory.'
     },
     'double-slit': {
         intro: 'Combine two complex path amplitudes and let individual sampled impacts reveal interference statistically.',
-        seeing: 'The calculated teal curve contains a single-slit diffraction envelope and two-path fringes. Each purple impact is sampled from that normalized distribution; no fringe locations are painted into the renderer.'
+        seeing: 'The calculated teal curve contains a single-slit diffraction envelope and two-path fringes. Each purple impact is sampled from that normalized distribution; no fringe locations are painted into the renderer. The symmetric wavefront cue is illustrative and does not depict a measured slit choice.'
     },
     'which-path': {
         intro: 'Compare indistinguishable paths with paths correlated to distinguishable marker states.',
@@ -75,7 +82,6 @@ class QuantumPlaygroundController {
         this.canvas = root.getElementById('quantum-canvas');
         this.context = this.canvas.getContext('2d');
         this.stage = root.getElementById('quantum-stage');
-        this.pulse = root.getElementById('quantum-flight-pulse');
         this.title = root.getElementById('quantum-experiment-title');
         this.status = root.getElementById('quantum-status-badge');
         this.eventCount = root.getElementById('quantum-event-count');
@@ -197,6 +203,10 @@ class QuantumPlaygroundController {
         this.guideButtons = [...root.querySelectorAll('[data-guide-experiment]')];
         this.activeExperiment = 'single';
         this.runTimer = null;
+        this.animationFrame = null;
+        this.activeEmission = null;
+        this.pendingImpact = null;
+        this.lastApparatusGeometry = null;
         this.experiments = {
             single: new DetectionExperiment(createSingleParticleDistribution()),
             'double-slit': new DetectionExperiment(createDoubleSlitDistribution()),
@@ -326,7 +336,7 @@ class QuantumPlaygroundController {
         this.rebuildWhichPathDistribution();
         this.rebuildDecoherenceDistribution();
         this.rebuildQuantumEraserDistribution();
-        if (['double-slit', 'which-path', 'decoherence', 'quantum-eraser'].includes(this.activeExperiment)) this.reset();
+        if (SLIT_EXPERIMENTS.includes(this.activeExperiment)) this.reset();
     }
 
     rebuildWhichPathDistribution() {
@@ -440,6 +450,7 @@ class QuantumPlaygroundController {
     }
 
     reset() {
+        this.cancelIllustrativeEmission();
         this.pause();
         this.activeState()?.reset(this.createRandom());
         this.status.textContent = this.activeState() ? 'Ready' : 'Preview';
@@ -450,6 +461,7 @@ class QuantumPlaygroundController {
 
     selectExperiment(experimentId) {
         if (!EXPERIMENTS[experimentId]) return;
+        this.cancelIllustrativeEmission();
         this.activeExperiment = experimentId;
         this.experimentButtons.forEach(button => {
             const active = button.dataset.experiment === experimentId;
@@ -467,7 +479,7 @@ class QuantumPlaygroundController {
         this.seeingCopy.textContent = EXPERIMENT_GUIDANCE[experimentId].seeing;
         this.canvas.setAttribute('aria-label', `${experiment.title} visualization. ${EXPERIMENT_GUIDANCE[experimentId].seeing}`);
         const isLive = Boolean(this.experiments[experimentId]);
-        const usesSlits = ['double-slit', 'which-path', 'decoherence', 'quantum-eraser'].includes(experimentId);
+        const usesSlits = SLIT_EXPERIMENTS.includes(experimentId);
         this.emitOneButton.disabled = !isLive;
         this.emitBatchButton.disabled = !isLive;
         this.runButton.disabled = !isLive;
@@ -569,8 +581,10 @@ class QuantumPlaygroundController {
     emit(count, animate) {
         const state = this.activeState();
         if (!state) return;
+        if (animate) this.cancelIllustrativeEmission();
+        let emitted;
         try {
-            state.emit(count);
+            emitted = state.emit(count);
         } catch (error) {
             this.status.textContent = 'Error';
             this.liveSummary.textContent = `The simulation could not continue: ${error.message}`;
@@ -579,16 +593,75 @@ class QuantumPlaygroundController {
             return;
         }
         this.status.textContent = this.runTimer ? 'Running' : 'Measured';
-        if (animate && !['entanglement', 'bell-test', 'build-reality'].includes(this.activeExperiment)) this.animatePulse();
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const animateOneDetectorEvent = animate
+            && count === 1
+            && DETECTOR_EXPERIMENTS.includes(this.activeExperiment)
+            && !reducedMotion;
+        if (animateOneDetectorEvent) {
+            const event = emitted[0];
+            const binIndex = Number.isInteger(event) ? event : event.binIndex;
+            this.pendingImpact = {
+                experimentId: this.activeExperiment,
+                sequence: Number.isInteger(event) ? state.total : state.ensembleTotal,
+                binIndex
+            };
+        }
         this.updateReadouts();
         this.draw();
+        if (animateOneDetectorEvent) this.beginIllustrativeEmission(this.pendingImpact.binIndex);
     }
 
-    animatePulse() {
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-        this.pulse.classList.remove('emit');
-        void this.pulse.offsetWidth;
-        this.pulse.classList.add('emit');
+    apparatusGeometry(width = this.canvas.clientWidth, height = this.canvas.clientHeight, state = this.activeState()) {
+        return createDetectionApparatusGeometry({
+            viewportWidth: width,
+            viewportHeight: height,
+            slitWidthMicrometers: Number(this.slitWidth.value),
+            slitSeparationMicrometers: Number(this.slitSeparation.value),
+            screenDistanceMeters: Number(this.screenDistance.value) / 100,
+            binCount: state?.distribution?.positions?.length ?? DEFAULT_DOUBLE_SLIT_GEOMETRY.binCount
+        });
+    }
+
+    beginIllustrativeEmission(binIndex) {
+        this.cancelIllustrativeEmission({ revealImpact: false });
+        this.activeEmission = {
+            experimentId: this.activeExperiment,
+            binIndex,
+            startedAt: performance.now(),
+            durationMilliseconds: SLIT_EXPERIMENTS.includes(this.activeExperiment) ? 720 : 560,
+            progress: 0
+        };
+        this.stage.dataset.animationState = 'running';
+        this.stage.dataset.animationMode = SLIT_EXPERIMENTS.includes(this.activeExperiment)
+            ? 'symmetric-aperture-wavefront'
+            : 'source-to-detector-cue';
+        const tick = now => {
+            if (!this.activeEmission) return;
+            this.activeEmission.progress = Math.min(
+                1,
+                (now - this.activeEmission.startedAt) / this.activeEmission.durationMilliseconds
+            );
+            this.draw();
+            if (this.activeEmission.progress < 1) {
+                this.animationFrame = window.requestAnimationFrame(tick);
+                return;
+            }
+            this.animationFrame = null;
+            this.activeEmission = null;
+            this.pendingImpact = null;
+            this.stage.dataset.animationState = 'complete';
+            this.draw();
+        };
+        this.animationFrame = window.requestAnimationFrame(tick);
+    }
+
+    cancelIllustrativeEmission({ revealImpact = true } = {}) {
+        if (this.animationFrame !== null) window.cancelAnimationFrame(this.animationFrame);
+        this.animationFrame = null;
+        this.activeEmission = null;
+        if (revealImpact) this.pendingImpact = null;
+        if (this.stage) this.stage.dataset.animationState = 'idle';
     }
 
     toggleRun() {
@@ -1059,63 +1132,110 @@ class QuantumPlaygroundController {
     }
 
     drawDetectionExperiment(ctx, width, height, state) {
-        const sourceX = width * 0.12;
-        const detectorX = width * 0.78;
-        const centerY = height * 0.5;
-        const plotTop = height * 0.1;
-        const plotBottom = height * 0.9;
-        const plotHeight = plotBottom - plotTop;
         const distribution = state.distribution;
-        const yForBin = index => plotTop + (index / (distribution.positions.length - 1)) * plotHeight;
+        const geometry = this.apparatusGeometry(width, height, state);
+        this.lastApparatusGeometry = geometry;
+        const { source, detector, barrier, plot } = geometry;
+        this.stage.dataset.sourceX = source.x.toFixed(3);
+        this.stage.dataset.sourceY = source.y.toFixed(3);
+        this.stage.dataset.detectorX = detector.x.toFixed(3);
+        this.stage.dataset.apertureWidth = barrier.apertureWidthPixels.toFixed(3);
+        this.stage.dataset.apertureSeparation = barrier.apertureCenterSeparationPixels.toFixed(3);
+        this.stage.dataset.screenDistance = geometry.screenDistanceMeters.toFixed(2);
+        const yForBin = index => detectorPointForBin(geometry, index).y;
+        const usesSlits = SLIT_EXPERIMENTS.includes(this.activeExperiment);
 
         ctx.strokeStyle = 'rgba(115, 220, 232, 0.22)';
         ctx.setLineDash([5, 8]);
         ctx.beginPath();
-        ctx.moveTo(sourceX, centerY);
-        ctx.lineTo(detectorX, centerY);
+        ctx.moveTo(source.x, source.y);
+        ctx.lineTo(usesSlits ? barrier.x : detector.x, source.y);
+        if (usesSlits) {
+            ctx.moveTo(barrier.x, source.y);
+            ctx.lineTo(detector.x, detector.center.y);
+        }
         ctx.stroke();
         ctx.setLineDash([]);
 
         ctx.fillStyle = '#73dce8';
         ctx.beginPath();
-        ctx.arc(sourceX, centerY, 10, 0, Math.PI * 2);
+        ctx.arc(source.x, source.y, 10, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = 'rgba(115, 220, 232, 0.55)';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(sourceX, centerY, 19, 0, Math.PI * 2);
+        ctx.arc(source.x, source.y, 19, 0, Math.PI * 2);
         ctx.stroke();
 
         ctx.fillStyle = '#a0aec0';
         ctx.font = '12px Inter, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('SOURCE', sourceX, centerY + 38);
+        ctx.fillText('SOURCE', source.x, source.y + 38);
 
-        if (['double-slit', 'which-path', 'decoherence', 'quantum-eraser'].includes(this.activeExperiment)) {
-            const barrierX = width * 0.38;
-            const openingHalfHeight = Math.max(4, height * 0.012);
-            const openingOffset = height * 0.065;
+        if (usesSlits) {
             ctx.strokeStyle = 'rgba(240, 247, 250, 0.72)';
             ctx.lineWidth = 5;
-            [[plotTop, centerY - openingOffset - openingHalfHeight],
-                [centerY - openingOffset + openingHalfHeight, centerY + openingOffset - openingHalfHeight],
-                [centerY + openingOffset + openingHalfHeight, plotBottom]].forEach(([start, end]) => {
+            [[plot.top, barrier.upper.top],
+                [barrier.upper.bottom, barrier.lower.top],
+                [barrier.lower.bottom, plot.bottom]].forEach(([start, end]) => {
+                if (end <= start) return;
                 ctx.beginPath();
-                ctx.moveTo(barrierX, start);
-                ctx.lineTo(barrierX, end);
+                ctx.moveTo(barrier.x, start);
+                ctx.lineTo(barrier.x, end);
                 ctx.stroke();
             });
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.72)';
+            ctx.lineWidth = 1.5;
+            [barrier.upper, barrier.lower].forEach(aperture => {
+                [aperture.top, aperture.bottom].forEach(y => {
+                    ctx.beginPath();
+                    ctx.moveTo(barrier.x - 7, y);
+                    ctx.lineTo(barrier.x + 7, y);
+                    ctx.stroke();
+                });
+            });
+
+            const separationGuideX = barrier.x - 17;
+            ctx.strokeStyle = 'rgba(115, 220, 232, 0.56)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(separationGuideX, barrier.upper.center.y);
+            ctx.lineTo(separationGuideX, barrier.lower.center.y);
+            ctx.moveTo(separationGuideX - 4, barrier.upper.center.y);
+            ctx.lineTo(separationGuideX + 4, barrier.upper.center.y);
+            ctx.moveTo(separationGuideX - 4, barrier.lower.center.y);
+            ctx.lineTo(separationGuideX + 4, barrier.lower.center.y);
+            ctx.stroke();
             ctx.fillStyle = '#a0aec0';
-            ctx.fillText('DOUBLE SLIT', barrierX, plotBottom + 24);
+            ctx.fillText('d', separationGuideX - 8, source.y + 4);
+            ctx.fillText('a', barrier.x + 13, barrier.upper.center.y + 4);
+            ctx.fillText('DOUBLE SLIT', barrier.x, plot.bottom + 24);
+
+            const distance = geometry.slitToScreenIndicator;
+            ctx.strokeStyle = 'rgba(115, 220, 232, 0.45)';
+            ctx.beginPath();
+            ctx.moveTo(distance.start.x, distance.start.y);
+            ctx.lineTo(distance.end.x, distance.end.y);
+            ctx.moveTo(distance.start.x, distance.start.y - 4);
+            ctx.lineTo(distance.start.x, distance.start.y + 4);
+            ctx.moveTo(distance.end.x, distance.end.y - 4);
+            ctx.lineTo(distance.end.x, distance.end.y + 4);
+            ctx.stroke();
+            ctx.fillStyle = '#a0aec0';
+            ctx.fillText(
+                `L ${geometry.screenDistanceMeters.toFixed(2)} m · schematic`,
+                (distance.start.x + distance.end.x) / 2,
+                distance.start.y - 7
+            );
         }
 
         ctx.strokeStyle = 'rgba(115, 220, 232, 0.7)';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(detectorX, plotTop);
-        ctx.lineTo(detectorX, plotBottom);
+        ctx.moveTo(detector.x, detector.top);
+        ctx.lineTo(detector.x, detector.bottom);
         ctx.stroke();
-        ctx.fillText('DETECTOR', detectorX, plotBottom + 24);
+        ctx.fillText('DETECTOR', detector.x, plot.bottom + 24);
 
         const maxCount = Math.max(1, ...state.counts);
         for (let index = 0; index < state.counts.length; index += 1) {
@@ -1123,7 +1243,7 @@ class QuantumPlaygroundController {
             if (!count) continue;
             const barWidth = (count / maxCount) * width * 0.16;
             ctx.fillStyle = 'rgba(128, 90, 213, 0.38)';
-            ctx.fillRect(detectorX - barWidth, yForBin(index) - 1, barWidth, 2.2);
+            ctx.fillRect(detector.x - barWidth, yForBin(index) - 1, barWidth, 2.2);
         }
 
         const maximumProbability = Math.max(...distribution.probabilities);
@@ -1131,7 +1251,7 @@ class QuantumPlaygroundController {
         ctx.lineWidth = 2.2;
         ctx.beginPath();
         distribution.probabilities.forEach((probability, index) => {
-            const x = detectorX - (probability / maximumProbability) * width * 0.18;
+            const x = detector.x - (probability / maximumProbability) * width * 0.18;
             const y = yForBin(index);
             if (index === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
@@ -1139,13 +1259,17 @@ class QuantumPlaygroundController {
         ctx.stroke();
 
         state.recent.forEach(({ binIndex, sequence, outcome }) => {
+            if (this.pendingImpact
+                && this.pendingImpact.experimentId === this.activeExperiment
+                && this.pendingImpact.sequence === sequence) return;
             const jitter = ((sequence * 2654435761) >>> 0) / 4294967296;
             const branchColor = this.activeExperiment === 'quantum-eraser' && state.view !== 'all'
                 ? (outcome === 'plus' ? '115,220,232' : '255,176,84')
                 : '255,255,255';
             ctx.fillStyle = `rgba(${branchColor},${Math.min(1, 0.35 + 0.65 * (sequence / Math.max(1, state.total)))})`;
             ctx.beginPath();
-            ctx.arc(detectorX + 4 + jitter * width * 0.12, yForBin(binIndex), 1.7, 0, Math.PI * 2);
+            const observationWidth = Math.max(8, width - detector.x - 12);
+            ctx.arc(detector.x + 4 + jitter * observationWidth, yForBin(binIndex), 1.7, 0, Math.PI * 2);
             ctx.fill();
         });
 
@@ -1161,6 +1285,88 @@ class QuantumPlaygroundController {
         ctx.fillRect(width * 0.05, height * 0.08 + 20, 20, 5);
         ctx.fillStyle = '#a0aec0';
         ctx.fillText('Observed histogram', width * 0.05 + 28, height * 0.08 + 26);
+
+        if (this.activeEmission?.experimentId === this.activeExperiment) {
+            this.drawIllustrativeEmission(ctx, geometry, this.activeEmission);
+        }
+    }
+
+    drawIllustrativeEmission(ctx, geometry, emission) {
+        const usesSymmetricApertureCue = SLIT_EXPERIMENTS.includes(emission.experimentId);
+        const coordinates = createIllustrativeEmissionCoordinates(
+            geometry,
+            emission.binIndex,
+            { coherentDoubleSlit: usesSymmetricApertureCue }
+        );
+        const progress = Math.max(0, Math.min(1, emission.progress));
+        this.stage.dataset.animationStartX = coordinates.start.x.toFixed(3);
+        this.stage.dataset.animationStartY = coordinates.start.y.toFixed(3);
+        this.stage.dataset.animationEndX = coordinates.end.x.toFixed(3);
+        this.stage.dataset.animationEndY = coordinates.end.y.toFixed(3);
+        this.stage.dataset.animationBin = String(emission.binIndex);
+        this.stage.dataset.animationMode = coordinates.mode;
+
+        if (progress < 0.28) {
+            const flashProgress = progress / 0.28;
+            ctx.strokeStyle = `rgba(138, 248, 255, ${1 - flashProgress})`;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(coordinates.start.x, coordinates.start.y, 12 + flashProgress * 24, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        if (!usesSymmetricApertureCue) {
+            const travel = 1 - (1 - progress) ** 2;
+            const x = coordinates.start.x + (coordinates.end.x - coordinates.start.x) * travel;
+            const y = coordinates.start.y + (coordinates.end.y - coordinates.start.y) * travel;
+            ctx.fillStyle = `rgba(138, 248, 255, ${Math.sin(Math.PI * progress)})`;
+            ctx.shadowColor = '#00f0ff';
+            ctx.shadowBlur = 18;
+            ctx.beginPath();
+            ctx.arc(x, y, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        } else if (progress < 0.4) {
+            const approach = progress / 0.4;
+            const x = coordinates.start.x + (coordinates.aperture.x - coordinates.start.x) * approach;
+            ctx.strokeStyle = `rgba(138, 248, 255, ${0.35 + 0.55 * (1 - approach)})`;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x, geometry.plot.top + geometry.plot.height * 0.38);
+            ctx.lineTo(x, geometry.plot.bottom - geometry.plot.height * 0.38);
+            ctx.stroke();
+        } else {
+            const waveProgress = (progress - 0.4) / 0.6;
+            const wavefrontX = coordinates.aperture.x
+                + (coordinates.end.x - coordinates.aperture.x) * waveProgress;
+            ctx.strokeStyle = `rgba(0, 240, 255, ${0.55 * (1 - waveProgress) + 0.18})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(wavefrontX, geometry.plot.top + 10);
+            ctx.quadraticCurveTo(
+                wavefrontX + 12 * Math.sin(Math.PI * waveProgress),
+                geometry.detector.center.y,
+                wavefrontX,
+                geometry.plot.bottom - 10
+            );
+            ctx.stroke();
+            coordinates.symmetricApertureCenters.forEach(center => {
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, 5 + waveProgress * 18, -Math.PI / 2, Math.PI / 2);
+                ctx.stroke();
+            });
+        }
+
+        if (progress > 0.84) {
+            const detectorFlash = (progress - 0.84) / 0.16;
+            ctx.fillStyle = `rgba(255, 255, 255, ${detectorFlash})`;
+            ctx.shadowColor = '#8af8ff';
+            ctx.shadowBlur = 20;
+            ctx.beginPath();
+            ctx.arc(coordinates.end.x, coordinates.end.y, 2 + detectorFlash * 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
     }
 }
 

@@ -10,7 +10,7 @@
     <script src="theme.js?v=1.2"></script>
     <script src="analytics.js?v=1.2"></script>
     <link rel="stylesheet" href="styles.css?v=3.2">
-    <link rel="stylesheet" href="quantum-playground.css?v=1.8">
+    <link rel="stylesheet" href="quantum-playground.css?v=1.9">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -41,7 +41,7 @@
             <aside>
                 <span>Phase 9 learning experience</span>
                 <strong>Probability → interference → information → correlations</strong>
-                <p>Real probability calculation, sampled event by event. The flight pulse is an interface cue—not an observed quantum trajectory.</p>
+                <p>Real probability calculation, sampled event by event. Propagation and wavefront motion are illustrative; the motion is not an observed quantum trajectory.</p>
             </aside>
         </section>
 
@@ -89,7 +89,6 @@
 
                 <div class="quantum-stage" id="quantum-stage">
                     <canvas id="quantum-canvas" width="900" height="520" role="img" aria-label="Detector showing sampled particle impacts and expected probability curve" aria-describedby="quantum-live-summary quantum-visual-note">The calculated numerical results and a textual description of this visualization are available immediately below the canvas.</canvas>
-                    <div id="quantum-flight-pulse" class="quantum-flight-pulse" aria-hidden="true"></div>
                     <p id="quantum-empty-state" class="quantum-empty-state">No observations yet. Emit one event or a batch to begin.</p>
                     <noscript>JavaScript is required to run the interactive detector. The scientific explanation remains available below.</noscript>
                 </div>
@@ -143,6 +142,7 @@
                         Screen distance <span id="quantum-screen-distance-value">1.00 m</span>
                         <input id="quantum-screen-distance" type="range" min="50" max="200" step="5" value="100">
                     </label>
+                    <p class="quantum-schematic-note"><strong>Apparatus geometry is schematic — not to scale.</strong> The displayed aperture width, center separation, and slit-to-screen distance change monotonically with <code>a</code>, <code>d</code>, and <code>L</code>.</p>
                 </div>
                 <div id="quantum-which-path-controls" class="quantum-parameter-group" hidden>
                     <label class="quantum-checkbox">
@@ -314,7 +314,7 @@
                 <summary>Show the math</summary>
                 <p id="quantum-math-copy">The detector probability is proportional to <code>exp[-(x-μ)²/(2σ²)]</code>, then normalized so the discrete probabilities sum to one. Each impact is drawn independently from that distribution.</p>
             </details>
-            <p id="quantum-visual-note" class="quantum-visual-note"><strong>Visual model:</strong> source pulse and detector glow are illustrative UI choices. Detector positions and expected probabilities come from the model.</p>
+            <p id="quantum-visual-note" class="quantum-visual-note"><strong>Visual model:</strong> source flash, wavefront, and propagation cues are illustrative—not measured particle trajectories. Sampled detector positions and calculated probabilities come from the numerical model. Apparatus geometry is schematic and not to scale.</p>
         </section>
 
         <details class="quantum-glossary">
@@ -344,7 +344,7 @@
         </div>
     </footer>
 
-    <script type="module" src="quantum-playground.js?v=1.8"></script>
+    <script type="module" src="quantum-playground.js?v=1.9"></script>
 </body>
 
 </html>
