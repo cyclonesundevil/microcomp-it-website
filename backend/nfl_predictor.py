@@ -13,7 +13,7 @@ from typing import Dict, List, Optional, Tuple
 
 GAMES_URL = "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv"
 DEFAULT_CACHE_PATH = os.path.join(os.path.dirname(__file__), "data", "nfl_games.csv")
-MODEL_PROFILES = ("baseline", "enhanced", "rothstein", "rothstein_plus")
+MODEL_PROFILES = ("baseline", "enhanced", "market_blend", "rothstein", "rothstein_plus")
 INJURY_PROFILES = {
     "general": {
         "label": "General high-impact player",
@@ -414,6 +414,55 @@ class OnlineNFLModel:
         self.mean_total += 0.01 * (actual_total - self.mean_total)
 
 
+@dataclass
+class MarketBlendNFLModel:
+    """Shrink the baseline forecast toward the market's expected margin."""
+
+    base: OnlineNFLModel = field(default_factory=lambda: OnlineNFLModel(
+        rest_weight=0.04,
+        margin_lr=0.065,
+        split_weight=0.0,
+        recent_margin_weight=0.0,
+        recent_total_weight=0.0,
+        divisional_margin_adjustment=0.0,
+        divisional_total_adjustment=0.0,
+        open_roof_total_adjustment=0.0,
+        dome_total_adjustment=0.0,
+        cold_degree_weight=0.0,
+        wind_mph_weight=0.0,
+        split_margin_lr=0.0,
+    ))
+    model_weight: float = 0.5
+    pending_base_prediction: Optional[Tuple[float, float]] = None
+
+    @property
+    def mean_total(self) -> float:
+        return self.base.mean_total
+
+    @property
+    def teams(self) -> Dict[str, TeamState]:
+        return self.base.teams
+
+    def team(self, abbr: str) -> TeamState:
+        return self.base.team(abbr)
+
+    def predict(self, game: dict) -> Tuple[float, float]:
+        base_margin, base_total = self.base.predict(game)
+        self.pending_base_prediction = (base_margin, base_total)
+        spread_line = float(game.get("spread_line", 0.0))
+        total_line = float(game.get("total_line", self.mean_total))
+        predicted_margin = spread_line + self.model_weight * (base_margin - spread_line)
+        predicted_total = total_line + self.model_weight * (base_total - total_line)
+        return predicted_margin, predicted_total
+
+    def update(self, game: dict, predicted_margin: float, predicted_total: float) -> None:
+        if self.pending_base_prediction is None:
+            self.pending_base_prediction = self.base.predict(game)
+        base_margin, base_total = self.pending_base_prediction
+        self.pending_base_prediction = None
+        self.base.update(game, base_margin, base_total)
+
+
 def create_model(profile: str):
     if profile == "baseline":
         return OnlineNFLModel(
@@ -432,6 +481,8 @@ def create_model(profile: str):
         )
     if profile == "enhanced":
         return OnlineNFLModel()
+    if profile == "market_blend":
+        return MarketBlendNFLModel()
     if profile in {"rothstein", "rothstein_plus"}:
         return RothsteinNFLModel()
     raise ValueError(f"Unknown model profile: {profile}")
@@ -440,6 +491,8 @@ def create_model(profile: str):
 def default_spread_threshold(model_profile: str) -> float:
     if model_profile in {"rothstein", "rothstein_plus"}:
         return 2.0
+    if model_profile == "market_blend":
+        return 3.0
     return 6.0
 
 
@@ -447,6 +500,10 @@ def default_total_threshold(model_profile: str) -> float:
     if model_profile in {"rothstein", "rothstein_plus"}:
         return 4.0
     return 1.5
+
+
+def model_supports_totals(model_profile: str) -> bool:
+    return model_profile not in {"market_blend", "rothstein_plus"}
 
 
 def is_rothstein_plus_eligible(model: RothsteinNFLModel, game: dict) -> bool:
@@ -471,13 +528,38 @@ def train_model(games: List[dict], model_profile: str = "baseline") -> OnlineNFL
     for game in games:
         pred_margin, pred_total = model.predict(game)
         model.update(game, pred_margin, pred_total)
+    if hasattr(model, "finalize_training"):
+        model.finalize_training()
     return model
 
 
 def list_teams(games: List[dict], current_only: bool = False) -> List[str]:
     if current_only:
-        latest_season = max(game["season"] for game in games)
-        games = [game for game in games if game["season"] == latest_season]
+        seasons = sorted({game["season"] for game in games})
+        latest_season = seasons[-1]
+        latest_games = [game for game in games if game["season"] == latest_season]
+
+        # The source loader intentionally excludes games without final scores. Early
+        # in a new season that can make the latest season look like it has only two
+        # active teams, which would empty most of the matchup picker and dashboard.
+        # Retain the previous season's active teams until the new season has caught
+        # up, while still including any teams already present in the latest data.
+        if len(seasons) > 1:
+            previous_season = seasons[-2]
+            previous_games = [game for game in games if game["season"] == previous_season]
+            latest_teams = {
+                team
+                for game in latest_games
+                for team in (game["away_team"], game["home_team"])
+            }
+            previous_teams = {
+                team
+                for game in previous_games
+                for team in (game["away_team"], game["home_team"])
+            }
+            games = latest_games + previous_games if len(latest_teams) < len(previous_teams) else latest_games
+        else:
+            games = latest_games
 
     teams = set()
     for game in games:
@@ -494,7 +576,7 @@ def dashboard_snapshot(
     injury_impact: float = 0.0,
     injury_position: str = "general",
 ) -> dict:
-    if model_profile in {"rothstein", "rothstein_plus"}:
+    if model_profile in {"market_blend", "rothstein", "rothstein_plus"}:
         model_profile = "baseline"
 
     latest_season = max(game["season"] for game in games)
@@ -647,7 +729,7 @@ def matchup_history(games: List[dict], away_team: str, home_team: str, model_pro
             spread_edge = pred_margin - game["spread_line"]
             total_edge = pred_total - game["total_line"]
             spread_pick = side_from_edge(spread_edge, spread_threshold) if eligible else None
-            total_pick = None if model_profile == "rothstein_plus" else total_from_edge(total_edge, total_threshold)
+            total_pick = total_from_edge(total_edge, total_threshold) if model_supports_totals(model_profile) else None
 
             spread_result = None
             if spread_pick:
@@ -726,10 +808,17 @@ def predict_matchup(
     else:
         training_games = games
     model = train_model(training_games, model_profile=model_profile)
+    # nflverse stores the market as an expected home margin (home favorite is
+    # positive). The public API accepts conventional sportsbook notation, where
+    # a home favorite is negative, so convert it at this boundary.
+    market_margin = -spread_line
     game = {
         "season": max(g["season"] for g in games),
+        "week": max(g["week"] for g in games if g["season"] == max(item["season"] for item in games)) + 1,
         "away_team": away_team,
         "home_team": home_team,
+        "spread_line": market_margin,
+        "total_line": total_line,
         "away_rest": away_rest,
         "home_rest": home_rest,
         "div_game": div_game,
@@ -738,7 +827,7 @@ def predict_matchup(
         "wind": wind,
     }
     pred_margin, pred_total = model.predict(game)
-    spread_edge = pred_margin - spread_line
+    spread_edge = pred_margin - market_margin
     total_edge = pred_total - total_line
     spread_threshold = default_spread_threshold(model_profile)
     total_threshold = default_total_threshold(model_profile)
@@ -753,6 +842,7 @@ def predict_matchup(
         "pred_margin": pred_margin,
         "pred_total": pred_total,
         "spread_line": spread_line,
+        "market_margin": market_margin,
         "total_line": total_line,
         "spread_edge": spread_edge,
         "total_edge": total_edge,
@@ -760,7 +850,7 @@ def predict_matchup(
         "total_threshold": total_threshold,
         "eligible": eligible,
         "spread_pick": side_from_edge(spread_edge, threshold=spread_threshold) if eligible else None,
-        "total_pick": None if model_profile == "rothstein_plus" else total_from_edge(total_edge, threshold=total_threshold),
+        "total_pick": total_from_edge(total_edge, threshold=total_threshold) if model_supports_totals(model_profile) else None,
         "latest_training_season": max(g["season"] for g in games),
     }
 
@@ -788,6 +878,16 @@ def score_binary(correct: int, pushes: int, bets: int) -> Optional[float]:
     return correct / graded
 
 
+def wilson_interval(correct: int, attempts: int, z: float = 1.96) -> Tuple[Optional[float], Optional[float]]:
+    if attempts <= 0:
+        return None, None
+    rate = correct / attempts
+    denominator = 1 + z * z / attempts
+    center = (rate + z * z / (2 * attempts)) / denominator
+    margin = z * math.sqrt((rate * (1 - rate) + z * z / (4 * attempts)) / attempts) / denominator
+    return center - margin, center + margin
+
+
 def summarize(records: List[dict]) -> dict:
     spread_bets = [r for r in records if r["spread_pick"]]
     total_bets = [r for r in records if r["total_pick"]]
@@ -796,6 +896,14 @@ def summarize(records: List[dict]) -> dict:
     spread_pushes = sum(1 for r in spread_bets if r["spread_result"] == "push")
     total_correct = sum(1 for r in total_bets if r["total_result"] == "win")
     total_pushes = sum(1 for r in total_bets if r["total_result"] == "push")
+    spread_losses = len(spread_bets) - spread_correct - spread_pushes
+    total_losses = len(total_bets) - total_correct - total_pushes
+    spread_graded = spread_correct + spread_losses
+    total_graded = total_correct + total_losses
+    spread_interval = wilson_interval(spread_correct, spread_graded)
+    total_interval = wilson_interval(total_correct, total_graded)
+    spread_net_units = spread_correct * (100 / 110) - spread_losses
+    total_net_units = total_correct * (100 / 110) - total_losses
 
     margin_errors = [abs(r["pred_margin"] - r["actual_margin"]) for r in records]
     total_errors = [abs(r["pred_total"] - r["actual_total"]) for r in records]
@@ -804,12 +912,20 @@ def summarize(records: List[dict]) -> dict:
         "games": len(records),
         "spread_bets": len(spread_bets),
         "spread_wins": spread_correct,
+        "spread_losses": spread_losses,
         "spread_pushes": spread_pushes,
         "spread_win_rate": score_binary(spread_correct, spread_pushes, len(spread_bets)),
+        "spread_win_rate_ci95": spread_interval,
+        "spread_net_units_at_minus_110": spread_net_units,
+        "spread_roi_at_minus_110": spread_net_units / len(spread_bets) if spread_bets else None,
         "total_bets": len(total_bets),
         "total_wins": total_correct,
+        "total_losses": total_losses,
         "total_pushes": total_pushes,
         "total_win_rate": score_binary(total_correct, total_pushes, len(total_bets)),
+        "total_win_rate_ci95": total_interval,
+        "total_net_units_at_minus_110": total_net_units,
+        "total_roi_at_minus_110": total_net_units / len(total_bets) if total_bets else None,
         "margin_mae": statistics.mean(margin_errors) if margin_errors else None,
         "total_mae": statistics.mean(total_errors) if total_errors else None,
     }
@@ -849,7 +965,7 @@ def run_backtest(
             spread_edge = pred_margin - game["spread_line"]
             total_edge = pred_total - game["total_line"]
             spread_pick = side_from_edge(spread_edge, spread_threshold) if eligible else None
-            total_pick = None if model_profile == "rothstein_plus" else total_from_edge(total_edge, total_threshold)
+            total_pick = total_from_edge(total_edge, total_threshold) if model_supports_totals(model_profile) else None
 
             spread_result = None
             if spread_pick:
@@ -909,8 +1025,16 @@ def print_summary(label: str, summary: dict) -> None:
     print(f"Games tested:     {summary['games']}")
     print(f"Spread bets:      {summary['spread_bets']} ({summary['spread_wins']} wins, {summary['spread_pushes']} pushes)")
     print(f"Spread win rate:  {format_pct(summary['spread_win_rate'])}")
+    spread_ci = summary["spread_win_rate_ci95"]
+    if spread_ci[0] is not None:
+        print(f"Spread 95% CI:    {format_pct(spread_ci[0])}-{format_pct(spread_ci[1])}")
+        print(f"Spread ROI -110:  {format_pct(summary['spread_roi_at_minus_110'])}")
     print(f"Total bets:       {summary['total_bets']} ({summary['total_wins']} wins, {summary['total_pushes']} pushes)")
     print(f"Total win rate:   {format_pct(summary['total_win_rate'])}")
+    total_ci = summary["total_win_rate_ci95"]
+    if total_ci[0] is not None:
+        print(f"Total 95% CI:     {format_pct(total_ci[0])}-{format_pct(total_ci[1])}")
+        print(f"Total ROI -110:   {format_pct(summary['total_roi_at_minus_110'])}")
     print(f"Margin MAE:       {summary['margin_mae']:.2f}")
     print(f"Total MAE:        {summary['total_mae']:.2f}")
 
@@ -1007,7 +1131,7 @@ def main() -> None:
     if args.compare_models:
         print("\nModel comparison")
         print("----------------")
-        print("Model     Window  Spread bets  Spread win  Total bets  Total win  Margin MAE  Total MAE")
+        print("Model            Window  Spread bets  Spread win  Total bets  Total win  Margin MAE  Total MAE")
         for profile in MODEL_PROFILES:
             for seasons in args.seasons:
                 summary, _ = run_backtest(
@@ -1018,7 +1142,7 @@ def main() -> None:
                     model_profile=profile,
                 )
                 print(
-                    f"{profile:<9} "
+                    f"{profile:<16} "
                     f"{seasons:<7} "
                     f"{summary['spread_bets']:<12} "
                     f"{format_pct(summary['spread_win_rate']):<11} "

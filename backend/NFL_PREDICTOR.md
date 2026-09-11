@@ -97,7 +97,7 @@ It also supports all-team matchup projections:
 Supported query values:
 
 - `seasons`: `5` or `10`
-- `model`: `baseline`, `enhanced`, `rothstein`, or `rothstein_plus`
+- `model`: `baseline`, `enhanced`, `market_blend`, `rothstein`, or `rothstein_plus`
 - `spread_line`: home-team spread line, where negative means the home team is favored
 - `total_line`: market over/under line
 
@@ -143,18 +143,33 @@ Before a team has played in the current season, the model seeds its rolling scor
 
 ## Current Baseline Results
 
+These rolling windows include all graded games available through September 10, 2026 (2026 Week 1). During an active season, the current partial season is included in the window.
+
 With the conservative default spread threshold of 6 points:
 
-- 5-year spread picks: 56.8%
-- 10-year spread picks: 58.3%
-- 5-year totals picks: 50.9%
-- 10-year totals picks: 49.6%
+- 5-year spread picks: 54.5%
+- 10-year spread picks: 58.4%
+- 5-year totals picks: 51.0%
+- 10-year totals picks: 49.8%
 
 The baseline model shows useful separation on spreads when it strongly disagrees with the market. Totals need more work before they should be treated as a meaningful signal.
 
 The enhanced model currently exists for research comparison. Its weather, venue, recent-form, and divisional features slightly reduced margin error, but did not improve spread-pick performance, so the public demo defaults to `baseline`.
 
 The current baseline keeps the model simple, lowers rest-day influence, updates team margin ratings faster, and only issues spread picks when the model differs from the line by at least 6 points.
+
+## Market Blend
+
+Market Blend averages the chronological baseline projection with the closing market's expected margin. Its 3-point pick threshold is equivalent to the baseline's conservative 6-point disagreement threshold, so it preserves the same historical spread selections while producing less extreme score projections. Totals picks are disabled because the available total signal has not cleared the standard -110 break-even rate.
+
+On the current dataset:
+
+- 5-year margin MAE: 9.73 points, versus 10.23 for baseline
+- 10-year margin MAE: 10.04 points, versus 10.47 for baseline
+- 5-year spread picks: 54.5%
+- 10-year spread picks: 58.4%
+
+Backtest summaries also report a 95% Wilson confidence interval and hypothetical flat-stake ROI at -110 odds. These are research diagnostics, not a profitability guarantee.
 
 First Rothstein results with the specified 2-point spread and 4-point total thresholds:
 

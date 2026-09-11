@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiBase = ['5178', '5179', '5180'].includes(window.location.port) ? 'http://127.0.0.1:5010' : '';
     const state = {
         seasons: 10,
-        model: 'baseline',
+        model: 'market_blend',
         playoffMode: false
     };
 
@@ -130,9 +130,12 @@ document.addEventListener('DOMContentLoaded', () => {
         updateDataStatus(data);
         message.textContent = `${data.seasons}-year ${data.model} profile, spread edge ${data.thresholds.spread} points, total edge ${data.thresholds.total} points.`;
         spreadRate.textContent = pct(summary.spread_win_rate);
-        spreadDetail.textContent = `${summary.spread_wins} wins, ${summary.spread_pushes} pushes, ${summary.spread_bets} picks`;
+        const spreadRoi = summary.spread_roi_at_minus_110;
+        const spreadCi = summary.spread_win_rate_ci95;
+        spreadDetail.textContent = `${summary.spread_wins} wins, ${summary.spread_pushes} pushes, ${summary.spread_bets} picks${spreadRoi === null ? '' : `, ${pct(spreadRoi)} ROI at -110`}${spreadCi ? `, 95% CI ${pct(spreadCi[0])}-${pct(spreadCi[1])}` : ''}`;
         totalRate.textContent = pct(summary.total_win_rate);
-        totalDetail.textContent = `${summary.total_wins} wins, ${summary.total_pushes} pushes, ${summary.total_bets} picks`;
+        const totalRoi = summary.total_roi_at_minus_110;
+        totalDetail.textContent = `${summary.total_wins} wins, ${summary.total_pushes} pushes, ${summary.total_bets} picks${totalRoi === null ? '' : `, ${pct(totalRoi)} ROI at -110`}`;
         marginMae.textContent = num(summary.margin_mae);
         totalMae.textContent = num(summary.total_mae);
 

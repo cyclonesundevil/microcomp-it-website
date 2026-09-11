@@ -49,14 +49,15 @@
                 <span class="paper-label">nflverse historical data</span>
                 <h2>Current Model</h2>
                 <p>
-                    The public demo defaults to the baseline profile because it outperformed the experimental enhanced
-                    and Rothstein models on conservative spread picks.
+                    The public demo defaults to Market Blend, which combines the closing line with the chronological
+                    team model for lower prediction error while keeping only conservative spread picks.
                 </p>
                 <p id="nfl-data-status" class="nfl-data-status">Checking data freshness...</p>
                 <p id="nfl-live-status" class="nfl-data-status">Checking live scoreboard adapter...</p>
                 <div class="model-toggle" aria-label="Model profile">
-                    <button class="active" data-model="baseline">Baseline</button>
+                    <button data-model="baseline">Baseline</button>
                     <button data-model="enhanced">Enhanced</button>
+                    <button class="active" data-model="market_blend">Market Blend</button>
                     <button data-model="rothstein">Rothstein</button>
                     <button data-model="rothstein_plus">Rothstein+</button>
                 </div>
@@ -175,7 +176,7 @@
                         <select id="home-team" required></select>
                     </label>
                     <label>
-                        Home spread line
+                        Home spread (negative = favorite)
                         <input id="spread-line" type="number" step="0.5" value="0">
                     </label>
                     <label>
@@ -255,7 +256,7 @@
                 <p>Results are graded only when the model has a clear enough edge over the published line.</p>
             </div>
 
-            <div id="nfl-message" class="nfl-message">Loading 10-year baseline backtest...</div>
+            <div id="nfl-message" class="nfl-message">Loading 10-year market blend backtest...</div>
 
             <div class="nfl-metrics" aria-live="polite">
                 <div class="nfl-metric">
@@ -315,7 +316,7 @@
             <div>
                 <i class="fa-solid fa-chart-simple"></i>
                 <h3>Research Modes</h3>
-                <p>Enhanced tests venue and recent-form features. Rothstein+ adds a midseason and QB-continuity filter.</p>
+                <p>Market Blend shrinks projections toward the closing line. Rothstein+ adds a midseason and QB-continuity filter.</p>
             </div>
         </section>
     </main>
@@ -332,7 +333,7 @@
         </div>
     </footer>
 
-    <script src="nfl-predictor.js?v=1.7"></script>
+    <script src="nfl-predictor.js?v=1.8"></script>
 </body>
 
 </html>
