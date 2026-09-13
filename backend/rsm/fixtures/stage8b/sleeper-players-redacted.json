@@ -1,0 +1,29 @@
+{
+  "1001": {
+    "player_id": "1001",
+    "gsis_id": "00-REDACTED-1001",
+    "full_name": "Redacted Quarterback",
+    "team": "KC",
+    "position": "QB",
+    "fantasy_positions": ["QB"],
+    "active": true,
+    "status": "Active",
+    "injury_status": null,
+    "depth_chart_position": "QB",
+    "depth_chart_order": 1,
+    "espn_id": "E1001",
+    "yahoo_id": "Y1001"
+  },
+  "1002": {
+    "player_id": "1002",
+    "full_name": "Redacted Receiver",
+    "team": "LV",
+    "position": "WR",
+    "fantasy_positions": ["WR"],
+    "active": true,
+    "status": "Active",
+    "injury_status": "Questionable",
+    "depth_chart_position": "WR",
+    "depth_chart_order": 1
+  }
+}

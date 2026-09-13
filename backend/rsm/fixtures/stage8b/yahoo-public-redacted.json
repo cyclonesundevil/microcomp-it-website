@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "games": [
+    {
+      "source_event_id": "REDACTED-YAHOO-EVENT",
+      "home_team": "KC",
+      "away_team": "LV",
+      "projection_context_only": true
+    }
+  ]
+}

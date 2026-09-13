@@ -1,0 +1,100 @@
+{
+  "system": "Stage 8 prospective shadow observation",
+  "research_only": true,
+  "recommendations_generated": false,
+  "automated_wagering": false,
+  "store": "C:\\Users\\cyclo\\.gemini\\antigravity\\scratch\\it-solutions-website\\backend\\data\\rsm\\shadow\\stage8-shadow.sqlite3",
+  "ledger": {
+    "valid": true,
+    "observations": 0,
+    "last_event_hash": "GENESIS"
+  },
+  "observations": 0,
+  "games": 0,
+  "sportsbooks": [],
+  "candidate_anomaly_observations": 0,
+  "line_movements": [],
+  "freeze": {
+    "schema_version": 1,
+    "shadow_model_version": "RSM-v2-stage7c-frozen-stage8-shadow",
+    "research_only": true,
+    "automated_wagering": false,
+    "recommendations_generated": false,
+    "source_model": "RSM-v2 Model A football margin",
+    "source_training_seasons": [
+      2021,
+      2022
+    ],
+    "feature_names": [
+      "qb_quality_diff",
+      "qb_vs_pass_rush_matchup",
+      "qb_vs_coverage_matchup",
+      "ol_pass_vs_pass_rush_matchup",
+      "ol_run_vs_front_matchup",
+      "receiving_vs_secondary_matchup",
+      "rushing_vs_front_matchup",
+      "ol_weakest_diff",
+      "ol_strongest_diff",
+      "ol_continuity_diff",
+      "ol_replacement_starters_diff",
+      "wr1_diff",
+      "wr2_diff",
+      "te1_diff",
+      "receiver_replacements_diff",
+      "pass_rusher1_diff",
+      "weakest_coverage_diff",
+      "rest_diff"
+    ],
+    "ridge_alpha": 100.0,
+    "model_sha256": "679b088a793e0b3f56e946e3dc4c06e5d1b274827375b058bf03e85617f5b1fe",
+    "rules_sha256": "afbe5518089b3e9ed55e28063f8836b8c11c05abf509cd622deafe94717746e8",
+    "anomaly_definition_sha256": "1aeb53395566e4897dde44c72dfa47894e781687eede4b98f3f426f20b273d11",
+    "frozen_rules": [
+      {
+        "name": "TOP_20_PERCENT",
+        "target_coverage": 0.2,
+        "threshold": 4.683393757922371,
+        "minimum_lineup_confidence": "MEDIUM",
+        "minimum_supporting_groups": 2,
+        "development_eligible_games": 264,
+        "development_flagged_games": 53,
+        "development_total_games": 543,
+        "development_total_coverage": 0.09760589318600368
+      },
+      {
+        "name": "TOP_10_PERCENT",
+        "target_coverage": 0.1,
+        "threshold": 6.423059479366703,
+        "minimum_lineup_confidence": "MEDIUM",
+        "minimum_supporting_groups": 2,
+        "development_eligible_games": 264,
+        "development_flagged_games": 27,
+        "development_total_games": 543,
+        "development_total_coverage": 0.049723756906077346
+      },
+      {
+        "name": "TOP_5_PERCENT",
+        "target_coverage": 0.05,
+        "threshold": 7.44034078378945,
+        "minimum_lineup_confidence": "MEDIUM",
+        "minimum_supporting_groups": 2,
+        "development_eligible_games": 264,
+        "development_flagged_games": 14,
+        "development_total_games": 543,
+        "development_total_coverage": 0.02578268876611418
+      }
+    ],
+    "anomaly_definition": {
+      "formula": "roster_fair_home_margin - market_implied_home_margin",
+      "confidence_weights": {
+        "HIGH": 1.0,
+        "MEDIUM": 0.75,
+        "LOW": 0.0
+      },
+      "minimum_supporting_groups": 2,
+      "minimum_group_contribution": 0.25,
+      "development_outcomes_used_for_thresholds": false,
+      "validation_outcomes_used_for_thresholds": false
+    }
+  }
+}

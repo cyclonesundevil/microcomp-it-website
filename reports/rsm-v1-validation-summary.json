@@ -1,0 +1,37 @@
+{
+  "model_version": "RSM-v1-validation",
+  "training_seasons": [
+    2021,
+    2022
+  ],
+  "validation_seasons": [
+    2023
+  ],
+  "locked_test_seasons": [
+    2024,
+    2025
+  ],
+  "selected_ridge_alpha": 1.0,
+  "training": {
+    "games": 543,
+    "score_mae": 7.607,
+    "margin_mae": 10.158,
+    "total_mae": 10.763,
+    "score_rmse": 9.474
+  },
+  "validation": {
+    "games": 272,
+    "score_mae": 7.794,
+    "margin_mae": 10.542,
+    "total_mae": 11.255,
+    "score_rmse": 9.813
+  },
+  "candidate_validation_score_mae": {
+    "0.1": 7.795,
+    "1.0": 7.794,
+    "10.0": 7.794,
+    "50.0": 7.796,
+    "100.0": 7.796
+  },
+  "locked_test_evaluated": false
+}

@@ -1,0 +1,778 @@
+{
+  "scope": {
+    "development_seasons": [
+      2021,
+      2022
+    ],
+    "development_games": 543,
+    "development_start": "2021-09-09",
+    "development_end": "2023-01-08",
+    "validation_seasons": [
+      2023
+    ],
+    "validation_games": 272,
+    "validation_start": "2023-09-07",
+    "validation_end": "2024-01-07",
+    "locked_seasons_used": false
+  },
+  "market_data": {
+    "source": "C:\\Users\\cyclo\\.gemini\\antigravity\\scratch\\it-solutions-website\\backend\\data\\nfl_games.csv",
+    "source_retrieval_metadata_available": false,
+    "availability_matrix": [
+      {
+        "item": "Single stored consensus spread",
+        "status": "AVAILABLE",
+        "present_games": 815,
+        "total_games": 815,
+        "note": "Internal positive-home-margin convention; temporal status unverified"
+      },
+      {
+        "item": "Spread prices",
+        "status": "AVAILABLE",
+        "present_games": 815,
+        "total_games": 815,
+        "note": "Home and away prices exist; sportsbook identity absent"
+      },
+      {
+        "item": "Opening spread",
+        "status": "UNAVAILABLE",
+        "present_games": 0,
+        "total_games": 815,
+        "note": "No opening-line field"
+      },
+      {
+        "item": "Closing spread classification",
+        "status": "UNAVAILABLE",
+        "present_games": 0,
+        "total_games": 815,
+        "note": "Stored line is not labeled opening/current/closing"
+      },
+      {
+        "item": "Individual sportsbook lines",
+        "status": "UNAVAILABLE",
+        "present_games": 0,
+        "total_games": 815,
+        "note": "No per-book records"
+      },
+      {
+        "item": "Sportsbook identifier",
+        "status": "UNAVAILABLE",
+        "present_games": 0,
+        "total_games": 815,
+        "note": "No sportsbook field"
+      },
+      {
+        "item": "Retrieved/line timestamp",
+        "status": "UNAVAILABLE",
+        "present_games": 0,
+        "total_games": 815,
+        "note": "No retrieval or line timestamp"
+      },
+      {
+        "item": "Line movement/history",
+        "status": "UNAVAILABLE",
+        "present_games": 0,
+        "total_games": 815,
+        "note": "Only one line observation per game"
+      },
+      {
+        "item": "Pregame provenance",
+        "status": "UNAVAILABLE",
+        "present_games": 0,
+        "total_games": 815,
+        "note": "No timestamp proves the line preceded kickoff"
+      },
+      {
+        "item": "Scheduled kickoff date",
+        "status": "AVAILABLE",
+        "present_games": 815,
+        "total_games": 815,
+        "note": "Date present for all scoped games"
+      },
+      {
+        "item": "Scheduled kickoff time",
+        "status": "AVAILABLE",
+        "present_games": 815,
+        "total_games": 815,
+        "note": "Clock time present; timezone provenance absent"
+      }
+    ],
+    "multi_book_supported": false,
+    "closing_line_value_supported": false
+  },
+  "anomaly_definition": {
+    "formula": "roster_fair_home_margin - market_implied_home_margin",
+    "confidence_weights": {
+      "HIGH": 1.0,
+      "MEDIUM": 0.75,
+      "LOW": 0.0
+    },
+    "minimum_supporting_groups": 2,
+    "minimum_group_contribution": 0.25,
+    "development_outcomes_used_for_thresholds": false,
+    "validation_outcomes_used_for_thresholds": false
+  },
+  "lineup_confidence": {
+    "definition": "Stage 4 completeness and strictly prior-snap evidence; not verified injury availability",
+    "development": {
+      "HIGH": 511,
+      "LOW": 32
+    },
+    "validation": {
+      "HIGH": 266,
+      "LOW": 6
+    }
+  },
+  "frozen_rules": [
+    {
+      "name": "TOP_20_PERCENT",
+      "target_coverage": 0.2,
+      "threshold": 4.683393757922371,
+      "minimum_lineup_confidence": "MEDIUM",
+      "minimum_supporting_groups": 2,
+      "development_eligible_games": 264,
+      "development_flagged_games": 53,
+      "development_total_games": 543,
+      "development_total_coverage": 0.09760589318600368
+    },
+    {
+      "name": "TOP_10_PERCENT",
+      "target_coverage": 0.1,
+      "threshold": 6.423059479366703,
+      "minimum_lineup_confidence": "MEDIUM",
+      "minimum_supporting_groups": 2,
+      "development_eligible_games": 264,
+      "development_flagged_games": 27,
+      "development_total_games": 543,
+      "development_total_coverage": 0.049723756906077346
+    },
+    {
+      "name": "TOP_5_PERCENT",
+      "target_coverage": 0.05,
+      "threshold": 7.44034078378945,
+      "minimum_lineup_confidence": "MEDIUM",
+      "minimum_supporting_groups": 2,
+      "development_eligible_games": 264,
+      "development_flagged_games": 14,
+      "development_total_games": 543,
+      "development_total_coverage": 0.02578268876611418
+    }
+  ],
+  "validation": {
+    "all_games": {
+      "games": 272,
+      "wins": 122,
+      "losses": 136,
+      "pushes": 14,
+      "ats_accuracy": 0.4728682170542636,
+      "wilson_95_low": 0.4127912879760846,
+      "wilson_95_high": 0.5337412721671472,
+      "average_absolute_disagreement": 3.2243060262496512,
+      "median_absolute_disagreement": 2.6833461933596596
+    },
+    "constant_benchmark": 0.5,
+    "stage7b_residual_ats": 0.5232558139534884,
+    "rules": [
+      {
+        "rule": "TOP_20_PERCENT",
+        "threshold": 4.683393757922371,
+        "target_development_coverage": 0.2,
+        "validation_coverage": 0.11764705882352941,
+        "games": 32,
+        "wins": 13,
+        "losses": 16,
+        "pushes": 3,
+        "ats_accuracy": 0.4482758620689655,
+        "wilson_95_low": 0.2841291114874579,
+        "wilson_95_high": 0.6245233293193238,
+        "average_absolute_disagreement": 6.866324649319312,
+        "median_absolute_disagreement": 6.620641134409101,
+        "by_model_side": [
+          {
+            "bucket": "AWAY",
+            "games": 11,
+            "wins": 6,
+            "losses": 3,
+            "pushes": 2,
+            "ats_accuracy": 0.6666666666666666,
+            "wilson_95_low": 0.35419734749908977,
+            "wilson_95_high": 0.879418401317257,
+            "average_absolute_disagreement": 7.24159785383502,
+            "median_absolute_disagreement": 7.2826141291819795
+          },
+          {
+            "bucket": "HOME",
+            "games": 21,
+            "wins": 7,
+            "losses": 13,
+            "pushes": 1,
+            "ats_accuracy": 0.35,
+            "wilson_95_low": 0.18118954786794464,
+            "wilson_95_high": 0.5671494897805354,
+            "average_absolute_disagreement": 6.669752970763465,
+            "median_absolute_disagreement": 6.3282160405070655
+          }
+        ],
+        "by_favorite_underdog": [
+          {
+            "bucket": "FAVORITE",
+            "games": 7,
+            "wins": 4,
+            "losses": 3,
+            "pushes": 0,
+            "ats_accuracy": 0.5714285714285714,
+            "wilson_95_low": 0.2504542304090258,
+            "wilson_95_high": 0.8417830777373732,
+            "average_absolute_disagreement": 6.02200084950813,
+            "median_absolute_disagreement": 5.4274614856329695
+          },
+          {
+            "bucket": "UNDERDOG",
+            "games": 25,
+            "wins": 9,
+            "losses": 13,
+            "pushes": 3,
+            "ats_accuracy": 0.4090909090909091,
+            "wilson_95_low": 0.23255559668820378,
+            "wilson_95_high": 0.6126552261710619,
+            "average_absolute_disagreement": 7.102735313266443,
+            "median_absolute_disagreement": 6.773396464428602
+          }
+        ],
+        "by_lineup_confidence": [
+          {
+            "bucket": "HIGH",
+            "games": 32,
+            "wins": 13,
+            "losses": 16,
+            "pushes": 3,
+            "ats_accuracy": 0.4482758620689655,
+            "wilson_95_low": 0.2841291114874579,
+            "wilson_95_high": 0.6245233293193238,
+            "average_absolute_disagreement": 6.866324649319312,
+            "median_absolute_disagreement": 6.620641134409101
+          }
+        ],
+        "by_disagreement_size": [
+          {
+            "bucket": "3-5",
+            "games": 1,
+            "wins": 0,
+            "losses": 1,
+            "pushes": 0,
+            "ats_accuracy": 0.0,
+            "wilson_95_low": 0.0,
+            "wilson_95_high": 0.7934567085261071,
+            "average_absolute_disagreement": 4.9769718612466045,
+            "median_absolute_disagreement": 4.9769718612466045
+          },
+          {
+            "bucket": "5-7",
+            "games": 19,
+            "wins": 7,
+            "losses": 10,
+            "pushes": 2,
+            "ats_accuracy": 0.4117647058823529,
+            "wilson_95_low": 0.21610786039131383,
+            "wilson_95_high": 0.6399492561448447,
+            "average_absolute_disagreement": 5.946543427013989,
+            "median_absolute_disagreement": 5.8853761273454674
+          },
+          {
+            "bucket": "7+",
+            "games": 12,
+            "wins": 6,
+            "losses": 5,
+            "pushes": 1,
+            "ats_accuracy": 0.5454545454545454,
+            "wilson_95_low": 0.28008775568998817,
+            "wilson_95_high": 0.7872904245601196,
+            "average_absolute_disagreement": 8.480090983642134,
+            "median_absolute_disagreement": 8.257242282587242
+          }
+        ],
+        "by_primary_reason": [
+          {
+            "bucket": "OL_RUN_VS_FRONT",
+            "games": 1,
+            "wins": 0,
+            "losses": 1,
+            "pushes": 0,
+            "ats_accuracy": 0.0,
+            "wilson_95_low": 0.0,
+            "wilson_95_high": 0.7934567085261071,
+            "average_absolute_disagreement": 6.574433443058647,
+            "median_absolute_disagreement": 6.574433443058647
+          },
+          {
+            "bucket": "OL_STRONGEST_PLAYER",
+            "games": 4,
+            "wins": 3,
+            "losses": 0,
+            "pushes": 1,
+            "ats_accuracy": 1.0,
+            "wilson_95_low": 0.43849391955098227,
+            "wilson_95_high": 1.0,
+            "average_absolute_disagreement": 6.734711268729033,
+            "median_absolute_disagreement": 6.73883289684473
+          },
+          {
+            "bucket": "OL_VS_PASS_RUSH",
+            "games": 3,
+            "wins": 1,
+            "losses": 2,
+            "pushes": 0,
+            "ats_accuracy": 0.3333333333333333,
+            "wilson_95_low": 0.0614903152761605,
+            "wilson_95_high": 0.7923450448735121,
+            "average_absolute_disagreement": 8.32680081441334,
+            "median_absolute_disagreement": 8.721093487300301
+          },
+          {
+            "bucket": "OL_WEAKEST_LINK",
+            "games": 8,
+            "wins": 5,
+            "losses": 3,
+            "pushes": 0,
+            "ats_accuracy": 0.625,
+            "wilson_95_low": 0.30573785458380187,
+            "wilson_95_high": 0.863158240538479,
+            "average_absolute_disagreement": 7.513735720843714,
+            "median_absolute_disagreement": 8.257242282587242
+          },
+          {
+            "bucket": "QB_DIFFERENCE",
+            "games": 1,
+            "wins": 0,
+            "losses": 1,
+            "pushes": 0,
+            "ats_accuracy": 0.0,
+            "wilson_95_low": 0.0,
+            "wilson_95_high": 0.7934567085261071,
+            "average_absolute_disagreement": 5.458933856575401,
+            "median_absolute_disagreement": 5.458933856575401
+          },
+          {
+            "bucket": "RECEIVERS_VS_SECONDARY",
+            "games": 1,
+            "wins": 0,
+            "losses": 1,
+            "pushes": 0,
+            "ats_accuracy": 0.0,
+            "wilson_95_low": 0.0,
+            "wilson_95_high": 0.7934567085261071,
+            "average_absolute_disagreement": 7.2826141291819795,
+            "median_absolute_disagreement": 7.2826141291819795
+          },
+          {
+            "bucket": "RECEIVER_REPLACEMENTS",
+            "games": 2,
+            "wins": 0,
+            "losses": 2,
+            "pushes": 0,
+            "ats_accuracy": 0.0,
+            "wilson_95_low": 0.0,
+            "wilson_95_high": 0.6576280471103807,
+            "average_absolute_disagreement": 5.854806982551843,
+            "median_absolute_disagreement": 5.854806982551843
+          },
+          {
+            "bucket": "TE1_DIFFERENCE",
+            "games": 12,
+            "wins": 4,
+            "losses": 6,
+            "pushes": 2,
+            "ats_accuracy": 0.4,
+            "wilson_95_low": 0.16817758120350967,
+            "wilson_95_high": 0.6873304525498135,
+            "average_absolute_disagreement": 6.388971674949367,
+            "median_absolute_disagreement": 6.266854400412887
+          }
+        ],
+        "by_primary_feature_group": [
+          {
+            "bucket": "OL",
+            "games": 16,
+            "wins": 9,
+            "losses": 6,
+            "pushes": 1,
+            "ats_accuracy": 0.6,
+            "wilson_95_low": 0.357464427565077,
+            "wilson_95_high": 0.8017577191740534,
+            "average_absolute_disagreement": 7.412722920497782,
+            "median_absolute_disagreement": 7.4648598964568205
+          },
+          {
+            "bucket": "QB",
+            "games": 1,
+            "wins": 0,
+            "losses": 1,
+            "pushes": 0,
+            "ats_accuracy": 0.0,
+            "wilson_95_low": 0.0,
+            "wilson_95_high": 0.7934567085261071,
+            "average_absolute_disagreement": 5.458933856575401,
+            "median_absolute_disagreement": 5.458933856575401
+          },
+          {
+            "bucket": "RECEIVERS",
+            "games": 15,
+            "wins": 4,
+            "losses": 9,
+            "pushes": 2,
+            "ats_accuracy": 0.3076923076923077,
+            "wilson_95_low": 0.12680497161618087,
+            "wilson_95_high": 0.5763111218666236,
+            "average_absolute_disagreement": 6.377325879578538,
+            "median_absolute_disagreement": 6.104500773962066
+          }
+        ]
+      },
+      {
+        "rule": "TOP_10_PERCENT",
+        "threshold": 6.423059479366703,
+        "target_development_coverage": 0.1,
+        "validation_coverage": 0.04411764705882353,
+        "games": 12,
+        "wins": 8,
+        "losses": 3,
+        "pushes": 1,
+        "ats_accuracy": 0.7272727272727273,
+        "wilson_95_low": 0.4343497069897537,
+        "wilson_95_high": 0.9025411942607853,
+        "average_absolute_disagreement": 8.262721927648034,
+        "median_absolute_disagreement": 8.257242282587242,
+        "by_model_side": [
+          {
+            "bucket": "AWAY",
+            "games": 5,
+            "wins": 4,
+            "losses": 0,
+            "pushes": 1,
+            "ats_accuracy": 1.0,
+            "wilson_95_low": 0.5100999795960008,
+            "wilson_95_high": 1.0,
+            "average_absolute_disagreement": 8.071483780478305,
+            "median_absolute_disagreement": 8.100274878470263
+          },
+          {
+            "bucket": "HOME",
+            "games": 7,
+            "wins": 4,
+            "losses": 3,
+            "pushes": 0,
+            "ats_accuracy": 0.5714285714285714,
+            "wilson_95_low": 0.2504542304090258,
+            "wilson_95_high": 0.8417830777373732,
+            "average_absolute_disagreement": 8.39932060419784,
+            "median_absolute_disagreement": 8.414209686704224
+          }
+        ],
+        "by_favorite_underdog": [
+          {
+            "bucket": "FAVORITE",
+            "games": 2,
+            "wins": 2,
+            "losses": 0,
+            "pushes": 0,
+            "ats_accuracy": 1.0,
+            "wilson_95_low": 0.34237195288961925,
+            "wilson_95_high": 1.0,
+            "average_absolute_disagreement": 7.70015652755594,
+            "median_absolute_disagreement": 7.70015652755594
+          },
+          {
+            "bucket": "UNDERDOG",
+            "games": 10,
+            "wins": 6,
+            "losses": 3,
+            "pushes": 1,
+            "ats_accuracy": 0.6666666666666666,
+            "wilson_95_low": 0.35419734749908977,
+            "wilson_95_high": 0.879418401317257,
+            "average_absolute_disagreement": 8.375235007666452,
+            "median_absolute_disagreement": 8.257242282587242
+          }
+        ],
+        "by_lineup_confidence": [
+          {
+            "bucket": "HIGH",
+            "games": 12,
+            "wins": 8,
+            "losses": 3,
+            "pushes": 1,
+            "ats_accuracy": 0.7272727272727273,
+            "wilson_95_low": 0.4343497069897537,
+            "wilson_95_high": 0.9025411942607853,
+            "average_absolute_disagreement": 8.262721927648034,
+            "median_absolute_disagreement": 8.257242282587242
+          }
+        ],
+        "by_disagreement_size": [
+          {
+            "bucket": "5-7",
+            "games": 3,
+            "wins": 2,
+            "losses": 0,
+            "pushes": 1,
+            "ats_accuracy": 1.0,
+            "wilson_95_low": 0.34237195288961925,
+            "wilson_95_high": 1.0,
+            "average_absolute_disagreement": 6.750354086039354,
+            "median_absolute_disagreement": 6.773396464428602
+          },
+          {
+            "bucket": "7+",
+            "games": 9,
+            "wins": 6,
+            "losses": 3,
+            "pushes": 0,
+            "ats_accuracy": 0.6666666666666666,
+            "wilson_95_low": 0.35419734749908977,
+            "wilson_95_high": 0.879418401317257,
+            "average_absolute_disagreement": 8.766844541517592,
+            "median_absolute_disagreement": 8.518704106419468
+          }
+        ],
+        "by_primary_reason": [
+          {
+            "bucket": "OL_STRONGEST_PLAYER",
+            "games": 2,
+            "wins": 2,
+            "losses": 0,
+            "pushes": 0,
+            "ats_accuracy": 1.0,
+            "wilson_95_low": 0.34237195288961925,
+            "wilson_95_high": 1.0,
+            "average_absolute_disagreement": 6.73883289684473,
+            "median_absolute_disagreement": 6.73883289684473
+          },
+          {
+            "bucket": "OL_VS_PASS_RUSH",
+            "games": 2,
+            "wins": 1,
+            "losses": 1,
+            "pushes": 0,
+            "ats_accuracy": 0.5,
+            "wilson_95_low": 0.09452865480086614,
+            "wilson_95_high": 0.9054713451991339,
+            "average_absolute_disagreement": 9.326093201366477,
+            "median_absolute_disagreement": 9.326093201366477
+          },
+          {
+            "bucket": "OL_WEAKEST_LINK",
+            "games": 5,
+            "wins": 4,
+            "losses": 1,
+            "pushes": 0,
+            "ats_accuracy": 0.8,
+            "wilson_95_low": 0.3755282641185388,
+            "wilson_95_high": 0.9637768390302125,
+            "average_absolute_disagreement": 8.914196095101174,
+            "median_absolute_disagreement": 8.518704106419468
+          },
+          {
+            "bucket": "TE1_DIFFERENCE",
+            "games": 3,
+            "wins": 1,
+            "losses": 1,
+            "pushes": 1,
+            "ats_accuracy": 0.5,
+            "wilson_95_low": 0.09452865480086614,
+            "wilson_95_high": 0.9054713451991339,
+            "average_absolute_disagreement": 7.483943486616038,
+            "median_absolute_disagreement": 7.673516741640133
+          }
+        ],
+        "by_primary_feature_group": [
+          {
+            "bucket": "OL",
+            "games": 9,
+            "wins": 7,
+            "losses": 2,
+            "pushes": 0,
+            "ats_accuracy": 0.7777777777777778,
+            "wilson_95_low": 0.4525833436728054,
+            "wilson_95_high": 0.9367762376877727,
+            "average_absolute_disagreement": 8.522314741325365,
+            "median_absolute_disagreement": 8.518704106419468
+          },
+          {
+            "bucket": "RECEIVERS",
+            "games": 3,
+            "wins": 1,
+            "losses": 1,
+            "pushes": 1,
+            "ats_accuracy": 0.5,
+            "wilson_95_low": 0.09452865480086614,
+            "wilson_95_high": 0.9054713451991339,
+            "average_absolute_disagreement": 7.483943486616038,
+            "median_absolute_disagreement": 7.673516741640133
+          }
+        ]
+      },
+      {
+        "rule": "TOP_5_PERCENT",
+        "threshold": 7.44034078378945,
+        "target_development_coverage": 0.05,
+        "validation_coverage": 0.022058823529411766,
+        "games": 6,
+        "wins": 4,
+        "losses": 2,
+        "pushes": 0,
+        "ats_accuracy": 0.6666666666666666,
+        "wilson_95_low": 0.29998832134152864,
+        "wilson_95_high": 0.9032306674407831,
+        "average_absolute_disagreement": 9.063699842450745,
+        "median_absolute_disagreement": 8.838845643181632,
+        "by_model_side": [
+          {
+            "bucket": "AWAY",
+            "games": 2,
+            "wins": 2,
+            "losses": 0,
+            "pushes": 0,
+            "ats_accuracy": 1.0,
+            "wilson_95_low": 0.34237195288961925,
+            "wilson_95_high": 1.0,
+            "average_absolute_disagreement": 9.443845357247808,
+            "median_absolute_disagreement": 9.443845357247808
+          },
+          {
+            "bucket": "HOME",
+            "games": 4,
+            "wins": 2,
+            "losses": 2,
+            "pushes": 0,
+            "ats_accuracy": 0.5,
+            "wilson_95_low": 0.15003570882017148,
+            "wilson_95_high": 0.8499642911798285,
+            "average_absolute_disagreement": 8.873627085052213,
+            "median_absolute_disagreement": 8.619898796859886
+          }
+        ],
+        "by_favorite_underdog": [
+          {
+            "bucket": "FAVORITE",
+            "games": 1,
+            "wins": 1,
+            "losses": 0,
+            "pushes": 0,
+            "ats_accuracy": 1.0,
+            "wilson_95_low": 0.20654329147389294,
+            "wilson_95_high": 1.0,
+            "average_absolute_disagreement": 8.518704106419468,
+            "median_absolute_disagreement": 8.518704106419468
+          },
+          {
+            "bucket": "UNDERDOG",
+            "games": 5,
+            "wins": 3,
+            "losses": 2,
+            "pushes": 0,
+            "ats_accuracy": 0.6,
+            "wilson_95_low": 0.23071993220883708,
+            "wilson_95_high": 0.8823817688407467,
+            "average_absolute_disagreement": 9.172698989657,
+            "median_absolute_disagreement": 8.956597799062962
+          }
+        ],
+        "by_lineup_confidence": [
+          {
+            "bucket": "HIGH",
+            "games": 6,
+            "wins": 4,
+            "losses": 2,
+            "pushes": 0,
+            "ats_accuracy": 0.6666666666666666,
+            "wilson_95_low": 0.29998832134152864,
+            "wilson_95_high": 0.9032306674407831,
+            "average_absolute_disagreement": 9.063699842450745,
+            "median_absolute_disagreement": 8.838845643181632
+          }
+        ],
+        "by_disagreement_size": [
+          {
+            "bucket": "7+",
+            "games": 6,
+            "wins": 4,
+            "losses": 2,
+            "pushes": 0,
+            "ats_accuracy": 0.6666666666666666,
+            "wilson_95_low": 0.29998832134152864,
+            "wilson_95_high": 0.9032306674407831,
+            "average_absolute_disagreement": 9.063699842450745,
+            "median_absolute_disagreement": 8.838845643181632
+          }
+        ],
+        "by_primary_reason": [
+          {
+            "bucket": "OL_VS_PASS_RUSH",
+            "games": 2,
+            "wins": 1,
+            "losses": 1,
+            "pushes": 0,
+            "ats_accuracy": 0.5,
+            "wilson_95_low": 0.09452865480086614,
+            "wilson_95_high": 0.9054713451991339,
+            "average_absolute_disagreement": 9.326093201366477,
+            "median_absolute_disagreement": 9.326093201366477
+          },
+          {
+            "bucket": "OL_WEAKEST_LINK",
+            "games": 3,
+            "wins": 2,
+            "losses": 1,
+            "pushes": 0,
+            "ats_accuracy": 0.6666666666666666,
+            "wilson_95_low": 0.2076549551264879,
+            "wilson_95_high": 0.9385096847238394,
+            "average_absolute_disagreement": 9.352165303443794,
+            "median_absolute_disagreement": 8.956597799062962
+          },
+          {
+            "bucket": "TE1_DIFFERENCE",
+            "games": 1,
+            "wins": 1,
+            "losses": 0,
+            "pushes": 0,
+            "ats_accuracy": 1.0,
+            "wilson_95_low": 0.20654329147389294,
+            "wilson_95_high": 1.0,
+            "average_absolute_disagreement": 7.673516741640133,
+            "median_absolute_disagreement": 7.673516741640133
+          }
+        ],
+        "by_primary_feature_group": [
+          {
+            "bucket": "OL",
+            "games": 5,
+            "wins": 3,
+            "losses": 2,
+            "pushes": 0,
+            "ats_accuracy": 0.6,
+            "wilson_95_low": 0.23071993220883708,
+            "wilson_95_high": 0.8823817688407467,
+            "average_absolute_disagreement": 9.341736462612868,
+            "median_absolute_disagreement": 8.956597799062962
+          },
+          {
+            "bucket": "RECEIVERS",
+            "games": 1,
+            "wins": 1,
+            "losses": 0,
+            "pushes": 0,
+            "ats_accuracy": 1.0,
+            "wilson_95_low": 0.20654329147389294,
+            "wilson_95_high": 1.0,
+            "average_absolute_disagreement": 7.673516741640133,
+            "median_absolute_disagreement": 7.673516741640133
+          }
+        ]
+      }
+    ],
+    "larger_scores_monotonic": false
+  },
+  "model_version": "RSM-v2-candidate-stage7c-anomaly-experimental",
+  "production_ready": false
+}

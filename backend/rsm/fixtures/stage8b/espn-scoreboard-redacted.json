@@ -1,0 +1,26 @@
+{
+  "events": [
+    {
+      "id": "REDACTED-EVENT-1",
+      "date": "2099-09-11T00:00:00Z",
+      "competitions": [
+        {
+          "status": {"type": {"state": "pre", "completed": false}},
+          "competitors": [
+            {"homeAway": "home", "team": {"abbreviation": "KC"}},
+            {"homeAway": "away", "team": {"abbreviation": "LV"}}
+          ],
+          "odds": [
+            {
+              "provider": {"name": "REDACTED BOOK"},
+              "details": "KC -3.5",
+              "homeTeamOdds": {"spread": -3.5, "spreadOdds": -110},
+              "awayTeamOdds": {"spread": 3.5, "spreadOdds": -110},
+              "lastUpdated": "2099-09-10T19:55:00Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

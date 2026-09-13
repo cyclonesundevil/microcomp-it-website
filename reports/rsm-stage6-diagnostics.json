@@ -1,0 +1,635 @@
+{
+  "existing_predictor": {
+    "ats": {
+      "n": 544,
+      "wins": 260,
+      "losses": 279,
+      "pushes": 5,
+      "accuracy": 0.48237476808905383
+    },
+    "ou": {
+      "n": 544,
+      "wins": 270,
+      "losses": 271,
+      "pushes": 3,
+      "accuracy": 0.49907578558225507
+    },
+    "games": 544,
+    "score_mae": 7.467696505346291,
+    "margin_mae": 10.417130812512948,
+    "total_mae": 10.449975693470261,
+    "score_bias": -0.03495226410852375,
+    "predicted_score_sd": 4.108536508340246,
+    "actual_score_sd": 9.860024710029148
+  },
+  "rsm_v1": {
+    "ats": {
+      "n": 544,
+      "wins": 275,
+      "losses": 264,
+      "pushes": 5,
+      "accuracy": 0.5102040816326531
+    },
+    "ou": {
+      "n": 544,
+      "wins": 269,
+      "losses": 272,
+      "pushes": 3,
+      "accuracy": 0.49722735674676527
+    },
+    "games": 544,
+    "score_mae": 7.702492647058824,
+    "margin_mae": 10.557988970588235,
+    "total_mae": 10.745716911764706,
+    "score_bias": -0.7175367647058823,
+    "predicted_score_sd": 2.558384338555742,
+    "actual_score_sd": 9.860024710029148
+  },
+  "market": {
+    "model_margin_mae": 10.558031249999999,
+    "market_margin_mae": 9.666360294117647,
+    "model_total_mae": 10.745693014705882,
+    "market_total_mae": 10.061580882352942,
+    "margin_error_correlation": 0.9412026477644342,
+    "total_error_correlation": 0.9551766497821236,
+    "rsm_margin_vs_market_margin_correlation": 0.6216696380141377,
+    "rsm_total_vs_market_total_correlation": 0.45243926870253415,
+    "spread_edge_vs_market_residual_correlation": -0.09759639383273794,
+    "total_edge_vs_market_residual_correlation": -0.04162418354750326,
+    "feature_vs_market_margin": {
+      "QB mismatch": 0.5794974613275868,
+      "OL mismatch": 0.06983155419835038,
+      "receiver mismatch": 0.5027301693037972,
+      "pass offense-defense matchup": 0.41386368920741806,
+      "run offense-defense matchup": 0.25351953030243385,
+      "overall roster proxy": 0.6216696380141377
+    },
+    "feature_vs_margin_residual": {
+      "QB mismatch": 0.0525782756237301,
+      "OL mismatch": 0.016499659697016437,
+      "receiver mismatch": 0.05868324973151928,
+      "pass offense-defense matchup": -0.015461702966593282,
+      "run offense-defense matchup": -0.012992434401645481,
+      "overall roster proxy": 0.04513340047715935
+    },
+    "feature_vs_total_residual": {
+      "QB mismatch": 0.02581348168325918,
+      "OL mismatch": -0.006822235720821267,
+      "receiver mismatch": 0.014228615007368835,
+      "pass offense-defense matchup": 0.0029526320851934375,
+      "run offense-defense matchup": -0.020115470633590146,
+      "overall roster proxy": 0.005582853956168639
+    }
+  },
+  "ats_edge_buckets": {
+    "0-1": {
+      "n": 78,
+      "wins": 49,
+      "losses": 27,
+      "pushes": 2,
+      "accuracy": 0.6447368421052632
+    },
+    "1-2": {
+      "n": 109,
+      "wins": 53,
+      "losses": 56,
+      "pushes": 0,
+      "accuracy": 0.48623853211009177
+    },
+    "2-3": {
+      "n": 94,
+      "wins": 41,
+      "losses": 51,
+      "pushes": 2,
+      "accuracy": 0.44565217391304346
+    },
+    "3-5": {
+      "n": 110,
+      "wins": 58,
+      "losses": 51,
+      "pushes": 1,
+      "accuracy": 0.5321100917431193
+    },
+    "5+": {
+      "n": 153,
+      "wins": 74,
+      "losses": 79,
+      "pushes": 0,
+      "accuracy": 0.48366013071895425
+    }
+  },
+  "ou_edge_buckets": {
+    "0-1": {
+      "n": 105,
+      "wins": 57,
+      "losses": 46,
+      "pushes": 2,
+      "accuracy": 0.5533980582524272
+    },
+    "1-2": {
+      "n": 103,
+      "wins": 52,
+      "losses": 51,
+      "pushes": 0,
+      "accuracy": 0.5048543689320388
+    },
+    "2-3": {
+      "n": 91,
+      "wins": 42,
+      "losses": 49,
+      "pushes": 0,
+      "accuracy": 0.46153846153846156
+    },
+    "3-5": {
+      "n": 139,
+      "wins": 70,
+      "losses": 69,
+      "pushes": 0,
+      "accuracy": 0.5035971223021583
+    },
+    "5+": {
+      "n": 106,
+      "wins": 48,
+      "losses": 57,
+      "pushes": 1,
+      "accuracy": 0.45714285714285713
+    }
+  },
+  "confidence_deciles": [
+    {
+      "decile": 1,
+      "n": 55,
+      "ats_accuracy": 0.5818181818181818,
+      "ou_accuracy": 0.5454545454545454,
+      "mean_predicted_ats_probability": 0.5269375636363637,
+      "actual_ats_frequency": 0.5818181818181818,
+      "mean_predicted_ou_probability": 0.5244109636363636,
+      "actual_ou_frequency": 0.5454545454545454,
+      "mean_abs_spread_edge": 0.9262,
+      "mean_abs_total_edge": 0.8561636363636363
+    },
+    {
+      "decile": 2,
+      "n": 54,
+      "ats_accuracy": 0.5384615384615384,
+      "ou_accuracy": 0.37735849056603776,
+      "mean_predicted_ats_probability": 0.545994962962963,
+      "actual_ats_frequency": 0.5384615384615384,
+      "mean_predicted_ou_probability": 0.5502627407407408,
+      "actual_ou_frequency": 0.37735849056603776,
+      "mean_abs_spread_edge": 1.5843888888888888,
+      "mean_abs_total_edge": 1.7672407407407407
+    },
+    {
+      "decile": 3,
+      "n": 55,
+      "ats_accuracy": 0.6,
+      "ou_accuracy": 0.42592592592592593,
+      "mean_predicted_ats_probability": 0.5593233454545454,
+      "actual_ats_frequency": 0.6,
+      "mean_predicted_ou_probability": 0.5602218,
+      "actual_ou_frequency": 0.42592592592592593,
+      "mean_abs_spread_edge": 2.0476363636363635,
+      "mean_abs_total_edge": 2.1217454545454544
+    },
+    {
+      "decile": 4,
+      "n": 54,
+      "ats_accuracy": 0.46296296296296297,
+      "ou_accuracy": 0.48148148148148145,
+      "mean_predicted_ats_probability": 0.5744194074074074,
+      "actual_ats_frequency": 0.46296296296296297,
+      "mean_predicted_ou_probability": 0.5718492962962963,
+      "actual_ou_frequency": 0.48148148148148145,
+      "mean_abs_spread_edge": 2.5756296296296295,
+      "mean_abs_total_edge": 2.538222222222222
+    },
+    {
+      "decile": 5,
+      "n": 54,
+      "ats_accuracy": 0.49056603773584906,
+      "ou_accuracy": 0.5370370370370371,
+      "mean_predicted_ats_probability": 0.5907872962962963,
+      "actual_ats_frequency": 0.49056603773584906,
+      "mean_predicted_ou_probability": 0.5882096111111111,
+      "actual_ou_frequency": 0.5370370370370371,
+      "mean_abs_spread_edge": 3.153537037037037,
+      "mean_abs_total_edge": 3.126148148148148
+    },
+    {
+      "decile": 6,
+      "n": 55,
+      "ats_accuracy": 0.4444444444444444,
+      "ou_accuracy": 0.6,
+      "mean_predicted_ats_probability": 0.5958434,
+      "actual_ats_frequency": 0.4444444444444444,
+      "mean_predicted_ou_probability": 0.5974298181818182,
+      "actual_ou_frequency": 0.6,
+      "mean_abs_spread_edge": 3.343618181818182,
+      "mean_abs_total_edge": 3.4698545454545453
+    },
+    {
+      "decile": 7,
+      "n": 54,
+      "ats_accuracy": 0.5740740740740741,
+      "ou_accuracy": 0.46296296296296297,
+      "mean_predicted_ats_probability": 0.6235560740740741,
+      "actual_ats_frequency": 0.5740740740740741,
+      "mean_predicted_ou_probability": 0.6014962777777778,
+      "actual_ou_frequency": 0.46296296296296297,
+      "mean_abs_spread_edge": 4.338259259259259,
+      "mean_abs_total_edge": 3.62537037037037
+    },
+    {
+      "decile": 8,
+      "n": 55,
+      "ats_accuracy": 0.5370370370370371,
+      "ou_accuracy": 0.5454545454545454,
+      "mean_predicted_ats_probability": 0.6392922,
+      "actual_ats_frequency": 0.5370370370370371,
+      "mean_predicted_ou_probability": 0.6081076909090909,
+      "actual_ou_frequency": 0.5454545454545454,
+      "mean_abs_spread_edge": 4.930181818181818,
+      "mean_abs_total_edge": 3.8879636363636365
+    },
+    {
+      "decile": 9,
+      "n": 54,
+      "ats_accuracy": 0.5185185185185185,
+      "ou_accuracy": 0.5471698113207547,
+      "mean_predicted_ats_probability": 0.654653074074074,
+      "actual_ats_frequency": 0.5185185185185185,
+      "mean_predicted_ou_probability": 0.6290328703703704,
+      "actual_ou_frequency": 0.5471698113207547,
+      "mean_abs_spread_edge": 5.546055555555555,
+      "mean_abs_total_edge": 4.688370370370371
+    },
+    {
+      "decile": 10,
+      "n": 54,
+      "ats_accuracy": 0.35185185185185186,
+      "ou_accuracy": 0.4444444444444444,
+      "mean_predicted_ats_probability": 0.7219349074074074,
+      "actual_ats_frequency": 0.35185185185185186,
+      "mean_predicted_ou_probability": 0.6589967037037037,
+      "actual_ou_frequency": 0.4444444444444444,
+      "mean_abs_spread_edge": 8.409,
+      "mean_abs_total_edge": 5.9655
+    }
+  ],
+  "score_bias": {
+    "HOME": {
+      "n": 544,
+      "mean_predicted": 23.15341544117647,
+      "mean_actual": 23.946691176470587,
+      "bias": -0.7932757352941177,
+      "mae": 7.848367647058824
+    },
+    "AWAY": {
+      "n": 544,
+      "mean_predicted": 21.33614338235294,
+      "mean_actual": 21.977941176470587,
+      "bias": -0.641797794117647,
+      "mae": 7.5566176470588236
+    },
+    "FAVORITE": {
+      "n": 544,
+      "mean_predicted": 23.213569852941177,
+      "mean_actual": 25.959558823529413,
+      "bias": -2.745988970588235,
+      "mae": 7.847727941176471
+    },
+    "UNDERDOG": {
+      "n": 544,
+      "mean_predicted": 21.275988970588234,
+      "mean_actual": 19.965073529411764,
+      "bias": 1.3109154411764705,
+      "mae": 7.557257352941177
+    },
+    "STRONG_OFFENSE": {
+      "n": 273,
+      "mean_predicted": 25.222703296703298,
+      "mean_actual": 25.296703296703296,
+      "bias": -0.07400000000000005,
+      "mae": 8.48574358974359
+    },
+    "WEAK_OFFENSE": {
+      "n": 273,
+      "mean_predicted": 19.78587545787546,
+      "mean_actual": 20.91941391941392,
+      "bias": -1.1335384615384616,
+      "mae": 7.149721611721612
+    },
+    "STRONG_DEFENSE_FACED": {
+      "n": 273,
+      "mean_predicted": 21.78030769230769,
+      "mean_actual": 21.857142857142858,
+      "bias": -0.07683516483516492,
+      "mae": 7.080468864468864
+    },
+    "WEAK_DEFENSE_FACED": {
+      "n": 273,
+      "mean_predicted": 22.781520146520148,
+      "mean_actual": 23.4029304029304,
+      "bias": -0.6214102564102564,
+      "mae": 8.157776556776557
+    },
+    "OVERALL": {
+      "n": 1088,
+      "mean_predicted": 22.244779411764707,
+      "mean_actual": 22.962316176470587,
+      "bias": -0.7175367647058823,
+      "mae": 7.702492647058824,
+      "predicted_sd": 2.558384338555742,
+      "actual_sd": 9.860024710029148
+    }
+  },
+  "validation_ablation": [
+    {
+      "component": "FULL RSM-v1",
+      "games": 272,
+      "score_mae": 7.794150584303755,
+      "margin_mae": 10.54198234191272,
+      "total_mae": 11.255104541899453,
+      "score_bias": 0.6419504680342828,
+      "predicted_score_sd": 2.702253707771273,
+      "actual_score_sd": 10.01164911348042,
+      "assessment": "REFERENCE"
+    },
+    {
+      "component": "QB rating",
+      "games": 272,
+      "score_mae": 7.796452018661533,
+      "margin_mae": 10.532753903890415,
+      "total_mae": 11.226318696940105,
+      "score_bias": 0.7615738167268844,
+      "predicted_score_sd": 2.6502704523878458,
+      "actual_score_sd": 10.01164911348042,
+      "delta_score_mae": 0.002301434357778298,
+      "delta_margin_mae": -0.009228438022304886,
+      "delta_total_mae": -0.028785844959347884,
+      "assessment": "NEUTRAL"
+    },
+    {
+      "component": "OL rating",
+      "games": 272,
+      "score_mae": 7.796565687534464,
+      "margin_mae": 10.534071561517308,
+      "total_mae": 11.233597731374605,
+      "score_bias": 0.7110462525186276,
+      "predicted_score_sd": 2.666253615838484,
+      "actual_score_sd": 10.01164911348042,
+      "delta_score_mae": 0.00241510323070937,
+      "delta_margin_mae": -0.007910780395411265,
+      "delta_total_mae": -0.021506810524847708,
+      "assessment": "NEUTRAL"
+    },
+    {
+      "component": "WR/TE receiving rating",
+      "games": 272,
+      "score_mae": 7.792214795050399,
+      "margin_mae": 10.542515839003325,
+      "total_mae": 11.223002600243362,
+      "score_bias": 0.7190188004984039,
+      "predicted_score_sd": 2.6601007797576033,
+      "actual_score_sd": 10.01164911348042,
+      "delta_score_mae": -0.0019357892533555798,
+      "delta_margin_mae": 0.0005334970906059056,
+      "delta_total_mae": -0.032101941656090816,
+      "assessment": "NEUTRAL"
+    },
+    {
+      "component": "composite pass-offense rating",
+      "games": 272,
+      "score_mae": 7.795284491691016,
+      "margin_mae": 10.53007297581896,
+      "total_mae": 11.239639505884096,
+      "score_bias": 0.7071330320949054,
+      "predicted_score_sd": 2.684319105595733,
+      "actual_score_sd": 10.01164911348042,
+      "delta_score_mae": 0.001133907387260713,
+      "delta_margin_mae": -0.011909366093759033,
+      "delta_total_mae": -0.015465036015356759,
+      "assessment": "NEUTRAL"
+    },
+    {
+      "component": "RB/rushing rating (unit proxy)",
+      "games": 272,
+      "score_mae": 7.7904921612058295,
+      "margin_mae": 10.560210314672549,
+      "total_mae": 11.228676706741346,
+      "score_bias": 0.6140787376419272,
+      "predicted_score_sd": 2.6796074519997775,
+      "actual_score_sd": 10.01164911348042,
+      "delta_score_mae": -0.0036584230979253007,
+      "delta_margin_mae": 0.01822797275982957,
+      "delta_total_mae": -0.026427835158106205,
+      "assessment": "NEUTRAL (PROXY)"
+    },
+    {
+      "component": "defensive front (run-defense proxy)",
+      "games": 272,
+      "score_mae": 7.799245069291467,
+      "margin_mae": 10.527851847677306,
+      "total_mae": 11.289626099764796,
+      "score_bias": 0.7142070955585016,
+      "predicted_score_sd": 2.694605544022394,
+      "actual_score_sd": 10.01164911348042,
+      "delta_score_mae": 0.0050944849877119225,
+      "delta_margin_mae": -0.014130494235413238,
+      "delta_total_mae": 0.034521557865343055,
+      "assessment": "NEUTRAL (PROXY)"
+    },
+    {
+      "component": "secondary (pass-defense proxy)",
+      "games": 272,
+      "score_mae": 7.815607138792097,
+      "margin_mae": 10.596945632829932,
+      "total_mae": 11.250711807775714,
+      "score_bias": 0.6101426394120605,
+      "predicted_score_sd": 2.715956541779467,
+      "actual_score_sd": 10.01164911348042,
+      "delta_score_mae": 0.02145655448834205,
+      "delta_margin_mae": 0.05496329091721286,
+      "delta_total_mae": -0.004392734123738862,
+      "assessment": "NEUTRAL (PROXY)"
+    },
+    {
+      "component": "kicker",
+      "games": 272,
+      "score_mae": 7.79306377822638,
+      "margin_mae": 10.550365578733162,
+      "total_mae": 11.25892485041715,
+      "score_bias": 0.6288429601125729,
+      "predicted_score_sd": 2.696421731814433,
+      "actual_score_sd": 10.01164911348042,
+      "delta_score_mae": -0.001086806077374547,
+      "delta_margin_mae": 0.008383236820442619,
+      "delta_total_mae": 0.003820308517697768,
+      "assessment": "NEUTRAL"
+    },
+    {
+      "component": "linebackers (separate)",
+      "assessment": "UNCERTAIN",
+      "reason": "not separately represented in frozen RSM-v1 feature artifact"
+    },
+    {
+      "component": "injury/replacement adjustment",
+      "assessment": "UNCERTAIN",
+      "reason": "not separately represented in frozen RSM-v1 feature artifact"
+    },
+    {
+      "component": "recent-form component",
+      "assessment": "UNCERTAIN",
+      "reason": "not separately represented in frozen RSM-v1 feature artifact"
+    },
+    {
+      "component": "multi-year component",
+      "assessment": "UNCERTAIN",
+      "reason": "not separately represented in frozen RSM-v1 feature artifact"
+    },
+    {
+      "component": "matchup interaction terms",
+      "assessment": "UNCERTAIN",
+      "reason": "not separately represented in frozen RSM-v1 feature artifact"
+    }
+  ],
+  "position_diagnostics": {
+    "margin_correlations": {
+      "QB": 0.2620879098614683,
+      "OL": 0.15572617471114558,
+      "WR_TE": 0.24322918243027625,
+      "RB_rushing_proxy": 0.24658974369175815,
+      "pass_defense": 0.2135909012270611,
+      "run_defense": 0.019845516704910866,
+      "kicker": 0.03711695589302459
+    },
+    "score_correlations": {
+      "QB": 0.1578388492522854,
+      "OL": 0.0772794271171098,
+      "WR_TE": 0.12430014216309589,
+      "RB_rushing_proxy": 0.11515697100785807,
+      "pass_defense": -0.08225468964329943,
+      "run_defense": -0.03573876696791575,
+      "kicker": 0.011719473808846605
+    },
+    "feature_pair_correlations": {
+      "QB_vs_pass_offense": 0.9492925017416959,
+      "OL_vs_run_offense": 0.6626058892401228,
+      "receiving_vs_pass_offense": 0.7349724798255962,
+      "pass_defense_vs_run_defense": 0.5540498512541321
+    },
+    "standardized_coefficients": {
+      "home_field": 0.9141896737220903,
+      "qb_rating": 3.8481706423476933,
+      "ol_rating": 0.8450150932151299,
+      "receiving_rating": 1.606456992918945,
+      "pass_offense_rating": -2.903626601150565,
+      "run_offense_rating": 0.42609268876248296,
+      "opponent_pass_defense_rating": -0.5128669914193134,
+      "opponent_run_defense_rating": -0.4088673415220632,
+      "kicker_rating": -0.1975489192788544
+    }
+  },
+  "playoffs": {
+    "regular": {
+      "n": 544,
+      "mean_abs_spread_edge": 3.6790275735294116,
+      "mean_abs_total_edge": 3.20009375,
+      "mean_actual_total": 45.924632352941174,
+      "ats": {
+        "n": 544,
+        "wins": 275,
+        "losses": 264,
+        "pushes": 5,
+        "accuracy": 0.5102040816326531
+      },
+      "ou": {
+        "n": 544,
+        "wins": 269,
+        "losses": 272,
+        "pushes": 3,
+        "accuracy": 0.49722735674676527
+      }
+    },
+    "playoffs": {
+      "n": 26,
+      "mean_abs_spread_edge": 3.9631153846153846,
+      "mean_abs_total_edge": 4.266615384615385,
+      "mean_actual_total": 47.30769230769231,
+      "ats": {
+        "n": 26,
+        "wins": 15,
+        "losses": 11,
+        "pushes": 0,
+        "accuracy": 0.5769230769230769
+      },
+      "ou": {
+        "n": 26,
+        "wins": 16,
+        "losses": 10,
+        "pushes": 0,
+        "accuracy": 0.6153846153846154
+      }
+    },
+    "playoff_ats_by_pick": {
+      "HOME": {
+        "n": 11,
+        "wins": 9,
+        "losses": 2,
+        "pushes": 0,
+        "accuracy": 0.8181818181818182
+      },
+      "AWAY": {
+        "n": 15,
+        "wins": 6,
+        "losses": 9,
+        "pushes": 0,
+        "accuracy": 0.4
+      }
+    },
+    "playoff_ou_by_pick": {
+      "OVER": {
+        "n": 19,
+        "wins": 11,
+        "losses": 8,
+        "pushes": 0,
+        "accuracy": 0.5789473684210527
+      },
+      "UNDER": {
+        "n": 7,
+        "wins": 5,
+        "losses": 2,
+        "pushes": 0,
+        "accuracy": 0.7142857142857143
+      }
+    },
+    "playoff_ats_by_market_role": {
+      "FAVORITE": {
+        "n": 3,
+        "wins": 2,
+        "losses": 1,
+        "pushes": 0,
+        "accuracy": 0.6666666666666666
+      },
+      "UNDERDOG": {
+        "n": 23,
+        "wins": 13,
+        "losses": 10,
+        "pushes": 0,
+        "accuracy": 0.5652173913043478
+      },
+      "PICKEM": {
+        "n": 0,
+        "wins": 0,
+        "losses": 0,
+        "pushes": 0,
+        "accuracy": null
+      }
+    }
+  },
+  "history_windows": {
+    "status": "UNCERTAIN",
+    "reason": "Only the frozen five-year feature artifact exists; 1/2/3-year comparisons require rebuilding player ratings and were prohibited in Stage 6."
+  }
+}

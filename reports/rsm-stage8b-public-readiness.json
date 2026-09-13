@@ -1,0 +1,391 @@
+{
+  "stage": "8B",
+  "research_only": true,
+  "live_requested": false,
+  "sources": [
+    {
+      "source": "nflverse",
+      "accessible": true,
+      "access_policy": "public GitHub releases/downloads",
+      "fields": [
+        "schedule",
+        "GSIS IDs",
+        "rosters",
+        "depth snapshots",
+        "prior stats",
+        "prior snaps"
+      ],
+      "timestamp_quality": "release metadata plus retrieval; depth snapshot where supplied",
+      "sportsbook_identification": "not used for prospective lines",
+      "player_id_coverage": "GSIS primary",
+      "update_frequency": "daily rosters; pipeline-dependent releases",
+      "parser_confidence": "HIGH",
+      "role": "REQUIRED"
+    },
+    {
+      "source": "Sleeper",
+      "accessible": true,
+      "access_policy": "documented unauthenticated read-only API; noncommercial; players at most daily",
+      "fields": [
+        "active/injury status",
+        "depth order",
+        "fantasy positions",
+        "public IDs"
+      ],
+      "timestamp_quality": "RETRIEVAL_TIMESTAMP_ONLY",
+      "sportsbook_identification": "none",
+      "player_id_coverage": "20.40% of active/team/position records by explicit Sleeper ID",
+      "update_frequency": "cached at least 24 hours",
+      "parser_confidence": "HIGH",
+      "role": "SUPPLEMENTAL"
+    },
+    {
+      "source": "ESPN",
+      "accessible": "public endpoint observed; disabled by default",
+      "access_policy": "unofficial/contract uncertain; stop on blocking",
+      "fields": [
+        "schedule",
+        "pregame displayed spread when identifiable"
+      ],
+      "timestamp_quality": "provider time if present, else retrieval only",
+      "sportsbook_identification": "required from provider.name",
+      "player_id_coverage": "crosswalk required",
+      "update_frequency": "fixture validation only until access is approved",
+      "parser_confidence": "MEDIUM",
+      "role": "OPTIONAL"
+    },
+    {
+      "source": "Yahoo",
+      "accessible": false,
+      "access_policy": "BLOCKED_POLICY: automated collection requires express permission",
+      "fields": [
+        "redacted fixture parser only"
+      ],
+      "timestamp_quality": "not collected live",
+      "sportsbook_identification": "not collected live",
+      "player_id_coverage": "fixture crosswalk only",
+      "update_frequency": "none",
+      "parser_confidence": "FIXTURE_ONLY",
+      "role": "SUPPLEMENTAL"
+    },
+    {
+      "source": "NFL.com",
+      "accessible": false,
+      "access_policy": "CORROBORATION_ONLY until an expressly permitted public feed is identified",
+      "fields": [
+        "official injury-report fixture evidence"
+      ],
+      "timestamp_quality": "report date plus retrieval when permitted",
+      "sportsbook_identification": "none",
+      "player_id_coverage": "GSIS crosswalk required",
+      "update_frequency": "none automated",
+      "parser_confidence": "NOT_ENABLED",
+      "role": "SUPPLEMENTAL"
+    }
+  ],
+  "source_checks": [
+    {
+      "source": "nflverse",
+      "status": "CACHED",
+      "manifest": "C:\\Users\\cyclo\\.gemini\\antigravity\\scratch\\it-solutions-website\\backend\\data\\rsm\\source-manifest.json"
+    },
+    {
+      "source": "nflverse",
+      "status": "CACHED_PUBLIC_RESPONSE",
+      "retrieved_at": "2026-09-12T21:59:32.470536Z",
+      "sha256": "774052e34cedf782c168e696d95e5a6870539d446af10859e75241e2e6dc950a",
+      "timestamp_quality": "RETRIEVAL_TIMESTAMP_ONLY"
+    },
+    {
+      "source": "sleeper",
+      "status": "CACHED_PUBLIC_RESPONSE",
+      "retrieved_at": "2026-09-12T21:59:33.280215Z",
+      "sha256": "3ba1c19b909b14a3766f7d7983ffc532b2598ef872ff695e9e6525cfc703262d",
+      "timestamp_quality": "RETRIEVAL_TIMESTAMP_ONLY"
+    }
+  ],
+  "readiness_checks": {
+    "frozen_pins": true,
+    "kickoff_verified": false,
+    "identifiable_spread": false,
+    "all_18_features_constructed": false,
+    "crosswalk_threshold_passed": false,
+    "prospective_timestamps_passed": false
+  },
+  "ready_for_genuine_prospective_writes": false,
+  "live_ledger_writes": 0,
+  "outcomes_ingested": false,
+  "recommendations_generated": false,
+  "baseline": {
+    "passed": true,
+    "checks": {
+      "model_hash": true,
+      "rules_hash": true,
+      "definition_hash": true,
+      "exact_feature_count": true,
+      "feature_order": true,
+      "finite_intercept": true,
+      "threshold_count": true,
+      "ledger_integrity": true,
+      "no_historical_backfill": true
+    },
+    "model_sha256": "679b088a793e0b3f56e946e3dc4c06e5d1b274827375b058bf03e85617f5b1fe",
+    "rules_sha256": "afbe5518089b3e9ed55e28063f8836b8c11c05abf509cd622deafe94717746e8",
+    "anomaly_definition_sha256": "1aeb53395566e4897dde44c72dfa47894e781687eede4b98f3f426f20b273d11",
+    "feature_count": 18,
+    "feature_order": [
+      "qb_quality_diff",
+      "qb_vs_pass_rush_matchup",
+      "qb_vs_coverage_matchup",
+      "ol_pass_vs_pass_rush_matchup",
+      "ol_run_vs_front_matchup",
+      "receiving_vs_secondary_matchup",
+      "rushing_vs_front_matchup",
+      "ol_weakest_diff",
+      "ol_strongest_diff",
+      "ol_continuity_diff",
+      "ol_replacement_starters_diff",
+      "wr1_diff",
+      "wr2_diff",
+      "te1_diff",
+      "receiver_replacements_diff",
+      "pass_rusher1_diff",
+      "weakest_coverage_diff",
+      "rest_diff"
+    ],
+    "coefficients": [
+      0.6576391131606485,
+      0.8542258115606655,
+      0.6667991260794021,
+      1.0917327015085483,
+      -1.2028477934443937,
+      0.9928178707392175,
+      0.1344107652551051,
+      1.364486542181012,
+      1.3095175383765292,
+      -0.18255259960901896,
+      0.1016007922223182,
+      -0.46771223199787676,
+      1.0252895228859122,
+      1.733828943817314,
+      0.4852880364307147,
+      -0.13947966930426892,
+      0.1969874720141509,
+      0.06216975137469689
+    ],
+    "means": [
+      0.011786372007366833,
+      0.008729281767956315,
+      0.05656077348066331,
+      0.027300184162062754,
+      -0.017953257914583874,
+      0.022200736648250733,
+      0.04216828904674196,
+      -0.028287292817679454,
+      0.028471454880294688,
+      -0.006261510128913444,
+      -0.020257826887661142,
+      0.0530755064456723,
+      -0.0798710865561693,
+      0.027421731123388388,
+      -0.001841620626151013,
+      0.10635359116022093,
+      0.090220994475138,
+      0.10681399631675875
+    ],
+    "scales": [
+      5.769346820818927,
+      9.177594787483777,
+      7.582924084862343,
+      7.339883461380584,
+      4.663641607782409,
+      5.018819654825286,
+      5.690249726936017,
+      4.901804701518358,
+      3.3294380457341792,
+      0.15025276962518844,
+      0.361032803089292,
+      3.579665242511152,
+      3.3724909481224254,
+      5.588960638049923,
+      0.21456263441532558,
+      7.6090319235892165,
+      3.6405518305223254,
+      2.330755530100323
+    ],
+    "intercept": 1.8453038674033149,
+    "ridge_alpha": 100.0,
+    "thresholds": [
+      4.683393757922371,
+      6.423059479366703,
+      7.44034078378945
+    ],
+    "anomaly_definition": {
+      "formula": "roster_fair_home_margin - market_implied_home_margin",
+      "confidence_weights": {
+        "HIGH": 1.0,
+        "MEDIUM": 0.75,
+        "LOW": 0.0
+      },
+      "minimum_supporting_groups": 2,
+      "minimum_group_contribution": 0.25,
+      "development_outcomes_used_for_thresholds": false,
+      "validation_outcomes_used_for_thresholds": false
+    },
+    "ledger": {
+      "valid": true,
+      "observations": 0,
+      "last_event_hash": "GENESIS"
+    },
+    "ledger_records": 0,
+    "historical_backfill_records": 0
+  },
+  "ledger": {
+    "valid": true,
+    "observations": 0,
+    "last_event_hash": "GENESIS"
+  },
+  "crosswalk_summary": {
+    "source": "sleeper",
+    "population": 2676,
+    "matched": 546,
+    "ambiguous": 0,
+    "unmatched": 2130,
+    "overall_coverage": 0.2040358744394619,
+    "coverage_by_position": {
+      "C": {
+        "matched": 5,
+        "total": 29,
+        "ratio": 0.1724137931034483
+      },
+      "CB": {
+        "matched": 37,
+        "total": 170,
+        "ratio": 0.21764705882352942
+      },
+      "DB": {
+        "matched": 54,
+        "total": 336,
+        "ratio": 0.16071428571428573
+      },
+      "DE": {
+        "matched": 47,
+        "total": 146,
+        "ratio": 0.3219178082191781
+      },
+      "DEF": {
+        "matched": 0,
+        "total": 32,
+        "ratio": 0.0
+      },
+      "DL": {
+        "matched": 0,
+        "total": 144,
+        "ratio": 0.0
+      },
+      "DT": {
+        "matched": 57,
+        "total": 163,
+        "ratio": 0.3496932515337423
+      },
+      "FB": {
+        "matched": 4,
+        "total": 10,
+        "ratio": 0.4
+      },
+      "FS": {
+        "matched": 1,
+        "total": 1,
+        "ratio": 1.0
+      },
+      "G": {
+        "matched": 18,
+        "total": 58,
+        "ratio": 0.3103448275862069
+      },
+      "ILB": {
+        "matched": 0,
+        "total": 1,
+        "ratio": 0.0
+      },
+      "K": {
+        "matched": 14,
+        "total": 38,
+        "ratio": 0.3684210526315789
+      },
+      "LB": {
+        "matched": 61,
+        "total": 293,
+        "ratio": 0.20819112627986347
+      },
+      "LS": {
+        "matched": 19,
+        "total": 35,
+        "ratio": 0.5428571428571428
+      },
+      "NT": {
+        "matched": 0,
+        "total": 3,
+        "ratio": 0.0
+      },
+      "OG": {
+        "matched": 4,
+        "total": 13,
+        "ratio": 0.3076923076923077
+      },
+      "OL": {
+        "matched": 33,
+        "total": 247,
+        "ratio": 0.13360323886639677
+      },
+      "OT": {
+        "matched": 7,
+        "total": 66,
+        "ratio": 0.10606060606060606
+      },
+      "P": {
+        "matched": 15,
+        "total": 36,
+        "ratio": 0.4166666666666667
+      },
+      "QB": {
+        "matched": 36,
+        "total": 117,
+        "ratio": 0.3076923076923077
+      },
+      "RB": {
+        "matched": 26,
+        "total": 183,
+        "ratio": 0.14207650273224043
+      },
+      "S": {
+        "matched": 0,
+        "total": 1,
+        "ratio": 0.0
+      },
+      "SS": {
+        "matched": 3,
+        "total": 4,
+        "ratio": 0.75
+      },
+      "T": {
+        "matched": 19,
+        "total": 49,
+        "ratio": 0.3877551020408163
+      },
+      "TE": {
+        "matched": 43,
+        "total": 194,
+        "ratio": 0.22164948453608246
+      },
+      "WR": {
+        "matched": 43,
+        "total": 307,
+        "ratio": 0.14006514657980457
+      }
+    },
+    "threshold": 0.95,
+    "passes_threshold": false,
+    "names_auto_matched": false
+  }
+}

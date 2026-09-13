@@ -1,0 +1,1808 @@
+{
+  "scope": {
+    "training_seasons": [
+      2021,
+      2022
+    ],
+    "training_games": 543,
+    "validation_seasons": [
+      2023
+    ],
+    "validation_games": 272,
+    "locked_seasons_read_or_tuned": false
+  },
+  "distribution": {
+    "home_points": {
+      "predicted": {
+        "n": 272,
+        "mean": 23.34821199310185,
+        "std": 2.4833702648899574,
+        "variance": 6.167127872539616,
+        "min": 17.48113465468149,
+        "max": 32.12578655102237,
+        "p05": 19.6883529881864,
+        "p25": 21.7388940664857,
+        "median": 23.144360685045427,
+        "p75": 24.630981933220916,
+        "p95": 27.953565511662017
+      },
+      "actual": {
+        "n": 272,
+        "mean": 23.110294117647058,
+        "std": 10.374015044754318,
+        "variance": 107.62018814878893,
+        "min": 0.0,
+        "max": 70.0,
+        "p05": 7.0,
+        "p25": 17.0,
+        "median": 23.0,
+        "p75": 29.0,
+        "p95": 39.89999999999998
+      },
+      "std_ratio": 0.23938371538661768,
+      "variance_ratio": 0.05730456319230117
+    },
+    "away_points": {
+      "predicted": {
+        "n": 272,
+        "mean": 21.472453648849072,
+        "std": 2.5841802659200486,
+        "variance": 6.677987646770613,
+        "min": 15.33727082088842,
+        "max": 29.390205207566662,
+        "p05": 17.64343345343596,
+        "p25": 19.675669985292416,
+        "median": 21.162734491103752,
+        "p75": 23.035332203443538,
+        "p95": 26.138653429472424
+      },
+      "actual": {
+        "n": 272,
+        "mean": 20.426470588235293,
+        "std": 9.446935663251102,
+        "variance": 89.24459342560553,
+        "min": 0.0,
+        "max": 45.0,
+        "p05": 6.0,
+        "p25": 14.0,
+        "median": 20.0,
+        "p75": 27.0,
+        "p95": 37.0
+      },
+      "std_ratio": 0.27354693183447804,
+      "variance_ratio": 0.07482792391605657
+    },
+    "game_margin": {
+      "predicted": {
+        "n": 272,
+        "mean": 1.8757583442527757,
+        "std": 3.4676354514576055,
+        "variance": 12.02449562420559,
+        "min": -7.280899562240485,
+        "max": 10.778692812888792,
+        "p05": -4.125548075113801,
+        "p25": -0.31247914498429363,
+        "median": 2.148111381404984,
+        "p75": 4.1575321417857225,
+        "p95": 7.196067592027577
+      },
+      "actual": {
+        "n": 272,
+        "mean": 2.6838235294117645,
+        "std": 14.396027947831321,
+        "variance": 207.24562067474048,
+        "min": -40.0,
+        "max": 50.0,
+        "p05": -21.0,
+        "p25": -6.0,
+        "median": 2.0,
+        "p75": 12.0,
+        "p95": 27.44999999999999
+      },
+      "std_ratio": 0.24087445954006953,
+      "variance_ratio": 0.05802050525872058
+    },
+    "game_total": {
+      "predicted": {
+        "n": 272,
+        "mean": 44.82066564195092,
+        "std": 3.69671954770914,
+        "variance": 13.665735414414868,
+        "min": 36.886733435053216,
+        "max": 57.03235871740443,
+        "p05": 39.23865073981144,
+        "p25": 42.05670354635793,
+        "median": 44.54463194356075,
+        "p75": 47.04306750827284,
+        "p95": 51.43925447904362
+      },
+      "actual": {
+        "n": 272,
+        "mean": 43.536764705882355,
+        "std": 13.655912363297022,
+        "variance": 186.48394247404843,
+        "min": 3.0,
+        "max": 90.0,
+        "p05": 24.1,
+        "p25": 35.0,
+        "median": 42.0,
+        "p75": 52.0,
+        "p95": 68.0
+      },
+      "std_ratio": 0.27070469181135115,
+      "variance_ratio": 0.07328103016867861
+    }
+  },
+  "raw_calibration_slopes": {
+    "home_points": {
+      "n": 272,
+      "intercept": 5.657835231647066,
+      "slope": 0.7474858841934561,
+      "r_squared": 0.03201807354294506,
+      "intercept_ci95": [
+        -5.853073791993463,
+        17.168744255287596
+      ],
+      "slope_ci95": [
+        0.25724084207376224,
+        1.23773092631315
+      ]
+    },
+    "away_points": {
+      "n": 272,
+      "intercept": 5.8531647438619245,
+      "slope": 0.6786977437557306,
+      "r_squared": 0.03446803353893002,
+      "intercept_ci95": [
+        -3.4136376021908656,
+        15.119967089914715
+      ],
+      "slope_ci95": [
+        0.25022256396247294,
+        1.1071729235489882
+      ]
+    },
+    "game_margin": {
+      "n": 272,
+      "intercept": 0.2119264982748419,
+      "slope": 1.317812093818313,
+      "r_squared": 0.10076007546869559,
+      "intercept_ci95": [
+        -1.6394219256224674,
+        2.063274922172151
+      ],
+      "slope_ci95": [
+        0.8482195135279589,
+        1.7874046741086673
+      ]
+    },
+    "game_total": {
+      "n": 272,
+      "intercept": 35.53957918350845,
+      "slope": 0.17842629973992974,
+      "r_squared": 0.002332970804874157,
+      "intercept_ci95": [
+        15.746120563307969,
+        55.33303780370893
+      ],
+      "slope_ci95": [
+        -0.2616938137587658,
+        0.6185464132386254
+      ]
+    }
+  },
+  "pipeline_variance": {
+    "psr_current_snapshot": {
+      "ALL": {
+        "n": 2962,
+        "mean": 54.059645509790684,
+        "std": 5.2983402586294694,
+        "variance": 28.072409496213798,
+        "min": 41.53,
+        "max": 73.62,
+        "p05": 49.72,
+        "p25": 50.02,
+        "median": 51.57,
+        "p75": 57.43,
+        "p95": 64.839
+      },
+      "CB": {
+        "n": 332,
+        "mean": 53.71909638554217,
+        "std": 4.674728305008707,
+        "variance": 21.85308472564958,
+        "min": 50.02,
+        "max": 72.33,
+        "p05": 50.02,
+        "p25": 50.02,
+        "median": 51.76,
+        "p75": 56.442499999999995,
+        "p95": 62.5365
+      },
+      "DL": {
+        "n": 263,
+        "mean": 54.238136882129275,
+        "std": 5.186326856517249,
+        "variance": 26.89798626263209,
+        "min": 50.01,
+        "max": 71.23,
+        "p05": 50.02,
+        "p25": 50.02,
+        "median": 51.72,
+        "p75": 57.260000000000005,
+        "p95": 64.916
+      },
+      "EDGE": {
+        "n": 377,
+        "mean": 54.317718832891245,
+        "std": 5.073344927021152,
+        "variance": 25.738828748531258,
+        "min": 49.88,
+        "max": 73.21,
+        "p05": 50.02,
+        "p25": 50.02,
+        "median": 52.17,
+        "p75": 57.3,
+        "p95": 65.11999999999999
+      },
+      "K": {
+        "n": 40,
+        "mean": 56.48725,
+        "std": 7.576565180706888,
+        "variance": 57.40433993749999,
+        "min": 41.53,
+        "max": 72.64,
+        "p05": 47.498999999999995,
+        "p25": 50.0,
+        "median": 54.425,
+        "p75": 62.097500000000004,
+        "p95": 69.00699999999998
+      },
+      "LB": {
+        "n": 205,
+        "mean": 53.74775609756097,
+        "std": 4.82362831143249,
+        "variance": 23.267390086853055,
+        "min": 50.02,
+        "max": 68.56,
+        "p05": 50.02,
+        "p25": 50.02,
+        "median": 51.18,
+        "p75": 56.67,
+        "p95": 63.584
+      },
+      "OL": {
+        "n": 508,
+        "mean": 54.494488188976376,
+        "std": 6.587426158938467,
+        "variance": 43.3941833994668,
+        "min": 45.8,
+        "max": 71.48,
+        "p05": 48.611000000000004,
+        "p25": 50.0,
+        "median": 50.0,
+        "p75": 59.537499999999994,
+        "p95": 67.88099999999999
+      },
+      "OTHER": {
+        "n": 73,
+        "mean": 55.09739726027397,
+        "std": 5.013272528491146,
+        "variance": 25.132901444924002,
+        "min": 44.11,
+        "max": 73.62,
+        "p05": 47.576,
+        "p25": 51.4,
+        "median": 55.4,
+        "p75": 57.14,
+        "p95": 64.434
+      },
+      "QB": {
+        "n": 119,
+        "mean": 53.83756302521008,
+        "std": 5.065916255380859,
+        "variance": 25.66350750653202,
+        "min": 42.98,
+        "max": 66.52,
+        "p05": 48.326,
+        "p25": 50.0,
+        "median": 52.16,
+        "p75": 57.42,
+        "p95": 63.794000000000004
+      },
+      "RB": {
+        "n": 213,
+        "mean": 53.60305164319249,
+        "std": 4.401327966713276,
+        "variance": 19.371687870572416,
+        "min": 46.86,
+        "max": 65.94,
+        "p05": 49.66,
+        "p25": 50.0,
+        "median": 52.01,
+        "p75": 57.02,
+        "p95": 61.303999999999995
+      },
+      "S": {
+        "n": 243,
+        "mean": 53.88641975308642,
+        "std": 4.586629604889556,
+        "variance": 21.03717113244932,
+        "min": 50.02,
+        "max": 70.67,
+        "p05": 50.02,
+        "p25": 50.02,
+        "median": 51.74,
+        "p75": 57.425,
+        "p95": 62.89599999999999
+      },
+      "TE": {
+        "n": 207,
+        "mean": 54.4124154589372,
+        "std": 5.895963653405022,
+        "variance": 34.76238740227309,
+        "min": 44.53,
+        "max": 72.6,
+        "p05": 48.631,
+        "p25": 50.0,
+        "median": 51.75,
+        "p75": 58.275000000000006,
+        "p95": 65.647
+      },
+      "WR": {
+        "n": 382,
+        "mean": 53.35743455497382,
+        "std": 4.550647985003156,
+        "variance": 20.708397083413285,
+        "min": 45.99,
+        "max": 66.23,
+        "p05": 49.5405,
+        "p25": 50.0,
+        "median": 50.115,
+        "p75": 56.425000000000004,
+        "p95": 62.197
+      }
+    },
+    "psr_scope_note": "Player-level historical PSRs were not archived; PSR distributions use the current checkpoint snapshot only.",
+    "validation_unit_ratings": {
+      "qb_rating": {
+        "n": 544,
+        "mean": 60.35998161764706,
+        "std": 4.107467039137778,
+        "variance": 16.871285477603266,
+        "min": 48.29,
+        "max": 70.85,
+        "p05": 53.6105,
+        "p25": 57.46,
+        "median": 60.425,
+        "p75": 63.1975,
+        "p95": 67.1025
+      },
+      "ol_rating": {
+        "n": 544,
+        "mean": 60.562720588235294,
+        "std": 2.415199333178918,
+        "variance": 5.83318781898789,
+        "min": 53.88,
+        "max": 66.81,
+        "p05": 56.6245,
+        "p25": 58.81,
+        "median": 60.47,
+        "p75": 62.29,
+        "p95": 64.8385
+      },
+      "receiving_rating": {
+        "n": 544,
+        "mean": 60.63579963235294,
+        "std": 2.4241995256924525,
+        "variance": 5.876743340367512,
+        "min": 54.965,
+        "max": 68.47,
+        "p05": 57.0705,
+        "p25": 58.92125,
+        "median": 60.3775,
+        "p75": 62.02125,
+        "p95": 65.32375
+      },
+      "pass_offense_rating": {
+        "n": 544,
+        "mean": 60.4034375,
+        "std": 2.587518283494298,
+        "variance": 6.695250867417279,
+        "min": 53.78,
+        "max": 67.35,
+        "p05": 56.186,
+        "p25": 58.557500000000005,
+        "median": 60.12,
+        "p75": 62.2725,
+        "p95": 64.988
+      },
+      "run_offense_rating": {
+        "n": 544,
+        "mean": 60.077242647058824,
+        "std": 1.92243931288107,
+        "variance": 3.69577291171064,
+        "min": 55.37,
+        "max": 65.81,
+        "p05": 57.3,
+        "p25": 58.8,
+        "median": 59.915,
+        "p75": 61.082499999999996,
+        "p95": 63.6785
+      },
+      "pass_defense_rating": {
+        "n": 544,
+        "mean": 60.89205882352941,
+        "std": 2.330293347365324,
+        "variance": 5.430267084775086,
+        "min": 55.0,
+        "max": 68.19,
+        "p05": 56.7415,
+        "p25": 59.485,
+        "median": 60.83,
+        "p75": 62.54,
+        "p95": 64.5
+      },
+      "run_defense_rating": {
+        "n": 544,
+        "mean": 61.22720588235294,
+        "std": 2.4548852678283546,
+        "variance": 6.026461678200692,
+        "min": 54.93,
+        "max": 68.53,
+        "p05": 57.56,
+        "p25": 59.5,
+        "median": 61.13,
+        "p75": 62.825,
+        "p95": 65.5385
+      },
+      "kicker_rating": {
+        "n": 544,
+        "mean": 57.811158088235295,
+        "std": 6.595139527468151,
+        "variance": 43.49586538677282,
+        "min": 33.21,
+        "max": 77.7,
+        "p05": 45.576,
+        "p25": 54.59,
+        "median": 58.685,
+        "p75": 61.8175,
+        "p95": 67.614
+      }
+    },
+    "validation_roster_proxy": {
+      "n": 544,
+      "mean": 60.649986213235294,
+      "std": 1.7316653481625242,
+      "variance": 2.9986648780268363,
+      "min": 56.33,
+      "max": 66.09,
+      "p05": 57.932625,
+      "p25": 59.580625,
+      "median": 60.61,
+      "p75": 61.542500000000004,
+      "p95": 63.936125000000004
+    },
+    "validation_roster_differential_proxy": {
+      "n": 272,
+      "mean": 0.01945772058823557,
+      "std": 1.9385047691301642,
+      "variance": 3.7578007399403917,
+      "min": -6.219999999999999,
+      "max": 5.2450000000000045,
+      "p05": -3.2960000000000003,
+      "p25": -1.100000000000005,
+      "median": 0.26250000000000284,
+      "p75": 1.2493750000000023,
+      "p95": 3.199374999999997
+    },
+    "validation_matchups": {
+      "pass_offense_minus_defense": {
+        "n": 544,
+        "mean": -0.48862132352941157,
+        "std": 3.152806017355765,
+        "variance": 9.940185783074718,
+        "min": -8.930000000000007,
+        "max": 9.819999999999993,
+        "p05": -5.204000000000001,
+        "p25": -2.7125000000000004,
+        "median": -0.6750000000000007,
+        "p75": 1.5550000000000033,
+        "p95": 4.969000000000005
+      },
+      "run_offense_minus_defense": {
+        "n": 544,
+        "mean": -1.1499632352941178,
+        "std": 2.7941657307685417,
+        "variance": 7.807362131001297,
+        "min": -10.910000000000004,
+        "max": 6.710000000000001,
+        "p05": -5.395499999999998,
+        "p25": -3.0474999999999994,
+        "median": -1.2800000000000011,
+        "p75": 0.8024999999999984,
+        "p95": 3.591500000000002
+      }
+    },
+    "validation_ridge_contribution_std": {
+      "home_field": 0.9141896737220903,
+      "qb_rating": 3.782831361470698,
+      "ol_rating": 0.9054947885944566,
+      "receiving_rating": 1.5141481391571836,
+      "pass_offense_rating": 3.010790718397381,
+      "run_offense_rating": 0.43815554444974675,
+      "opponent_pass_defense_rating": 0.48275944979935664,
+      "opponent_run_defense_rating": 0.38023388720803275,
+      "kicker_rating": 0.23554046225070321
+    },
+    "validation_expected_points": {
+      "n": 544,
+      "mean": 22.41033282097546,
+      "std": 2.702253707771273,
+      "variance": 7.302175101163593,
+      "min": 15.33727082088842,
+      "max": 32.12578655102237,
+      "p05": 18.25525782328012,
+      "p25": 20.490516011420546,
+      "median": 22.26492430527352,
+      "p75": 24.026628433873746,
+      "p95": 27.2459354040554
+    },
+    "validation_actual_points": {
+      "n": 544,
+      "mean": 21.768382352941178,
+      "std": 10.01164911348042,
+      "variance": 100.23311797145328,
+      "min": 0.0,
+      "max": 70.0,
+      "p05": 6.0,
+      "p25": 16.0,
+      "median": 21.0,
+      "p75": 28.0,
+      "p95": 38.0
+    },
+    "explicit_clipping_in_rsm_v1": false
+  },
+  "ridge_diagnostic": [
+    {
+      "alpha": 0.0,
+      "games": 272,
+      "score_mae": 7.795577163697898,
+      "margin_mae": 10.549523754565802,
+      "total_mae": 11.259565325740294,
+      "score_std": 2.71425617805126,
+      "margin_std": 3.497155974972955,
+      "total_std": 3.7040540125932258,
+      "margin_calibration_slope": 1.3033005787934506,
+      "total_calibration_slope": 0.16835421807235224,
+      "coefficient_l2": 6.161987476208793
+    },
+    {
+      "alpha": 0.1,
+      "games": 272,
+      "score_mae": 7.795397253970894,
+      "margin_mae": 10.54857739624039,
+      "total_mae": 11.259049584388869,
+      "score_std": 2.7127955715456693,
+      "margin_std": 3.493628516560086,
+      "total_std": 3.7030910889731143,
+      "margin_calibration_slope": 1.3050505665910088,
+      "total_calibration_slope": 0.16953327861576242,
+      "coefficient_l2": 6.060228843001169
+    },
+    {
+      "alpha": 1.0,
+      "games": 272,
+      "score_mae": 7.794150584303755,
+      "margin_mae": 10.54198234191272,
+      "total_mae": 11.255104541899453,
+      "score_std": 2.702253707771273,
+      "margin_std": 3.4676354514576055,
+      "total_std": 3.69671954770914,
+      "margin_calibration_slope": 1.317812093818313,
+      "total_calibration_slope": 0.17842629973992974,
+      "coefficient_l2": 5.293462730360099
+    },
+    {
+      "alpha": 10.0,
+      "games": 272,
+      "score_mae": 7.7941153478709095,
+      "margin_mae": 10.530940456538747,
+      "total_mae": 11.239881883079642,
+      "score_std": 2.6686022155980322,
+      "margin_std": 3.381852519457019,
+      "total_std": 3.683418296699787,
+      "margin_calibration_slope": 1.3567821804359932,
+      "total_calibration_slope": 0.20914302627654235,
+      "coefficient_l2": 2.758512337943856
+    },
+    {
+      "alpha": 100.0,
+      "games": 272,
+      "score_mae": 7.7961684811824945,
+      "margin_mae": 10.543883473812516,
+      "total_mae": 11.216599396830809,
+      "score_std": 2.5685135995537434,
+      "margin_std": 3.2362161792343116,
+      "total_std": 3.5951548478922857,
+      "margin_calibration_slope": 1.4189348557696961,
+      "total_calibration_slope": 0.23078279615995273,
+      "coefficient_l2": 1.7690470489497367
+    },
+    {
+      "alpha": 1000.0,
+      "games": 272,
+      "score_mae": 7.808178428153194,
+      "margin_mae": 10.66409414267884,
+      "total_mae": 11.096402166110899,
+      "score_std": 1.9447493129732243,
+      "margin_std": 2.4520261301188673,
+      "total_std": 2.8517096516051774,
+      "margin_calibration_slope": 1.8898003618543884,
+      "total_calibration_slope": 0.2801080482327573,
+      "coefficient_l2": 1.2356222528543503
+    }
+  ],
+  "residual_scales": {
+    "margin": 13.695914164000119,
+    "total": 13.974012476093808
+  },
+  "confidence_formula": {
+    "ATS": "Phi(abs(PredictedMargin - MarketHomeMargin) / validation_margin_residual_SD)",
+    "OU": "Phi(abs(PredictedTotal - MarketTotal) / validation_total_residual_SD)",
+    "classification": "max(picked ATS probability, picked O/U probability): LOW < .55, MEDIUM < .65, HIGH >= .65"
+  },
+  "raw_edge_deciles": {
+    "ATS": [
+      {
+        "decile": 1,
+        "n": 28,
+        "mean_abs_edge": 0.24001674535426673,
+        "mean_probability": 0.5069905435970505,
+        "wins": 15,
+        "losses": 12,
+        "pushes": 1,
+        "accuracy": 0.5555555555555556
+      },
+      {
+        "decile": 2,
+        "n": 27,
+        "mean_abs_edge": 0.7532768601986294,
+        "mean_probability": 0.5219300019103059,
+        "wins": 14,
+        "losses": 12,
+        "pushes": 1,
+        "accuracy": 0.5384615384615384
+      },
+      {
+        "decile": 3,
+        "n": 27,
+        "mean_abs_edge": 1.2434784384840196,
+        "mean_probability": 0.536168918217358,
+        "wins": 9,
+        "losses": 17,
+        "pushes": 1,
+        "accuracy": 0.34615384615384615
+      },
+      {
+        "decile": 4,
+        "n": 27,
+        "mean_abs_edge": 1.8027692971738247,
+        "mean_probability": 0.5523571953945253,
+        "wins": 10,
+        "losses": 15,
+        "pushes": 2,
+        "accuracy": 0.4
+      },
+      {
+        "decile": 5,
+        "n": 27,
+        "mean_abs_edge": 2.315085474395385,
+        "mean_probability": 0.5671113140824661,
+        "wins": 13,
+        "losses": 14,
+        "pushes": 0,
+        "accuracy": 0.48148148148148145
+      },
+      {
+        "decile": 6,
+        "n": 28,
+        "mean_abs_edge": 2.8686073609639595,
+        "mean_probability": 0.5829418583023612,
+        "wins": 14,
+        "losses": 13,
+        "pushes": 1,
+        "accuracy": 0.5185185185185185
+      },
+      {
+        "decile": 7,
+        "n": 27,
+        "mean_abs_edge": 3.663466769901584,
+        "mean_probability": 0.6054344315767138,
+        "wins": 14,
+        "losses": 11,
+        "pushes": 2,
+        "accuracy": 0.56
+      },
+      {
+        "decile": 8,
+        "n": 27,
+        "mean_abs_edge": 4.629143131661454,
+        "mean_probability": 0.6322799538505137,
+        "wins": 12,
+        "losses": 10,
+        "pushes": 5,
+        "accuracy": 0.5454545454545454
+      },
+      {
+        "decile": 9,
+        "n": 27,
+        "mean_abs_edge": 5.749282731554027,
+        "mean_probability": 0.6626161030822485,
+        "wins": 13,
+        "losses": 13,
+        "pushes": 1,
+        "accuracy": 0.5
+      },
+      {
+        "decile": 10,
+        "n": 27,
+        "mean_abs_edge": 7.9271029698387965,
+        "mean_probability": 0.7176270375601006,
+        "wins": 12,
+        "losses": 15,
+        "pushes": 0,
+        "accuracy": 0.4444444444444444
+      }
+    ],
+    "OU": [
+      {
+        "decile": 1,
+        "n": 28,
+        "mean_abs_edge": 0.34549197215389604,
+        "mean_probability": 0.509861553737907,
+        "wins": 15,
+        "losses": 13,
+        "pushes": 0,
+        "accuracy": 0.5357142857142857
+      },
+      {
+        "decile": 2,
+        "n": 27,
+        "mean_abs_edge": 0.9582776823978297,
+        "mean_probability": 0.5273332892139921,
+        "wins": 12,
+        "losses": 15,
+        "pushes": 0,
+        "accuracy": 0.4444444444444444
+      },
+      {
+        "decile": 3,
+        "n": 27,
+        "mean_abs_edge": 1.6857113911802668,
+        "mean_probability": 0.5480048950479993,
+        "wins": 9,
+        "losses": 17,
+        "pushes": 1,
+        "accuracy": 0.34615384615384615
+      },
+      {
+        "decile": 4,
+        "n": 27,
+        "mean_abs_edge": 2.3535803003901443,
+        "mean_probability": 0.5668690064911317,
+        "wins": 12,
+        "losses": 15,
+        "pushes": 0,
+        "accuracy": 0.4444444444444444
+      },
+      {
+        "decile": 5,
+        "n": 27,
+        "mean_abs_edge": 3.0390911649766847,
+        "mean_probability": 0.5860774667295391,
+        "wins": 10,
+        "losses": 17,
+        "pushes": 0,
+        "accuracy": 0.37037037037037035
+      },
+      {
+        "decile": 6,
+        "n": 28,
+        "mean_abs_edge": 3.676314223334924,
+        "mean_probability": 0.6037456061833818,
+        "wins": 17,
+        "losses": 11,
+        "pushes": 0,
+        "accuracy": 0.6071428571428571
+      },
+      {
+        "decile": 7,
+        "n": 27,
+        "mean_abs_edge": 4.435167596552481,
+        "mean_probability": 0.6245059249444543,
+        "wins": 15,
+        "losses": 12,
+        "pushes": 0,
+        "accuracy": 0.5555555555555556
+      },
+      {
+        "decile": 8,
+        "n": 27,
+        "mean_abs_edge": 5.174041498682179,
+        "mean_probability": 0.6443807932997716,
+        "wins": 12,
+        "losses": 15,
+        "pushes": 0,
+        "accuracy": 0.4444444444444444
+      },
+      {
+        "decile": 9,
+        "n": 27,
+        "mean_abs_edge": 6.580194681129071,
+        "mean_probability": 0.6810276507383881,
+        "wins": 13,
+        "losses": 14,
+        "pushes": 0,
+        "accuracy": 0.48148148148148145
+      },
+      {
+        "decile": 10,
+        "n": 27,
+        "mean_abs_edge": 9.345398463763972,
+        "mean_probability": 0.746720441414063,
+        "wins": 11,
+        "losses": 15,
+        "pushes": 1,
+        "accuracy": 0.4230769230769231
+      }
+    ]
+  },
+  "probability_deciles": {
+    "ATS": [
+      {
+        "decile": 1,
+        "n": 28,
+        "mean_abs_edge": 0.24001674535426673,
+        "mean_probability": 0.5069905435970505,
+        "wins": 15,
+        "losses": 12,
+        "pushes": 1,
+        "accuracy": 0.5555555555555556
+      },
+      {
+        "decile": 2,
+        "n": 27,
+        "mean_abs_edge": 0.7532768601986294,
+        "mean_probability": 0.5219300019103059,
+        "wins": 14,
+        "losses": 12,
+        "pushes": 1,
+        "accuracy": 0.5384615384615384
+      },
+      {
+        "decile": 3,
+        "n": 27,
+        "mean_abs_edge": 1.2434784384840196,
+        "mean_probability": 0.536168918217358,
+        "wins": 9,
+        "losses": 17,
+        "pushes": 1,
+        "accuracy": 0.34615384615384615
+      },
+      {
+        "decile": 4,
+        "n": 27,
+        "mean_abs_edge": 1.8027692971738247,
+        "mean_probability": 0.5523571953945253,
+        "wins": 10,
+        "losses": 15,
+        "pushes": 2,
+        "accuracy": 0.4
+      },
+      {
+        "decile": 5,
+        "n": 27,
+        "mean_abs_edge": 2.315085474395385,
+        "mean_probability": 0.5671113140824661,
+        "wins": 13,
+        "losses": 14,
+        "pushes": 0,
+        "accuracy": 0.48148148148148145
+      },
+      {
+        "decile": 6,
+        "n": 28,
+        "mean_abs_edge": 2.8686073609639595,
+        "mean_probability": 0.5829418583023612,
+        "wins": 14,
+        "losses": 13,
+        "pushes": 1,
+        "accuracy": 0.5185185185185185
+      },
+      {
+        "decile": 7,
+        "n": 27,
+        "mean_abs_edge": 3.663466769901584,
+        "mean_probability": 0.6054344315767138,
+        "wins": 14,
+        "losses": 11,
+        "pushes": 2,
+        "accuracy": 0.56
+      },
+      {
+        "decile": 8,
+        "n": 27,
+        "mean_abs_edge": 4.629143131661454,
+        "mean_probability": 0.6322799538505137,
+        "wins": 12,
+        "losses": 10,
+        "pushes": 5,
+        "accuracy": 0.5454545454545454
+      },
+      {
+        "decile": 9,
+        "n": 27,
+        "mean_abs_edge": 5.749282731554027,
+        "mean_probability": 0.6626161030822485,
+        "wins": 13,
+        "losses": 13,
+        "pushes": 1,
+        "accuracy": 0.5
+      },
+      {
+        "decile": 10,
+        "n": 27,
+        "mean_abs_edge": 7.9271029698387965,
+        "mean_probability": 0.7176270375601006,
+        "wins": 12,
+        "losses": 15,
+        "pushes": 0,
+        "accuracy": 0.4444444444444444
+      }
+    ],
+    "OU": [
+      {
+        "decile": 1,
+        "n": 28,
+        "mean_abs_edge": 0.34549197215389604,
+        "mean_probability": 0.509861553737907,
+        "wins": 15,
+        "losses": 13,
+        "pushes": 0,
+        "accuracy": 0.5357142857142857
+      },
+      {
+        "decile": 2,
+        "n": 27,
+        "mean_abs_edge": 0.9582776823978297,
+        "mean_probability": 0.5273332892139921,
+        "wins": 12,
+        "losses": 15,
+        "pushes": 0,
+        "accuracy": 0.4444444444444444
+      },
+      {
+        "decile": 3,
+        "n": 27,
+        "mean_abs_edge": 1.6857113911802668,
+        "mean_probability": 0.5480048950479993,
+        "wins": 9,
+        "losses": 17,
+        "pushes": 1,
+        "accuracy": 0.34615384615384615
+      },
+      {
+        "decile": 4,
+        "n": 27,
+        "mean_abs_edge": 2.3535803003901443,
+        "mean_probability": 0.5668690064911317,
+        "wins": 12,
+        "losses": 15,
+        "pushes": 0,
+        "accuracy": 0.4444444444444444
+      },
+      {
+        "decile": 5,
+        "n": 27,
+        "mean_abs_edge": 3.0390911649766847,
+        "mean_probability": 0.5860774667295391,
+        "wins": 10,
+        "losses": 17,
+        "pushes": 0,
+        "accuracy": 0.37037037037037035
+      },
+      {
+        "decile": 6,
+        "n": 28,
+        "mean_abs_edge": 3.676314223334924,
+        "mean_probability": 0.6037456061833818,
+        "wins": 17,
+        "losses": 11,
+        "pushes": 0,
+        "accuracy": 0.6071428571428571
+      },
+      {
+        "decile": 7,
+        "n": 27,
+        "mean_abs_edge": 4.435167596552481,
+        "mean_probability": 0.6245059249444543,
+        "wins": 15,
+        "losses": 12,
+        "pushes": 0,
+        "accuracy": 0.5555555555555556
+      },
+      {
+        "decile": 8,
+        "n": 27,
+        "mean_abs_edge": 5.174041498682179,
+        "mean_probability": 0.6443807932997716,
+        "wins": 12,
+        "losses": 15,
+        "pushes": 0,
+        "accuracy": 0.4444444444444444
+      },
+      {
+        "decile": 9,
+        "n": 27,
+        "mean_abs_edge": 6.580194681129071,
+        "mean_probability": 0.6810276507383881,
+        "wins": 13,
+        "losses": 14,
+        "pushes": 0,
+        "accuracy": 0.48148148148148145
+      },
+      {
+        "decile": 10,
+        "n": 27,
+        "mean_abs_edge": 9.345398463763972,
+        "mean_probability": 0.746720441414063,
+        "wins": 11,
+        "losses": 15,
+        "pushes": 1,
+        "accuracy": 0.4230769230769231
+      }
+    ]
+  },
+  "raw_probability": {
+    "ATS": {
+      "n": 258,
+      "brier_score": 0.26359525142443313,
+      "calibration_intercept": -0.06518046433182346,
+      "calibration_slope": 0.05133170280864579,
+      "bins": [
+        {
+          "bin": "0.00-0.50",
+          "n": 0,
+          "mean_probability": null,
+          "observed_frequency": null
+        },
+        {
+          "bin": "0.50-0.55",
+          "n": 92,
+          "mean_probability": 0.5243247846730636,
+          "observed_frequency": 0.48863636363636365
+        },
+        {
+          "bin": "0.55-0.60",
+          "n": 78,
+          "mean_probability": 0.5724392920088774,
+          "observed_frequency": 0.4666666666666667
+        },
+        {
+          "bin": "0.60-0.65",
+          "n": 54,
+          "mean_probability": 0.6246930791583711,
+          "observed_frequency": 0.5
+        },
+        {
+          "bin": "0.65-0.70",
+          "n": 34,
+          "mean_probability": 0.6751090638948186,
+          "observed_frequency": 0.5151515151515151
+        },
+        {
+          "bin": "0.70-0.80",
+          "n": 14,
+          "mean_probability": 0.7444286887712587,
+          "observed_frequency": 0.5
+        },
+        {
+          "bin": "0.80-1.00",
+          "n": 0,
+          "mean_probability": null,
+          "observed_frequency": null
+        }
+      ]
+    },
+    "OU": {
+      "n": 270,
+      "brier_score": 0.27069557546684075,
+      "calibration_intercept": -0.20452328261225314,
+      "calibration_slope": 0.16492161125806226,
+      "bins": [
+        {
+          "bin": "0.00-0.50",
+          "n": 0,
+          "mean_probability": null,
+          "observed_frequency": null
+        },
+        {
+          "bin": "0.50-0.55",
+          "n": 71,
+          "mean_probability": 0.5243129709424895,
+          "observed_frequency": 0.43661971830985913
+        },
+        {
+          "bin": "0.55-0.60",
+          "n": 73,
+          "mean_probability": 0.5751517849149341,
+          "observed_frequency": 0.4444444444444444
+        },
+        {
+          "bin": "0.60-0.65",
+          "n": 66,
+          "mean_probability": 0.6236496980662575,
+          "observed_frequency": 0.5454545454545454
+        },
+        {
+          "bin": "0.65-0.70",
+          "n": 33,
+          "mean_probability": 0.673112565554567,
+          "observed_frequency": 0.45454545454545453
+        },
+        {
+          "bin": "0.70-0.80",
+          "n": 26,
+          "mean_probability": 0.7361591197910258,
+          "observed_frequency": 0.36
+        },
+        {
+          "bin": "0.80-1.00",
+          "n": 3,
+          "mean_probability": 0.8092643415303071,
+          "observed_frequency": 1
+        }
+      ]
+    }
+  },
+  "heteroskedasticity": {
+    "groups": {
+      "absolute_spread_edge": [
+        {
+          "quartile": "Q1",
+          "n": 68,
+          "range": [
+            0.03556502322972932,
+            1.2318007178369577
+          ],
+          "margin_residual_std": 14.128604580408672,
+          "total_residual_std": 12.65484282482884
+        },
+        {
+          "quartile": "Q2",
+          "n": 68,
+          "range": [
+            1.2522450657110475,
+            2.574212815997381
+          ],
+          "margin_residual_std": 12.130847263648095,
+          "total_residual_std": 12.812992545822773
+        },
+        {
+          "quartile": "Q3",
+          "n": 68,
+          "range": [
+            2.5851672029492647,
+            4.538050382656188
+          ],
+          "margin_residual_std": 14.675291039702426,
+          "total_residual_std": 15.373089727477353
+        },
+        {
+          "quartile": "Q4",
+          "n": 68,
+          "range": [
+            4.642358134304352,
+            10.934882987134113
+          ],
+          "margin_residual_std": 13.398538925007848,
+          "total_residual_std": 14.61034096362974
+        }
+      ],
+      "absolute_total_edge": [
+        {
+          "quartile": "Q1",
+          "n": 68,
+          "range": [
+            0.04489414905741285,
+            1.6567709960738526
+          ],
+          "margin_residual_std": 11.100398392643964,
+          "total_residual_std": 12.417483323455563
+        },
+        {
+          "quartile": "Q2",
+          "n": 68,
+          "range": [
+            1.701034154241185,
+            3.3150935548195974
+          ],
+          "margin_residual_std": 13.358655548849544,
+          "total_residual_std": 11.970746646953804
+        },
+        {
+          "quartile": "Q3",
+          "n": 68,
+          "range": [
+            3.320787251132728,
+            5.051215514375073
+          ],
+          "margin_residual_std": 14.426320884568701,
+          "total_residual_std": 14.458317935767257
+        },
+        {
+          "quartile": "Q4",
+          "n": 68,
+          "range": [
+            5.075783323260779,
+            13.083447665429233
+          ],
+          "margin_residual_std": 15.217312764699816,
+          "total_residual_std": 15.982092956926037
+        }
+      ],
+      "roster_strength_gap": [
+        {
+          "quartile": "Q1",
+          "n": 68,
+          "range": [
+            0.00999999999999801,
+            0.5449999999999946
+          ],
+          "margin_residual_std": 13.898095511645023,
+          "total_residual_std": 14.454576909185894
+        },
+        {
+          "quartile": "Q2",
+          "n": 68,
+          "range": [
+            0.5675000000000097,
+            1.2049999999999983
+          ],
+          "margin_residual_std": 13.12905600573246,
+          "total_residual_std": 15.47621583559192
+        },
+        {
+          "quartile": "Q3",
+          "n": 68,
+          "range": [
+            1.2250000000000014,
+            2.132499999999993
+          ],
+          "margin_residual_std": 14.719072159626865,
+          "total_residual_std": 14.366904732458798
+        },
+        {
+          "quartile": "Q4",
+          "n": 68,
+          "range": [
+            2.135000000000005,
+            6.219999999999999
+          ],
+          "margin_residual_std": 12.811900872597407,
+          "total_residual_std": 10.798559399884825
+        }
+      ],
+      "absolute_market_spread": [
+        {
+          "quartile": "Q1",
+          "n": 71,
+          "range": [
+            1.0,
+            2.5
+          ],
+          "margin_residual_std": 12.216225743736512,
+          "total_residual_std": 13.123950902739463
+        },
+        {
+          "quartile": "Q2",
+          "n": 78,
+          "range": [
+            3.0,
+            3.5
+          ],
+          "margin_residual_std": 14.364612483240295,
+          "total_residual_std": 14.398412173680034
+        },
+        {
+          "quartile": "Q3",
+          "n": 58,
+          "range": [
+            4.0,
+            6.5
+          ],
+          "margin_residual_std": 14.744387336502362,
+          "total_residual_std": 15.449050446533883
+        },
+        {
+          "quartile": "Q4",
+          "n": 65,
+          "range": [
+            7.0,
+            17.5
+          ],
+          "margin_residual_std": 12.791406399344659,
+          "total_residual_std": 12.07635163926952
+        }
+      ],
+      "predicted_total": [
+        {
+          "quartile": "Q1",
+          "n": 68,
+          "range": [
+            36.886733435053216,
+            42.01759112688466
+          ],
+          "margin_residual_std": 11.19937817432697,
+          "total_residual_std": 15.071966913460896
+        },
+        {
+          "quartile": "Q2",
+          "n": 68,
+          "range": [
+            42.06974101951569,
+            44.54436973806409
+          ],
+          "margin_residual_std": 14.862451772922483,
+          "total_residual_std": 14.153656604618073
+        },
+        {
+          "quartile": "Q3",
+          "n": 68,
+          "range": [
+            44.54489414905741,
+            47.03656893270073
+          ],
+          "margin_residual_std": 14.118001350347718,
+          "total_residual_std": 14.299888321666968
+        },
+        {
+          "quartile": "Q4",
+          "n": 68,
+          "range": [
+            47.06256323498916,
+            57.03235871740443
+          ],
+          "margin_residual_std": 13.160547277999695,
+          "total_residual_std": 10.922838894714298
+        }
+      ]
+    },
+    "lineup_confidence": "UNAVAILABLE: historical per-game lineup confidence was not archived in development predictions."
+  },
+  "score_calibration_experiment": {
+    "parameters_fitted_training_only": {
+      "margin_intercept": -0.4391217584873033,
+      "margin_slope": 1.2390976897917627,
+      "total_intercept": 11.528126907572776,
+      "total_slope": 0.7430517646001141
+    },
+    "raw_validation": {
+      "games": 272,
+      "score_mae": 7.794150584303755,
+      "margin_mae": 10.54198234191272,
+      "total_mae": 11.255104541899453,
+      "score_std": 2.702253707771273,
+      "margin_std": 3.4676354514576055,
+      "total_std": 3.69671954770914,
+      "ats": {
+        "wins": 126,
+        "losses": 132,
+        "pushes": 14,
+        "accuracy": 0.4883720930232558
+      },
+      "ou": {
+        "wins": 126,
+        "losses": 144,
+        "pushes": 2,
+        "accuracy": 0.4666666666666667
+      }
+    },
+    "calibrated_validation": {
+      "games": 272,
+      "score_mae": 7.712788741443999,
+      "margin_mae": 10.541218777421381,
+      "total_mae": 11.078062235583637,
+      "score_std": 2.7184956230081188,
+      "margin_std": 4.296739076941135,
+      "total_std": 2.746853983157012,
+      "ats": {
+        "wins": 128,
+        "losses": 130,
+        "pushes": 14,
+        "accuracy": 0.49612403100775193
+      },
+      "ou": {
+        "wins": 126,
+        "losses": 144,
+        "pushes": 2,
+        "accuracy": 0.4666666666666667
+      }
+    },
+    "calibrated_validation_slopes": {
+      "home_points": {
+        "n": 272,
+        "intercept": 2.6529738836034475,
+        "slope": 0.8757915425292784,
+        "r_squared": 0.04466227079441398,
+        "intercept_ci95": [
+          -8.697415360260939,
+          14.003363127467834
+        ],
+        "slope_ci95": [
+          0.3926404111705232,
+          1.3589426738880337
+        ]
+      },
+      "away_points": {
+        "n": 272,
+        "intercept": 3.7402157488801997,
+        "slope": 0.7770612845269306,
+        "r_squared": 0.04558199376136918,
+        "intercept_ci95": [
+          -5.4337124408657616,
+          12.914143938626161
+        ],
+        "slope_ci95": [
+          0.3529282357035,
+          1.2011943333503612
+        ]
+      },
+      "game_margin": {
+        "n": 272,
+        "intercept": 0.6789437227929374,
+        "slope": 1.063525583717115,
+        "r_squared": 0.10076007546869559,
+        "intercept_ci95": [
+          -1.0992603593594035,
+          2.4571478049452784
+        ],
+        "slope_ci95": [
+          0.6845461181277054,
+          1.4425050493065243
+        ]
+      },
+      "game_total": {
+        "n": 272,
+        "intercept": 32.77137227647353,
+        "slope": 0.2401263387564293,
+        "r_squared": 0.002332970804874157,
+        "intercept_ci95": [
+          6.166826327154158,
+          59.3759182257929
+        ],
+        "slope_ci95": [
+          -0.35218786392304846,
+          0.8324405414359071
+        ]
+      }
+    }
+  },
+  "probability_calibration_experiment": {
+    "parameters_fitted_training_only": {
+      "ATS": {
+        "intercept": 0.09364791968101335,
+        "slope": 0.019395809702097325
+      },
+      "OU": {
+        "intercept": 0.11642475737377596,
+        "slope": 0.012574069961091361
+      }
+    },
+    "ATS": {
+      "n": 258,
+      "brier_score": 0.2524118499124797,
+      "calibration_intercept": -0.09306129051376806,
+      "calibration_slope": 0.3027670920198141,
+      "bins": [
+        {
+          "bin": "0.00-0.50",
+          "n": 0,
+          "mean_probability": null,
+          "observed_frequency": null
+        },
+        {
+          "bin": "0.50-0.55",
+          "n": 226,
+          "mean_probability": 0.534468304192011,
+          "observed_frequency": 0.4835680751173709
+        },
+        {
+          "bin": "0.55-0.60",
+          "n": 46,
+          "mean_probability": 0.5576219158839801,
+          "observed_frequency": 0.5111111111111111
+        },
+        {
+          "bin": "0.60-0.65",
+          "n": 0,
+          "mean_probability": null,
+          "observed_frequency": null
+        },
+        {
+          "bin": "0.65-0.70",
+          "n": 0,
+          "mean_probability": null,
+          "observed_frequency": null
+        },
+        {
+          "bin": "0.70-0.80",
+          "n": 0,
+          "mean_probability": null,
+          "observed_frequency": null
+        },
+        {
+          "bin": "0.80-1.00",
+          "n": 0,
+          "mean_probability": null,
+          "observed_frequency": null
+        }
+      ]
+    },
+    "OU": {
+      "n": 270,
+      "brier_score": 0.25423527095357207,
+      "calibration_intercept": -0.38149554715609535,
+      "calibration_slope": 1.5176260524295648,
+      "bins": [
+        {
+          "bin": "0.00-0.50",
+          "n": 0,
+          "mean_probability": null,
+          "observed_frequency": null
+        },
+        {
+          "bin": "0.50-0.55",
+          "n": 233,
+          "mean_probability": 0.5382279727335934,
+          "observed_frequency": 0.46551724137931033
+        },
+        {
+          "bin": "0.55-0.60",
+          "n": 39,
+          "mean_probability": 0.5560290903576517,
+          "observed_frequency": 0.47368421052631576
+        },
+        {
+          "bin": "0.60-0.65",
+          "n": 0,
+          "mean_probability": null,
+          "observed_frequency": null
+        },
+        {
+          "bin": "0.65-0.70",
+          "n": 0,
+          "mean_probability": null,
+          "observed_frequency": null
+        },
+        {
+          "bin": "0.70-0.80",
+          "n": 0,
+          "mean_probability": null,
+          "observed_frequency": null
+        },
+        {
+          "bin": "0.80-1.00",
+          "n": 0,
+          "mean_probability": null,
+          "observed_frequency": null
+        }
+      ]
+    },
+    "ATS_deciles": [
+      {
+        "decile": 1,
+        "n": 28,
+        "mean_abs_edge": 0.24001674535426673,
+        "mean_probability": 0.5245559872530375,
+        "wins": 15,
+        "losses": 12,
+        "pushes": 1,
+        "accuracy": 0.5555555555555556
+      },
+      {
+        "decile": 2,
+        "n": 27,
+        "mean_abs_edge": 0.7532768601986294,
+        "mean_probability": 0.5270381465249664,
+        "wins": 14,
+        "losses": 12,
+        "pushes": 1,
+        "accuracy": 0.5384615384615384
+      },
+      {
+        "decile": 3,
+        "n": 27,
+        "mean_abs_edge": 1.2434784384840196,
+        "mean_probability": 0.5294075074338906,
+        "wins": 9,
+        "losses": 17,
+        "pushes": 1,
+        "accuracy": 0.34615384615384615
+      },
+      {
+        "decile": 4,
+        "n": 27,
+        "mean_abs_edge": 1.8027692971738247,
+        "mean_probability": 0.5321091943764911,
+        "wins": 10,
+        "losses": 15,
+        "pushes": 2,
+        "accuracy": 0.4
+      },
+      {
+        "decile": 5,
+        "n": 27,
+        "mean_abs_edge": 2.315085474395385,
+        "mean_probability": 0.5345823420310086,
+        "wins": 13,
+        "losses": 14,
+        "pushes": 0,
+        "accuracy": 0.48148148148148145
+      },
+      {
+        "decile": 6,
+        "n": 28,
+        "mean_abs_edge": 2.8686073609639595,
+        "mean_probability": 0.5372524073739988,
+        "wins": 14,
+        "losses": 13,
+        "pushes": 1,
+        "accuracy": 0.5185185185185185
+      },
+      {
+        "decile": 7,
+        "n": 27,
+        "mean_abs_edge": 3.663466769901584,
+        "mean_probability": 0.5410828722217482,
+        "wins": 14,
+        "losses": 11,
+        "pushes": 2,
+        "accuracy": 0.56
+      },
+      {
+        "decile": 8,
+        "n": 27,
+        "mean_abs_edge": 4.629143131661454,
+        "mean_probability": 0.5457298617991019,
+        "wins": 12,
+        "losses": 10,
+        "pushes": 5,
+        "accuracy": 0.5454545454545454
+      },
+      {
+        "decile": 9,
+        "n": 27,
+        "mean_abs_edge": 5.749282731554027,
+        "mean_probability": 0.551110118703859,
+        "wins": 13,
+        "losses": 13,
+        "pushes": 1,
+        "accuracy": 0.5
+      },
+      {
+        "decile": 10,
+        "n": 27,
+        "mean_abs_edge": 7.9271029698387965,
+        "mean_probability": 0.5615255061126578,
+        "wins": 12,
+        "losses": 15,
+        "pushes": 0,
+        "accuracy": 0.4444444444444444
+      }
+    ],
+    "OU_deciles": [
+      {
+        "decile": 1,
+        "n": 28,
+        "mean_abs_edge": 0.34549197215389604,
+        "mean_probability": 0.5301555665599123,
+        "wins": 15,
+        "losses": 13,
+        "pushes": 0,
+        "accuracy": 0.5357142857142857
+      },
+      {
+        "decile": 2,
+        "n": 27,
+        "mean_abs_edge": 0.9582776823978297,
+        "mean_probability": 0.5320743934671691,
+        "wins": 12,
+        "losses": 15,
+        "pushes": 0,
+        "accuracy": 0.4444444444444444
+      },
+      {
+        "decile": 3,
+        "n": 27,
+        "mean_abs_edge": 1.6857113911802668,
+        "mean_probability": 0.5343510116328092,
+        "wins": 9,
+        "losses": 17,
+        "pushes": 1,
+        "accuracy": 0.34615384615384615
+      },
+      {
+        "decile": 4,
+        "n": 27,
+        "mean_abs_edge": 2.3535803003901443,
+        "mean_probability": 0.5364399302487546,
+        "wins": 12,
+        "losses": 15,
+        "pushes": 0,
+        "accuracy": 0.4444444444444444
+      },
+      {
+        "decile": 5,
+        "n": 27,
+        "mean_abs_edge": 3.0390911649766847,
+        "mean_probability": 0.5385827281193164,
+        "wins": 10,
+        "losses": 17,
+        "pushes": 0,
+        "accuracy": 0.37037037037037035
+      },
+      {
+        "decile": 6,
+        "n": 28,
+        "mean_abs_edge": 3.676314223334924,
+        "mean_probability": 0.5405732720248821,
+        "wins": 17,
+        "losses": 11,
+        "pushes": 0,
+        "accuracy": 0.6071428571428571
+      },
+      {
+        "decile": 7,
+        "n": 27,
+        "mean_abs_edge": 4.435167596552481,
+        "mean_probability": 0.5429420598072271,
+        "wins": 15,
+        "losses": 12,
+        "pushes": 0,
+        "accuracy": 0.5555555555555556
+      },
+      {
+        "decile": 8,
+        "n": 27,
+        "mean_abs_edge": 5.174041498682179,
+        "mean_probability": 0.5452466318111892,
+        "wins": 12,
+        "losses": 15,
+        "pushes": 0,
+        "accuracy": 0.4444444444444444
+      },
+      {
+        "decile": 9,
+        "n": 27,
+        "mean_abs_edge": 6.580194681129071,
+        "mean_probability": 0.5496267040629707,
+        "wins": 13,
+        "losses": 14,
+        "pushes": 0,
+        "accuracy": 0.48148148148148145
+      },
+      {
+        "decile": 10,
+        "n": 27,
+        "mean_abs_edge": 9.345398463763972,
+        "mean_probability": 0.5582122701283944,
+        "wins": 11,
+        "losses": 15,
+        "pushes": 1,
+        "accuracy": 0.4230769230769231
+      }
+    ]
+  }
+}

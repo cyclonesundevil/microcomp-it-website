@@ -1,0 +1,29 @@
+{
+  "model_version": "RSM-v2-candidate-stage7a-diagnostic-only",
+  "production_ready": false,
+  "fitted_on": [
+    2021,
+    2022
+  ],
+  "evaluated_on": [
+    2023
+  ],
+  "locked_test_seasons_used": false,
+  "score_calibration": {
+    "margin_intercept": -0.4391217584873033,
+    "margin_slope": 1.2390976897917627,
+    "total_intercept": 11.528126907572776,
+    "total_slope": 0.7430517646001141
+  },
+  "probability_calibration": {
+    "ATS": {
+      "intercept": 0.09364791968101335,
+      "slope": 0.019395809702097325
+    },
+    "OU": {
+      "intercept": 0.11642475737377596,
+      "slope": 0.012574069961091361
+    }
+  },
+  "warning": "Controlled experiment only. This does not modify or replace RSM-v1."
+}

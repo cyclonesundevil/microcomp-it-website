@@ -1,0 +1,282 @@
+{
+  "stage": "8A",
+  "baseline_verification": {
+    "passed": true,
+    "checks": {
+      "model_hash": true,
+      "rules_hash": true,
+      "definition_hash": true,
+      "exact_feature_count": true,
+      "feature_order": true,
+      "finite_intercept": true,
+      "threshold_count": true,
+      "ledger_integrity": true,
+      "no_historical_backfill": true
+    },
+    "model_sha256": "679b088a793e0b3f56e946e3dc4c06e5d1b274827375b058bf03e85617f5b1fe",
+    "rules_sha256": "afbe5518089b3e9ed55e28063f8836b8c11c05abf509cd622deafe94717746e8",
+    "anomaly_definition_sha256": "1aeb53395566e4897dde44c72dfa47894e781687eede4b98f3f426f20b273d11",
+    "feature_count": 18,
+    "feature_order": [
+      "qb_quality_diff",
+      "qb_vs_pass_rush_matchup",
+      "qb_vs_coverage_matchup",
+      "ol_pass_vs_pass_rush_matchup",
+      "ol_run_vs_front_matchup",
+      "receiving_vs_secondary_matchup",
+      "rushing_vs_front_matchup",
+      "ol_weakest_diff",
+      "ol_strongest_diff",
+      "ol_continuity_diff",
+      "ol_replacement_starters_diff",
+      "wr1_diff",
+      "wr2_diff",
+      "te1_diff",
+      "receiver_replacements_diff",
+      "pass_rusher1_diff",
+      "weakest_coverage_diff",
+      "rest_diff"
+    ],
+    "coefficients": [
+      0.6576391131606485,
+      0.8542258115606655,
+      0.6667991260794021,
+      1.0917327015085483,
+      -1.2028477934443937,
+      0.9928178707392175,
+      0.1344107652551051,
+      1.364486542181012,
+      1.3095175383765292,
+      -0.18255259960901896,
+      0.1016007922223182,
+      -0.46771223199787676,
+      1.0252895228859122,
+      1.733828943817314,
+      0.4852880364307147,
+      -0.13947966930426892,
+      0.1969874720141509,
+      0.06216975137469689
+    ],
+    "means": [
+      0.011786372007366833,
+      0.008729281767956315,
+      0.05656077348066331,
+      0.027300184162062754,
+      -0.017953257914583874,
+      0.022200736648250733,
+      0.04216828904674196,
+      -0.028287292817679454,
+      0.028471454880294688,
+      -0.006261510128913444,
+      -0.020257826887661142,
+      0.0530755064456723,
+      -0.0798710865561693,
+      0.027421731123388388,
+      -0.001841620626151013,
+      0.10635359116022093,
+      0.090220994475138,
+      0.10681399631675875
+    ],
+    "scales": [
+      5.769346820818927,
+      9.177594787483777,
+      7.582924084862343,
+      7.339883461380584,
+      4.663641607782409,
+      5.018819654825286,
+      5.690249726936017,
+      4.901804701518358,
+      3.3294380457341792,
+      0.15025276962518844,
+      0.361032803089292,
+      3.579665242511152,
+      3.3724909481224254,
+      5.588960638049923,
+      0.21456263441532558,
+      7.6090319235892165,
+      3.6405518305223254,
+      2.330755530100323
+    ],
+    "intercept": 1.8453038674033149,
+    "ridge_alpha": 100.0,
+    "thresholds": [
+      4.683393757922371,
+      6.423059479366703,
+      7.44034078378945
+    ],
+    "anomaly_definition": {
+      "formula": "roster_fair_home_margin - market_implied_home_margin",
+      "confidence_weights": {
+        "HIGH": 1.0,
+        "MEDIUM": 0.75,
+        "LOW": 0.0
+      },
+      "minimum_supporting_groups": 2,
+      "minimum_group_contribution": 0.25,
+      "development_outcomes_used_for_thresholds": false,
+      "validation_outcomes_used_for_thresholds": false
+    },
+    "ledger": {
+      "valid": true,
+      "observations": 0,
+      "last_event_hash": "GENESIS"
+    },
+    "ledger_records": 0,
+    "historical_backfill_records": 0
+  },
+  "provider_audit": [
+    {
+      "input": "Local receipt timestamp",
+      "source": "Stage 8A runner UTC clock",
+      "authentication": "none",
+      "timestamp_semantics": "local receipt/compute time, stored separately from source time",
+      "update_frequency": "each capture cycle",
+      "historical_availability": "prospective only",
+      "failure_behavior": "naive or at/post-kickoff receipt is rejected",
+      "provably_pregame": true,
+      "configured_for_stage8a": true
+    },
+    {
+      "input": "NFL schedule/kickoff and teams",
+      "source": "backend/data/nfl_games.csv (nflverse-style repository cache)",
+      "authentication": "none",
+      "timestamp_semantics": "kickoff present; source observation timestamp absent",
+      "update_frequency": "manual repository refresh",
+      "historical_availability": "1999-2026 schedule rows",
+      "failure_behavior": "fixture/live adapter must fail if kickoff or source timestamp is absent",
+      "provably_pregame": false,
+      "configured_for_stage8a": false
+    },
+    {
+      "input": "Optional live schedule display",
+      "source": "ESPN scoreboard adapter",
+      "authentication": "none",
+      "timestamp_semantics": "local fetched_at receipt; no provider observation timestamp contract",
+      "update_frequency": "on demand when NFL_LIVE_PROVIDER=espn",
+      "historical_availability": "current scoreboard only",
+      "failure_behavior": "HTTP timeout/error; never fall back to scores or completed events",
+      "provably_pregame": "local receipt only",
+      "configured_for_stage8a": false
+    },
+    {
+      "input": "Consensus spread",
+      "source": "no prospective provider configured",
+      "authentication": "unknown/provider-dependent",
+      "timestamp_semantics": "unavailable",
+      "update_frequency": "unavailable",
+      "historical_availability": "one untimestamped consensus line in repository schedule",
+      "failure_behavior": "capture stops; no cached/postgame fallback",
+      "provably_pregame": false,
+      "configured_for_stage8a": false
+    },
+    {
+      "input": "Individual sportsbook spread and identity",
+      "source": "no provider configured",
+      "authentication": "unknown/provider-dependent",
+      "timestamp_semantics": "unavailable",
+      "update_frequency": "unavailable",
+      "historical_availability": "none",
+      "failure_behavior": "capture stops",
+      "provably_pregame": false,
+      "configured_for_stage8a": false
+    },
+    {
+      "input": "Expected starters/inactives/injuries",
+      "source": "cached nflverse roster/depth files only",
+      "authentication": "none for cached public files",
+      "timestamp_semantics": "depth snapshots timestamped; complete live inactive timing unavailable",
+      "update_frequency": "manual refresh",
+      "historical_availability": "rosters 2021-2026; injuries incomplete after 2024",
+      "failure_behavior": "lineup adapter must fail or label LOW; never infer from post-kickoff participation",
+      "provably_pregame": false,
+      "configured_for_stage8a": false
+    },
+    {
+      "input": "Frozen 18 model features",
+      "source": "no complete prospective feature adapter configured",
+      "authentication": "depends on future lineup/roster sources",
+      "timestamp_semantics": "every component requires an as-of timestamp",
+      "update_frequency": "unavailable",
+      "historical_availability": "Stage 7B historical artifact only; backfill prohibited",
+      "failure_behavior": "capture stops on any missing/reordered feature",
+      "provably_pregame": false,
+      "configured_for_stage8a": false
+    },
+    {
+      "input": "Fixture/mock observations",
+      "source": "operator-supplied local JSON fixture",
+      "authentication": "none",
+      "timestamp_semantics": "explicit timezone-aware source timestamps",
+      "update_frequency": "test/operator controlled",
+      "historical_availability": "not a live source",
+      "failure_behavior": "strict validation error",
+      "provably_pregame": "validated fixture semantics only",
+      "configured_for_stage8a": true
+    }
+  ],
+  "real_prospective_provider_configured": false,
+  "fixture_adapter_available": true,
+  "ready_for_live_capture": false,
+  "ready_for_fixture_dry_run": true,
+  "live_records_written": false,
+  "ledger_record_count": 0,
+  "ledger_integrity": true,
+  "evaluation_gate": {
+    "minimum_complete_regular_seasons": 1,
+    "minimum_prospective_candidate_anomalies": 25,
+    "insufficient_flags_behavior": "Continue unchanged into the next season",
+    "operational_audits_may_inspect": [
+      "completeness",
+      "timestamps",
+      "provider reliability",
+      "ledger integrity"
+    ],
+    "operational_audits_may_not_inspect": [
+      "game outcomes",
+      "ATS",
+      "ROI",
+      "financial results"
+    ],
+    "frozen_during_collection": [
+      "thresholds",
+      "coefficients",
+      "features",
+      "anomaly score",
+      "explanation rules"
+    ]
+  },
+  "production_deployed": false,
+  "scheduler_activated": false,
+  "outcomes_ingested": false,
+  "recommendations_generated": false,
+  "market_metadata": {
+    "fixture_contract_available": [
+      "spread",
+      "spread convention",
+      "market kind",
+      "sportsbook identifier",
+      "source identifier",
+      "source retrieval timestamp",
+      "local receipt timestamp",
+      "line stage",
+      "optional home/away prices"
+    ],
+    "real_prospective_available": [],
+    "unavailable_until_provider_configured": [
+      "timestamped consensus spread",
+      "timestamped individual-book spreads",
+      "verified sportsbook identity",
+      "provider observation timestamp"
+    ]
+  },
+  "tests_performed": {
+    "python -m pytest backend/test_rsm.py backend/test_nfl_predictor.py -q": "75 passed",
+    "python -m compileall -q backend/rsm": "passed",
+    "python -m rsm stage8a-health": "healthy, read-only, zero records"
+  },
+  "remaining_blockers": [
+    "No real defensibly timestamped spread provider is configured",
+    "No complete prospective expected-lineup/inactive provider is configured",
+    "No prospective adapter constructs all 18 frozen features"
+  ]
+}

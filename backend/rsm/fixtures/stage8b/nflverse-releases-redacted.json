@@ -1,0 +1,14 @@
+[
+  {
+    "tag_name": "rosters",
+    "published_at": "2099-09-10T07:00:00Z",
+    "updated_at": "2099-09-10T07:01:00Z",
+    "assets": [{"name": "roster_2099.csv"}]
+  },
+  {
+    "tag_name": "depth_charts",
+    "published_at": "2099-09-10T08:00:00Z",
+    "updated_at": "2099-09-10T08:01:00Z",
+    "assets": [{"name": "depth_charts_2099.csv"}]
+  }
+]

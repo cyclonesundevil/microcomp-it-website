@@ -1,0 +1,433 @@
+{
+  "model_version": "RSM-v2-candidate-stage7b-experimental",
+  "production_ready": false,
+  "locked_seasons_used": false,
+  "feature_availability": {
+    "available": [
+      "QB",
+      "OL starter distribution",
+      "receiver depth",
+      "pass-rusher peaks",
+      "coverage weakness",
+      "front-seven average",
+      "home-field intercept",
+      "rest differential"
+    ],
+    "unavailable": [
+      "verified pregame injuries",
+      "red-zone offense/defense",
+      "direct pass-block/run-block grades",
+      "pass-rush win rate",
+      "coverage grades"
+    ],
+    "history_window": "Frozen five-year PSR history retained because Stage 6 could not validate position-specific alternatives without rebuilding ratings."
+  },
+  "correlation_audit": {
+    "threshold": 0.9,
+    "candidate_count": 22,
+    "selected_count": 18,
+    "selected_features": [
+      "qb_quality_diff",
+      "qb_vs_pass_rush_matchup",
+      "qb_vs_coverage_matchup",
+      "ol_pass_vs_pass_rush_matchup",
+      "ol_run_vs_front_matchup",
+      "receiving_vs_secondary_matchup",
+      "rushing_vs_front_matchup",
+      "ol_weakest_diff",
+      "ol_strongest_diff",
+      "ol_continuity_diff",
+      "ol_replacement_starters_diff",
+      "wr1_diff",
+      "wr2_diff",
+      "te1_diff",
+      "receiver_replacements_diff",
+      "pass_rusher1_diff",
+      "weakest_coverage_diff",
+      "rest_diff"
+    ],
+    "decisions": [
+      {
+        "feature": "home_field_indicator",
+        "decision": "DROP",
+        "reason": "zero variance; home field is absorbed by the margin intercept"
+      },
+      {
+        "feature": "qb_quality_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.000; multivariate residual ratio 1.000"
+      },
+      {
+        "feature": "qb_vs_pass_rush_matchup",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.717; multivariate residual ratio 0.697"
+      },
+      {
+        "feature": "qb_vs_coverage_matchup",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.890; multivariate residual ratio 0.454"
+      },
+      {
+        "feature": "ol_pass_vs_pass_rush_matchup",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.732; multivariate residual ratio 0.382"
+      },
+      {
+        "feature": "ol_run_vs_front_matchup",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.688; multivariate residual ratio 0.627"
+      },
+      {
+        "feature": "receiving_vs_secondary_matchup",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.756; multivariate residual ratio 0.479"
+      },
+      {
+        "feature": "rushing_vs_front_matchup",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.502; multivariate residual ratio 0.789"
+      },
+      {
+        "feature": "ol_weakest_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.492; multivariate residual ratio 0.706"
+      },
+      {
+        "feature": "ol_strongest_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.410; multivariate residual ratio 0.656"
+      },
+      {
+        "feature": "ol_continuity_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.186; multivariate residual ratio 0.974"
+      },
+      {
+        "feature": "ol_replacement_starters_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.448; multivariate residual ratio 0.867"
+      },
+      {
+        "feature": "wr1_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.515; multivariate residual ratio 0.685"
+      },
+      {
+        "feature": "wr2_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.609; multivariate residual ratio 0.607"
+      },
+      {
+        "feature": "te1_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.464; multivariate residual ratio 0.511"
+      },
+      {
+        "feature": "receiver_replacements_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.077; multivariate residual ratio 0.896"
+      },
+      {
+        "feature": "pass_rusher1_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.819; multivariate residual ratio 0.438"
+      },
+      {
+        "feature": "pass_rusher2_diff",
+        "decision": "DROP",
+        "reason": "multivariate linear dependency; residual ratio 1.44e-15"
+      },
+      {
+        "feature": "weakest_coverage_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.533; multivariate residual ratio 0.683"
+      },
+      {
+        "feature": "secondary_average_diff",
+        "decision": "DROP",
+        "reason": "multivariate linear dependency; residual ratio 2.40e-16"
+      },
+      {
+        "feature": "front_seven_average_diff",
+        "decision": "DROP",
+        "reason": "multivariate linear dependency; residual ratio 4.17e-16"
+      },
+      {
+        "feature": "rest_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.074; multivariate residual ratio 0.991"
+      }
+    ]
+  },
+  "model_a": {
+    "model_name": "RSM-v2 Model A football margin",
+    "target": "actual_margin",
+    "feature_names": [
+      "qb_quality_diff",
+      "qb_vs_pass_rush_matchup",
+      "qb_vs_coverage_matchup",
+      "ol_pass_vs_pass_rush_matchup",
+      "ol_run_vs_front_matchup",
+      "receiving_vs_secondary_matchup",
+      "rushing_vs_front_matchup",
+      "ol_weakest_diff",
+      "ol_strongest_diff",
+      "ol_continuity_diff",
+      "ol_replacement_starters_diff",
+      "wr1_diff",
+      "wr2_diff",
+      "te1_diff",
+      "receiver_replacements_diff",
+      "pass_rusher1_diff",
+      "weakest_coverage_diff",
+      "rest_diff"
+    ],
+    "means": [
+      0.011786372007366833,
+      0.008729281767956315,
+      0.05656077348066331,
+      0.027300184162062754,
+      -0.017953257914583874,
+      0.022200736648250733,
+      0.04216828904674196,
+      -0.028287292817679454,
+      0.028471454880294688,
+      -0.006261510128913444,
+      -0.020257826887661142,
+      0.0530755064456723,
+      -0.0798710865561693,
+      0.027421731123388388,
+      -0.001841620626151013,
+      0.10635359116022093,
+      0.090220994475138,
+      0.10681399631675875
+    ],
+    "scales": [
+      5.769346820818927,
+      9.177594787483777,
+      7.582924084862343,
+      7.339883461380584,
+      4.663641607782409,
+      5.018819654825286,
+      5.690249726936017,
+      4.901804701518358,
+      3.3294380457341792,
+      0.15025276962518844,
+      0.361032803089292,
+      3.579665242511152,
+      3.3724909481224254,
+      5.588960638049923,
+      0.21456263441532558,
+      7.6090319235892165,
+      3.6405518305223254,
+      2.330755530100323
+    ],
+    "intercept": 1.8453038674033149,
+    "coefficients": [
+      0.6576391131606485,
+      0.8542258115606655,
+      0.6667991260794021,
+      1.0917327015085483,
+      -1.2028477934443937,
+      0.9928178707392175,
+      0.1344107652551051,
+      1.364486542181012,
+      1.3095175383765292,
+      -0.18255259960901896,
+      0.1016007922223182,
+      -0.46771223199787676,
+      1.0252895228859122,
+      1.733828943817314,
+      0.4852880364307147,
+      -0.13947966930426892,
+      0.1969874720141509,
+      0.06216975137469689
+    ],
+    "ridge_alpha": 100.0,
+    "training_seasons": [
+      2021,
+      2022
+    ]
+  },
+  "model_b": {
+    "model_name": "RSM-v2 Model B market residual",
+    "target": "market_residual",
+    "feature_names": [
+      "qb_quality_diff",
+      "qb_vs_pass_rush_matchup",
+      "qb_vs_coverage_matchup",
+      "ol_pass_vs_pass_rush_matchup",
+      "ol_run_vs_front_matchup",
+      "receiving_vs_secondary_matchup",
+      "rushing_vs_front_matchup",
+      "ol_weakest_diff",
+      "ol_strongest_diff",
+      "ol_continuity_diff",
+      "ol_replacement_starters_diff",
+      "wr1_diff",
+      "wr2_diff",
+      "te1_diff",
+      "receiver_replacements_diff",
+      "pass_rusher1_diff",
+      "weakest_coverage_diff",
+      "rest_diff"
+    ],
+    "means": [
+      0.011786372007366833,
+      0.008729281767956315,
+      0.05656077348066331,
+      0.027300184162062754,
+      -0.017953257914583874,
+      0.022200736648250733,
+      0.04216828904674196,
+      -0.028287292817679454,
+      0.028471454880294688,
+      -0.006261510128913444,
+      -0.020257826887661142,
+      0.0530755064456723,
+      -0.0798710865561693,
+      0.027421731123388388,
+      -0.001841620626151013,
+      0.10635359116022093,
+      0.090220994475138,
+      0.10681399631675875
+    ],
+    "scales": [
+      5.769346820818927,
+      9.177594787483777,
+      7.582924084862343,
+      7.339883461380584,
+      4.663641607782409,
+      5.018819654825286,
+      5.690249726936017,
+      4.901804701518358,
+      3.3294380457341792,
+      0.15025276962518844,
+      0.361032803089292,
+      3.579665242511152,
+      3.3724909481224254,
+      5.588960638049923,
+      0.21456263441532558,
+      7.6090319235892165,
+      3.6405518305223254,
+      2.330755530100323
+    ],
+    "intercept": 0.17219152854511974,
+    "coefficients": [
+      -0.07541619317509073,
+      0.1576349071983893,
+      -0.14989212007348335,
+      0.2906431054390337,
+      -1.1695234964401329,
+      0.06707162095943119,
+      -0.29148812760489196,
+      0.863685658728873,
+      0.7006518674014957,
+      -0.08317462235753659,
+      0.0425532131873628,
+      -0.7169088266578882,
+      0.285746883118178,
+      0.4747494261907473,
+      0.4139608936193473,
+      -0.12608196617149406,
+      0.4665962251412545,
+      -0.39985507876821447
+    ],
+    "ridge_alpha": 100.0,
+    "training_seasons": [
+      2021,
+      2022
+    ]
+  },
+  "total_diagnostic": {
+    "model_name": "Total diagnostic",
+    "target": "actual_total",
+    "feature_names": [
+      "qb_quality_diff",
+      "qb_vs_pass_rush_matchup",
+      "qb_vs_coverage_matchup",
+      "ol_pass_vs_pass_rush_matchup",
+      "ol_run_vs_front_matchup",
+      "receiving_vs_secondary_matchup",
+      "rushing_vs_front_matchup",
+      "ol_weakest_diff",
+      "ol_strongest_diff",
+      "ol_continuity_diff",
+      "ol_replacement_starters_diff",
+      "wr1_diff",
+      "wr2_diff",
+      "te1_diff",
+      "receiver_replacements_diff",
+      "pass_rusher1_diff",
+      "weakest_coverage_diff",
+      "rest_diff"
+    ],
+    "means": [
+      0.011786372007366833,
+      0.008729281767956315,
+      0.05656077348066331,
+      0.027300184162062754,
+      -0.017953257914583874,
+      0.022200736648250733,
+      0.04216828904674196,
+      -0.028287292817679454,
+      0.028471454880294688,
+      -0.006261510128913444,
+      -0.020257826887661142,
+      0.0530755064456723,
+      -0.0798710865561693,
+      0.027421731123388388,
+      -0.001841620626151013,
+      0.10635359116022093,
+      0.090220994475138,
+      0.10681399631675875
+    ],
+    "scales": [
+      5.769346820818927,
+      9.177594787483777,
+      7.582924084862343,
+      7.339883461380584,
+      4.663641607782409,
+      5.018819654825286,
+      5.690249726936017,
+      4.901804701518358,
+      3.3294380457341792,
+      0.15025276962518844,
+      0.361032803089292,
+      3.579665242511152,
+      3.3724909481224254,
+      5.588960638049923,
+      0.21456263441532558,
+      7.6090319235892165,
+      3.6405518305223254,
+      2.330755530100323
+    ],
+    "intercept": 44.865561694290975,
+    "coefficients": [
+      12.37272528180024,
+      -7.595178831839463,
+      -9.113947120865786,
+      5.500383608060507,
+      -2.195312284514709,
+      6.40974281961067,
+      0.6373598974319169,
+      -1.3596063489497943,
+      -0.9985256470728938,
+      0.8580222847897835,
+      -0.07692402979734735,
+      -1.6565106277479782,
+      -1.6684685355955002,
+      -1.4074786799167736,
+      1.3890140813386456,
+      0.14066816641079438,
+      0.855891419977313,
+      -0.036543847653860574
+    ],
+    "ridge_alpha": 0.0,
+    "training_seasons": [
+      2021,
+      2022
+    ]
+  },
+  "warning": "Experimental architecture only. No confidence model is included and RSM-v1 remains frozen."
+}

@@ -1,0 +1,1205 @@
+{
+  "scope": {
+    "training_seasons": [
+      2021,
+      2022
+    ],
+    "training_games": 543,
+    "validation_seasons": [
+      2023
+    ],
+    "validation_games": 272,
+    "locked_seasons_used": false
+  },
+  "availability": {
+    "available": [
+      "QB",
+      "OL starter distribution",
+      "receiver depth",
+      "pass-rusher peaks",
+      "coverage weakness",
+      "front-seven average",
+      "home-field intercept",
+      "rest differential"
+    ],
+    "unavailable": [
+      "verified pregame injuries",
+      "red-zone offense/defense",
+      "direct pass-block/run-block grades",
+      "pass-rush win rate",
+      "coverage grades"
+    ],
+    "history_window": "Frozen five-year PSR history retained because Stage 6 could not validate position-specific alternatives without rebuilding ratings."
+  },
+  "correlation_audit": {
+    "threshold": 0.9,
+    "candidate_count": 22,
+    "selected_count": 18,
+    "selected_features": [
+      "qb_quality_diff",
+      "qb_vs_pass_rush_matchup",
+      "qb_vs_coverage_matchup",
+      "ol_pass_vs_pass_rush_matchup",
+      "ol_run_vs_front_matchup",
+      "receiving_vs_secondary_matchup",
+      "rushing_vs_front_matchup",
+      "ol_weakest_diff",
+      "ol_strongest_diff",
+      "ol_continuity_diff",
+      "ol_replacement_starters_diff",
+      "wr1_diff",
+      "wr2_diff",
+      "te1_diff",
+      "receiver_replacements_diff",
+      "pass_rusher1_diff",
+      "weakest_coverage_diff",
+      "rest_diff"
+    ],
+    "decisions": [
+      {
+        "feature": "home_field_indicator",
+        "decision": "DROP",
+        "reason": "zero variance; home field is absorbed by the margin intercept"
+      },
+      {
+        "feature": "qb_quality_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.000; multivariate residual ratio 1.000"
+      },
+      {
+        "feature": "qb_vs_pass_rush_matchup",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.717; multivariate residual ratio 0.697"
+      },
+      {
+        "feature": "qb_vs_coverage_matchup",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.890; multivariate residual ratio 0.454"
+      },
+      {
+        "feature": "ol_pass_vs_pass_rush_matchup",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.732; multivariate residual ratio 0.382"
+      },
+      {
+        "feature": "ol_run_vs_front_matchup",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.688; multivariate residual ratio 0.627"
+      },
+      {
+        "feature": "receiving_vs_secondary_matchup",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.756; multivariate residual ratio 0.479"
+      },
+      {
+        "feature": "rushing_vs_front_matchup",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.502; multivariate residual ratio 0.789"
+      },
+      {
+        "feature": "ol_weakest_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.492; multivariate residual ratio 0.706"
+      },
+      {
+        "feature": "ol_strongest_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.410; multivariate residual ratio 0.656"
+      },
+      {
+        "feature": "ol_continuity_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.186; multivariate residual ratio 0.974"
+      },
+      {
+        "feature": "ol_replacement_starters_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.448; multivariate residual ratio 0.867"
+      },
+      {
+        "feature": "wr1_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.515; multivariate residual ratio 0.685"
+      },
+      {
+        "feature": "wr2_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.609; multivariate residual ratio 0.607"
+      },
+      {
+        "feature": "te1_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.464; multivariate residual ratio 0.511"
+      },
+      {
+        "feature": "receiver_replacements_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.077; multivariate residual ratio 0.896"
+      },
+      {
+        "feature": "pass_rusher1_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.819; multivariate residual ratio 0.438"
+      },
+      {
+        "feature": "pass_rusher2_diff",
+        "decision": "DROP",
+        "reason": "multivariate linear dependency; residual ratio 1.44e-15"
+      },
+      {
+        "feature": "weakest_coverage_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.533; multivariate residual ratio 0.683"
+      },
+      {
+        "feature": "secondary_average_diff",
+        "decision": "DROP",
+        "reason": "multivariate linear dependency; residual ratio 2.40e-16"
+      },
+      {
+        "feature": "front_seven_average_diff",
+        "decision": "DROP",
+        "reason": "multivariate linear dependency; residual ratio 4.17e-16"
+      },
+      {
+        "feature": "rest_diff",
+        "decision": "KEEP",
+        "reason": "max pairwise |r| 0.074; multivariate residual ratio 0.991"
+      }
+    ]
+  },
+  "training_only_model_selection": {
+    "model_a": {
+      "selected_alpha": 100.0,
+      "grid": [
+        {
+          "alpha": 0.0,
+          "status": "VALID",
+          "mae": 9.655490178748781,
+          "rmse": 12.620290796227808
+        },
+        {
+          "alpha": 1.0,
+          "status": "VALID",
+          "mae": 9.630447381252106,
+          "rmse": 12.587402536051963
+        },
+        {
+          "alpha": 10.0,
+          "status": "VALID",
+          "mae": 9.512396396035864,
+          "rmse": 12.414092527571754
+        },
+        {
+          "alpha": 100.0,
+          "status": "VALID",
+          "mae": 9.231625012447664,
+          "rmse": 12.028671580110261
+        }
+      ]
+    },
+    "model_b": {
+      "selected_alpha": 100.0,
+      "grid": [
+        {
+          "alpha": 0.0,
+          "status": "VALID",
+          "mae": 9.049273683856883,
+          "rmse": 11.783976618714576
+        },
+        {
+          "alpha": 1.0,
+          "status": "VALID",
+          "mae": 9.029398864360957,
+          "rmse": 11.763979131347607
+        },
+        {
+          "alpha": 10.0,
+          "status": "VALID",
+          "mae": 8.982241191732143,
+          "rmse": 11.69986029789854
+        },
+        {
+          "alpha": 100.0,
+          "status": "VALID",
+          "mae": 8.882290790158027,
+          "rmse": 11.549757504965507
+        }
+      ]
+    }
+  },
+  "model_a": {
+    "artifact": {
+      "model_name": "RSM-v2 Model A football margin",
+      "target": "actual_margin",
+      "feature_names": [
+        "qb_quality_diff",
+        "qb_vs_pass_rush_matchup",
+        "qb_vs_coverage_matchup",
+        "ol_pass_vs_pass_rush_matchup",
+        "ol_run_vs_front_matchup",
+        "receiving_vs_secondary_matchup",
+        "rushing_vs_front_matchup",
+        "ol_weakest_diff",
+        "ol_strongest_diff",
+        "ol_continuity_diff",
+        "ol_replacement_starters_diff",
+        "wr1_diff",
+        "wr2_diff",
+        "te1_diff",
+        "receiver_replacements_diff",
+        "pass_rusher1_diff",
+        "weakest_coverage_diff",
+        "rest_diff"
+      ],
+      "means": [
+        0.011786372007366833,
+        0.008729281767956315,
+        0.05656077348066331,
+        0.027300184162062754,
+        -0.017953257914583874,
+        0.022200736648250733,
+        0.04216828904674196,
+        -0.028287292817679454,
+        0.028471454880294688,
+        -0.006261510128913444,
+        -0.020257826887661142,
+        0.0530755064456723,
+        -0.0798710865561693,
+        0.027421731123388388,
+        -0.001841620626151013,
+        0.10635359116022093,
+        0.090220994475138,
+        0.10681399631675875
+      ],
+      "scales": [
+        5.769346820818927,
+        9.177594787483777,
+        7.582924084862343,
+        7.339883461380584,
+        4.663641607782409,
+        5.018819654825286,
+        5.690249726936017,
+        4.901804701518358,
+        3.3294380457341792,
+        0.15025276962518844,
+        0.361032803089292,
+        3.579665242511152,
+        3.3724909481224254,
+        5.588960638049923,
+        0.21456263441532558,
+        7.6090319235892165,
+        3.6405518305223254,
+        2.330755530100323
+      ],
+      "intercept": 1.8453038674033149,
+      "coefficients": [
+        0.6576391131606485,
+        0.8542258115606655,
+        0.6667991260794021,
+        1.0917327015085483,
+        -1.2028477934443937,
+        0.9928178707392175,
+        0.1344107652551051,
+        1.364486542181012,
+        1.3095175383765292,
+        -0.18255259960901896,
+        0.1016007922223182,
+        -0.46771223199787676,
+        1.0252895228859122,
+        1.733828943817314,
+        0.4852880364307147,
+        -0.13947966930426892,
+        0.1969874720141509,
+        0.06216975137469689
+      ],
+      "ridge_alpha": 100.0,
+      "training_seasons": [
+        2021,
+        2022
+      ]
+    },
+    "validation": {
+      "n": 272,
+      "mae": 10.52838870490053,
+      "rmse": 13.567101211365872,
+      "predictive_r_squared": 0.11184499493802968,
+      "calibration_r_squared": 0.1169662103918091,
+      "calibration_intercept": 0.6174376630498055,
+      "calibration_slope": 1.1312887054787772,
+      "predicted_std": 4.35210574968419,
+      "actual_std": 14.396027947831321,
+      "residual_mean": -0.857246585476454,
+      "residual_std": 13.539991269241435
+    }
+  },
+  "model_b": {
+    "artifact": {
+      "model_name": "RSM-v2 Model B market residual",
+      "target": "market_residual",
+      "feature_names": [
+        "qb_quality_diff",
+        "qb_vs_pass_rush_matchup",
+        "qb_vs_coverage_matchup",
+        "ol_pass_vs_pass_rush_matchup",
+        "ol_run_vs_front_matchup",
+        "receiving_vs_secondary_matchup",
+        "rushing_vs_front_matchup",
+        "ol_weakest_diff",
+        "ol_strongest_diff",
+        "ol_continuity_diff",
+        "ol_replacement_starters_diff",
+        "wr1_diff",
+        "wr2_diff",
+        "te1_diff",
+        "receiver_replacements_diff",
+        "pass_rusher1_diff",
+        "weakest_coverage_diff",
+        "rest_diff"
+      ],
+      "means": [
+        0.011786372007366833,
+        0.008729281767956315,
+        0.05656077348066331,
+        0.027300184162062754,
+        -0.017953257914583874,
+        0.022200736648250733,
+        0.04216828904674196,
+        -0.028287292817679454,
+        0.028471454880294688,
+        -0.006261510128913444,
+        -0.020257826887661142,
+        0.0530755064456723,
+        -0.0798710865561693,
+        0.027421731123388388,
+        -0.001841620626151013,
+        0.10635359116022093,
+        0.090220994475138,
+        0.10681399631675875
+      ],
+      "scales": [
+        5.769346820818927,
+        9.177594787483777,
+        7.582924084862343,
+        7.339883461380584,
+        4.663641607782409,
+        5.018819654825286,
+        5.690249726936017,
+        4.901804701518358,
+        3.3294380457341792,
+        0.15025276962518844,
+        0.361032803089292,
+        3.579665242511152,
+        3.3724909481224254,
+        5.588960638049923,
+        0.21456263441532558,
+        7.6090319235892165,
+        3.6405518305223254,
+        2.330755530100323
+      ],
+      "intercept": 0.17219152854511974,
+      "coefficients": [
+        -0.07541619317509073,
+        0.1576349071983893,
+        -0.14989212007348335,
+        0.2906431054390337,
+        -1.1695234964401329,
+        0.06707162095943119,
+        -0.29148812760489196,
+        0.863685658728873,
+        0.7006518674014957,
+        -0.08317462235753659,
+        0.0425532131873628,
+        -0.7169088266578882,
+        0.285746883118178,
+        0.4747494261907473,
+        0.4139608936193473,
+        -0.12608196617149406,
+        0.4665962251412545,
+        -0.39985507876821447
+      ],
+      "ridge_alpha": 100.0,
+      "training_seasons": [
+        2021,
+        2022
+      ]
+    },
+    "validation": {
+      "n": 272,
+      "mae": 9.947161616514771,
+      "rmse": 13.005009056772188,
+      "predictive_r_squared": 0.003895107137476095,
+      "calibration_r_squared": 0.008814877576990954,
+      "calibration_intercept": 0.8914370868391241,
+      "calibration_slope": 0.7930397845028706,
+      "predicted_std": 1.54266380412498,
+      "actual_std": 13.030411240878063,
+      "residual_mean": -0.856389178193955,
+      "residual_std": 12.9767815016744,
+      "correlation": 0.09388757946070884
+    },
+    "directional_buckets": [
+      {
+        "bucket": "0-1",
+        "n": 132,
+        "directional_accuracy": 0.5040650406504065,
+        "mean_actual_residual": 0.36742424242424243,
+        "mean_aligned_actual_residual": -0.22348484848484848
+      },
+      {
+        "bucket": "1-2",
+        "n": 97,
+        "directional_accuracy": 0.5425531914893617,
+        "mean_actual_residual": 1.6391752577319587,
+        "mean_aligned_actual_residual": 1.2164948453608246
+      },
+      {
+        "bucket": "2-3",
+        "n": 26,
+        "directional_accuracy": 0.6,
+        "mean_actual_residual": 1.8076923076923077,
+        "mean_aligned_actual_residual": 5.8076923076923075
+      },
+      {
+        "bucket": "3+",
+        "n": 17,
+        "directional_accuracy": 0.4375,
+        "mean_actual_residual": 1.4411764705882353,
+        "mean_aligned_actual_residual": -0.029411764705882353
+      }
+    ],
+    "ats": {
+      "wins": 135,
+      "losses": 123,
+      "pushes": 14,
+      "accuracy": 0.5232558139534884
+    }
+  },
+  "baselines": {
+    "RSM-v1": {
+      "n": 272,
+      "mae": 10.54198234191272,
+      "rmse": 13.719731561919318,
+      "predictive_r_squared": 0.0917490390470429,
+      "calibration_r_squared": 0.10076007546869559,
+      "calibration_intercept": 0.2119264982748419,
+      "calibration_slope": 1.317812093818313,
+      "predicted_std": 3.4676354514576055,
+      "actual_std": 14.396027947831321,
+      "residual_mean": -0.8080651851589891,
+      "residual_std": 13.695914164000119
+    },
+    "existing predictor": {
+      "n": 272,
+      "mae": 10.434788323651265,
+      "rmse": 13.477677684527501,
+      "predictive_r_squared": 0.1235144309606625,
+      "calibration_r_squared": 0.1349718135705017,
+      "calibration_intercept": 1.3363662827592295,
+      "calibration_slope": 0.8240840253839766,
+      "predicted_std": 6.417896768913843,
+      "actual_std": 14.396027947831321,
+      "residual_mean": -1.0487266155689123,
+      "residual_std": 13.436813917510653
+    },
+    "market": {
+      "n": 272,
+      "mae": 9.900735294117647,
+      "rmse": 13.07072109716981,
+      "predictive_r_squared": 0.1756460308122555,
+      "calibration_r_squared": 0.18137751866362062,
+      "calibration_intercept": 0.9197460615940036,
+      "calibration_slope": 1.0639225526528402,
+      "predicted_std": 5.762678543196257,
+      "actual_std": 14.396027947831321,
+      "residual_mean": -1.025735294117647,
+      "residual_std": 13.030411240878063
+    }
+  },
+  "feature_diagnostics": [
+    {
+      "feature": "te1_diff",
+      "model_a_standardized_coefficient": 1.733828943817314,
+      "validation_margin_correlation": 0.20126470950966033,
+      "model_b_standardized_coefficient": 0.4747494261907473,
+      "validation_market_residual_correlation": 0.0462959156717645
+    },
+    {
+      "feature": "ol_weakest_diff",
+      "model_a_standardized_coefficient": 1.364486542181012,
+      "validation_margin_correlation": 0.15511155335998678,
+      "model_b_standardized_coefficient": 0.863685658728873,
+      "validation_market_residual_correlation": 0.09203231507258297
+    },
+    {
+      "feature": "ol_strongest_diff",
+      "model_a_standardized_coefficient": 1.3095175383765292,
+      "validation_margin_correlation": 0.03605393765954417,
+      "model_b_standardized_coefficient": 0.7006518674014957,
+      "validation_market_residual_correlation": -0.012689535348413744
+    },
+    {
+      "feature": "ol_run_vs_front_matchup",
+      "model_a_standardized_coefficient": -1.2028477934443937,
+      "validation_margin_correlation": 0.13499445032598506,
+      "model_b_standardized_coefficient": -1.1695234964401329,
+      "validation_market_residual_correlation": -0.008030347092382296
+    },
+    {
+      "feature": "ol_pass_vs_pass_rush_matchup",
+      "model_a_standardized_coefficient": 1.0917327015085483,
+      "validation_margin_correlation": 0.19804786420934406,
+      "model_b_standardized_coefficient": 0.2906431054390337,
+      "validation_market_residual_correlation": 0.03542419968640381
+    },
+    {
+      "feature": "wr2_diff",
+      "model_a_standardized_coefficient": 1.0252895228859122,
+      "validation_margin_correlation": 0.11678736079137793,
+      "model_b_standardized_coefficient": 0.285746883118178,
+      "validation_market_residual_correlation": -0.03124095476988152
+    },
+    {
+      "feature": "receiving_vs_secondary_matchup",
+      "model_a_standardized_coefficient": 0.9928178707392175,
+      "validation_margin_correlation": 0.23679169276481346,
+      "model_b_standardized_coefficient": 0.06707162095943119,
+      "validation_market_residual_correlation": 0.02521563076712179
+    },
+    {
+      "feature": "qb_vs_pass_rush_matchup",
+      "model_a_standardized_coefficient": 0.8542258115606655,
+      "validation_margin_correlation": 0.2763036088498612,
+      "model_b_standardized_coefficient": 0.1576349071983893,
+      "validation_market_residual_correlation": 0.007508108151657392
+    },
+    {
+      "feature": "qb_vs_coverage_matchup",
+      "model_a_standardized_coefficient": 0.6667991260794021,
+      "validation_margin_correlation": 0.2769704455329275,
+      "model_b_standardized_coefficient": -0.14989212007348335,
+      "validation_market_residual_correlation": 0.010187256824361016
+    },
+    {
+      "feature": "qb_quality_diff",
+      "model_a_standardized_coefficient": 0.6576391131606485,
+      "validation_margin_correlation": 0.2620879098614683,
+      "model_b_standardized_coefficient": -0.07541619317509073,
+      "validation_market_residual_correlation": -0.008303162968940517
+    },
+    {
+      "feature": "receiver_replacements_diff",
+      "model_a_standardized_coefficient": 0.4852880364307147,
+      "validation_margin_correlation": 0.057010955161213454,
+      "model_b_standardized_coefficient": 0.4139608936193473,
+      "validation_market_residual_correlation": 0.0645584415698999
+    },
+    {
+      "feature": "wr1_diff",
+      "model_a_standardized_coefficient": -0.46771223199787676,
+      "validation_margin_correlation": 0.13275531172236815,
+      "model_b_standardized_coefficient": -0.7169088266578882,
+      "validation_market_residual_correlation": -0.0010791352349944136
+    },
+    {
+      "feature": "weakest_coverage_diff",
+      "model_a_standardized_coefficient": 0.1969874720141509,
+      "validation_margin_correlation": 0.15161061396279676,
+      "model_b_standardized_coefficient": 0.4665962251412545,
+      "validation_market_residual_correlation": 0.0430881022662147
+    },
+    {
+      "feature": "ol_continuity_diff",
+      "model_a_standardized_coefficient": -0.18255259960901896,
+      "validation_margin_correlation": 0.05053723863333025,
+      "model_b_standardized_coefficient": -0.08317462235753659,
+      "validation_market_residual_correlation": -0.0039548722893246215
+    },
+    {
+      "feature": "pass_rusher1_diff",
+      "model_a_standardized_coefficient": -0.13947966930426892,
+      "validation_margin_correlation": 0.07302026409402149,
+      "model_b_standardized_coefficient": -0.12608196617149406,
+      "validation_market_residual_correlation": -0.011242360165569364
+    },
+    {
+      "feature": "rushing_vs_front_matchup",
+      "model_a_standardized_coefficient": 0.1344107652551051,
+      "validation_margin_correlation": 0.09506238420829362,
+      "model_b_standardized_coefficient": -0.29148812760489196,
+      "validation_market_residual_correlation": -0.06740993076262215
+    },
+    {
+      "feature": "ol_replacement_starters_diff",
+      "model_a_standardized_coefficient": 0.1016007922223182,
+      "validation_margin_correlation": -0.030326005766500953,
+      "model_b_standardized_coefficient": 0.0425532131873628,
+      "validation_market_residual_correlation": -0.03163274983067158
+    },
+    {
+      "feature": "rest_diff",
+      "model_a_standardized_coefficient": 0.06216975137469689,
+      "validation_margin_correlation": 0.03353594559526299,
+      "model_b_standardized_coefficient": -0.39985507876821447,
+      "validation_market_residual_correlation": 0.07679235232564605
+    }
+  ],
+  "ablation": [
+    {
+      "group": "QB",
+      "status": "TESTED",
+      "removed": [
+        "qb_quality_diff",
+        "qb_vs_pass_rush_matchup",
+        "qb_vs_coverage_matchup"
+      ],
+      "model_a_margin_mae_delta": 0.06512307333879441,
+      "model_a_calibration_r2_delta": -0.014211819237191392,
+      "model_b_residual_mae_delta": 0.004335452413181784,
+      "model_b_predictive_r2_delta": -0.0005948706514719015
+    },
+    {
+      "group": "OL",
+      "status": "TESTED",
+      "removed": [
+        "ol_pass_vs_pass_rush_matchup",
+        "ol_run_vs_front_matchup",
+        "ol_weakest_diff",
+        "ol_strongest_diff",
+        "ol_continuity_diff",
+        "ol_replacement_starters_diff"
+      ],
+      "model_a_margin_mae_delta": 0.05763638188758513,
+      "model_a_calibration_r2_delta": -0.014266781336819023,
+      "model_b_residual_mae_delta": 0.023545302032827564,
+      "model_b_predictive_r2_delta": -0.00483752054851061
+    },
+    {
+      "group": "receivers",
+      "status": "TESTED",
+      "removed": [
+        "receiving_vs_secondary_matchup",
+        "wr1_diff",
+        "wr2_diff",
+        "te1_diff",
+        "receiver_replacements_diff"
+      ],
+      "model_a_margin_mae_delta": 0.18196170167992953,
+      "model_a_calibration_r2_delta": -0.023335093012720298,
+      "model_b_residual_mae_delta": 0.026925635549355675,
+      "model_b_predictive_r2_delta": -0.0017358254481425472
+    },
+    {
+      "group": "rushing",
+      "status": "TESTED",
+      "removed": [
+        "rushing_vs_front_matchup"
+      ],
+      "model_a_margin_mae_delta": 0.0027186847542512993,
+      "model_a_calibration_r2_delta": -0.00029045734705490656,
+      "model_b_residual_mae_delta": 0.004876352655605487,
+      "model_b_predictive_r2_delta": -0.001574857693042997
+    },
+    {
+      "group": "pass rush",
+      "status": "TESTED",
+      "removed": [
+        "qb_vs_pass_rush_matchup",
+        "ol_pass_vs_pass_rush_matchup",
+        "pass_rusher1_diff"
+      ],
+      "model_a_margin_mae_delta": 0.10267214985769613,
+      "model_a_calibration_r2_delta": -0.023130546774490113,
+      "model_b_residual_mae_delta": 0.01160269656749513,
+      "model_b_predictive_r2_delta": -0.0030057474540891027
+    },
+    {
+      "group": "secondary",
+      "status": "TESTED",
+      "removed": [
+        "qb_vs_coverage_matchup",
+        "receiving_vs_secondary_matchup",
+        "weakest_coverage_diff"
+      ],
+      "model_a_margin_mae_delta": 0.05154512758439367,
+      "model_a_calibration_r2_delta": -0.008677985212498851,
+      "model_b_residual_mae_delta": 0.005964850541252176,
+      "model_b_predictive_r2_delta": -0.004000035983821815
+    },
+    {
+      "group": "weakest-link features",
+      "status": "TESTED",
+      "removed": [
+        "ol_weakest_diff",
+        "weakest_coverage_diff"
+      ],
+      "model_a_margin_mae_delta": 0.10737968386459151,
+      "model_a_calibration_r2_delta": -0.011001565604748409,
+      "model_b_residual_mae_delta": 0.05368036009711119,
+      "model_b_predictive_r2_delta": -0.009327718130002993
+    },
+    {
+      "group": "elite-player features",
+      "status": "TESTED",
+      "removed": [
+        "ol_strongest_diff",
+        "wr1_diff",
+        "pass_rusher1_diff"
+      ],
+      "model_a_margin_mae_delta": -0.1274948681238488,
+      "model_a_calibration_r2_delta": 0.012255191997411319,
+      "model_b_residual_mae_delta": -0.05477424566207212,
+      "model_b_predictive_r2_delta": 0.006321247341251945
+    },
+    {
+      "group": "injuries",
+      "status": "UNAVAILABLE",
+      "removed": [],
+      "reason": "verified pregame injury fields are unavailable"
+    }
+  ],
+  "total_diagnostic": {
+    "selected_alpha_training_only": 0.0,
+    "grid": [
+      {
+        "alpha": 0.0,
+        "status": "VALID",
+        "mae": 11.240598873150077,
+        "rmse": 13.988038834544923
+      },
+      {
+        "alpha": 1.0,
+        "status": "VALID",
+        "mae": 11.247870909386506,
+        "rmse": 13.967029960759753
+      },
+      {
+        "alpha": 10.0,
+        "status": "VALID",
+        "mae": 11.274058788752,
+        "rmse": 13.97564976107515
+      },
+      {
+        "alpha": 100.0,
+        "status": "VALID",
+        "mae": 11.270830793861746,
+        "rmse": 13.922910740612924
+      }
+    ],
+    "rsm_v1": {
+      "n": 272,
+      "mae": 11.255099264705882,
+      "rmse": 14.032872143360807,
+      "predictive_r_squared": -0.05597027808072985,
+      "calibration_r_squared": 0.0023328771695914075,
+      "calibration_intercept": 35.539731496997184,
+      "calibration_slope": 0.17842290225210147,
+      "predicted_std": 3.696715752527121,
+      "actual_std": 13.655912363297022,
+      "residual_mean": 1.2839007352941176,
+      "residual_std": 13.974015152912315
+    },
+    "candidate": {
+      "n": 272,
+      "mae": 10.928235251004573,
+      "rmse": 13.903538082383825,
+      "predictive_r_squared": -0.03659526200331453,
+      "calibration_r_squared": 0.0003875258967949158,
+      "calibration_intercept": 38.92965514920183,
+      "calibration_slope": 0.10300534171268488,
+      "predicted_std": 2.609824710490106,
+      "actual_std": 13.655912363297022,
+      "residual_mean": 1.1901346963956463,
+      "residual_std": 13.852507015437043,
+      "predictions": [
+        39.51610067248005,
+        44.82387467276744,
+        45.1178991829673,
+        43.21181141416163,
+        44.05571384849113,
+        39.61139039140961,
+        45.827680705857674,
+        43.095715398080806,
+        42.95006282813219,
+        42.64975646210984,
+        44.14645152253149,
+        47.46190165199589,
+        42.68228337235052,
+        41.50773982050465,
+        47.37078640089382,
+        44.843271954967406,
+        46.960931640096625,
+        45.15888070479726,
+        45.29996481809914,
+        38.496559102091574,
+        44.35332685248549,
+        44.043144264079494,
+        45.45625904811404,
+        42.55590880299776,
+        47.3792422945869,
+        42.03266969268283,
+        39.257723215711415,
+        49.850203935038216,
+        47.48277804581487,
+        40.468331577698024,
+        45.41216389259825,
+        45.121988724980895,
+        47.21363371126945,
+        43.98072732729839,
+        43.13432505708031,
+        46.42621999665822,
+        46.29036699343893,
+        44.83380850224892,
+        46.51705613545363,
+        46.33191790756178,
+        47.10816763478373,
+        46.79759051783602,
+        44.79310544079338,
+        41.91634229612214,
+        45.847675996940495,
+        43.06940921847589,
+        46.6170957594024,
+        43.21280087458288,
+        47.51924951450164,
+        44.905237878868846,
+        41.55144217360052,
+        46.74717988452685,
+        44.021484221112964,
+        46.312231114280976,
+        45.276822056588834,
+        43.32680849701122,
+        43.460127353578855,
+        39.658895128800104,
+        43.404541471019655,
+        46.00510994702036,
+        46.14979295064765,
+        41.45633734833829,
+        48.01645714027712,
+        48.60653784823216,
+        43.48821033048763,
+        46.08377114261918,
+        45.04666424735117,
+        41.64779935067276,
+        44.68334502538974,
+        42.01101662387096,
+        46.841782047961786,
+        43.46801186434846,
+        46.135645971686145,
+        42.16570289706051,
+        47.6699007983661,
+        45.91057091197453,
+        40.70886772579324,
+        40.65491496049854,
+        45.68825761118004,
+        47.786879778926114,
+        50.026852719836064,
+        43.355107391068785,
+        44.50243781718888,
+        43.852530316450746,
+        45.25190564999338,
+        43.85797394725598,
+        47.95119225830555,
+        40.8765559827403,
+        41.50688944672511,
+        43.766120382371795,
+        41.45923369823344,
+        42.803546620682056,
+        46.05527925340288,
+        43.65605341448252,
+        43.95909327718593,
+        47.96007215119302,
+        46.94837934182519,
+        43.73474971092296,
+        41.322500401599065,
+        44.16180711233278,
+        44.5958138348513,
+        42.633779207498215,
+        45.05978780758427,
+        46.96033067881048,
+        44.08815963435318,
+        42.495820444461586,
+        46.366454537068485,
+        41.93711482073061,
+        49.21625957362748,
+        45.842635872218594,
+        47.49496232731089,
+        45.35638414611048,
+        39.8867670000684,
+        46.81936367144446,
+        46.48239921521671,
+        45.36092108078712,
+        48.81698547878822,
+        44.96950690848052,
+        42.96442500060257,
+        44.03599325601666,
+        43.33828810761777,
+        45.58378683171176,
+        44.57551572285593,
+        43.267705801168105,
+        51.89043223494355,
+        43.555121352399674,
+        42.9536561173521,
+        42.064553656876626,
+        45.33126055042071,
+        41.98510750652291,
+        45.54386933963674,
+        47.15590966420018,
+        45.412194255073224,
+        49.323608101040485,
+        41.40122320334239,
+        46.43203452899441,
+        47.15533827684013,
+        41.01778672968585,
+        42.974271103266354,
+        44.64244435769237,
+        45.87666514472665,
+        39.73404560069739,
+        43.893150082953454,
+        47.60274082851071,
+        42.457237198922314,
+        45.272624635103675,
+        46.12641045767223,
+        41.25456262205642,
+        42.849162963247565,
+        48.650395049081574,
+        46.270478151523,
+        49.455789202434886,
+        46.68551516572095,
+        43.974558114243216,
+        44.34510658217886,
+        48.54264841652945,
+        49.2027472582371,
+        45.080094504099904,
+        45.520735610817646,
+        47.814311562280004,
+        49.44166534465389,
+        43.964208565149285,
+        49.35094417505207,
+        43.74904930973793,
+        47.04924261150773,
+        44.009206882530236,
+        49.637702462268635,
+        41.382871569190115,
+        43.591584933193744,
+        45.45363790994825,
+        46.0707103737227,
+        43.768955516251985,
+        45.91639178395905,
+        39.607401496331796,
+        43.23370525013754,
+        41.99867531042744,
+        45.323752921682754,
+        44.530431324981514,
+        46.86049452709967,
+        42.75426281362288,
+        42.474451035508736,
+        44.442511891018185,
+        47.45847282568494,
+        42.897700058471,
+        46.8195662117241,
+        43.57626652291327,
+        46.16635198713139,
+        45.30555001395478,
+        45.189234910936804,
+        43.433550372446504,
+        40.786103418926814,
+        39.91204839844623,
+        45.14409393794306,
+        44.98177256948339,
+        54.89073183276644,
+        44.906608676337115,
+        44.1652380412177,
+        41.09052895067976,
+        42.83865312343193,
+        44.04180743489196,
+        41.787709089980886,
+        43.20440374462329,
+        44.03195502597322,
+        44.1417813053396,
+        42.7542096838993,
+        44.70161771818887,
+        46.89505925582926,
+        47.05744068866842,
+        41.72784862348993,
+        44.83967865885654,
+        41.96018105412294,
+        46.55964146424253,
+        44.395024574451575,
+        47.306275792609654,
+        42.28000258598615,
+        42.211599550446515,
+        44.10488315731019,
+        50.89860057723768,
+        46.09055394801628,
+        43.64538777113182,
+        47.29096605746859,
+        46.619823986362874,
+        49.28296941148581,
+        46.51933702562263,
+        44.69785800641168,
+        44.33003661244148,
+        44.387438756191784,
+        43.291005413811696,
+        40.67945575585033,
+        47.95360057999676,
+        43.84536563822738,
+        39.182102190605036,
+        44.05951242696594,
+        41.08582512441745,
+        48.52881973373215,
+        46.92528250617334,
+        46.65281541290199,
+        45.193311894359745,
+        47.39991838443252,
+        45.80748050308424,
+        44.43132973045075,
+        46.33754009130562,
+        48.4968024163698,
+        51.02501516870089,
+        44.477129398428055,
+        43.50536331566771,
+        45.38460984420531,
+        43.7158382777222,
+        44.992000292087724,
+        39.27167184293067,
+        44.85121644406361,
+        41.87969474527485,
+        36.807057248671214,
+        47.97162276286787,
+        45.670429365896474,
+        44.08893582394134,
+        46.02293936157673,
+        48.48060541495597,
+        47.02466401332379,
+        41.07522275757345,
+        42.62050516171044,
+        49.03301238797174,
+        46.30040306699811,
+        46.12843395807621,
+        39.10136638541381,
+        42.16575246873989,
+        45.84764124288305,
+        46.017730413086646,
+        42.48212184683305,
+        47.64552867058028,
+        45.240543216292465,
+        41.77340521808596
+      ]
+    },
+    "artifact": {
+      "model_name": "Total diagnostic",
+      "target": "actual_total",
+      "feature_names": [
+        "qb_quality_diff",
+        "qb_vs_pass_rush_matchup",
+        "qb_vs_coverage_matchup",
+        "ol_pass_vs_pass_rush_matchup",
+        "ol_run_vs_front_matchup",
+        "receiving_vs_secondary_matchup",
+        "rushing_vs_front_matchup",
+        "ol_weakest_diff",
+        "ol_strongest_diff",
+        "ol_continuity_diff",
+        "ol_replacement_starters_diff",
+        "wr1_diff",
+        "wr2_diff",
+        "te1_diff",
+        "receiver_replacements_diff",
+        "pass_rusher1_diff",
+        "weakest_coverage_diff",
+        "rest_diff"
+      ],
+      "means": [
+        0.011786372007366833,
+        0.008729281767956315,
+        0.05656077348066331,
+        0.027300184162062754,
+        -0.017953257914583874,
+        0.022200736648250733,
+        0.04216828904674196,
+        -0.028287292817679454,
+        0.028471454880294688,
+        -0.006261510128913444,
+        -0.020257826887661142,
+        0.0530755064456723,
+        -0.0798710865561693,
+        0.027421731123388388,
+        -0.001841620626151013,
+        0.10635359116022093,
+        0.090220994475138,
+        0.10681399631675875
+      ],
+      "scales": [
+        5.769346820818927,
+        9.177594787483777,
+        7.582924084862343,
+        7.339883461380584,
+        4.663641607782409,
+        5.018819654825286,
+        5.690249726936017,
+        4.901804701518358,
+        3.3294380457341792,
+        0.15025276962518844,
+        0.361032803089292,
+        3.579665242511152,
+        3.3724909481224254,
+        5.588960638049923,
+        0.21456263441532558,
+        7.6090319235892165,
+        3.6405518305223254,
+        2.330755530100323
+      ],
+      "intercept": 44.865561694290975,
+      "coefficients": [
+        12.37272528180024,
+        -7.595178831839463,
+        -9.113947120865786,
+        5.500383608060507,
+        -2.195312284514709,
+        6.40974281961067,
+        0.6373598974319169,
+        -1.3596063489497943,
+        -0.9985256470728938,
+        0.8580222847897835,
+        -0.07692402979734735,
+        -1.6565106277479782,
+        -1.6684685355955002,
+        -1.4074786799167736,
+        1.3890140813386456,
+        0.14066816641079438,
+        0.855891419977313,
+        -0.036543847653860574
+      ],
+      "ridge_alpha": 0.0,
+      "training_seasons": [
+        2021,
+        2022
+      ]
+    }
+  },
+  "variance_trace": {
+    "direct_feature_std": {
+      "qb_quality_diff": 5.471784265875399,
+      "qb_vs_pass_rush_matchup": 8.649205627407206,
+      "qb_vs_coverage_matchup": 6.8783945478979875,
+      "ol_pass_vs_pass_rush_matchup": 7.045254513225789,
+      "ol_run_vs_front_matchup": 4.33099816497791,
+      "receiving_vs_secondary_matchup": 4.173769487171853,
+      "rushing_vs_front_matchup": 5.364992923004676,
+      "ol_weakest_diff": 4.8960330580871645,
+      "ol_strongest_diff": 3.6792161378776442,
+      "ol_continuity_diff": 0.1479805672035899,
+      "ol_replacement_starters_diff": 0.2499729656663173,
+      "wr1_diff": 3.371540281055827,
+      "wr2_diff": 3.1154547054972186,
+      "te1_diff": 4.993365112857537,
+      "receiver_replacements_diff": 0.2546072013703057,
+      "pass_rusher1_diff": 8.904729590599219,
+      "weakest_coverage_diff": 3.842732301730893,
+      "rest_diff": 2.2540812658245435
+    },
+    "rsm_v1_margin_std": 3.4676354514576055,
+    "rsm_v2_model_a_margin_std": 4.35210574968419,
+    "actual_margin_std": 14.396027947831321
+  }
+}

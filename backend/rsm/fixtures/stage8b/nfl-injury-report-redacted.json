@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "report_date": "2099-09-10",
+  "season": 2099,
+  "week": 1,
+  "games": [
+    {
+      "source_event_id": "REDACTED-KC-LV-2099",
+      "home_team": "KC",
+      "away_team": "LV",
+      "players": [
+        {
+          "gsis_id": "00-REDACTED",
+          "designation": "QUESTIONABLE",
+          "practice_status": "LIMITED"
+        }
+      ]
+    }
+  ]
+}

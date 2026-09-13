@@ -1,0 +1,34 @@
+{
+  "model_version": "RSM-v0-checkpoint2",
+  "target_seasons": [
+    2024,
+    2025
+  ],
+  "config_digest": "63f77bc0016d4d0a0b22c81202548712a998ec6d4491d350d94f7bf98ab66069",
+  "source_manifest_created_at": "2026-09-11T22:04:41.765721+00:00",
+  "overall": {
+    "games": 544,
+    "score_mae": 7.789,
+    "margin_mae": 10.95,
+    "total_mae": 10.473,
+    "score_rmse": 9.762
+  },
+  "by_season": {
+    "2024": {
+      "games": 272,
+      "score_mae": 7.75,
+      "margin_mae": 10.979,
+      "total_mae": 9.996,
+      "score_rmse": 9.687
+    },
+    "2025": {
+      "games": 272,
+      "score_mae": 7.827,
+      "margin_mae": 10.922,
+      "total_mae": 10.949,
+      "score_rmse": 9.836
+    }
+  },
+  "eligible_games": 544,
+  "predicted_games": 544
+}
