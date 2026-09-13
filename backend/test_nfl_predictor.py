@@ -1,6 +1,6 @@
 import pytest
 
-from nfl_predictor import MarketBlendNFLModel, list_teams, predict_matchup, summarize
+from nfl_predictor import MODEL_PROFILES, MarketBlendNFLModel, predict_matchup, list_teams, run_backtest, summarize
 
 
 def _game(season, away_team, home_team):
@@ -76,6 +76,45 @@ def test_matchup_api_uses_conventional_negative_home_favorite_line():
     assert prediction["spread_line"] == -3.0
     assert prediction["market_margin"] == 3.0
     assert prediction["spread_edge"] == pytest.approx(prediction["pred_margin"] - 3.0)
+
+
+def test_rsm_profile_is_available_as_margin_only_comparison():
+    assert "rsm_stage7c" in MODEL_PROFILES
+    games = [
+        _graded_game(2025, "KC", "PHI"),
+        _graded_game(2026, "KC", "PHI"),
+    ]
+
+    prediction = predict_matchup(
+        games,
+        away_team="KC",
+        home_team="PHI",
+        spread_line=-3.0,
+        model_profile="rsm_stage7c",
+    )
+
+    assert prediction["model"] == "rsm_stage7c"
+    assert prediction["pred_total"] is None
+    assert prediction["total_pick"] is None
+    assert prediction["spread_pick"] is None
+    assert prediction["model_notes"]
+
+
+def test_rsm_backtest_uses_committed_validation_rows_without_picks():
+    games = [
+        {
+            **_graded_game(2023, "ARI", "WAS"),
+            "game_id": "2023_01_ARI_WAS",
+        }
+    ]
+
+    summary, records = run_backtest(games, seasons_to_test=1, model_profile="rsm_stage7c")
+
+    assert records
+    assert records[0]["spread_pick"] is None
+    assert summary["games"] == 1
+    assert summary["spread_bets"] == 0
+    assert summary["margin_mae"] is not None
 
 
 def test_summary_reports_uncertainty_and_minus_110_roi():

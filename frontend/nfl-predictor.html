@@ -50,7 +50,8 @@
                 <h2>Current Model</h2>
                 <p>
                     The public demo defaults to Market Blend, which combines the closing line with the chronological
-                    team model for lower prediction error while keeping only conservative spread picks.
+                    team model for lower prediction error while keeping only conservative spread picks. RSM is included
+                    as an experimental roster-strength comparison model and does not generate picks.
                 </p>
                 <p id="nfl-data-status" class="nfl-data-status">Checking data freshness...</p>
                 <p id="nfl-live-status" class="nfl-data-status">Checking live scoreboard adapter...</p>
@@ -60,6 +61,7 @@
                     <button class="active" data-model="market_blend">Market Blend</button>
                     <button data-model="rothstein">Rothstein</button>
                     <button data-model="rothstein_plus">Rothstein+</button>
+                    <button data-model="rsm_stage7c">RSM</button>
                 </div>
             </div>
         </section>
@@ -318,6 +320,11 @@
                 <h3>Research Modes</h3>
                 <p>Market Blend shrinks projections toward the closing line. Rothstein+ adds a midseason and QB-continuity filter.</p>
             </div>
+            <div>
+                <i class="fa-solid fa-flask"></i>
+                <h3>RSM Comparison</h3>
+                <p>The roster-strength model is shown for margin comparison only. It is not a betting recommendation or live shadow-capture feed.</p>
+            </div>
         </section>
     </main>
 
@@ -333,7 +340,7 @@
         </div>
     </footer>
 
-    <script src="nfl-predictor.js?v=1.8"></script>
+    <script src="nfl-predictor.js?v=1.9"></script>
 </body>
 
 </html>

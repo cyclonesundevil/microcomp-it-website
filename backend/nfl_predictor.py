@@ -1,5 +1,6 @@
 import argparse
 import csv
+import json
 import os
 import math
 import statistics
@@ -8,12 +9,15 @@ import urllib.request
 from datetime import datetime, timezone
 from collections import Counter
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Dict, List, Optional, Tuple
 
 
 GAMES_URL = "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv"
 DEFAULT_CACHE_PATH = os.path.join(os.path.dirname(__file__), "data", "nfl_games.csv")
-MODEL_PROFILES = ("baseline", "enhanced", "market_blend", "rothstein", "rothstein_plus")
+RSM_PROFILE = "rsm_stage7c"
+MODEL_PROFILES = ("baseline", "enhanced", "market_blend", "rothstein", "rothstein_plus", RSM_PROFILE)
+REPORTS_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "reports"))
 INJURY_PROFILES = {
     "general": {
         "label": "General high-impact player",
@@ -100,6 +104,11 @@ def _mean(values: List[float], default: float = 0.0) -> float:
     if not values:
         return default
     return statistics.mean(values)
+
+
+def _optional_mean(values: List[float]) -> Optional[float]:
+    clean = [value for value in values if value is not None]
+    return statistics.mean(clean) if clean else None
 
 
 def _cache_age_seconds(cache_path: str = DEFAULT_CACHE_PATH) -> Optional[float]:
@@ -463,6 +472,119 @@ class MarketBlendNFLModel:
         self.base.update(game, base_margin, base_total)
 
 
+@lru_cache(maxsize=1)
+def _rsm_artifact() -> dict:
+    path = os.path.join(REPORTS_ROOT, "rsm-v2-candidate-stage7b.json")
+    with open(path, encoding="utf-8") as source:
+        return json.load(source)["model_a"]
+
+
+@lru_cache(maxsize=1)
+def _rsm_team_rows() -> Dict[str, dict]:
+    path = os.path.join(REPORTS_ROOT, "rsm-team-ratings.csv")
+    with open(path, newline="", encoding="utf-8") as source:
+        return {row["team"]: row for row in csv.DictReader(source)}
+
+
+@lru_cache(maxsize=1)
+def _rsm_validation_rows() -> Dict[str, dict]:
+    path = os.path.join(REPORTS_ROOT, "rsm-stage7c-anomaly-games.csv")
+    if not os.path.exists(path):
+        return {}
+    with open(path, newline="", encoding="utf-8") as source:
+        return {row["game_id"]: row for row in csv.DictReader(source)}
+
+
+def _row_float(row: dict, key: str, default: float = 0.0) -> float:
+    value = _to_float(row.get(key))
+    return default if value is None else value
+
+
+def _rsm_current_team_features(row: dict) -> dict:
+    wr = _row_float(row, "wr_rating", 50.0)
+    te = _row_float(row, "te_rating", 50.0)
+    cb = _row_float(row, "cb_rating", 50.0)
+    safety = _row_float(row, "safety_rating", 50.0)
+    dl = _row_float(row, "dl_rating", 50.0)
+    edge = _row_float(row, "edge_rating", 50.0)
+    lb = _row_float(row, "lb_rating", 50.0)
+    ol = _row_float(row, "ol_overall_rating", 50.0)
+    return {
+        "qb": _row_float(row, "qb_rating", 50.0),
+        "rb": _row_float(row, "rb_rating", 50.0),
+        "wr1": wr,
+        "wr2": wr,
+        "te1": te,
+        "receiving_average": statistics.mean([wr, wr, te]),
+        "receiver_replacements": 0,
+        "ol_average": ol,
+        "ol_weakest": ol,
+        "ol_strongest": ol,
+        "ol_continuity": 0.0,
+        "ol_replacements": 0,
+        "pass_rusher1": edge,
+        "pass_rush_average": edge,
+        "weakest_coverage": min(cb, safety),
+        "secondary_average": statistics.mean([cb, safety]),
+        "front_seven_average": statistics.mean([dl, edge, lb]),
+    }
+
+
+def _rsm_features(home: dict, away: dict, rest_diff: float) -> dict:
+    return {
+        "qb_quality_diff": home["qb"] - away["qb"],
+        "qb_vs_pass_rush_matchup": (home["qb"] - away["pass_rush_average"]) - (away["qb"] - home["pass_rush_average"]),
+        "qb_vs_coverage_matchup": (home["qb"] - away["secondary_average"]) - (away["qb"] - home["secondary_average"]),
+        "ol_pass_vs_pass_rush_matchup": (home["ol_average"] - away["pass_rush_average"]) - (away["ol_average"] - home["pass_rush_average"]),
+        "ol_run_vs_front_matchup": (home["ol_average"] - away["front_seven_average"]) - (away["ol_average"] - home["front_seven_average"]),
+        "receiving_vs_secondary_matchup": (home["receiving_average"] - away["secondary_average"]) - (away["receiving_average"] - home["secondary_average"]),
+        "rushing_vs_front_matchup": (home["rb"] - away["front_seven_average"]) - (away["rb"] - home["front_seven_average"]),
+        "ol_weakest_diff": home["ol_weakest"] - away["ol_weakest"],
+        "ol_strongest_diff": home["ol_strongest"] - away["ol_strongest"],
+        "ol_continuity_diff": home["ol_continuity"] - away["ol_continuity"],
+        "ol_replacement_starters_diff": home["ol_replacements"] - away["ol_replacements"],
+        "wr1_diff": home["wr1"] - away["wr1"],
+        "wr2_diff": home["wr2"] - away["wr2"],
+        "te1_diff": home["te1"] - away["te1"],
+        "receiver_replacements_diff": home["receiver_replacements"] - away["receiver_replacements"],
+        "pass_rusher1_diff": home["pass_rusher1"] - away["pass_rusher1"],
+        "weakest_coverage_diff": home["weakest_coverage"] - away["weakest_coverage"],
+        "rest_diff": rest_diff,
+    }
+
+
+@dataclass
+class RsmStage7CComparisonModel:
+    """Committed-report adapter for the experimental RSM margin artifact."""
+
+    mean_total: float = 44.0
+
+    def predict(self, game: dict) -> Tuple[float, Optional[float]]:
+        teams = _rsm_team_rows()
+        home_row = teams.get(game["home_team"])
+        away_row = teams.get(game["away_team"])
+        if not home_row or not away_row:
+            raise ValueError("RSM snapshot ratings are unavailable for one or both teams")
+        artifact = _rsm_artifact()
+        features = _rsm_features(
+            _rsm_current_team_features(home_row),
+            _rsm_current_team_features(away_row),
+            float(game.get("home_rest", 7.0)) - float(game.get("away_rest", 7.0)),
+        )
+        predicted_margin = artifact["intercept"]
+        for name, mean, scale, coefficient in zip(
+            artifact["feature_names"],
+            artifact["means"],
+            artifact["scales"],
+            artifact["coefficients"],
+        ):
+            predicted_margin += coefficient * (features[name] - mean) / scale
+        return predicted_margin, None
+
+    def update(self, game: dict, predicted_margin: float, predicted_total: Optional[float]) -> None:
+        return None
+
+
 def create_model(profile: str):
     if profile == "baseline":
         return OnlineNFLModel(
@@ -485,10 +607,14 @@ def create_model(profile: str):
         return MarketBlendNFLModel()
     if profile in {"rothstein", "rothstein_plus"}:
         return RothsteinNFLModel()
+    if profile == RSM_PROFILE:
+        return RsmStage7CComparisonModel()
     raise ValueError(f"Unknown model profile: {profile}")
 
 
 def default_spread_threshold(model_profile: str) -> float:
+    if model_profile == RSM_PROFILE:
+        return 999.0
     if model_profile in {"rothstein", "rothstein_plus"}:
         return 2.0
     if model_profile == "market_blend":
@@ -497,13 +623,19 @@ def default_spread_threshold(model_profile: str) -> float:
 
 
 def default_total_threshold(model_profile: str) -> float:
+    if model_profile == RSM_PROFILE:
+        return 999.0
     if model_profile in {"rothstein", "rothstein_plus"}:
         return 4.0
     return 1.5
 
 
 def model_supports_totals(model_profile: str) -> bool:
-    return model_profile not in {"market_blend", "rothstein_plus"}
+    return model_profile not in {"market_blend", "rothstein_plus", RSM_PROFILE}
+
+
+def model_supports_spread_picks(model_profile: str) -> bool:
+    return model_profile != RSM_PROFILE
 
 
 def is_rothstein_plus_eligible(model: RothsteinNFLModel, game: dict) -> bool:
@@ -576,6 +708,9 @@ def dashboard_snapshot(
     injury_impact: float = 0.0,
     injury_position: str = "general",
 ) -> dict:
+    if model_profile == RSM_PROFILE:
+        return rsm_dashboard_snapshot(games, playoff_mode, injury_team, injury_impact, injury_position)
+
     if model_profile in {"market_blend", "rothstein", "rothstein_plus"}:
         model_profile = "baseline"
 
@@ -711,7 +846,84 @@ def dashboard_snapshot(
     }
 
 
+def rsm_dashboard_snapshot(
+    games: List[dict],
+    playoff_mode: bool = False,
+    injury_team: Optional[str] = None,
+    injury_impact: float = 0.0,
+    injury_position: str = "general",
+) -> dict:
+    latest_season = max(game["season"] for game in games)
+    season_games = [game for game in games if game["season"] == latest_season]
+    completed_week = max(game["week"] for game in season_games)
+    rows = []
+    injury_team = (injury_team or "").strip().upper()
+    injury_impact = max(0.0, min(10.0, injury_impact))
+    injury_profile = INJURY_PROFILES.get((injury_position or "general").strip().lower(), INJURY_PROFILES["general"])
+    for team, row in _rsm_team_rows().items():
+        injury_adjustment = injury_impact if injury_team == team else 0.0
+        offense = _row_float(row, "offense_rating", 50.0) - injury_adjustment * injury_profile["offense_factor"]
+        defense = _row_float(row, "defense_rating", 50.0) - injury_adjustment * injury_profile["allowed_factor"]
+        strength = _row_float(row, "roster_rating", 50.0) - 50.0 - injury_adjustment * injury_profile["strength_factor"]
+        neutral_win_probability = 1 / (1 + math.exp(-strength / 4.5))
+        rows.append({
+            "team": team,
+            "games": None,
+            "strength_rating": strength,
+            "margin_rating": strength,
+            "offense_rating": offense - 50.0,
+            "defense_allowed_rating": 50.0 - defense,
+            "recent_margin": 0.0,
+            "expected_point_edge": offense - defense,
+            "stability": 1.0 if row.get("lineup_confidence") == "HIGH" else 0.65,
+            "injury_adjustment": injury_adjustment,
+            "injury_position": injury_position if injury_adjustment else None,
+            "injury_label": injury_profile["label"] if injury_adjustment else None,
+            "expected_points": max(12.0, min(38.0, 22.0 + (offense - 50.0) * 0.35)),
+            "expected_allowed": max(12.0, min(38.0, 22.0 - (defense - 50.0) * 0.35)),
+            "neutral_win_probability": neutral_win_probability,
+            "lineup_confidence": row.get("lineup_confidence"),
+        })
+    rows.sort(key=lambda row: row["strength_rating"], reverse=True)
+    for index, row in enumerate(rows, start=1):
+        row["rank"] = index
+        row["playoff_odds"] = row["neutral_win_probability"]
+    return {
+        "season": latest_season,
+        "completed_week": completed_week,
+        "model": RSM_PROFILE,
+        "playoff_mode": playoff_mode,
+        "injury": {
+            "team": injury_team,
+            "impact": injury_impact,
+            "position": injury_position,
+            "label": injury_profile["label"],
+            "offense_factor": injury_profile["offense_factor"],
+            "allowed_factor": injury_profile["allowed_factor"],
+            "strength_factor": injury_profile["strength_factor"],
+            "applied": bool(injury_team and injury_impact),
+        },
+        "teams": rows,
+        "top_teams": rows[:8],
+        "mode_notes": [
+            "Experimental RSM roster snapshot",
+            "Margin comparison only",
+            "No RSM betting picks or totals",
+            "Stage 8 prospective capture remains disabled",
+        ],
+        "league": {
+            "average_expected_points": statistics.mean(row["expected_points"] for row in rows) if rows else None,
+            "average_expected_allowed": statistics.mean(row["expected_allowed"] for row in rows) if rows else None,
+            "average_neutral_win_probability": statistics.mean(row["neutral_win_probability"] for row in rows) if rows else None,
+            "team_count": len(rows),
+        },
+    }
+
+
 def matchup_history(games: List[dict], away_team: str, home_team: str, model_profile: str = "baseline") -> List[dict]:
+    if model_profile == RSM_PROFILE:
+        return rsm_matchup_history(games, away_team, home_team)
+
     selected = {away_team, home_team}
     model = create_model(model_profile)
     spread_threshold = default_spread_threshold(model_profile)
@@ -728,7 +940,7 @@ def matchup_history(games: List[dict], away_team: str, home_team: str, model_pro
             selected_home_spread = game["spread_line"] if game["home_team"] == home_team else -game["spread_line"]
             spread_edge = pred_margin - game["spread_line"]
             total_edge = pred_total - game["total_line"]
-            spread_pick = side_from_edge(spread_edge, spread_threshold) if eligible else None
+            spread_pick = side_from_edge(spread_edge, spread_threshold) if eligible and model_supports_spread_picks(model_profile) else None
             total_pick = total_from_edge(total_edge, total_threshold) if model_supports_totals(model_profile) else None
 
             spread_result = None
@@ -780,6 +992,41 @@ def matchup_history(games: List[dict], away_team: str, home_team: str, model_pro
     return rows
 
 
+def rsm_matchup_history(games: List[dict], away_team: str, home_team: str) -> List[dict]:
+    selected = {away_team, home_team}
+    rsm_rows = _rsm_validation_rows()
+    rows = []
+    for game in games:
+        if {game["away_team"], game["home_team"]} != selected or game.get("game_id") not in rsm_rows:
+            continue
+        rsm = rsm_rows[game["game_id"]]
+        selected_home_spread = game["spread_line"] if game["home_team"] == home_team else -game["spread_line"]
+        rows.append({
+            "season": game["season"],
+            "week": game["week"],
+            "gameday": game.get("gameday"),
+            "away_team": game["away_team"],
+            "home_team": game["home_team"],
+            "away_score": game["away_score"],
+            "home_score": game["home_score"],
+            "home_spread": game["spread_line"],
+            "selected_home_spread": selected_home_spread,
+            "total_line": game["total_line"],
+            "actual_total": game["actual_total"],
+            "home_margin": game["actual_margin"],
+            "model": RSM_PROFILE,
+            "model_eligible": False,
+            "pred_margin": _row_float(rsm, "roster_fair_home_margin"),
+            "pred_total": None,
+            "spread_pick": None,
+            "spread_result": None,
+            "total_pick": None,
+            "total_result": None,
+        })
+    rows.sort(key=lambda row: (row["season"], row["week"], row.get("gameday") or ""))
+    return rows
+
+
 def predict_matchup(
     games: List[dict],
     away_team: str,
@@ -802,12 +1049,15 @@ def predict_matchup(
     if away_team == home_team:
         raise ValueError("away_team and home_team must be different")
 
-    if model_profile in {"rothstein", "rothstein_plus"}:
+    if model_profile == RSM_PROFILE:
+        model = create_model(model_profile)
+    elif model_profile in {"rothstein", "rothstein_plus"}:
         current_season = max(g["season"] for g in games)
         training_games = [g for g in games if g["season"] == current_season]
+        model = train_model(training_games, model_profile=model_profile)
     else:
         training_games = games
-    model = train_model(training_games, model_profile=model_profile)
+        model = train_model(training_games, model_profile=model_profile)
     # nflverse stores the market as an expected home margin (home favorite is
     # positive). The public API accepts conventional sportsbook notation, where
     # a home favorite is negative, so convert it at this boundary.
@@ -828,7 +1078,7 @@ def predict_matchup(
     }
     pred_margin, pred_total = model.predict(game)
     spread_edge = pred_margin - market_margin
-    total_edge = pred_total - total_line
+    total_edge = pred_total - total_line if pred_total is not None else None
     spread_threshold = default_spread_threshold(model_profile)
     total_threshold = default_total_threshold(model_profile)
     eligible = True
@@ -849,9 +1099,14 @@ def predict_matchup(
         "spread_threshold": spread_threshold,
         "total_threshold": total_threshold,
         "eligible": eligible,
-        "spread_pick": side_from_edge(spread_edge, threshold=spread_threshold) if eligible else None,
+        "spread_pick": side_from_edge(spread_edge, threshold=spread_threshold) if eligible and model_supports_spread_picks(model_profile) else None,
         "total_pick": total_from_edge(total_edge, threshold=total_threshold) if model_supports_totals(model_profile) else None,
         "latest_training_season": max(g["season"] for g in games),
+        "model_notes": [
+            "Experimental RSM roster-strength comparison only.",
+            "No RSM spread or total pick is generated.",
+            "Stage 8 prospective shadow capture remains disabled.",
+        ] if model_profile == RSM_PROFILE else [],
     }
 
 
@@ -905,8 +1160,8 @@ def summarize(records: List[dict]) -> dict:
     spread_net_units = spread_correct * (100 / 110) - spread_losses
     total_net_units = total_correct * (100 / 110) - total_losses
 
-    margin_errors = [abs(r["pred_margin"] - r["actual_margin"]) for r in records]
-    total_errors = [abs(r["pred_total"] - r["actual_total"]) for r in records]
+    margin_errors = [abs(r["pred_margin"] - r["actual_margin"]) for r in records if r.get("pred_margin") is not None and r.get("actual_margin") is not None]
+    total_errors = [abs(r["pred_total"] - r["actual_total"]) for r in records if r.get("pred_total") is not None and r.get("actual_total") is not None]
 
     return {
         "games": len(records),
@@ -943,6 +1198,10 @@ def run_backtest(
     total_threshold: Optional[float] = None,
     model_profile: str = "baseline",
 ) -> Tuple[dict, List[dict]]:
+    if model_profile == RSM_PROFILE:
+        records = rsm_backtest_records(games, seasons_to_test)
+        return summarize(records), records
+
     if spread_threshold is None:
         spread_threshold = default_spread_threshold(model_profile)
     if total_threshold is None:
@@ -964,7 +1223,7 @@ def run_backtest(
         if game["season"] in test_seasons:
             spread_edge = pred_margin - game["spread_line"]
             total_edge = pred_total - game["total_line"]
-            spread_pick = side_from_edge(spread_edge, spread_threshold) if eligible else None
+            spread_pick = side_from_edge(spread_edge, spread_threshold) if eligible and model_supports_spread_picks(model_profile) else None
             total_pick = total_from_edge(total_edge, total_threshold) if model_supports_totals(model_profile) else None
 
             spread_result = None
@@ -1011,6 +1270,38 @@ def run_backtest(
         model.update(game, pred_margin, pred_total)
 
     return summarize(records), records
+
+
+def rsm_backtest_records(games: List[dict], seasons_to_test: int) -> List[dict]:
+    validation = _rsm_validation_rows()
+    completed_seasons = sorted({g["season"] for g in games})
+    test_seasons = set(completed_seasons[-seasons_to_test:])
+    records = []
+    for game in games:
+        rsm = validation.get(game.get("game_id"))
+        if not rsm or game["season"] not in test_seasons:
+            continue
+        records.append({
+            "season": game["season"],
+            "week": game["week"],
+            "game_id": game["game_id"],
+            "model": RSM_PROFILE,
+            "away_team": game["away_team"],
+            "home_team": game["home_team"],
+            "pred_margin": _row_float(rsm, "roster_fair_home_margin"),
+            "actual_margin": game["actual_margin"],
+            "spread_line": game["spread_line"],
+            "spread_edge": _row_float(rsm, "market_disagreement"),
+            "spread_pick": None,
+            "spread_result": None,
+            "pred_total": None,
+            "actual_total": None,
+            "total_line": game["total_line"],
+            "total_edge": None,
+            "total_pick": None,
+            "total_result": None,
+        })
+    return records
 
 
 def format_pct(value: Optional[float]) -> str:

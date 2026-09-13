@@ -167,10 +167,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const favorite = homeBy >= 0 ? prediction.home_team : prediction.away_team;
         matchupLabel.textContent = `${prediction.away_team} at ${prediction.home_team}`;
         matchupMargin.textContent = `${favorite} by ${Math.abs(homeBy).toFixed(1)}`;
-        matchupTotal.textContent = `Projected total: ${total.toFixed(1)} points`;
+        matchupTotal.textContent = total === null || total === undefined
+            ? 'Projected total: not available for this model'
+            : `Projected total: ${total.toFixed(1)} points`;
         spreadPick.textContent = pickText('spread', prediction.spread_pick, prediction);
         totalPick.textContent = pickText('total', prediction.total_pick, prediction);
-        matchupNote.textContent = `Trained through ${prediction.latest_training_season}. Spread edge ${prediction.spread_edge.toFixed(1)}, total edge ${prediction.total_edge.toFixed(1)}.`;
+        const totalEdge = prediction.total_edge === null || prediction.total_edge === undefined
+            ? 'n/a'
+            : prediction.total_edge.toFixed(1);
+        const notes = Array.isArray(prediction.model_notes) && prediction.model_notes.length
+            ? ` ${prediction.model_notes.join(' ')}`
+            : '';
+        matchupNote.textContent = `Trained through ${prediction.latest_training_season}. Spread edge ${prediction.spread_edge.toFixed(1)}, total edge ${totalEdge}.${notes}`;
     }
 
     function renderDashboard(data) {
