@@ -255,18 +255,20 @@ def smtp_settings():
     return sender, password
 
 
-def send_smtp_message(recipient, subject, body, reply_to=""):
+def send_smtp_message(recipient, subject, body, reply_to="", html_body=""):
     sender, password = smtp_settings()
     if not sender or not password or not recipient:
         raise RuntimeError("SMTP email delivery is not configured.")
 
-    msg = MIMEMultipart()
+    msg = MIMEMultipart("alternative")
     msg["From"] = sender
     msg["To"] = recipient
     if reply_to:
         msg["Reply-To"] = reply_to
     msg["Subject"] = subject
     msg.attach(MIMEText(body, "plain"))
+    if html_body:
+        msg.attach(MIMEText(html_body, "html"))
 
     with smtplib.SMTP("smtp.gmail.com", 587) as server:
         server.starttls()
@@ -277,6 +279,50 @@ def send_smtp_message(recipient, subject, body, reply_to=""):
 def contact_public_base_url():
     configured = os.getenv("CONTACT_PUBLIC_BASE_URL", "").strip().rstrip("/")
     return configured or request.url_root.rstrip("/")
+
+
+def branded_contact_email_html(title, paragraphs, action_url="", action_label=""):
+    brand_url = f"{contact_public_base_url()}/microcomp-email-mark.png"
+    paragraph_html = "".join(
+        f'<p style="margin:0 0 16px;color:#536174;font-size:16px;line-height:1.6;">{html_lib.escape(paragraph)}</p>'
+        for paragraph in paragraphs
+    )
+    action_html = ""
+    if action_url and action_label:
+        safe_url = html_lib.escape(action_url, quote=True)
+        action_html = f"""
+            <p style="margin:24px 0;">
+                <a href="{safe_url}" style="display:inline-block;padding:12px 18px;border-radius:8px;background:#047b91;color:#ffffff;text-decoration:none;font-weight:700;">{html_lib.escape(action_label)}</a>
+            </p>
+            <p style="margin:0 0 16px;color:#536174;font-size:13px;line-height:1.5;word-break:break-all;">If the button does not work, copy this link into your browser:<br>{safe_url}</p>
+        """
+    return f"""<!doctype html>
+<html lang="en">
+<body style="margin:0;padding:0;background:#f5f8fb;font-family:Arial,sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f8fb;">
+        <tr><td align="center" style="padding:24px 12px;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border:1px solid #dce8ee;border-radius:14px;">
+                <tr><td style="padding:28px;">
+                    <table role="presentation" cellspacing="0" cellpadding="0" style="margin-bottom:22px;">
+                        <tr>
+                            <td style="padding-right:12px;vertical-align:middle;">
+                                <a href="{html_lib.escape(contact_public_base_url(), quote=True)}" style="text-decoration:none;">
+                                    <img src="{html_lib.escape(brand_url, quote=True)}" width="48" height="48" alt="MicroComp IT Solutions" style="display:block;border:0;width:48px;height:48px;">
+                                </a>
+                            </td>
+                            <td style="vertical-align:middle;color:#142235;font-size:18px;font-weight:700;">MicroComp IT Solutions</td>
+                        </tr>
+                    </table>
+                    <h1 style="margin:0 0 16px;color:#142235;font-size:24px;line-height:1.3;">{html_lib.escape(title)}</h1>
+                    {paragraph_html}
+                    {action_html}
+                    <p style="margin:24px 0 0;padding-top:18px;border-top:1px solid #e5edf1;color:#718096;font-size:12px;line-height:1.5;">MicroComp IT Solutions · Practical technology support for growing businesses</p>
+                </td></tr>
+            </table>
+        </td></tr>
+    </table>
+</body>
+</html>"""
 
 
 def store_pending_contact(submission_id, source, name, email, message):
@@ -345,6 +391,16 @@ MicroComp IT Solutions
         email,
         "Verify your MicroComp IT contact request",
         body,
+        html_body=branded_contact_email_html(
+            "Verify your contact request",
+            [
+                f"Hello {name},",
+                "We received a contact request using this email address on the MicroComp IT website.",
+                "Confirm that you initiated the request. The link expires in 24 hours. If this was not you, ignore this email and no message will be delivered to our team.",
+            ],
+            action_url=verification_url,
+            action_label="Verify my contact request",
+        ),
     )
 
 
@@ -363,6 +419,15 @@ MicroComp IT Solutions
         email,
         "We received your verified MicroComp IT request",
         body,
+        html_body=branded_contact_email_html(
+            "Your request is verified",
+            [
+                f"Hello {name},",
+                "Your email address has been verified and your message was delivered to the MicroComp IT team.",
+                "This confirms that we received your contact request. A team member will review it and follow up as soon as possible.",
+                "If you did not make this request, reply to this email and let us know.",
+            ],
+        ),
     )
 
 

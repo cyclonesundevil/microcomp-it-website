@@ -56,6 +56,11 @@ class ContactPrivacyTests(unittest.IsolatedAsyncioTestCase):
             conn.close()
         self.assertEqual(stored_path, "/index.html")
 
+    async def test_email_brand_mark_is_served_as_png(self):
+        response = await self.client.get("/microcomp-email-mark.png")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "image/png")
+
     async def test_native_submission_is_audited_without_message_contents(self):
         response = await self.client.post(
             "/api/contact",
@@ -118,7 +123,11 @@ class ContactPrivacyTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(smtp_server.send_message.call_count, 1)
                 verification_email = smtp_server.send_message.call_args.args[0]
                 self.assertEqual(verification_email["To"], "customer@acme-corp.com")
+                self.assertEqual(len(verification_email.get_payload()), 2)
                 verification_body = verification_email.get_payload()[0].get_payload(decode=True).decode()
+                verification_html = verification_email.get_payload()[1].get_payload(decode=True).decode()
+                self.assertIn("microcomp-email-mark.png", verification_html)
+                self.assertIn("Verify my contact request", verification_html)
                 token_match = re.search(r"/api/contact/verify\?token=([^\s]+)", verification_body)
                 self.assertIsNotNone(token_match)
                 token = token_match.group(1)
@@ -140,6 +149,9 @@ class ContactPrivacyTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(staff_email["To"], "owner@microcompit.com")
                 self.assertEqual(staff_email["Reply-To"], "customer@acme-corp.com")
                 self.assertEqual(acknowledgement["To"], "customer@acme-corp.com")
+                acknowledgement_html = acknowledgement.get_payload()[1].get_payload(decode=True).decode()
+                self.assertIn("microcomp-email-mark.png", acknowledgement_html)
+                self.assertIn("Your request is verified", acknowledgement_html)
         finally:
             for name, value in previous_values.items():
                 if value is None:
