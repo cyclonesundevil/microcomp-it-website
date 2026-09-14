@@ -1,7 +1,9 @@
 """Stage 8B public-source adapters for research-only prospective dry runs.
 
 No function in this module writes to the Stage 8 ledger. Live retrieval is limited
-to explicitly enabled, unauthenticated public endpoints and archives provenance.
+to explicitly enabled sources and archives provenance. Credentialed market sources
+are isolated from the unauthenticated public-source client and remain disabled until
+an operator explicitly supplies a key.
 """
 
 import hashlib
@@ -29,6 +31,7 @@ USER_AGENT = "MicroComp-RSM-Research/0.2 (+public-data-audit; no wagering)"
 SLEEPER_PLAYERS_URL = "https://api.sleeper.app/v1/players/nfl"
 ESPN_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
 NFLVERSE_RELEASES_URL = "https://api.github.com/repos/nflverse/nflverse-data/releases"
+SPORTSGAMEODDS_EVENTS_URL = "https://api.sportsgameodds.com/v2/events"
 DEFAULT_PUBLIC_ROOT = DEFAULT_STORE.parent / "public-sources"
 FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures" / "stage8b"
 CROSSWALK_MINIMUM = 0.95
@@ -94,6 +97,28 @@ def assert_public_request(headers: dict[str, str]) -> None:
         raise PublicSourceError(f"Credential/cookie headers are prohibited: {sorted(present)}")
 
 
+def assert_market_request(headers: dict[str, str]) -> None:
+    """Allow only the provider API-key header for the opt-in market adapter.
+
+    This deliberately does not reuse ``assert_public_request``: market access is
+    authenticated, while all existing Stage 8B public-source paths remain
+    unauthenticated. The key is passed only in an HTTP header and is never added
+    to a URL, response archive, cache metadata, report, or exception message.
+    """
+    lowered = {key.lower() for key in headers}
+    forbidden = {"authorization", "cookie", "proxy-authorization"} & lowered
+    if forbidden or "x-api-key" not in lowered:
+        raise PublicSourceError("Market request must use only an x-api-key credential header")
+
+
+def sports_game_odds_request_url() -> str:
+    """Return the narrowly scoped, key-free NFL full-game spread query URL."""
+    return (
+        f"{SPORTSGAMEODDS_EVENTS_URL}?leagueID=NFL&oddsAvailable=true"
+        "&includeAltLines=false&oddIDs=points-home-game-sp-home&includeOpposingOdds=true"
+    )
+
+
 class PublicHttpClient:
     def __init__(self, root: Path = DEFAULT_PUBLIC_ROOT, limiter: RateLimiter | None = None):
         self.root = root
@@ -157,11 +182,82 @@ class PublicHttpClient:
         raise PublicSourceError(f"{source} failed after {attempts} attempts: {error}") from error
 
 
+class CredentialedMarketHttpClient(PublicHttpClient):
+    """Opt-in, read-only transport for SportsGameOdds NFL spread snapshots.
+
+    It intentionally returns the raw provider response only. Stage 8 does not
+    treat a market snapshot as capture-ready until a real-key response has been
+    schema-audited against schedule identity and all independent lineup/feature
+    gates pass. This prevents an unverified third-party schema from entering the
+    frozen observation boundary.
+    """
+
+    def get_sports_game_odds_nfl_spreads(self, api_key: str, timeout: float = 15) -> PublicResponse:
+        if not isinstance(api_key, str) or not api_key.strip():
+            raise PublicSourceError("SportsGameOdds API key is required for the opt-in market dry run")
+        headers = {
+            "User-Agent": USER_AGENT,
+            "Accept": "application/json",
+            "x-api-key": api_key.strip(),
+        }
+        assert_market_request(headers)
+        url = sports_game_odds_request_url()
+        self.limiter.wait("sportsgameodds", 6.0)
+        try:
+            request = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                raw = response.read()
+                retrieved_at = _utc()
+                published = response.headers.get("Last-Modified")
+            payload = json.loads(raw)
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
+            # Do not interpolate request headers (which contain the key).
+            raise PublicSourceError("sportsgameodds market dry run failed") from error
+        digest = response_hash(raw)
+        stamp = retrieved_at.replace(":", "").replace("-", "")
+        archive = self.root / "raw" / "sportsgameodds" / f"{stamp}-{digest[:12]}.json"
+        archive.parent.mkdir(parents=True, exist_ok=True)
+        archive.write_bytes(raw)
+        metadata = {
+            "source": "sportsgameodds", "url": url, "retrieved_at": retrieved_at,
+            "source_updated_at": None, "source_published_at": published,
+            "timestamp_quality": "RETRIEVAL_TIMESTAMP_ONLY" if not published else "PUBLISHER_AND_RETRIEVAL",
+            "sha256": digest,
+        }
+        return PublicResponse(payload=payload, archive_path=str(archive), **metadata)
+
+
 def fetch_sleeper_players(client: PublicHttpClient, timeout: float = 15) -> PublicResponse:
     return client.get_json(
         "sleeper", SLEEPER_PLAYERS_URL, timeout=timeout, minimum_interval=1,
         cache_ttl=timedelta(days=1), cache_name="sleeper-nfl-players",
     )
+
+
+def sports_game_odds_market_dry_run(root: Path = DEFAULT_PUBLIC_ROOT, timeout: float = 15) -> dict:
+    """Fetch and archive one raw NFL spread response, without parsing or capture.
+
+    This command is intentionally separate from the normal public dry run. It is
+    opt-in through ``RSM_STAGE8B_SPORTSGAMEODDS_API_KEY`` and cannot append a
+    ledger observation. A successful transport response is evidence only that
+    the account/key works; it does not make the provider capture-ready.
+    """
+    api_key = os.environ.get("RSM_STAGE8B_SPORTSGAMEODDS_API_KEY", "")
+    if not api_key.strip():
+        return {
+            "source": "sportsgameodds", "enabled": False, "accessed": False,
+            "reason": "RSM_STAGE8B_SPORTSGAMEODDS_API_KEY is not configured",
+            "ledger_writes": 0, "capture_ready": False,
+        }
+    response = CredentialedMarketHttpClient(root).get_sports_game_odds_nfl_spreads(api_key, timeout=timeout)
+    return {
+        "source": "sportsgameodds", "enabled": True, "accessed": True,
+        "retrieved_at": response.retrieved_at, "sha256": response.sha256,
+        "archive_path": response.archive_path, "timestamp_quality": response.timestamp_quality,
+        "response_type": type(response.payload).__name__, "ledger_writes": 0,
+        "capture_ready": False,
+        "reason": "Raw response archived only; provider schema and schedule matching remain unaudited",
+    }
 
 
 def parse_sleeper_players(payload: object, retrieved_at: str) -> list[dict]:
@@ -413,6 +509,7 @@ def source_inventory() -> list[dict]:
     return [
         {"source": "nflverse", "accessible": True, "access_policy": "public GitHub releases/downloads", "fields": ["schedule", "GSIS IDs", "rosters", "depth snapshots", "prior stats", "prior snaps"], "timestamp_quality": "release metadata plus retrieval; depth snapshot where supplied", "sportsbook_identification": "not used for prospective lines", "player_id_coverage": "GSIS primary", "update_frequency": "daily rosters; pipeline-dependent releases", "parser_confidence": "HIGH", "role": "REQUIRED"},
         {"source": "Sleeper", "accessible": True, "access_policy": "documented unauthenticated read-only API; noncommercial; players at most daily", "fields": ["active/injury status", "depth order", "fantasy positions", "public IDs"], "timestamp_quality": "RETRIEVAL_TIMESTAMP_ONLY", "sportsbook_identification": "none", "player_id_coverage": "crosswalk required", "update_frequency": "cached at least 24 hours", "parser_confidence": "HIGH", "role": "SUPPLEMENTAL"},
+        {"source": "SportsGameOdds", "accessible": "disabled until RSM_STAGE8B_SPORTSGAMEODDS_API_KEY is supplied", "access_policy": "operator-provided free-tier/API key; explicit dry run only", "fields": ["raw NFL full-game home-spread response only"], "timestamp_quality": "provider response headers plus retrieval when supplied", "sportsbook_identification": "provider schema audit required", "player_id_coverage": "not applicable", "update_frequency": "manual explicit dry run only", "parser_confidence": "TRANSPORT_ONLY", "role": "OPTIONAL_MARKET"},
         {"source": "ESPN", "accessible": "public endpoint observed; disabled by default", "access_policy": "unofficial/contract uncertain; stop on blocking", "fields": ["schedule", "pregame displayed spread when identifiable"], "timestamp_quality": "provider time if present, else retrieval only", "sportsbook_identification": "required from provider.name", "player_id_coverage": "crosswalk required", "update_frequency": "fixture validation only until access is approved", "parser_confidence": "MEDIUM", "role": "OPTIONAL"},
         {"source": "Yahoo", "accessible": False, "access_policy": "BLOCKED_POLICY: automated collection requires express permission", "fields": ["redacted fixture parser only"], "timestamp_quality": "not collected live", "sportsbook_identification": "not collected live", "player_id_coverage": "fixture crosswalk only", "update_frequency": "none", "parser_confidence": "FIXTURE_ONLY", "role": "SUPPLEMENTAL"},
         {"source": "NFL.com", "accessible": False, "access_policy": "CORROBORATION_ONLY until an expressly permitted public feed is identified", "fields": ["official injury-report fixture evidence"], "timestamp_quality": "report date plus retrieval when permitted", "sportsbook_identification": "none", "player_id_coverage": "GSIS crosswalk required", "update_frequency": "none automated", "parser_confidence": "NOT_ENABLED", "role": "SUPPLEMENTAL"},

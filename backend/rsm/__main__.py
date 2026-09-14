@@ -48,6 +48,7 @@ from .stage8b_public_sources import (
     DEFAULT_PUBLIC_ROOT,
     audit_public_sources,
     public_health,
+    sports_game_odds_market_dry_run,
     write_public_readiness,
 )
 
@@ -151,6 +152,9 @@ def main() -> None:
     stage8b_audit.add_argument("--public-root", type=Path, default=DEFAULT_PUBLIC_ROOT)
     stage8b_live = subparsers.add_parser("stage8b-live-dry-run", help="Fetch permitted public sources without ledger writes")
     stage8b_live.add_argument("--public-root", type=Path, default=DEFAULT_PUBLIC_ROOT)
+    stage8b_market = subparsers.add_parser("stage8b-market-dry-run", help="Explicitly fetch one credentialed NFL market response without ledger writes")
+    stage8b_market.add_argument("--public-root", type=Path, default=DEFAULT_PUBLIC_ROOT)
+    stage8b_market.add_argument("--timeout", type=float, default=15)
     stage8b_rehearsal = subparsers.add_parser("stage8b-rehearsal", help="Write a redacted fixture to an isolated rehearsal ledger")
     stage8b_rehearsal.add_argument("--fixture", type=Path, required=True)
     stage8b_rehearsal.add_argument("--store", type=Path, required=True)
@@ -315,6 +319,11 @@ def main() -> None:
         if not result["baseline"]["passed"]:
             raise SystemExit(2)
         if any(check["status"] == "FAILED" for check in result["source_checks"]):
+            raise SystemExit(3)
+    elif args.command == "stage8b-market-dry-run":
+        result = sports_game_odds_market_dry_run(args.public_root, timeout=args.timeout)
+        print(json.dumps(result, indent=2))
+        if result["enabled"] and not result["accessed"]:
             raise SystemExit(3)
     elif args.command == "stage8b-rehearsal":
         reports_root = Path(__file__).resolve().parents[2] / "reports"

@@ -19,6 +19,7 @@
 - Stage 8 built and initialized a prospective, append-only shadow observation system with cryptographically pinned Stage 7B/7C artifacts, strict pre-kickoff validation, deterministic explanations, and multi-observation line-movement reporting.
 - Stage 8A added fail-closed provider contracts, an offline fixture adapter, dry-run/write capture cycles, deterministic idempotency, bounded retry/locking/state/logging support, a read-only health command, and a predeclared prospective evaluation gate. No real provider is configured and no live observations were written.
 - Stage 8B added public-source adapter infrastructure for nflverse and Sleeper dry-runs, redacted fixture parsers for ESPN/Yahoo/NFL.com evidence, strict public-request/caching/hash archival controls, deterministic derived-consensus labeling, explicit-ID crosswalk auditing, and read-only Stage 8B health/readiness commands. No live prospective observation writes are enabled.
+- Stage 8B now also includes a disabled, explicit SportsGameOdds free-tier market transport. It accepts an operator-supplied environment key only for a manual raw-response dry run, archives no key material, and cannot write the ledger or enable capture.
 - Ninety-three focused RSM and existing-predictor tests pass.
 
 ## Current
@@ -65,6 +66,7 @@
 - The initialized Stage 8 ledger is intentionally empty. It contains frozen metadata only and has not backfilled 2023-2025 games.
 - Stage 8A has only a fixture/mock provider. Repository schedules, ESPN display data, cached rosters/depth charts, and historical lines do not jointly satisfy the prospective timestamp/provenance contract.
 - Stage 8B live dry-runs contact only nflverse GitHub release metadata and Sleeper's public players endpoint. ESPN, Yahoo, and NFL.com integrations remain disabled or fixture-only.
+- SportsGameOdds is transport-only and disabled pending an operator-created free-tier key and a real-response schema audit. It is not a verified Stage 8 market provider and does not remove the other readiness blockers.
 - The cached Stage 8B source audit verified nflverse and Sleeper retrievals from `2026-09-12T21:59:32.470536Z` and `2026-09-12T21:59:33.280215Z`, respectively. Both are archived by SHA-256 in the ignored shadow-data directory; these retrieval timestamps are not treated as publisher timestamps.
 - The current explicit Sleeper-to-GSIS crosswalk matches 546 of 2,676 active/team/position records, with zero ambiguous matches and 2,130 unmatched records. Overall coverage is 20.40%, below the 95% readiness threshold.
 - ESPN's public scoreboard parser is fixture-tested but not enabled for live retrieval because the JSON interface is unofficial and access terms are uncertain. Yahoo live automation is policy-blocked. NFL.com injury evidence is fixture-only until an expressly permitted public feed is identified.

@@ -9,6 +9,8 @@ Stage 8B adds a research-only public-source adapter layer around the Stage 8/8A 
 
 Only nflverse and Sleeper are contacted by `stage8b-live-dry-run`. Both responses are archived under the ignored shadow-data directory with retrieval timestamp, raw SHA-256, and cache metadata. Retrieval time is never relabeled as publisher time.
 
+SportsGameOdds has an opt-in, transport-only market dry run. It is disabled unless the operator supplies a free-tier key through `RSM_STAGE8B_SPORTSGAMEODDS_API_KEY`; the key is sent only in an `x-api-key` header and is never written to URLs, archives, metadata, logs, reports, or source control. `stage8b-market-dry-run` archives one raw NFL full-game spread response, writes no ledger rows, and does not parse or admit the response into capture. A real-key response must first be schema-audited against schedule identity and provider timestamps. It does not resolve the separate lineup, 18-feature, or ID-crosswalk gates.
+
 ## Disabled or fixture-only sources
 
 - ESPN: a parser exists for redacted scoreboard fixtures and rejects live, post-kickoff, alternate, unidentified-book, and conflicting spread rows. The live endpoint is disabled by default because its JSON interface is unofficial and contract status is uncertain.
@@ -33,6 +35,7 @@ Run from the repository root in PowerShell:
 $env:PYTHONPATH = "backend"
 python -m rsm stage8b-source-audit
 python -m rsm stage8b-live-dry-run
+python -m rsm stage8b-market-dry-run
 python -m rsm stage8b-health
 python -m rsm stage8b-readiness
 python -m rsm stage8b-rehearsal --fixture path\to\stage8a-fixture.json --store backend\data\rsm\shadow\stage8b-rehearsal.sqlite3 --game GAME_ID
@@ -40,6 +43,8 @@ python -m rsm stage8b-rehearsal --fixture path\to\stage8a-fixture.json --store b
 
 `stage8b-source-audit`, `stage8b-health`, and `stage8b-readiness` are read-only with respect to the production shadow ledger. `stage8b-live-dry-run` fetches only permitted public endpoints and writes no ledger records. `stage8b-rehearsal` requires a non-default ledger path and is fixture-only.
 
+`stage8b-market-dry-run` is a manually invoked, read-only provider-access check. It is not scheduled, does not fall back to alternate sources, does not expose a production API/UI route, and remains non-operational even after a successful response.
+
 ## Current readiness
 
-Prospective capture is not operational. Frozen pins and ledger integrity pass, but the system still lacks a complete public path for all 18 frozen features, defensibly timestamped identifiable market spreads, full pre-kickoff lineup/inactive confidence, and an explicit player crosswalk meeting the configured threshold. The deployed code is infrastructure only; no scheduler, production API route, UI exposure, or automated wagering is enabled.
+Prospective capture is not operational. Frozen pins and ledger integrity pass, but the system still lacks a complete public path for all 18 frozen features, full pre-kickoff lineup/inactive confidence, and an explicit player crosswalk meeting the configured threshold. SportsGameOdds is a disabled raw-market transport pending an operator key and real-response schema audit; it is not an approved capture source. The deployed code is infrastructure only; no scheduler, production API route, UI exposure, or automated wagering is enabled.

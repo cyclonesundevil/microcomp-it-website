@@ -10,10 +10,12 @@ from rsm.stage8b_public_sources import (
     ESPN_SCOREBOARD_URL,
     FIXTURE_ROOT,
     PublicHttpClient,
+    CredentialedMarketHttpClient,
     PublicSourceError,
     ParserDriftError,
     RateLimiter,
     assert_public_request,
+    assert_market_request,
     audit_public_sources,
     build_id_crosswalk,
     derive_consensus,
@@ -26,6 +28,8 @@ from rsm.stage8b_public_sources import (
     parse_yahoo_public,
     report_conflicts,
     response_hash,
+    sports_game_odds_market_dry_run,
+    sports_game_odds_request_url,
 )
 
 
@@ -158,6 +162,19 @@ def test_stage8b_raw_response_hash_is_stable_and_credentials_are_prohibited():
     assert_public_request({"User-Agent": "research"})
     with pytest.raises(PublicSourceError, match="prohibited"):
         assert_public_request({"Cookie": "private"})
+
+
+def test_stage8b_opt_in_market_transport_is_key_free_by_default(monkeypatch, tmp_path):
+    monkeypatch.delenv("RSM_STAGE8B_SPORTSGAMEODDS_API_KEY", raising=False)
+    result = sports_game_odds_market_dry_run(tmp_path)
+    assert result["enabled"] is False and result["ledger_writes"] == 0
+    assert "apiKey" not in sports_game_odds_request_url()
+    assert "leagueID=NFL" in sports_game_odds_request_url()
+    assert_market_request({"User-Agent": "research", "x-api-key": "not-logged"})
+    with pytest.raises(PublicSourceError, match="x-api-key"):
+        assert_market_request({"User-Agent": "research"})
+    with pytest.raises(PublicSourceError, match="required"):
+        CredentialedMarketHttpClient(tmp_path).get_sports_game_odds_nfl_spreads("")
 
 
 def test_stage8b_rate_limit_and_bounded_http_retries(monkeypatch, tmp_path):
