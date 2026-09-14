@@ -21,11 +21,12 @@
 - Stage 8B added public-source adapter infrastructure for nflverse and Sleeper dry-runs, redacted fixture parsers for ESPN/Yahoo/NFL.com evidence, strict public-request/caching/hash archival controls, deterministic derived-consensus labeling, explicit-ID crosswalk auditing, and read-only Stage 8B health/readiness commands. No live prospective observation writes are enabled.
 - Stage 8B now also includes a disabled, explicit SportsGameOdds free-tier market transport. It accepts an operator-supplied environment key only for a manual raw-response dry run, archives no key material, and cannot write the ledger or enable capture.
 - Ninety-three focused RSM and existing-predictor tests pass.
+- By explicit authorization, the NFL Predictor now presents the frozen RSM margin as **RSM — Experimental** winner and directional ATS projections when a user supplies a market spread. This presentation path is separate from Stage 7C/8 research eligibility. It does not change pins, coefficients, feature definitions, anomaly thresholds, historical artifacts, or the shadow ledger.
 
 ## Current
 
 - Stage 8B public-source infrastructure is complete for a bounded release. Frozen pins pass and the empty ledger is valid, but prospective capture is not operational because the public-source gates still fail: no enabled identifiable pre-kickoff market spread source, no complete all-18-feature prospective provider, no complete pre-kickoff lineup/inactive provider, and only 20.40% explicit Sleeper-to-GSIS coverage against the 95% threshold.
-- The shipped code is research-only infrastructure. It does not expose experimental RSM predictions through production APIs or UI, does not activate a scheduler or network poller, does not write the production shadow ledger, does not ingest outcomes, and does not generate betting recommendations.
+- Stage 8 infrastructure remains research-only: it has no scheduler or network poller, writes no production shadow-ledger observations, and ingests no outcomes. Separately, the NFL Predictor presents frozen RSM winner/ATS projections as experimental display output when a market spread is manually supplied. This display does not make a game a Stage 7C anomaly or enable Stage 8 capture.
 
 ## Next
 
@@ -71,9 +72,14 @@
 - The current explicit Sleeper-to-GSIS crosswalk matches 546 of 2,676 active/team/position records, with zero ambiguous matches and 2,130 unmatched records. Overall coverage is 20.40%, below the 95% readiness threshold.
 - ESPN's public scoreboard parser is fixture-tested but not enabled for live retrieval because the JSON interface is unofficial and access terms are uncertain. Yahoo live automation is policy-blocked. NFL.com injury evidence is fixture-only until an expressly permitted public feed is identified.
 - `DERIVED_CONSENSUS` is supported as a separately labeled Stage 8 market kind for future fixture/rehearsal data, distinct from provider-published `CONSENSUS`.
+- The RSM display adapter has no compatible frozen total output. It explicitly reports O/U unavailable rather than borrowing a total from another model. Its supplied spread has no verified source, observation time, or prospective lineup confidence unless a future permitted source provides them.
+- RSM display projections are not calibrated probabilities and have no established betting advantage. A zero margin or zero margin-versus-market difference produces no directional winner or ATS projection.
 
 ## Test results
 
+- `python -m pytest backend/test_nfl_predictor.py backend/test_rsm.py -q`: 80 passed after the authorized RSM presentation change.
+- `python -m compileall -q backend/nfl_predictor.py backend/app.py`: passed.
+- `node --check frontend/nfl-predictor.js`: passed.
 - `python -m pytest backend/test_rsm.py backend/test_nfl_predictor.py -q`: 75 passed.
 - `python -m pytest backend/test_rsm_stage8b.py -q`: 18 passed.
 - `python -m pytest backend/test_rsm_stage8b.py backend/test_rsm.py backend/test_nfl_predictor.py -q`: 93 passed.

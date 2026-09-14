@@ -1614,8 +1614,10 @@ async def nfl_predict():
         if model not in MODEL_PROFILES:
             return jsonify({"success": False, "error": f"model must be one of: {', '.join(MODEL_PROFILES)}"}), 400
 
-        spread_line = float(request.args.get("spread_line", "0"))
-        total_line = float(request.args.get("total_line", "44.5"))
+        raw_spread_line = request.args.get("spread_line")
+        spread_line = float(raw_spread_line) if raw_spread_line not in (None, "") else None
+        raw_total_line = request.args.get("total_line")
+        total_line = float(raw_total_line) if raw_total_line not in (None, "") else None
         home_rest = float(request.args.get("home_rest", "7"))
         away_rest = float(request.args.get("away_rest", "7"))
         div_game = str(request.args.get("div_game", "false")).lower() in {"1", "true", "yes"}
@@ -1638,6 +1640,8 @@ async def nfl_predict():
             roof,
             float(temp) if temp else None,
             float(wind) if wind else None,
+            (request.args.get("market_source") or "").strip() or None,
+            (request.args.get("market_observed_at") or "").strip() or None,
         )
         return jsonify({"success": True, "source": GAMES_URL, "cache": cache, "prediction": prediction})
     except ValueError as e:

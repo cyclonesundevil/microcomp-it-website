@@ -158,17 +158,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (pick === 'over') return 'Over';
         if (pick === 'under') return 'Under';
-        return 'No edge';
+        return prediction.model === 'rsm_stage7c' ? 'No directional projection' : 'No edge';
     }
 
     function renderPrediction(prediction) {
         const homeBy = prediction.pred_margin;
         const total = prediction.pred_total;
-        const favorite = homeBy >= 0 ? prediction.home_team : prediction.away_team;
+        const rsm = prediction.model === 'rsm_stage7c';
+        const favorite = prediction.winner_pick === 'home'
+            ? prediction.home_team
+            : prediction.winner_pick === 'away' ? prediction.away_team : (rsm ? null : homeBy >= 0 ? prediction.home_team : prediction.away_team);
         matchupLabel.textContent = `${prediction.away_team} at ${prediction.home_team}`;
-        matchupMargin.textContent = `${favorite} by ${Math.abs(homeBy).toFixed(1)}`;
+        matchupMargin.textContent = favorite
+            ? `${rsm ? 'Straight-up: ' : ''}${favorite} by ${Math.abs(homeBy).toFixed(1)}`
+            : 'Straight-up: no directional projection';
         matchupTotal.textContent = total === null || total === undefined
-            ? 'Projected total: not available for this model'
+            ? (rsm ? 'O/U unavailable' : 'Projected total: not available for this model')
             : `Projected total: ${total.toFixed(1)} points`;
         spreadPick.textContent = pickText('spread', prediction.spread_pick, prediction);
         totalPick.textContent = pickText('total', prediction.total_pick, prediction);
@@ -178,7 +183,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const notes = Array.isArray(prediction.model_notes) && prediction.model_notes.length
             ? ` ${prediction.model_notes.join(' ')}`
             : '';
-        matchupNote.textContent = `Trained through ${prediction.latest_training_season}. Spread edge ${prediction.spread_edge.toFixed(1)}, total edge ${totalEdge}.${notes}`;
+        const spreadEdge = prediction.spread_edge === null || prediction.spread_edge === undefined
+            ? 'unavailable (no market spread supplied)'
+            : `${prediction.spread_edge.toFixed(1)} points`;
+        const marketProvenance = prediction.market_source && prediction.market_observed_at
+            ? ` Market: ${prediction.market_source}, observed ${prediction.market_observed_at}.`
+            : ' Market source and observation time unavailable.';
+        const noteEdge = rsm ? spreadEdge : prediction.spread_edge.toFixed(1);
+        matchupNote.textContent = `Trained through ${prediction.latest_training_season}. Spread edge ${noteEdge}, total edge ${totalEdge}.${rsm ? marketProvenance : ''}${notes}`;
+    }
+
+    function applyModelPresentation() {
+        const rsm = state.model === 'rsm_stage7c';
+        if (rsm) {
+            spreadLine.value = '';
+            spreadLine.placeholder = 'Enter sourced home spread';
+            totalLine.value = '';
+            totalLine.placeholder = 'O/U unavailable for RSM';
+            totalLine.disabled = true;
+        } else {
+            if (spreadLine.value === '') spreadLine.value = '0';
+            if (totalLine.value === '') totalLine.value = '44.5';
+            spreadLine.placeholder = '';
+            totalLine.placeholder = '';
+            totalLine.disabled = false;
+        }
     }
 
     function renderDashboard(data) {
@@ -280,12 +309,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const params = new URLSearchParams({
             away_team: awayTeam.value,
             home_team: homeTeam.value,
-            spread_line: spreadLine.value || '0',
-            total_line: totalLine.value || '44.5',
             model: state.model,
             roof: roofType.value,
             div_game: divisionGame.checked ? 'true' : 'false'
         });
+        if (spreadLine.value !== '') params.set('spread_line', spreadLine.value);
+        if (totalLine.value !== '') params.set('total_line', totalLine.value);
         const response = await fetch(`${apiBase}/api/nfl/predict?${params.toString()}`);
         const data = await response.json();
         if (!response.ok || !data.success) {
@@ -414,6 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.model = button.dataset.model;
             document.querySelectorAll('[data-model]').forEach((item) => item.classList.remove('active'));
             button.classList.add('active');
+            applyModelPresentation();
             refreshAll();
         });
     });

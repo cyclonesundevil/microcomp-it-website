@@ -1,6 +1,15 @@
 import pytest
 
-from nfl_predictor import MODEL_PROFILES, MarketBlendNFLModel, predict_matchup, list_teams, run_backtest, summarize
+from nfl_predictor import (
+    MODEL_PROFILES,
+    MarketBlendNFLModel,
+    RsmStage7CComparisonModel,
+    list_teams,
+    predict_matchup,
+    run_backtest,
+    side_from_edge,
+    summarize,
+)
 
 
 def _game(season, away_team, home_team):
@@ -78,7 +87,7 @@ def test_matchup_api_uses_conventional_negative_home_favorite_line():
     assert prediction["spread_edge"] == pytest.approx(prediction["pred_margin"] - 3.0)
 
 
-def test_rsm_profile_is_available_as_margin_only_comparison():
+def test_rsm_profile_maps_frozen_margin_to_experimental_winner_and_ats_projection():
     assert "rsm_stage7c" in MODEL_PROFILES
     games = [
         _graded_game(2025, "KC", "PHI"),
@@ -91,13 +100,51 @@ def test_rsm_profile_is_available_as_margin_only_comparison():
         home_team="PHI",
         spread_line=-3.0,
         model_profile="rsm_stage7c",
+        market_source="manual_test_source",
+        market_observed_at="2026-09-13T12:00:00Z",
     )
 
     assert prediction["model"] == "rsm_stage7c"
     assert prediction["pred_total"] is None
     assert prediction["total_pick"] is None
-    assert prediction["spread_pick"] is None
+    assert prediction["total_line"] is None
+    assert prediction["market_margin"] == 3.0
+    assert prediction["spread_edge"] == pytest.approx(prediction["pred_margin"] - 3.0)
+    assert prediction["spread_threshold"] == 0.0
+    assert prediction["winner_pick"] == ("home" if prediction["pred_margin"] > 0 else "away")
+    assert prediction["spread_pick"] == ("home" if prediction["spread_edge"] > 0 else "away")
+    assert prediction["market_source"] == "manual_test_source"
+    assert prediction["market_observed_at"] == "2026-09-13T12:00:00Z"
+    assert prediction["lineup_confidence"] is None
     assert prediction["model_notes"]
+
+
+def test_rsm_spread_sign_convention_and_exact_tie_abstention():
+    # Conventional home -3 maps to a +3 expected home margin. A positive edge
+    # chooses home; a negative edge chooses away; exact equality abstains.
+    assert side_from_edge(2.0, threshold=0.0) == "home"
+    assert side_from_edge(-2.0, threshold=0.0) == "away"
+    assert side_from_edge(0.0, threshold=0.0) is None
+
+
+def test_rsm_missing_market_line_has_no_ats_projection_or_total():
+    prediction = predict_matchup(
+        [_graded_game(2025, "KC", "PHI"), _graded_game(2026, "KC", "PHI")],
+        away_team="KC",
+        home_team="PHI",
+        spread_line=None,
+        model_profile="rsm_stage7c",
+    )
+    assert prediction["market_margin"] is None
+    assert prediction["spread_edge"] is None
+    assert prediction["spread_pick"] is None
+    assert prediction["pred_total"] is None
+    assert prediction["total_pick"] is None
+
+
+def test_rsm_missing_snapshot_team_fails_instead_of_fabricating_features():
+    with pytest.raises(ValueError, match="snapshot ratings are unavailable"):
+        RsmStage7CComparisonModel().predict({"home_team": "PHI", "away_team": "ZZZ"})
 
 
 def test_rsm_backtest_uses_committed_validation_rows_without_picks():

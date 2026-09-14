@@ -50,8 +50,8 @@
                 <h2>Current Model</h2>
                 <p>
                     The public demo defaults to Market Blend, which combines the closing line with the chronological
-                    team model for lower prediction error while keeping only conservative spread picks. RSM is included
-                    as an experimental roster-strength comparison model and does not generate picks.
+                    team model for lower prediction error while keeping only conservative spread picks. RSM — Experimental
+                    shows frozen-model winner and ATS projections, with no established betting advantage and no O/U output.
                 </p>
                 <p id="nfl-data-status" class="nfl-data-status">Checking data freshness...</p>
                 <p id="nfl-live-status" class="nfl-data-status">Checking live scoreboard adapter...</p>
@@ -61,7 +61,7 @@
                     <button class="active" data-model="market_blend">Market Blend</button>
                     <button data-model="rothstein">Rothstein</button>
                     <button data-model="rothstein_plus">Rothstein+</button>
-                    <button data-model="rsm_stage7c">RSM</button>
+                    <button data-model="rsm_stage7c">RSM — Experimental</button>
                 </div>
             </div>
         </section>
@@ -208,11 +208,11 @@
                     <p id="matchup-total">Projected total: --</p>
                     <div class="matchup-picks">
                         <div>
-                            <span>Spread lean</span>
+                            <span>ATS projection</span>
                             <b id="spread-pick">--</b>
                         </div>
                         <div>
-                            <span>Total lean</span>
+                            <span>O/U projection</span>
                             <b id="total-pick">--</b>
                         </div>
                     </div>
@@ -322,8 +322,8 @@
             </div>
             <div>
                 <i class="fa-solid fa-flask"></i>
-                <h3>RSM Comparison</h3>
-                <p>The roster-strength model is shown for margin comparison only. It is not a betting recommendation or live shadow-capture feed.</p>
+                <h3>RSM — Experimental</h3>
+                <p>Uses a frozen roster-strength margin to show winner and ATS projections. It has no compatible total output or established betting advantage.</p>
             </div>
         </section>
     </main>
@@ -340,7 +340,7 @@
         </div>
     </footer>
 
-    <script src="nfl-predictor.js?v=1.9"></script>
+    <script src="nfl-predictor.js?v=2.0"></script>
 </body>
 
 </html>

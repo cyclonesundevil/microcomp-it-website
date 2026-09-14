@@ -614,7 +614,11 @@ def create_model(profile: str):
 
 def default_spread_threshold(model_profile: str) -> float:
     if model_profile == RSM_PROFILE:
-        return 999.0
+        # Presentation-only: every nonzero frozen-margin/market disagreement
+        # receives a directional ATS projection. This is deliberately separate
+        # from the frozen Stage 7C anomaly thresholds and never affects its
+        # research ledger or eligibility rules.
+        return 0.0
     if model_profile in {"rothstein", "rothstein_plus"}:
         return 2.0
     if model_profile == "market_blend":
@@ -635,7 +639,7 @@ def model_supports_totals(model_profile: str) -> bool:
 
 
 def model_supports_spread_picks(model_profile: str) -> bool:
-    return model_profile != RSM_PROFILE
+    return True
 
 
 def is_rothstein_plus_eligible(model: RothsteinNFLModel, game: dict) -> bool:
@@ -1031,8 +1035,8 @@ def predict_matchup(
     games: List[dict],
     away_team: str,
     home_team: str,
-    spread_line: float = 0.0,
-    total_line: float = 44.5,
+    spread_line: Optional[float] = 0.0,
+    total_line: Optional[float] = 44.5,
     model_profile: str = "baseline",
     home_rest: float = 7.0,
     away_rest: float = 7.0,
@@ -1040,6 +1044,8 @@ def predict_matchup(
     roof: str = "",
     temp: Optional[float] = None,
     wind: Optional[float] = None,
+    market_source: Optional[str] = None,
+    market_observed_at: Optional[str] = None,
 ) -> dict:
     available_teams = set(list_teams(games))
     if away_team not in available_teams:
@@ -1061,14 +1067,20 @@ def predict_matchup(
     # nflverse stores the market as an expected home margin (home favorite is
     # positive). The public API accepts conventional sportsbook notation, where
     # a home favorite is negative, so convert it at this boundary.
-    market_margin = -spread_line
+    # RSM never substitutes a pick'em line when no market line was supplied.
+    market_margin = -spread_line if spread_line is not None else None
+    if market_margin is None and model_profile != RSM_PROFILE:
+        market_margin = 0.0
+    effective_total_line = total_line
+    if effective_total_line is None and model_profile != RSM_PROFILE:
+        effective_total_line = 44.5
     game = {
         "season": max(g["season"] for g in games),
         "week": max(g["week"] for g in games if g["season"] == max(item["season"] for item in games)) + 1,
         "away_team": away_team,
         "home_team": home_team,
         "spread_line": market_margin,
-        "total_line": total_line,
+        "total_line": effective_total_line,
         "away_rest": away_rest,
         "home_rest": home_rest,
         "div_game": div_game,
@@ -1077,13 +1089,31 @@ def predict_matchup(
         "wind": wind,
     }
     pred_margin, pred_total = model.predict(game)
-    spread_edge = pred_margin - market_margin
-    total_edge = pred_total - total_line if pred_total is not None else None
+    spread_edge = pred_margin - market_margin if market_margin is not None else None
+    total_edge = pred_total - effective_total_line if pred_total is not None and effective_total_line is not None else None
     spread_threshold = default_spread_threshold(model_profile)
     total_threshold = default_total_threshold(model_profile)
     eligible = True
     if model_profile == "rothstein_plus":
         eligible = is_rothstein_plus_eligible(model, game)
+
+    spread_pick = (
+        side_from_edge(spread_edge, threshold=spread_threshold)
+        if eligible and spread_edge is not None and model_supports_spread_picks(model_profile)
+        else None
+    )
+    winner_pick = "home" if pred_margin > 0 else "away" if pred_margin < 0 else None
+    rsm_notes = [
+        "RSM — Experimental: winner and ATS selections are frozen-model projections, not evidence of a betting advantage.",
+        "O/U unavailable: this frozen RSM artifact has no compatible total prediction.",
+        "Stage 8 prospective research eligibility and ledger remain separate and disabled.",
+    ]
+    if market_margin is None:
+        rsm_notes.append("No market spread was supplied, so no ATS selection is shown.")
+    elif not market_source or not market_observed_at:
+        rsm_notes.append("The supplied market line has no verified source and observation time.")
+    if model_profile == RSM_PROFILE:
+        rsm_notes.append("Prospective lineup confidence is unavailable for this snapshot-based display.")
 
     return {
         "model": model_profile,
@@ -1093,20 +1123,20 @@ def predict_matchup(
         "pred_total": pred_total,
         "spread_line": spread_line,
         "market_margin": market_margin,
-        "total_line": total_line,
+        "total_line": None if model_profile == RSM_PROFILE else total_line,
         "spread_edge": spread_edge,
         "total_edge": total_edge,
         "spread_threshold": spread_threshold,
         "total_threshold": total_threshold,
         "eligible": eligible,
-        "spread_pick": side_from_edge(spread_edge, threshold=spread_threshold) if eligible and model_supports_spread_picks(model_profile) else None,
-        "total_pick": total_from_edge(total_edge, threshold=total_threshold) if model_supports_totals(model_profile) else None,
+        "winner_pick": winner_pick,
+        "spread_pick": spread_pick,
+        "total_pick": total_from_edge(total_edge, threshold=total_threshold) if total_edge is not None and model_supports_totals(model_profile) else None,
+        "market_source": market_source or None,
+        "market_observed_at": market_observed_at or None,
+        "lineup_confidence": None if model_profile == RSM_PROFILE else "not_applicable",
         "latest_training_season": max(g["season"] for g in games),
-        "model_notes": [
-            "Experimental RSM roster-strength comparison only.",
-            "No RSM spread or total pick is generated.",
-            "Stage 8 prospective shadow capture remains disabled.",
-        ] if model_profile == RSM_PROFILE else [],
+        "model_notes": rsm_notes if model_profile == RSM_PROFILE else [],
     }
 
 
