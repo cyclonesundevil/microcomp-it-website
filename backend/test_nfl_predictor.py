@@ -4,6 +4,7 @@ from nfl_predictor import (
     MODEL_PROFILES,
     MarketBlendNFLModel,
     RsmStage7CComparisonModel,
+    _rsm_artifact,
     list_teams,
     predict_matchup,
     run_backtest,
@@ -145,6 +146,15 @@ def test_rsm_missing_market_line_has_no_ats_projection_or_total():
 def test_rsm_missing_snapshot_team_fails_instead_of_fabricating_features():
     with pytest.raises(ValueError, match="snapshot ratings are unavailable"):
         RsmStage7CComparisonModel().predict({"home_team": "PHI", "away_team": "ZZZ"})
+
+
+def test_rsm_manual_capture_details_preserve_the_exact_frozen_feature_vector():
+    details = RsmStage7CComparisonModel().prediction_details({"home_team": "PHI", "away_team": "KC", "home_rest": 7, "away_rest": 7})
+
+    assert len(details["features"]) == 18
+    assert list(details["features"]) == list(_rsm_artifact()["feature_names"])
+    assert details["lineup_confidence"] == "LOW"
+    assert "no prospective lineup verification" in details["lineup_source"]
 
 
 def test_rsm_backtest_uses_committed_validation_rows_without_picks():

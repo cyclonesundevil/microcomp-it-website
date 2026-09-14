@@ -218,6 +218,17 @@
                     </div>
                     <small id="matchup-note">The model trains through the latest completed season in the local dataset.</small>
                 </div>
+                <form id="rsm-record-form" class="matchup-form" hidden>
+                    <p><strong>Research-only observation</strong> — records the frozen RSM snapshot and your manually entered line before kickoff. It does not verify when the book offered that line.</p>
+                    <label>Kickoff (with timezone)<input id="rsm-kickoff" type="datetime-local" required></label>
+                    <label>Season<input id="rsm-season" type="number" min="2026" value="2026" required></label>
+                    <label>Week<input id="rsm-week" type="number" min="1" max="18" value="2" required></label>
+                    <label>Sportsbook<input id="rsm-sportsbook" maxlength="80" placeholder="e.g., DraftKings" required></label>
+                    <label>Market source / URL<input id="rsm-market-source" maxlength="500" placeholder="Manual source or URL" required></label>
+                    <label>Operator token<input id="rsm-operator-token" type="password" autocomplete="off" required></label>
+                    <button type="submit" class="btn-primary">Record RSM Observation</button>
+                    <small id="rsm-record-status">Only the first valid pre-kickoff observation per game is used for future performance grading. Later records support line-movement research.</small>
+                </form>
             </div>
 
             <div class="history-panel">

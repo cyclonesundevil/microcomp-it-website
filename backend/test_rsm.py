@@ -48,6 +48,7 @@ from rsm.stage8_shadow import (
     preview_observation,
     verify_ledger,
 )
+from rsm.stage8_evaluation import EVALUATION_POLICY, evaluation_report, record_outcome
 from rsm.stage8a_capture import (
     CaptureConfig,
     CaptureLock,
@@ -825,10 +826,37 @@ def test_stage8a_health_is_read_only_and_has_no_outcome_metrics(tmp_path):
     assert not config.store_path.exists() and not config.state_path.exists()
 
 
-def test_stage8a_remains_absent_from_production_api_and_ui():
+def test_manual_stage8_production_path_is_explicitly_research_only_and_token_gated():
     repository_root = Path(__file__).resolve().parents[1]
-    assert "stage8" not in (repository_root / "backend" / "app.py").read_text(encoding="utf-8").lower()
-    assert not any("stage8" in path.read_text(encoding="utf-8", errors="ignore").lower() for path in (repository_root / "frontend").rglob("*.js"))
+    app_source = (repository_root / "backend" / "app.py").read_text(encoding="utf-8")
+    ui_source = (repository_root / "frontend" / "nfl-predictor.js").read_text(encoding="utf-8")
+    assert "RSM_MANUAL_CAPTURE_TOKEN" in app_source
+    assert "rsm-observations" in app_source and "rsm-observations" in ui_source
+    assert "automated_wagering" not in ui_source
+
+
+def test_outcomes_are_separate_and_first_pre_kickoff_observation_is_predeclared(tmp_path):
+    observation_store = tmp_path / "shadow.sqlite3"
+    outcome_store = tmp_path / "outcomes.sqlite3"
+    first = capture_observation(stage8_payload(), observation_store, REPORTS_ROOT, datetime(2099, 9, 10, 20, 10, tzinfo=timezone.utc))
+    later = stage8_payload()
+    later["prediction_timestamp"] = "2099-09-10T17:05:00-04:00"
+    later["features_as_of"] = "2099-09-10T17:00:00-04:00"
+    later["lineup"]["as_of"] = "2099-09-10T16:55:00-04:00"
+    later["market"]["retrieved_timestamp"] = "2099-09-10T17:04:00-04:00"
+    later["market"]["spread"] = -2.0
+    capture_observation(later, observation_store, REPORTS_ROOT, datetime(2099, 9, 10, 21, 10, tzinfo=timezone.utc))
+    # Pick an outcome that covers the direction frozen into the first record;
+    # this exercises ATS grading without selecting between observations.
+    home_score, away_score = (30, 0) if first["market_disagreement"] > 0 else (0, 30)
+    recorded = record_outcome({"game_id": "2099_01_LV_KC", "home_score": home_score, "away_score": away_score, "source": "fixture-final", "observed_at": "2099-09-11T01:00:00Z"}, observation_store, outcome_store, datetime(2099, 9, 11, 1, 1, tzinfo=timezone.utc))
+    report = evaluation_report(observation_store, outcome_store)
+    assert recorded["recorded"] is True
+    assert report["evaluation_policy"] == EVALUATION_POLICY
+    assert report["graded_games"] == 1
+    assert report["rows"][0]["observation_event_id"] == first["event_id"]
+    assert report["rows"][0]["ats_result"] == "correct"
+    assert (outcome_store).exists() and verify_ledger(observation_store)["observations"] == 2
 
 
 def test_training_plan_rejects_overlap_with_locked_period():

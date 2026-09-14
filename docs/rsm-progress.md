@@ -20,13 +20,15 @@
 - Stage 8A added fail-closed provider contracts, an offline fixture adapter, dry-run/write capture cycles, deterministic idempotency, bounded retry/locking/state/logging support, a read-only health command, and a predeclared prospective evaluation gate. No real provider is configured and no live observations were written.
 - Stage 8B added public-source adapter infrastructure for nflverse and Sleeper dry-runs, redacted fixture parsers for ESPN/Yahoo/NFL.com evidence, strict public-request/caching/hash archival controls, deterministic derived-consensus labeling, explicit-ID crosswalk auditing, and read-only Stage 8B health/readiness commands. No live prospective observation writes are enabled.
 - Stage 8B now also includes a disabled, explicit SportsGameOdds free-tier market transport. It accepts an operator-supplied environment key only for a manual raw-response dry run, archives no key material, and cannot write the ledger or enable capture.
+- A manual, token-gated **Record RSM Observation** workflow is implemented on the NFL Predictor. It captures the frozen 18-feature display vector, model hashes, displayed margin, manually entered book/spread, source label, server receipt time, and operator-entered kickoff into the append-only Stage 8 ledger. Manual lines are explicitly stored as `MANUAL_UNVERIFIED`; they do not establish when a sportsbook offered the line.
+- Outcomes use a separate append-only store linked to the immutable observation. Before outcomes are examined, the evaluation policy selects the first successfully recorded pre-kickoff observation per game for winner accuracy, margin MAE, and ATS grading. Later observations remain audit/line-movement records and cannot be selected after results are known.
 - Ninety-three focused RSM and existing-predictor tests pass.
 - By explicit authorization, the NFL Predictor now presents the frozen RSM margin as **RSM — Experimental** winner and directional ATS projections when a user supplies a market spread. This presentation path is separate from Stage 7C/8 research eligibility. It does not change pins, coefficients, feature definitions, anomaly thresholds, historical artifacts, or the shadow ledger.
 
 ## Current
 
 - Stage 8B public-source infrastructure is complete for a bounded release. Frozen pins pass and the empty ledger is valid, but prospective capture is not operational because the public-source gates still fail: no enabled identifiable pre-kickoff market spread source, no complete all-18-feature prospective provider, no complete pre-kickoff lineup/inactive provider, and only 20.40% explicit Sleeper-to-GSIS coverage against the 95% threshold.
-- Stage 8 infrastructure remains research-only: it has no scheduler or network poller, writes no production shadow-ledger observations, and ingests no outcomes. Separately, the NFL Predictor presents frozen RSM winner/ATS projections as experimental display output when a market spread is manually supplied. This display does not make a game a Stage 7C anomaly or enable Stage 8 capture.
+- Stage 8 remains research-only: it has no scheduler, network poller, or automated wagering. Manual capture is disabled until `RSM_MANUAL_CAPTURE_TOKEN` is configured; use the persistent host disk through `RSM_SHADOW_DATA_DIR`. The display's LOW/unverified lineup state prevents a manual display capture from qualifying as a Stage 7C anomaly, even though it can be graded prospectively for descriptive research.
 
 ## Next
 
@@ -74,10 +76,12 @@
 - `DERIVED_CONSENSUS` is supported as a separately labeled Stage 8 market kind for future fixture/rehearsal data, distinct from provider-published `CONSENSUS`.
 - The RSM display adapter has no compatible frozen total output. It explicitly reports O/U unavailable rather than borrowing a total from another model. Its supplied spread has no verified source, observation time, or prospective lineup confidence unless a future permitted source provides them.
 - RSM display projections are not calibrated probabilities and have no established betting advantage. A zero margin or zero margin-versus-market difference produces no directional winner or ATS projection.
+- Manual outcome entry requires a nonempty source and may be recorded only after kickoff, but no provider independently verifies a manual final-score claim. One immutable outcome record is accepted per game; corrections require external audited reconciliation rather than altering a record.
 
 ## Test results
 
 - `python -m pytest backend/test_nfl_predictor.py backend/test_rsm.py -q`: 80 passed after the authorized RSM presentation change.
+- `python -m pytest backend/test_rsm.py backend/test_nfl_predictor.py -q`: 82 passed after the manual capture/evaluation workflow, including pre-kickoff enforcement, append-only outcome separation, first-observation policy, exact frozen-vector capture, and ATS grading.
 - `python -m compileall -q backend/nfl_predictor.py backend/app.py`: passed.
 - `node --check frontend/nfl-predictor.js`: passed.
 - `python -m pytest backend/test_rsm.py backend/test_nfl_predictor.py -q`: 75 passed.

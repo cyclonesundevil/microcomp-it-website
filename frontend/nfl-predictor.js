@@ -43,6 +43,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const spreadPick = document.getElementById('spread-pick');
     const totalPick = document.getElementById('total-pick');
     const matchupNote = document.getElementById('matchup-note');
+    const rsmRecordForm = document.getElementById('rsm-record-form');
+    const rsmKickoff = document.getElementById('rsm-kickoff');
+    const rsmSeason = document.getElementById('rsm-season');
+    const rsmWeek = document.getElementById('rsm-week');
+    const rsmSportsbook = document.getElementById('rsm-sportsbook');
+    const rsmMarketSource = document.getElementById('rsm-market-source');
+    const rsmOperatorToken = document.getElementById('rsm-operator-token');
+    const rsmRecordStatus = document.getElementById('rsm-record-status');
     const historyNote = document.getElementById('history-note');
     const historyTableBody = document.getElementById('history-table-body');
     let dashboardRefreshTimer = null;
@@ -195,6 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function applyModelPresentation() {
         const rsm = state.model === 'rsm_stage7c';
+        if (rsmRecordForm) rsmRecordForm.hidden = !rsm;
         if (rsm) {
             spreadLine.value = '';
             spreadLine.placeholder = 'Enter sourced home spread';
@@ -488,6 +497,40 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             matchupLabel.textContent = `Unable to predict matchup: ${error.message}`;
             historyNote.textContent = `Unable to load historical lines: ${error.message}`;
+        }
+    });
+
+    rsmRecordForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (state.model !== 'rsm_stage7c') return;
+        if (spreadLine.value === '') {
+            rsmRecordStatus.textContent = 'Enter a sourced home spread before recording.';
+            return;
+        }
+        const kickoff = new Date(rsmKickoff.value);
+        if (Number.isNaN(kickoff.getTime())) {
+            rsmRecordStatus.textContent = 'Enter a valid kickoff time.';
+            return;
+        }
+        rsmRecordStatus.textContent = 'Recording immutable pre-kickoff observation...';
+        try {
+            const response = await fetch(`${apiBase}/api/nfl/rsm-observations`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-RSM-Manual-Token': rsmOperatorToken.value },
+                body: JSON.stringify({
+                    away_team: awayTeam.value, home_team: homeTeam.value,
+                    spread_line: Number(spreadLine.value), sportsbook: rsmSportsbook.value,
+                    market_source: rsmMarketSource.value, kickoff: kickoff.toISOString(),
+                    season: Number(rsmSeason.value), week: Number(rsmWeek.value)
+                })
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.error || 'Observation was not recorded');
+            rsmRecordStatus.textContent = data.duplicate
+                ? `Already recorded: ${data.event_id}.`
+                : `Recorded ${data.event_id}. Market line is marked manual/unverified.`;
+        } catch (error) {
+            rsmRecordStatus.textContent = `Not recorded: ${error.message}`;
         }
     });
 

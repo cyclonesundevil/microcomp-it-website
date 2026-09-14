@@ -559,7 +559,13 @@ class RsmStage7CComparisonModel:
 
     mean_total: float = 44.0
 
-    def predict(self, game: dict) -> Tuple[float, Optional[float]]:
+    def prediction_details(self, game: dict) -> dict:
+        """Return the frozen vector used for a display prediction.
+
+        This is deliberately separate from the Stage 7C anomaly decision.  It
+        gives the manual Stage 8 recorder the exact inputs used by the public
+        comparison adapter without changing the artifact or its thresholds.
+        """
         teams = _rsm_team_rows()
         home_row = teams.get(game["home_team"])
         away_row = teams.get(game["away_team"])
@@ -579,7 +585,17 @@ class RsmStage7CComparisonModel:
             artifact["coefficients"],
         ):
             predicted_margin += coefficient * (features[name] - mean) / scale
-        return predicted_margin, None
+        return {
+            "predicted_margin": predicted_margin,
+            "features": features,
+            "features_as_of": max(home_row["roster_timestamp"], away_row["roster_timestamp"]),
+            "features_source": "reports/rsm-team-ratings.csv (frozen display snapshot)",
+            "lineup_confidence": "LOW",
+            "lineup_source": "RSM display snapshot; no prospective lineup verification",
+        }
+
+    def predict(self, game: dict) -> Tuple[float, Optional[float]]:
+        return self.prediction_details(game)["predicted_margin"], None
 
     def update(self, game: dict, predicted_margin: float, predicted_total: Optional[float]) -> None:
         return None
@@ -913,7 +929,7 @@ def rsm_dashboard_snapshot(
             "Experimental RSM roster snapshot",
             "Margin comparison only",
             "No RSM betting picks or totals",
-            "Stage 8 prospective capture remains disabled",
+            "Manual Stage 8 research capture is available only with an operator token",
         ],
         "league": {
             "average_expected_points": statistics.mean(row["expected_points"] for row in rows) if rows else None,
@@ -1106,7 +1122,7 @@ def predict_matchup(
     rsm_notes = [
         "RSM — Experimental: winner and ATS selections are frozen-model projections, not evidence of a betting advantage.",
         "O/U unavailable: this frozen RSM artifact has no compatible total prediction.",
-        "Stage 8 prospective research eligibility and ledger remain separate and disabled.",
+        "Stage 8 research eligibility remains separate; optional manual capture is a distinct, token-gated research workflow.",
     ]
     if market_margin is None:
         rsm_notes.append("No market spread was supplied, so no ATS selection is shown.")

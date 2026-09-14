@@ -27,11 +27,14 @@ import hashlib
 import hmac
 import secrets
 import html as html_lib
+from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from quart import Response
 from nfl_live_data import live_scoreboard
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, dashboard_snapshot, default_spread_threshold, default_total_threshold, games_cache_info, list_teams, load_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, RsmStage7CComparisonModel, dashboard_snapshot, default_spread_threshold, default_total_threshold, games_cache_info, list_teams, load_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
+from rsm.stage8_evaluation import DEFAULT_OUTCOME_STORE, evaluation_report, record_outcome
+from rsm.stage8_shadow import DEFAULT_STORE as RSM_DEFAULT_STORE, capture_observation, line_movements
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(base_dir, ".env"))
@@ -43,6 +46,20 @@ except ZoneInfoNotFoundError:
     ARIZONA_TZ = datetime.timezone(datetime.timedelta(hours=-7), name="MST")
 
 app = Quart(__name__, static_folder=frontend_dir, static_url_path="")
+
+
+def rsm_shadow_paths():
+    """Keep research data off source control and prefer Render's persistent disk."""
+    root = os.getenv("RSM_SHADOW_DATA_DIR") or ("/data/rsm-shadow" if os.path.isdir("/data") else "")
+    if root:
+        return Path(root) / "stage8-shadow.sqlite3", Path(root) / "stage8-outcomes.sqlite3"
+    return RSM_DEFAULT_STORE, DEFAULT_OUTCOME_STORE
+
+
+def rsm_manual_write_authorized():
+    token = os.getenv("RSM_MANUAL_CAPTURE_TOKEN", "").strip()
+    supplied = request.headers.get("X-RSM-Manual-Token", "")
+    return bool(token) and hmac.compare_digest(token, supplied)
 
 NOINDEX_PATHS = {
     "/preview-review.html",
@@ -1649,6 +1666,74 @@ async def nfl_predict():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/nfl/rsm-observations", methods=["GET"])
+async def nfl_rsm_observations():
+    observation_store, outcome_store = rsm_shadow_paths()
+    report = await asyncio.to_thread(evaluation_report, observation_store, outcome_store)
+    report["line_movements"] = await asyncio.to_thread(line_movements, observation_store)
+    report["closing_line_value"] = "unavailable unless a comparable, source-timestamped closing observation is captured"
+    return jsonify({"success": True, "report": report})
+
+
+@app.route("/api/nfl/rsm-observations", methods=["POST"])
+async def nfl_record_rsm_observation():
+    if not rsm_manual_write_authorized():
+        return jsonify({"success": False, "error": "Manual RSM recording is disabled or the operator token is invalid."}), 403
+    try:
+        body = await request.get_json()
+        expected = {"away_team", "home_team", "spread_line", "sportsbook", "market_source", "kickoff", "season", "week"}
+        if not isinstance(body, dict) or set(body) != expected:
+            return jsonify({"success": False, "error": "Observation requires away_team, home_team, spread_line, sportsbook, market_source, kickoff, season, and week."}), 400
+        away_team, home_team = str(body["away_team"]).upper().strip(), str(body["home_team"]).upper().strip()
+        now = datetime.datetime.now(datetime.UTC)
+        kickoff = datetime.datetime.fromisoformat(str(body["kickoff"]).replace("Z", "+00:00"))
+        if kickoff.tzinfo is None or kickoff.utcoffset() is None:
+            return jsonify({"success": False, "error": "kickoff must include a timezone offset."}), 400
+        kickoff = kickoff.astimezone(datetime.UTC)
+        if now >= kickoff:
+            return jsonify({"success": False, "error": "Observations must be recorded strictly before kickoff."}), 400
+        if not away_team or not home_team or away_team == home_team or not str(body["sportsbook"]).strip() or not str(body["market_source"]).strip():
+            return jsonify({"success": False, "error": "Teams, a sportsbook, and a market source are required."}), 400
+        spread_line = float(body["spread_line"])
+        details = RsmStage7CComparisonModel().prediction_details({"away_team": away_team, "home_team": home_team, "home_rest": 7.0, "away_rest": 7.0})
+        timestamp = now.isoformat().replace("+00:00", "Z")
+        game_id = f"{int(body['season'])}_{int(body['week']):02d}_{away_team}_{home_team}"
+        payload = {
+            "game_id": game_id, "season": int(body["season"]), "week": int(body["week"]),
+            "kickoff": kickoff.isoformat().replace("+00:00", "Z"), "prediction_timestamp": timestamp,
+            "away_team": away_team, "home_team": home_team,
+            "schedule_source": "MANUAL_OPERATOR_ENTRY_UNVERIFIED", "schedule_observed_at": timestamp,
+            "features": details["features"], "features_as_of": details["features_as_of"], "features_source": details["features_source"],
+            "lineup": {"confidence": details["lineup_confidence"], "as_of": details["features_as_of"], "source": details["lineup_source"], "expected_starters": [], "inactive_or_injured": []},
+            "market": {"sportsbook": str(body["sportsbook"]).strip(), "retrieved_timestamp": timestamp, "line_type": "SPREAD", "line_stage": "CURRENT", "market_kind": "INDIVIDUAL_BOOK", "spread": spread_line, "spread_convention": "HOME_SPREAD", "home_price": None, "away_price": None, "source": f"MANUAL_UNVERIFIED: {str(body['market_source']).strip()}"},
+        }
+        observation_store, _ = rsm_shadow_paths()
+        result = await asyncio.to_thread(capture_observation, payload, observation_store, Path(base_dir).parent / "reports", now)
+        result.update({"success": True, "manual_market_entry": True, "market_verification": "operator-entered; bookmaker offer time is not independently verified", "prediction": {"model": RSM_PROFILE, "pred_margin": details["predicted_margin"]}})
+        return jsonify(result)
+    except ValueError as error:
+        return jsonify({"success": False, "error": str(error)}), 400
+    except Exception as error:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(error)}), 500
+
+
+@app.route("/api/nfl/rsm-outcomes", methods=["POST"])
+async def nfl_record_rsm_outcome():
+    if not rsm_manual_write_authorized():
+        return jsonify({"success": False, "error": "Manual RSM recording is disabled or the operator token is invalid."}), 403
+    try:
+        body = await request.get_json()
+        observation_store, outcome_store = rsm_shadow_paths()
+        result = await asyncio.to_thread(record_outcome, body, observation_store, outcome_store)
+        return jsonify({"success": True, **result, "report": await asyncio.to_thread(evaluation_report, observation_store, outcome_store)})
+    except ValueError as error:
+        return jsonify({"success": False, "error": str(error)}), 400
+    except Exception as error:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(error)}), 500
 
 
 @app.route("/api/nfl/history")
