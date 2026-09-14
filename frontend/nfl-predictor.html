@@ -51,7 +51,7 @@
                 <p>
                     The public demo defaults to Market Blend, which combines the closing line with the chronological
                     team model for lower prediction error while keeping only conservative spread picks. RSM — Experimental
-                    shows frozen-model winner and ATS projections, with no established betting advantage and no O/U output.
+                      shows frozen-model winner, ATS, and separately versioned total projections, with no established betting advantage.
                 </p>
                 <p id="nfl-data-status" class="nfl-data-status">Checking data freshness...</p>
                 <p id="nfl-live-status" class="nfl-data-status">Checking live scoreboard adapter...</p>
@@ -223,11 +223,13 @@
                     <label>Kickoff (with timezone)<input id="rsm-kickoff" type="datetime-local" required></label>
                     <label>Season<input id="rsm-season" type="number" min="2026" value="2026" required></label>
                     <label>Week<input id="rsm-week" type="number" min="1" max="18" value="2" required></label>
+                    <label>Game type<select id="rsm-game-type"><option value="REG">Regular season</option><option value="POST">Playoffs</option></select></label>
                     <label>Sportsbook<input id="rsm-sportsbook" maxlength="80" placeholder="e.g., DraftKings" required></label>
                     <label>Market source / URL<input id="rsm-market-source" maxlength="500" placeholder="Manual source or URL" required></label>
                     <label>Operator token<input id="rsm-operator-token" type="password" autocomplete="off" required></label>
-                    <button type="submit" class="btn-primary">Record RSM Observation</button>
-                    <small id="rsm-record-status">Only the first valid pre-kickoff observation per game is used for future performance grading. Later records support line-movement research.</small>
+                    <button type="submit" class="btn-primary">Record RSM Spread Observation</button>
+                    <button id="rsm-record-total" type="button" class="btn-secondary">Record RSM Total Observation</button>
+                    <small id="rsm-record-status">The total ledger stores frozen model/input provenance separately from the spread ledger. For each game, only its first valid pre-kickoff total capture is selected for future total grading; later records are retained but not independently counted.</small>
                 </form>
             </div>
 
@@ -334,7 +336,7 @@
             <div>
                 <i class="fa-solid fa-flask"></i>
                 <h3>RSM — Experimental</h3>
-                <p>Uses a frozen roster-strength margin to show winner and ATS projections. It has no compatible total output or established betting advantage.</p>
+                <p>Uses frozen RSM margin and separately versioned Stage 7B total artifacts to show experimental projections. Neither has an established betting advantage.</p>
             </div>
         </section>
     </main>

@@ -480,6 +480,19 @@ def _rsm_artifact() -> dict:
 
 
 @lru_cache(maxsize=1)
+def _rsm_total_artifact() -> dict:
+    path = os.path.join(REPORTS_ROOT, "rsm-v2-candidate-stage7b.json")
+    with open(path, encoding="utf-8") as source:
+        artifact = json.load(source)["total_diagnostic"]
+    required = {"target", "feature_names", "means", "scales", "coefficients", "intercept"}
+    if required - set(artifact) or artifact["target"] != "actual_total" or artifact["feature_names"] != _rsm_artifact()["feature_names"]:
+        raise RuntimeError("Stage 7B total artifact is incompatible with the frozen margin feature adapter")
+    if not all(len(artifact[key]) == len(artifact["feature_names"]) for key in ("means", "scales", "coefficients")) or any(float(scale) == 0 for scale in artifact["scales"]):
+        raise RuntimeError("Stage 7B total artifact has invalid frozen preprocessing or coefficients")
+    return artifact
+
+
+@lru_cache(maxsize=1)
 def _rsm_team_rows() -> Dict[str, dict]:
     path = os.path.join(REPORTS_ROOT, "rsm-team-ratings.csv")
     with open(path, newline="", encoding="utf-8") as source:
@@ -585,8 +598,14 @@ class RsmStage7CComparisonModel:
             artifact["coefficients"],
         ):
             predicted_margin += coefficient * (features[name] - mean) / scale
+        total_artifact = _rsm_total_artifact()
+        predicted_total = total_artifact["intercept"]
+        for name, mean, scale, coefficient in zip(total_artifact["feature_names"], total_artifact["means"], total_artifact["scales"], total_artifact["coefficients"]):
+            predicted_total += coefficient * (features[name] - mean) / scale
         return {
             "predicted_margin": predicted_margin,
+            "predicted_total": predicted_total,
+            "total_model_version": "RSM-v2 Stage7B Total diagnostic (experimental)",
             "features": features,
             "features_as_of": max(home_row["roster_timestamp"], away_row["roster_timestamp"]),
             "features_source": "reports/rsm-team-ratings.csv (frozen display snapshot)",
@@ -595,7 +614,8 @@ class RsmStage7CComparisonModel:
         }
 
     def predict(self, game: dict) -> Tuple[float, Optional[float]]:
-        return self.prediction_details(game)["predicted_margin"], None
+        details = self.prediction_details(game)
+        return details["predicted_margin"], details["predicted_total"]
 
     def update(self, game: dict, predicted_margin: float, predicted_total: Optional[float]) -> None:
         return None
@@ -1052,7 +1072,7 @@ def predict_matchup(
     away_team: str,
     home_team: str,
     spread_line: Optional[float] = 0.0,
-    total_line: Optional[float] = 44.5,
+    total_line: Optional[float] = None,
     model_profile: str = "baseline",
     home_rest: float = 7.0,
     away_rest: float = 7.0,
@@ -1104,7 +1124,11 @@ def predict_matchup(
         "temp": temp,
         "wind": wind,
     }
-    pred_margin, pred_total = model.predict(game)
+    rsm_details = model.prediction_details(game) if model_profile == RSM_PROFILE else None
+    if rsm_details:
+        pred_margin, pred_total = rsm_details["predicted_margin"], rsm_details["predicted_total"]
+    else:
+        pred_margin, pred_total = model.predict(game)
     spread_edge = pred_margin - market_margin if market_margin is not None else None
     total_edge = pred_total - effective_total_line if pred_total is not None and effective_total_line is not None else None
     spread_threshold = default_spread_threshold(model_profile)
@@ -1121,7 +1145,7 @@ def predict_matchup(
     winner_pick = "home" if pred_margin > 0 else "away" if pred_margin < 0 else None
     rsm_notes = [
         "RSM — Experimental: winner and ATS selections are frozen-model projections, not evidence of a betting advantage.",
-        "O/U unavailable: this frozen RSM artifact has no compatible total prediction.",
+        "O/U projection uses the separately versioned RSM-v2 Stage7B Total diagnostic artifact; it has no established betting advantage.",
         "Stage 8 research eligibility remains separate; optional manual capture is a distinct, token-gated research workflow.",
     ]
     if market_margin is None:
@@ -1130,6 +1154,8 @@ def predict_matchup(
         rsm_notes.append("The supplied market line has no verified source and observation time.")
     if model_profile == RSM_PROFILE:
         rsm_notes.append("Prospective lineup confidence is unavailable for this snapshot-based display.")
+        if total_line is None:
+            rsm_notes.append("No bookmaker total was supplied, so total edge and O/U selection are unavailable; the independent model total remains displayed.")
 
     return {
         "model": model_profile,
@@ -1139,7 +1165,7 @@ def predict_matchup(
         "pred_total": pred_total,
         "spread_line": spread_line,
         "market_margin": market_margin,
-        "total_line": None if model_profile == RSM_PROFILE else total_line,
+        "total_line": total_line,
         "spread_edge": spread_edge,
         "total_edge": total_edge,
         "spread_threshold": spread_threshold,
@@ -1147,10 +1173,11 @@ def predict_matchup(
         "eligible": eligible,
         "winner_pick": winner_pick,
         "spread_pick": spread_pick,
-        "total_pick": total_from_edge(total_edge, threshold=total_threshold) if total_edge is not None and model_supports_totals(model_profile) else None,
+        "total_pick": total_from_edge(total_edge, threshold=0.0) if total_edge is not None and model_profile == RSM_PROFILE else (total_from_edge(total_edge, threshold=total_threshold) if total_edge is not None and model_supports_totals(model_profile) else None),
         "market_source": market_source or None,
         "market_observed_at": market_observed_at or None,
-        "lineup_confidence": None if model_profile == RSM_PROFILE else "not_applicable",
+        "lineup_confidence": rsm_details["lineup_confidence"] if rsm_details else "not_applicable",
+        "total_model_version": rsm_details["total_model_version"] if rsm_details else None,
         "latest_training_season": max(g["season"] for g in games),
         "model_notes": rsm_notes if model_profile == RSM_PROFILE else [],
     }

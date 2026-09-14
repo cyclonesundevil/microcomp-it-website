@@ -25,7 +25,13 @@
 - Ninety-three focused RSM and existing-predictor tests pass.
 - By explicit authorization, the NFL Predictor now presents the frozen RSM margin as **RSM — Experimental** winner and directional ATS projections when a user supplies a market spread. This presentation path is separate from Stage 7C/8 research eligibility. It does not change pins, coefficients, feature definitions, anomaly thresholds, historical artifacts, or the shadow ledger.
 
+- RSM — Experimental now also presents the separately versioned frozen `RSM-v2 Stage7B Total diagnostic (experimental)` projection whenever its 18 frozen display inputs are available. A bookmaker total is optional for displaying that projection; without one, total edge and O/U direction are unavailable. The model never uses the bookmaker total as an input.
+- A token-gated **Record RSM Total Observation** control appends a separate immutable companion ledger record. It preserves the total model version, exact ordered feature vector, snapshot/input provenance, manually entered book/source, market/receipt timestamps, and operator-entered game type. It never changes existing spread-ledger records or hashes.
+- Total grading is separate from capture and spread grading. Its predeclared policy is `FIRST_RECORDED_PRE_KICKOFF_TOTAL_OBSERVATION_PER_GAME`; repeated captures remain auditable but cannot become independent graded games. Reports provide total MAE, RMSE, O/U wins/losses/pushes, eligible games, accuracy excluding pushes, Wilson 95% interval, and regular-season/playoff splits when outcomes are recorded.
+
 ## Current
+
+- The total diagnostic is independently evaluated from the exact ordered 18-feature Stage 7B display vector and is separately versioned. Its stored validation MAE is `10.928235251004573` (displayed as 10.928); the earlier 10.925 reference was not found in current artifacts and is treated as stale rounding/typographical documentation, not a refit discrepancy. No artifact was refit or modified.
 
 - Stage 8B public-source infrastructure is complete for a bounded release. Frozen pins pass and the empty ledger is valid, but prospective capture is not operational because the public-source gates still fail: no enabled identifiable pre-kickoff market spread source, no complete all-18-feature prospective provider, no complete pre-kickoff lineup/inactive provider, and only 20.40% explicit Sleeper-to-GSIS coverage against the 95% threshold.
 - Stage 8 remains research-only: it has no scheduler, network poller, or automated wagering. Manual capture is disabled until `RSM_MANUAL_CAPTURE_TOKEN` is configured; use the persistent host disk through `RSM_SHADOW_DATA_DIR`. The display's LOW/unverified lineup state prevents a manual display capture from qualifying as a Stage 7C anomaly, even though it can be graded prospectively for descriptive research.
@@ -74,8 +80,8 @@
 - The current explicit Sleeper-to-GSIS crosswalk matches 546 of 2,676 active/team/position records, with zero ambiguous matches and 2,130 unmatched records. Overall coverage is 20.40%, below the 95% readiness threshold.
 - ESPN's public scoreboard parser is fixture-tested but not enabled for live retrieval because the JSON interface is unofficial and access terms are uncertain. Yahoo live automation is policy-blocked. NFL.com injury evidence is fixture-only until an expressly permitted public feed is identified.
 - `DERIVED_CONSENSUS` is supported as a separately labeled Stage 8 market kind for future fixture/rehearsal data, distinct from provider-published `CONSENSUS`.
-- The RSM display adapter has no compatible frozen total output. It explicitly reports O/U unavailable rather than borrowing a total from another model. Its supplied spread has no verified source, observation time, or prospective lineup confidence unless a future permitted source provides them.
-- RSM display projections are not calibrated probabilities and have no established betting advantage. A zero margin or zero margin-versus-market difference produces no directional winner or ATS projection.
+- The RSM display total is a separate Stage 7B diagnostic artifact, not a score total inferred from its margin model and not a total borrowed from another predictor. It remains experimental, has no calibrated confidence, and shows no O/U direction without an entered bookmaker total. Manual total market entries are explicitly `MANUAL_UNVERIFIED`; they do not independently prove the bookmaker's offer time or support closing-line value.
+- RSM display projections are not calibrated probabilities and have no established betting advantage. A zero margin, zero margin-versus-market difference, or zero total-versus-market difference produces no directional projection.
 - Manual outcome entry requires a nonempty source and may be recorded only after kickoff, but no provider independently verifies a manual final-score claim. One immutable outcome record is accepted per game; corrections require external audited reconciliation rather than altering a record.
 
 ## Test results
@@ -87,6 +93,7 @@
 - `python -m pytest backend/test_rsm.py backend/test_nfl_predictor.py -q`: 75 passed.
 - `python -m pytest backend/test_rsm_stage8b.py -q`: 18 passed.
 - `python -m pytest backend/test_rsm_stage8b.py backend/test_rsm.py backend/test_nfl_predictor.py -q`: 93 passed.
+- `python -m pytest backend/test_rsm_total_observations.py backend/test_nfl_predictor.py -q`: 16 passed, covering independent total display, zero-edge abstention, O/U signs, whole-number pushes, half-point totals, late/missing-input rejection, immutable total-ledger triggers, and primary-observation reporting.
 - `python -m compileall -q backend/rsm`: passed.
 - `python -m rsm stage8a-baseline`: passed; frozen model/rules/definition hashes match and ledger remains `GENESIS` with zero observations.
 - `python -m rsm stage8b-source-audit`: passed as a read-only audit; `ready_for_genuine_prospective_writes` is false and ledger writes remain zero.

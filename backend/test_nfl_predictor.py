@@ -106,8 +106,8 @@ def test_rsm_profile_maps_frozen_margin_to_experimental_winner_and_ats_projectio
     )
 
     assert prediction["model"] == "rsm_stage7c"
-    assert prediction["pred_total"] is None
-    assert prediction["total_pick"] is None
+    assert prediction["pred_total"] is not None
+    assert prediction["total_pick"] in {"over", "under", None}
     assert prediction["total_line"] is None
     assert prediction["market_margin"] == 3.0
     assert prediction["spread_edge"] == pytest.approx(prediction["pred_margin"] - 3.0)
@@ -116,7 +116,8 @@ def test_rsm_profile_maps_frozen_margin_to_experimental_winner_and_ats_projectio
     assert prediction["spread_pick"] == ("home" if prediction["spread_edge"] > 0 else "away")
     assert prediction["market_source"] == "manual_test_source"
     assert prediction["market_observed_at"] == "2026-09-13T12:00:00Z"
-    assert prediction["lineup_confidence"] is None
+    assert prediction["lineup_confidence"] == "LOW"
+    assert prediction["total_model_version"] == "RSM-v2 Stage7B Total diagnostic (experimental)"
     assert prediction["model_notes"]
 
 
@@ -128,7 +129,7 @@ def test_rsm_spread_sign_convention_and_exact_tie_abstention():
     assert side_from_edge(0.0, threshold=0.0) is None
 
 
-def test_rsm_missing_market_line_has_no_ats_projection_or_total():
+def test_rsm_missing_market_line_has_no_ats_projection_or_total_pick():
     prediction = predict_matchup(
         [_graded_game(2025, "KC", "PHI"), _graded_game(2026, "KC", "PHI")],
         away_team="KC",
@@ -139,8 +140,20 @@ def test_rsm_missing_market_line_has_no_ats_projection_or_total():
     assert prediction["market_margin"] is None
     assert prediction["spread_edge"] is None
     assert prediction["spread_pick"] is None
-    assert prediction["pred_total"] is None
+    assert prediction["pred_total"] is not None
     assert prediction["total_pick"] is None
+
+
+def test_rsm_total_is_independent_of_market_total_and_grades_edge_at_zero():
+    games = [_graded_game(2025, "KC", "PHI"), _graded_game(2026, "KC", "PHI")]
+    without_line = predict_matchup(games, "KC", "PHI", model_profile="rsm_stage7c")
+    with_line = predict_matchup(games, "KC", "PHI", total_line=without_line["pred_total"], model_profile="rsm_stage7c")
+
+    assert without_line["pred_total"] == pytest.approx(with_line["pred_total"])
+    assert without_line["total_edge"] is None
+    assert without_line["total_pick"] is None
+    assert with_line["total_edge"] == pytest.approx(0.0)
+    assert with_line["total_pick"] is None
 
 
 def test_rsm_missing_snapshot_team_fails_instead_of_fabricating_features():

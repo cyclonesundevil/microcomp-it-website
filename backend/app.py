@@ -32,8 +32,8 @@ from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from quart import Response
 from nfl_live_data import live_scoreboard
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, RsmStage7CComparisonModel, dashboard_snapshot, default_spread_threshold, default_total_threshold, games_cache_info, list_teams, load_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
-from rsm.stage8_evaluation import DEFAULT_OUTCOME_STORE, evaluation_report, record_outcome
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, RsmStage7CComparisonModel, _rsm_artifact, dashboard_snapshot, default_spread_threshold, default_total_threshold, games_cache_info, list_teams, load_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
+from rsm.stage8_evaluation import DEFAULT_OUTCOME_STORE, DEFAULT_TOTAL_OBSERVATION_STORE, TOTAL_MODEL_VERSION, capture_total_observation, evaluation_report, record_outcome, total_evaluation_report
 from rsm.stage8_shadow import DEFAULT_STORE as RSM_DEFAULT_STORE, capture_observation, line_movements
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
@@ -54,6 +54,11 @@ def rsm_shadow_paths():
     if root:
         return Path(root) / "stage8-shadow.sqlite3", Path(root) / "stage8-outcomes.sqlite3"
     return RSM_DEFAULT_STORE, DEFAULT_OUTCOME_STORE
+
+
+def rsm_total_observation_store():
+    root = os.getenv("RSM_SHADOW_DATA_DIR") or ("/data/rsm-shadow" if os.path.isdir("/data") else "")
+    return Path(root) / "stage8-total-observations.sqlite3" if root else DEFAULT_TOTAL_OBSERVATION_STORE
 
 
 def rsm_manual_write_authorized():
@@ -1777,6 +1782,54 @@ async def nfl_record_rsm_observation():
         observation_store, _ = rsm_shadow_paths()
         result = await asyncio.to_thread(capture_observation, payload, observation_store, Path(base_dir).parent / "reports", now)
         result.update({"success": True, "manual_market_entry": True, "market_verification": "operator-entered; bookmaker offer time is not independently verified", "prediction": {"model": RSM_PROFILE, "pred_margin": details["predicted_margin"]}})
+        return jsonify(result)
+    except ValueError as error:
+        return jsonify({"success": False, "error": str(error)}), 400
+    except Exception as error:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(error)}), 500
+
+
+@app.route("/api/nfl/rsm-total-observations", methods=["GET"])
+async def nfl_rsm_total_observations():
+    _, outcome_store = rsm_shadow_paths()
+    report = await asyncio.to_thread(total_evaluation_report, rsm_total_observation_store(), outcome_store)
+    return jsonify({"success": True, "report": report})
+
+
+@app.route("/api/nfl/rsm-total-observations", methods=["POST"])
+async def nfl_record_rsm_total_observation():
+    if not rsm_manual_write_authorized():
+        return jsonify({"success": False, "error": "Manual RSM recording is disabled or the operator token is invalid."}), 403
+    try:
+        body = await request.get_json()
+        expected = {"away_team", "home_team", "total_line", "sportsbook", "market_source", "kickoff", "season", "week", "game_type"}
+        if not isinstance(body, dict) or set(body) != expected:
+            return jsonify({"success": False, "error": "Total observation requires away_team, home_team, total_line, sportsbook, market_source, kickoff, season, week, and game_type."}), 400
+        away_team, home_team = str(body["away_team"]).upper().strip(), str(body["home_team"]).upper().strip()
+        now = datetime.datetime.now(datetime.UTC)
+        kickoff = datetime.datetime.fromisoformat(str(body["kickoff"]).replace("Z", "+00:00"))
+        if kickoff.tzinfo is None or kickoff.utcoffset() is None:
+            return jsonify({"success": False, "error": "kickoff must include a timezone offset."}), 400
+        kickoff = kickoff.astimezone(datetime.UTC)
+        if now >= kickoff:
+            return jsonify({"success": False, "error": "Total observations must be recorded strictly before kickoff."}), 400
+        if not away_team or not home_team or away_team == home_team or not str(body["sportsbook"]).strip() or not str(body["market_source"]).strip():
+            return jsonify({"success": False, "error": "Teams, a sportsbook, and a market source are required."}), 400
+        total_line = float(body["total_line"])
+        details = RsmStage7CComparisonModel().prediction_details({"away_team": away_team, "home_team": home_team, "home_rest": 7.0, "away_rest": 7.0})
+        timestamp = now.isoformat().replace("+00:00", "Z")
+        payload = {
+            "game_id": f"{int(body['season'])}_{int(body['week']):02d}_{away_team}_{home_team}", "season": int(body["season"]), "week": int(body["week"]),
+            "game_type": str(body["game_type"]).upper(), "kickoff": kickoff.isoformat().replace("+00:00", "Z"), "away_team": away_team, "home_team": home_team,
+            "predicted_total": details["predicted_total"], "market_total": total_line, "sportsbook": str(body["sportsbook"]).strip(),
+            "market_source": f"MANUAL_UNVERIFIED: {str(body['market_source']).strip()}", "market_observed_at": timestamp,
+            "features": details["features"], "feature_names": _rsm_artifact()["feature_names"], "features_as_of": details["features_as_of"],
+            "features_source": details["features_source"], "lineup_confidence": details["lineup_confidence"], "lineup_source": details["lineup_source"],
+            "total_model_version": TOTAL_MODEL_VERSION,
+        }
+        result = await asyncio.to_thread(capture_total_observation, payload, rsm_total_observation_store(), now)
+        result.update({"success": True, "manual_market_entry": True, "market_verification": "operator-entered; bookmaker offer time is not independently verified", "prediction": {"model": RSM_PROFILE, "pred_total": details["predicted_total"], "total_model_version": TOTAL_MODEL_VERSION}})
         return jsonify(result)
     except ValueError as error:
         return jsonify({"success": False, "error": str(error)}), 400

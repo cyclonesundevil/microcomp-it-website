@@ -47,10 +47,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const rsmKickoff = document.getElementById('rsm-kickoff');
     const rsmSeason = document.getElementById('rsm-season');
     const rsmWeek = document.getElementById('rsm-week');
+    const rsmGameType = document.getElementById('rsm-game-type');
     const rsmSportsbook = document.getElementById('rsm-sportsbook');
     const rsmMarketSource = document.getElementById('rsm-market-source');
     const rsmOperatorToken = document.getElementById('rsm-operator-token');
     const rsmRecordStatus = document.getElementById('rsm-record-status');
+    const rsmRecordTotal = document.getElementById('rsm-record-total');
     const historyNote = document.getElementById('history-note');
     const historyTableBody = document.getElementById('history-table-body');
     let dashboardRefreshTimer = null;
@@ -198,7 +200,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ? ` Market: ${prediction.market_source}, observed ${prediction.market_observed_at}.`
             : ' Market source and observation time unavailable.';
         const noteEdge = rsm ? spreadEdge : prediction.spread_edge.toFixed(1);
-        matchupNote.textContent = `Trained through ${prediction.latest_training_season}. Spread edge ${noteEdge}, total edge ${totalEdge}.${rsm ? marketProvenance : ''}${notes}`;
+        const totalVersion = rsm && prediction.total_model_version ? ` Total model: ${prediction.total_model_version}.` : '';
+        matchupNote.textContent = `Trained through ${prediction.latest_training_season}. Spread edge ${noteEdge}, total edge ${totalEdge}.${rsm ? marketProvenance : ''}${totalVersion}${notes}`;
     }
 
     function applyModelPresentation() {
@@ -208,8 +211,8 @@ document.addEventListener('DOMContentLoaded', () => {
             spreadLine.value = '';
             spreadLine.placeholder = 'Enter sourced home spread';
             totalLine.value = '';
-            totalLine.placeholder = 'O/U unavailable for RSM';
-            totalLine.disabled = true;
+            totalLine.placeholder = 'Enter sourced bookmaker total';
+            totalLine.disabled = false;
         } else {
             if (spreadLine.value === '') spreadLine.value = '0';
             if (totalLine.value === '') totalLine.value = '44.5';
@@ -531,6 +534,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 : `Recorded ${data.event_id}. Market line is marked manual/unverified.`;
         } catch (error) {
             rsmRecordStatus.textContent = `Not recorded: ${error.message}`;
+        }
+    });
+
+    rsmRecordTotal?.addEventListener('click', async () => {
+        if (state.model !== 'rsm_stage7c') return;
+        if (totalLine.value === '') {
+            rsmRecordStatus.textContent = 'Enter a sourced bookmaker total before recording.';
+            return;
+        }
+        const kickoff = new Date(rsmKickoff.value);
+        if (Number.isNaN(kickoff.getTime())) {
+            rsmRecordStatus.textContent = 'Enter a valid kickoff time.';
+            return;
+        }
+        rsmRecordStatus.textContent = 'Recording immutable pre-kickoff total observation...';
+        try {
+            const response = await fetch(`${apiBase}/api/nfl/rsm-total-observations`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-RSM-Manual-Token': rsmOperatorToken.value },
+                body: JSON.stringify({
+                    away_team: awayTeam.value, home_team: homeTeam.value,
+                    total_line: Number(totalLine.value), sportsbook: rsmSportsbook.value,
+                    market_source: rsmMarketSource.value, kickoff: kickoff.toISOString(),
+                    season: Number(rsmSeason.value), week: Number(rsmWeek.value), game_type: rsmGameType.value
+                })
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.error || 'Total observation was not recorded');
+            rsmRecordStatus.textContent = data.duplicate
+                ? `Total already recorded: ${data.event_id}.`
+                : `Total recorded ${data.event_id}. Model inputs and manual/unverified market provenance were preserved.`;
+        } catch (error) {
+            rsmRecordStatus.textContent = `Total not recorded: ${error.message}`;
         }
     });
 
