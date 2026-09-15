@@ -267,6 +267,40 @@ def load_games(
     return games
 
 
+def load_upcoming_games(season: Optional[int] = None, week: Optional[int] = None) -> List[dict]:
+    """Load scheduled regular-season games that do not yet have final scores."""
+    with urllib.request.urlopen(GAMES_URL, timeout=60) as response:
+        rows = list(csv.DictReader(io.TextIOWrapper(response, encoding="utf-8-sig")))
+
+    target_season = season or max(int(row["season"]) for row in rows if row.get("season"))
+    completed_weeks = [
+        int(row["week"])
+        for row in rows
+        if row.get("game_type") == "REG"
+        and int(row.get("season", 0)) == target_season
+        and row.get("week")
+        and row.get("away_score") not in (None, "")
+        and row.get("home_score") not in (None, "")
+    ]
+    target_week = week or (max(completed_weeks) + 1 if completed_weeks else 1)
+    upcoming = []
+    for row in rows:
+        if row.get("game_type") != "REG" or int(row.get("season", 0)) != target_season or int(row.get("week", 0)) != target_week:
+            continue
+        if row.get("away_score") not in (None, "") or row.get("home_score") not in (None, ""):
+            continue
+        upcoming.append({
+            "game_id": row.get("game_id"), "season": target_season, "week": target_week,
+            "gameday": row.get("gameday") or "", "gametime": row.get("gametime") or "",
+            "away_team": row.get("away_team") or "", "home_team": row.get("home_team") or "",
+            "spread_line": _to_float(row.get("spread_line")), "total_line": _to_float(row.get("total_line")),
+            "away_rest": _to_float(row.get("away_rest")) or 7.0, "home_rest": _to_float(row.get("home_rest")) or 7.0,
+            "div_game": _to_bool(row.get("div_game")), "roof": (row.get("roof") or "").strip().lower(),
+            "temp": _to_float(row.get("temp")), "wind": _to_float(row.get("wind")),
+        })
+    return upcoming
+
+
 @dataclass
 class TeamState:
     margin_rating: float = 0.0

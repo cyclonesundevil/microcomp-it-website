@@ -32,7 +32,7 @@ from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from quart import Response
 from nfl_live_data import live_scoreboard
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _rsm_artifact, dashboard_snapshot, default_spread_threshold, default_total_threshold, games_cache_info, list_teams, load_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _rsm_artifact, dashboard_snapshot, default_spread_threshold, default_total_threshold, games_cache_info, list_teams, load_games, load_upcoming_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
 from rsm.stage8_evaluation import DEFAULT_OUTCOME_STORE, DEFAULT_TOTAL_OBSERVATION_STORE, TOTAL_MODEL_VERSION, capture_total_observation, evaluation_report, record_outcome, total_evaluation_report
 from rsm.stage8_shadow import DEFAULT_STORE as RSM_DEFAULT_STORE, capture_observation, line_movements
 
@@ -1774,6 +1774,42 @@ async def nfl_predict():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/nfl/upcoming")
+async def nfl_upcoming():
+    try:
+        requested_week = request.args.get("week")
+        requested_season = request.args.get("season")
+        week = int(requested_week) if requested_week else None
+        season = int(requested_season) if requested_season else None
+        games, cache = await load_nfl_games_for_request()
+        upcoming = await asyncio.to_thread(load_upcoming_games, season, week)
+        rows = []
+        for scheduled in upcoming:
+            models = {}
+            for model in MODEL_PROFILES:
+                models[model] = await asyncio.to_thread(
+                    predict_matchup,
+                    games,
+                    scheduled["away_team"], scheduled["home_team"],
+                    scheduled["spread_line"], scheduled["total_line"], model,
+                    scheduled["home_rest"], scheduled["away_rest"], scheduled["div_game"],
+                    scheduled["roof"], scheduled["temp"], scheduled["wind"],
+                )
+            rows.append({"schedule": scheduled, "models": models})
+        return jsonify({
+            "success": True, "source": GAMES_URL, "cache": cache,
+            "season": upcoming[0]["season"] if upcoming else season,
+            "week": upcoming[0]["week"] if upcoming else week,
+            "models": list(MODEL_PROFILES), "games": rows,
+            "market_note": "Market lines are included only when published in the schedule feed; no missing line is inferred.",
+        })
+    except ValueError as error:
+        return jsonify({"success": False, "error": str(error)}), 400
+    except Exception as error:
+        app.logger.exception("Upcoming NFL batch prediction failed")
+        return jsonify({"success": False, "error": str(error)}), 502
 
 
 @app.route("/api/nfl/rsm-observations", methods=["GET"])

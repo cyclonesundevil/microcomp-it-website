@@ -161,6 +161,26 @@
             </div>
         </section>
 
+        <section class="nfl-dashboard-section upcoming-section">
+            <div class="section-heading">
+                <h2>Upcoming Week: All Algorithms</h2>
+                <p>Run every model against the next scheduled games. Market lines appear only when published in the schedule feed.</p>
+                <button class="btn-secondary" id="load-upcoming" type="button">Refresh Upcoming Predictions</button>
+            </div>
+            <div id="upcoming-message" class="nfl-message">Loading upcoming games...</div>
+            <div class="nfl-table-wrap">
+                <table class="nfl-table upcoming-table">
+                    <thead>
+                        <tr>
+                            <th>Game</th><th>Market</th><th>Baseline</th><th>Enhanced</th>
+                            <th>Market Blend</th><th>Rothstein</th><th>Rothstein+</th><th>RSM</th>
+                        </tr>
+                    </thead>
+                    <tbody id="upcoming-table-body"><tr><td colspan="8">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </section>
+
         <section class="nfl-predict-section">
             <div class="section-heading">
                 <h2>Matchup Predictor</h2>
