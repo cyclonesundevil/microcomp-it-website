@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dashboardTopPlayoff = document.getElementById('dashboard-top-playoff');
     const dashboardTopGrid = document.getElementById('dashboard-top-grid');
     const dashboardTableBody = document.getElementById('dashboard-table-body');
+    const dashboardContextHeader = document.getElementById('dashboard-context-header');
     const injuryTeam = document.getElementById('injury-team');
     const injuryPosition = document.getElementById('injury-position');
     const injuryImpact = document.getElementById('injury-impact');
@@ -227,6 +228,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const teams = dashboard.teams || [];
         const topTeams = dashboard.top_teams || teams.slice(0, 8);
         const top = teams[0];
+        const isRsm = dashboard.model === 'rsm_stage7c';
+
+        dashboardContextHeader.textContent = isRsm ? 'Roster Confidence' : 'Recent Margin';
 
         dashboardMessage.textContent = dashboard.playoff_mode
             ? `${dashboard.season} playoff mode after week ${dashboard.completed_week}. Neutral-site, recent-form, and expected-point-edge weights are emphasized.`
@@ -265,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${pct(team.neutral_win_probability)}</td>
                 <td>${pct(team.playoff_odds)}</td>
                 <td>${team.injury_adjustment ? `-${Number(team.injury_adjustment).toFixed(1)}` : '--'}</td>
-                <td>${signed(team.recent_margin)}</td>
+                <td>${isRsm ? (team.lineup_confidence || '--') : signed(team.recent_margin)}</td>
             </tr>
         `).join('');
     }
