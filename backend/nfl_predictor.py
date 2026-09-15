@@ -1,9 +1,12 @@
 import argparse
 import csv
+import io
 import json
 import os
 import math
 import statistics
+import tempfile
+import threading
 import time
 import urllib.request
 from datetime import datetime, timezone
@@ -76,6 +79,66 @@ INJURY_PROFILES = {
         "strength_factor": 0.55,
     },
 }
+
+_GAMES_REFRESH_LOCK = threading.Lock()
+_REQUIRED_GAMES_COLUMNS = {
+    "game_id", "season", "week", "game_type", "away_team", "home_team",
+    "away_score", "home_score", "spread_line", "total_line",
+}
+
+
+class GamesRefreshAlreadyRunning(RuntimeError):
+    """Raised when a second process-local refresh overlaps the active refresh."""
+
+
+def _validate_games_csv(content: bytes) -> int:
+    """Reject an incomplete or non-CSV response before replacing the good cache."""
+    try:
+        text = content.decode("utf-8-sig")
+    except UnicodeDecodeError as error:
+        raise ValueError("The nflverse games feed was not valid UTF-8.") from error
+
+    reader = csv.DictReader(io.StringIO(text))
+    missing = sorted(_REQUIRED_GAMES_COLUMNS - set(reader.fieldnames or ()))
+    if missing:
+        raise ValueError(f"The nflverse games feed is missing required columns: {', '.join(missing)}")
+    row_count = sum(1 for row in reader if any(str(value or "").strip() for value in row.values()))
+    if row_count == 0:
+        raise ValueError("The nflverse games feed contained no data rows.")
+    return row_count
+
+
+def refresh_games(cache_path: str = DEFAULT_CACHE_PATH) -> str:
+    """Atomically replace the nflverse cache after validating the downloaded CSV."""
+    if not _GAMES_REFRESH_LOCK.acquire(blocking=False):
+        raise GamesRefreshAlreadyRunning("An NFL data refresh is already running.")
+
+    temporary_path = None
+    try:
+        cache_directory = os.path.dirname(cache_path)
+        os.makedirs(cache_directory, exist_ok=True)
+        with urllib.request.urlopen(GAMES_URL, timeout=60) as response:
+            content = response.read()
+        _validate_games_csv(content)
+
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            prefix="nfl_games_",
+            suffix=".csv.tmp",
+            dir=cache_directory,
+            delete=False,
+        ) as temporary_file:
+            temporary_path = temporary_file.name
+            temporary_file.write(content)
+            temporary_file.flush()
+            os.fsync(temporary_file.fileno())
+        os.replace(temporary_path, cache_path)
+        temporary_path = None
+        return cache_path
+    finally:
+        if temporary_path and os.path.exists(temporary_path):
+            os.unlink(temporary_path)
+        _GAMES_REFRESH_LOCK.release()
 
 
 def _to_float(value: str) -> Optional[float]:
@@ -155,10 +218,7 @@ def download_games(
     age_seconds = _cache_age_seconds(cache_path)
     should_refresh = refresh or age_seconds is None or (ttl_seconds > 0 and age_seconds > ttl_seconds)
     if should_refresh:
-        with urllib.request.urlopen(GAMES_URL, timeout=60) as response:
-            content = response.read()
-        with open(cache_path, "wb") as f:
-            f.write(content)
+        refresh_games(cache_path)
     return cache_path
 
 

@@ -32,7 +32,7 @@ from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from quart import Response
 from nfl_live_data import live_scoreboard
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, RsmStage7CComparisonModel, _rsm_artifact, dashboard_snapshot, default_spread_threshold, default_total_threshold, games_cache_info, list_teams, load_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _rsm_artifact, dashboard_snapshot, default_spread_threshold, default_total_threshold, games_cache_info, list_teams, load_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
 from rsm.stage8_evaluation import DEFAULT_OUTCOME_STORE, DEFAULT_TOTAL_OBSERVATION_STORE, TOTAL_MODEL_VERSION, capture_total_observation, evaluation_report, record_outcome, total_evaluation_report
 from rsm.stage8_shadow import DEFAULT_STORE as RSM_DEFAULT_STORE, capture_observation, line_movements
 
@@ -64,6 +64,12 @@ def rsm_total_observation_store():
 def rsm_manual_write_authorized():
     token = os.getenv("RSM_MANUAL_CAPTURE_TOKEN", "").strip()
     supplied = request.headers.get("X-RSM-Manual-Token", "")
+    return bool(token) and hmac.compare_digest(token, supplied)
+
+
+def nfl_data_refresh_authorized():
+    token = os.getenv("NFL_DATA_REFRESH_TOKEN", "").strip()
+    supplied = request.headers.get("X-NFL-Refresh-Token", "")
     return bool(token) and hmac.compare_digest(token, supplied)
 
 NOINDEX_PATHS = {
@@ -1650,6 +1656,38 @@ async def nfl_backtest():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/nfl/refresh", methods=["POST"])
+async def nfl_refresh():
+    """Refresh nflverse data inside the production web service's own filesystem."""
+    if not nfl_data_refresh_authorized():
+        return jsonify({"success": False, "error": "NFL data refresh is disabled or the token is invalid."}), 403
+    try:
+        games = await asyncio.to_thread(load_games, refresh=True)
+        cache = games_cache_info()
+        latest_season = max(game["season"] for game in games)
+        latest_week = max(game["week"] for game in games if game["season"] == latest_season)
+        app.logger.info(
+            "NFL data refresh completed from nflverse: %s graded regular-season games through %s week %s",
+            len(games),
+            latest_season,
+            latest_week,
+        )
+        return jsonify({
+            "success": True,
+            "source": GAMES_URL,
+            "cache": cache,
+            "graded_regular_season_games": len(games),
+            "latest_season": latest_season,
+            "latest_week": latest_week,
+        })
+    except GamesRefreshAlreadyRunning as error:
+        app.logger.warning("NFL data refresh skipped because another refresh is running")
+        return jsonify({"success": False, "error": str(error)}), 409
+    except Exception as error:
+        app.logger.exception("NFL data refresh failed")
+        return jsonify({"success": False, "error": str(error)}), 502
 
 @app.route("/api/nfl/teams")
 async def nfl_teams():

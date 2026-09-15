@@ -72,6 +72,23 @@ Force-refresh the website API cache from a browser or script:
 /api/nfl/backtest?seasons=10&model=baseline&refresh=true
 ```
 
+## Production Tuesday refresh
+
+Production refreshes the nflverse feed every Tuesday at 6:00 AM America/Phoenix
+(13:00 UTC) through `.github/workflows/nfl-data-refresh.yml`. The scheduler calls
+the production web service so the data is replaced in that service's own cache.
+The download is validated and atomically installed; a malformed response leaves
+the previous cache intact, and overlapping refreshes are rejected.
+
+Configure the same random value in both secret stores:
+
+- Render web-service environment variable: `NFL_DATA_REFRESH_TOKEN`
+- GitHub repository Actions secret: `NFL_DATA_REFRESH_TOKEN`
+
+The default production endpoint is `https://www.microcompit.com/api/nfl/refresh`.
+Set the GitHub Actions repository variable `NFL_REFRESH_URL` only if the public
+production URL changes. The workflow can also be run manually from Actions.
+
 ## Website Demo
 
 The website exposes a demo page at:

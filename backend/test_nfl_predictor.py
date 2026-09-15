@@ -5,12 +5,62 @@ from nfl_predictor import (
     MarketBlendNFLModel,
     RsmStage7CComparisonModel,
     _rsm_artifact,
+    _validate_games_csv,
+    download_games,
     list_teams,
     predict_matchup,
     run_backtest,
     side_from_edge,
     summarize,
 )
+
+
+def _feed_csv(rows=None):
+    if rows is None:
+        rows = ["2026_01_KC_BUF,2026,1,REG,KC,BUF,20,24,3.0,47.5"]
+    header = "game_id,season,week,game_type,away_team,home_team,away_score,home_score,spread_line,total_line"
+    return (header + "\n" + "\n".join(rows) + "\n").encode()
+
+
+class _FeedResponse:
+    def __init__(self, content):
+        self.content = content
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def read(self):
+        return self.content
+
+
+def test_forced_refresh_validates_and_atomically_replaces_cache(tmp_path, monkeypatch):
+    cache_path = tmp_path / "nfl_games.csv"
+    cache_path.write_bytes(b"previous-good-cache")
+    monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: _FeedResponse(_feed_csv()))
+
+    assert download_games(str(cache_path), refresh=True) == str(cache_path)
+    assert cache_path.read_bytes() == _feed_csv()
+    assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_invalid_refresh_preserves_previous_cache(tmp_path, monkeypatch):
+    cache_path = tmp_path / "nfl_games.csv"
+    cache_path.write_bytes(b"previous-good-cache")
+    monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: _FeedResponse(b"not,the,nfl,feed\n1,2,3,4\n"))
+
+    with pytest.raises(ValueError, match="missing required columns"):
+        download_games(str(cache_path), refresh=True)
+
+    assert cache_path.read_bytes() == b"previous-good-cache"
+    assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_feed_validation_rejects_header_only_response():
+    with pytest.raises(ValueError, match="no data rows"):
+        _validate_games_csv(_feed_csv(rows=[]))
 
 
 def _game(season, away_team, home_team):
