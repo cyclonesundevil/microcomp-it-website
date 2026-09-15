@@ -1,0 +1,52 @@
+name: Refresh production NFL data
+
+on:
+  schedule:
+    # Arizona stays on UTC-7 year-round: Tuesday 06:00 America/Phoenix.
+    - cron: "0 13 * * 2"
+  workflow_dispatch:
+
+concurrency:
+  group: production-nfl-data-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      REFRESH_URL: ${{ vars.NFL_REFRESH_URL || 'https://www.microcompit.com/api/nfl/refresh' }}
+    steps:
+      - name: Refresh nflverse cache in production
+        shell: bash
+        env:
+          REFRESH_TOKEN: ${{ secrets.NFL_DATA_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$REFRESH_TOKEN"
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+          curl --fail-with-body --silent --show-error \
+            --retry 2 --retry-all-errors --retry-delay 10 \
+            --request POST \
+            --header "X-NFL-Refresh-Token: $REFRESH_TOKEN" \
+            --output "$response_file" \
+            "$REFRESH_URL"
+          python - "$response_file" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          payload = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          if payload.get("success") is not True:
+              raise SystemExit(f"Production NFL refresh did not succeed: {payload}")
+          print(
+              "Production NFL refresh completed:",
+              payload.get("graded_regular_season_games"),
+              "graded games through",
+              f"{payload.get('latest_season')} week {payload.get('latest_week')}",
+          )
+          PY
