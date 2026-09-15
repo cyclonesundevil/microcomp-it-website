@@ -9,6 +9,7 @@ from rsm.stage8_shadow import frozen_manifest
 from rsm.stage8b_public_sources import (
     ESPN_SCOREBOARD_URL,
     FIXTURE_ROOT,
+    ApiSportsNflHttpClient,
     PublicHttpClient,
     CredentialedMarketHttpClient,
     PublicSourceError,
@@ -16,6 +17,7 @@ from rsm.stage8b_public_sources import (
     RateLimiter,
     assert_public_request,
     assert_market_request,
+    assert_api_sports_request,
     audit_public_sources,
     build_id_crosswalk,
     derive_consensus,
@@ -30,6 +32,10 @@ from rsm.stage8b_public_sources import (
     response_hash,
     sports_game_odds_market_dry_run,
     sports_game_odds_request_url,
+    api_sports_nfl_capability_url,
+    api_sports_nfl_dry_run,
+    local_api_sports_key,
+    local_sports_game_odds_key,
 )
 
 
@@ -175,6 +181,40 @@ def test_stage8b_opt_in_market_transport_is_key_free_by_default(monkeypatch, tmp
         assert_market_request({"User-Agent": "research"})
     with pytest.raises(PublicSourceError, match="required"):
         CredentialedMarketHttpClient(tmp_path).get_sports_game_odds_nfl_spreads("")
+
+
+def test_stage8b_api_sports_capability_audit_is_disabled_without_a_key(monkeypatch, tmp_path):
+    monkeypatch.delenv("RSM_STAGE8B_APISPORTS_API_KEY", raising=False)
+    monkeypatch.setattr("rsm.stage8b_public_sources.local_api_sports_key", lambda: "")
+    result = api_sports_nfl_dry_run(tmp_path, season=2026)
+    assert result["enabled"] is False and result["ledger_writes"] == 0
+    assert "2026" in api_sports_nfl_capability_url(2026)
+    assert_api_sports_request({"User-Agent": "research", "x-apisports-key": "not-logged"})
+    with pytest.raises(PublicSourceError, match="x-apisports-key"):
+        assert_api_sports_request({"User-Agent": "research"})
+    with pytest.raises(PublicSourceError, match="required"):
+        ApiSportsNflHttpClient(tmp_path).get_league_capability("", 2026)
+
+
+def test_stage8b_api_sports_key_reader_prefers_environment_and_supports_quotes(monkeypatch, tmp_path):
+    dotenv_path = tmp_path / ".env"
+    dotenv_path.write_text("RSM_STAGE8B_APISPORTS_API_KEY='from-file'\n", encoding="utf-8")
+    monkeypatch.delenv("RSM_STAGE8B_APISPORTS_API_KEY", raising=False)
+    assert local_api_sports_key(dotenv_path) == "from-file"
+    monkeypatch.setenv("RSM_STAGE8B_APISPORTS_API_KEY", "from-environment")
+    assert local_api_sports_key(dotenv_path) == "from-environment"
+    monkeypatch.delenv("RSM_STAGE8B_APISPORTS_API_KEY")
+    monkeypatch.setenv("API_SPORTS_KEY", "compatibility-name")
+    assert local_api_sports_key(dotenv_path) == "compatibility-name"
+
+
+def test_stage8b_sports_game_odds_key_reader_supports_ignored_dotenv(monkeypatch, tmp_path):
+    dotenv_path = tmp_path / ".env"
+    dotenv_path.write_text('RSM_STAGE8B_SPORTSGAMEODDS_API_KEY="from-file"\n', encoding="utf-8")
+    monkeypatch.delenv("RSM_STAGE8B_SPORTSGAMEODDS_API_KEY", raising=False)
+    assert local_sports_game_odds_key(dotenv_path) == "from-file"
+    monkeypatch.setenv("RSM_STAGE8B_SPORTSGAMEODDS_API_KEY", "from-environment")
+    assert local_sports_game_odds_key(dotenv_path) == "from-environment"
 
 
 def test_stage8b_rate_limit_and_bounded_http_retries(monkeypatch, tmp_path):

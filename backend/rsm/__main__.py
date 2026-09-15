@@ -45,6 +45,7 @@ from .stage8a_capture import (
     write_readiness_reports,
 )
 from .stage8b_public_sources import (
+    api_sports_nfl_dry_run,
     DEFAULT_PUBLIC_ROOT,
     audit_public_sources,
     public_health,
@@ -155,6 +156,10 @@ def main() -> None:
     stage8b_market = subparsers.add_parser("stage8b-market-dry-run", help="Explicitly fetch one credentialed NFL market response without ledger writes")
     stage8b_market.add_argument("--public-root", type=Path, default=DEFAULT_PUBLIC_ROOT)
     stage8b_market.add_argument("--timeout", type=float, default=15)
+    stage8b_api_sports = subparsers.add_parser("stage8b-apisports-dry-run", help="Explicitly audit local API-Sports NFL access without ledger writes")
+    stage8b_api_sports.add_argument("--public-root", type=Path, default=DEFAULT_PUBLIC_ROOT)
+    stage8b_api_sports.add_argument("--season", type=int)
+    stage8b_api_sports.add_argument("--timeout", type=float, default=15)
     stage8b_rehearsal = subparsers.add_parser("stage8b-rehearsal", help="Write a redacted fixture to an isolated rehearsal ledger")
     stage8b_rehearsal.add_argument("--fixture", type=Path, required=True)
     stage8b_rehearsal.add_argument("--store", type=Path, required=True)
@@ -322,6 +327,11 @@ def main() -> None:
             raise SystemExit(3)
     elif args.command == "stage8b-market-dry-run":
         result = sports_game_odds_market_dry_run(args.public_root, timeout=args.timeout)
+        print(json.dumps(result, indent=2))
+        if result["enabled"] and not result["accessed"]:
+            raise SystemExit(3)
+    elif args.command == "stage8b-apisports-dry-run":
+        result = api_sports_nfl_dry_run(args.public_root, season=args.season, timeout=args.timeout)
         print(json.dumps(result, indent=2))
         if result["enabled"] and not result["accessed"]:
             raise SystemExit(3)
