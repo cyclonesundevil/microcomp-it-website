@@ -2,7 +2,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 
 BACKEND_DIR = Path(__file__).resolve().parent
@@ -56,6 +56,24 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
                 headers={"X-NFL-Refresh-Token": "test-refresh-token"},
             )
         self.assertEqual(response.status_code, 409)
+
+    async def test_upcoming_runs_every_model_for_each_scheduled_game(self):
+        games = [{"season": 2026, "week": 1, "away_team": "KC", "home_team": "PHI"}]
+        scheduled = [{
+            "season": 2026, "week": 2, "away_team": "DAL", "home_team": "NYG",
+            "spread_line": None, "total_line": None, "home_rest": 7.0, "away_rest": 7.0,
+            "div_game": True, "roof": "outdoors", "temp": None, "wind": None,
+            "game_id": "2026_02_DAL_NYG", "gameday": "2026-09-20", "gametime": "13:00",
+        }]
+        with patch.object(app_module, "load_nfl_games_for_request", new=AsyncMock(return_value=(games, {"stale": False}))), \
+                patch.object(app_module, "load_upcoming_games", return_value=scheduled), \
+                patch.object(app_module, "predict_matchup", side_effect=lambda *args: {"model": args[5]}):
+            response = await self.client.get("/api/nfl/upcoming")
+        payload = await response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(payload["games"]), 1)
+        self.assertEqual(set(payload["games"][0]["models"]), set(app_module.MODEL_PROFILES))
 
 
 if __name__ == "__main__":
