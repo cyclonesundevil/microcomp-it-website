@@ -1,6 +1,8 @@
 import os
 import datetime
 import asyncio
+import threading
+import time
 from quart import Quart, request, jsonify, send_from_directory, websocket
 from quart_cors import cors, route_cors
 from google import genai
@@ -32,7 +34,7 @@ from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from quart import Response
 from nfl_live_data import live_scoreboard
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _rsm_artifact, dashboard_snapshot, default_spread_threshold, default_total_threshold, games_cache_info, list_teams, load_games, load_upcoming_games, matchup_history, predict_matchup, run_backtest, summarize_by_season
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _rsm_artifact, cached_backtest, cached_matchup_history, cached_upcoming_predictions, dashboard_snapshot, default_spread_threshold, default_total_threshold, games_cache_info, list_teams, load_games, predict_matchup, summarize_by_season
 from rsm.stage8_evaluation import DEFAULT_OUTCOME_STORE, DEFAULT_TOTAL_OBSERVATION_STORE, TOTAL_MODEL_VERSION, capture_total_observation, evaluation_report, record_outcome, total_evaluation_report
 from rsm.stage8_shadow import DEFAULT_STORE as RSM_DEFAULT_STORE, capture_observation, line_movements
 
@@ -46,6 +48,34 @@ except ZoneInfoNotFoundError:
     ARIZONA_TZ = datetime.timezone(datetime.timedelta(hours=-7), name="MST")
 
 app = Quart(__name__, static_folder=frontend_dir, static_url_path="")
+
+_DAILY_UPCOMING_CACHE_REFRESH_RUNNING = False
+
+
+def start_daily_upcoming_cache_refresh_loop():
+    """Schedule a daily background refresh so the all-model board is rebuilt outside request handling."""
+    global _DAILY_UPCOMING_CACHE_REFRESH_RUNNING
+    if _DAILY_UPCOMING_CACHE_REFRESH_RUNNING:
+        return
+
+    def _worker():
+        while True:
+            try:
+                games = load_games()
+                cached_upcoming_predictions(games, None, None, False)
+            except Exception:
+                app.logger.exception("Daily upcoming cache refresh failed")
+            time.sleep(24 * 60 * 60)
+
+    thread = threading.Thread(target=_worker, daemon=True, name="nfl-upcoming-cache-refresh")
+    _DAILY_UPCOMING_CACHE_REFRESH_RUNNING = True
+    thread.start()
+    return thread
+
+
+@app.before_serving
+async def _start_daily_upcoming_cache_refresh_on_startup():
+    start_daily_upcoming_cache_refresh_loop()
 
 
 def rsm_shadow_paths():
@@ -1620,8 +1650,8 @@ async def nfl_backtest():
         total_threshold = float(request.args.get("total_threshold", str(default_total_threshold(model))))
 
         games, cache = await load_nfl_games_for_request()
-        summary, records = await asyncio.to_thread(
-            run_backtest,
+        summary, season_summaries, cache_hit = await asyncio.to_thread(
+            cached_backtest,
             games,
             seasons,
             spread_threshold,
@@ -1630,7 +1660,7 @@ async def nfl_backtest():
         )
 
         season_rows = []
-        for season, season_summary in summarize_by_season(records):
+        for season, season_summary in season_summaries:
             season_rows.append({
                 "season": season,
                 **_json_summary(season_summary),
@@ -1652,6 +1682,7 @@ async def nfl_backtest():
             },
             "summary": _json_summary(summary),
             "by_season": season_rows,
+            "backtest_cache_hit": cache_hit,
         })
     except Exception as e:
         traceback.print_exc()
@@ -1665,6 +1696,7 @@ async def nfl_refresh():
         return jsonify({"success": False, "error": "NFL data refresh is disabled or the token is invalid."}), 403
     try:
         games = await asyncio.to_thread(load_games, refresh=True)
+        upcoming_cache = await asyncio.to_thread(cached_upcoming_predictions, games, None, None, True)
         cache = games_cache_info()
         latest_season = max(game["season"] for game in games)
         latest_week = max(game["week"] for game in games if game["season"] == latest_season)
@@ -1681,6 +1713,7 @@ async def nfl_refresh():
             "graded_regular_season_games": len(games),
             "latest_season": latest_season,
             "latest_week": latest_week,
+            "upcoming_cache_generated_at": upcoming_cache["generated_at"],
         })
     except GamesRefreshAlreadyRunning as error:
         app.logger.warning("NFL data refresh skipped because another refresh is running")
@@ -1779,32 +1812,16 @@ async def nfl_predict():
 @app.route("/api/nfl/upcoming")
 async def nfl_upcoming():
     try:
+        scope = (request.args.get("scope") or "upcoming").strip().lower()
+        if scope != "upcoming":
+            return jsonify({"success": False, "error": "The upcoming endpoint only supports the upcoming-week scope."}), 400
         requested_week = request.args.get("week")
         requested_season = request.args.get("season")
         week = int(requested_week) if requested_week else None
         season = int(requested_season) if requested_season else None
         games, cache = await load_nfl_games_for_request()
-        upcoming = await asyncio.to_thread(load_upcoming_games, season, week)
-        rows = []
-        for scheduled in upcoming:
-            models = {}
-            for model in MODEL_PROFILES:
-                models[model] = await asyncio.to_thread(
-                    predict_matchup,
-                    games,
-                    scheduled["away_team"], scheduled["home_team"],
-                    scheduled["spread_line"], scheduled["total_line"], model,
-                    scheduled["home_rest"], scheduled["away_rest"], scheduled["div_game"],
-                    scheduled["roof"], scheduled["temp"], scheduled["wind"],
-                )
-            rows.append({"schedule": scheduled, "models": models})
-        return jsonify({
-            "success": True, "source": GAMES_URL, "cache": cache,
-            "season": upcoming[0]["season"] if upcoming else season,
-            "week": upcoming[0]["week"] if upcoming else week,
-            "models": list(MODEL_PROFILES), "games": rows,
-            "market_note": "Market lines are included only when published in the schedule feed; no missing line is inferred.",
-        })
+        snapshot = await asyncio.to_thread(cached_upcoming_predictions, games, season, week)
+        return jsonify({"success": True, "source": GAMES_URL, "cache": cache, **snapshot})
     except ValueError as error:
         return jsonify({"success": False, "error": str(error)}), 400
     except Exception as error:
@@ -1948,7 +1965,7 @@ async def nfl_history():
         if home_team not in teams:
             return jsonify({"success": False, "error": f"Unknown home_team: {home_team}"}), 400
 
-        rows = matchup_history(games, away_team, home_team, model_profile=model)
+        rows, cache_hit = await asyncio.to_thread(cached_matchup_history, games, away_team, home_team, model)
         return jsonify({
             "success": True,
             "source": GAMES_URL,
@@ -1957,6 +1974,7 @@ async def nfl_history():
             "home_team": home_team,
             "model": model,
             "games": rows,
+            "history_cache_hit": cache_hit,
         })
     except Exception as e:
         traceback.print_exc()

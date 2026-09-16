@@ -55,11 +55,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const rsmRecordStatus = document.getElementById('rsm-record-status');
     const rsmRecordTotal = document.getElementById('rsm-record-total');
     const upcomingMessage = document.getElementById('upcoming-message');
+    const upcomingProgress = document.getElementById('upcoming-progress');
+    const upcomingProgressValue = document.getElementById('upcoming-progress-value');
+    const upcomingProgressElapsed = document.getElementById('upcoming-progress-elapsed');
+    const upcomingProgressFill = document.getElementById('upcoming-progress-fill');
     const upcomingTableBody = document.getElementById('upcoming-table-body');
     const loadUpcomingButton = document.getElementById('load-upcoming');
     const historyNote = document.getElementById('history-note');
     const historyTableBody = document.getElementById('history-table-body');
     let dashboardRefreshTimer = null;
+    let upcomingProgressStartedAt = null;
+    let upcomingProgressTimer = null;
 
     function pct(value) {
         if (value === null || value === undefined) return 'n/a';
@@ -92,25 +98,109 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${signed(prediction.pred_margin)} / ${total}`;
     }
 
-    async function loadUpcoming() {
-        upcomingMessage.textContent = 'Calculating all model projections...';
-        upcomingTableBody.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
-        try {
-            const response = await fetch(`${apiBase}/api/nfl/upcoming`);
-            const data = await response.json();
-            if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load upcoming games');
-            upcomingMessage.textContent = `Season ${data.season}, week ${data.week}. Each model cell shows predicted home margin / total.`;
-            upcomingTableBody.innerHTML = data.games.length ? data.games.map((game) => {
-                const schedule = game.schedule;
-                const market = schedule.spread_line === null && schedule.total_line === null
-                    ? '--'
-                    : `${schedule.spread_line ?? '--'} / ${schedule.total_line ?? '--'}`;
-                return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small></td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${upcomingModelCell(game.models[model])}</td>`).join('')}</tr>`;
-            }).join('') : '<tr><td colspan="8">No upcoming games were found in the schedule feed.</td></tr>';
-        } catch (error) {
-            upcomingMessage.textContent = `Unable to load upcoming games: ${error.message}`;
-            upcomingTableBody.innerHTML = '<tr><td colspan="8">Unavailable</td></tr>';
+    function setUpcomingProgress(percent, message) {
+        if (!upcomingProgress) return;
+        if (!upcomingProgressStartedAt) {
+            upcomingProgressStartedAt = Date.now();
+            upcomingProgressTimer = window.setInterval(updateUpcomingProgressElapsed, 1000);
         }
+        const safePercent = Math.max(0, Math.min(100, Number(percent) || 0));
+        upcomingProgress.hidden = false;
+        upcomingProgressValue.textContent = `${safePercent}%`;
+        upcomingProgressFill.style.width = `${safePercent}%`;
+        if (message) {
+            upcomingMessage.textContent = message;
+        }
+    }
+
+    function updateUpcomingProgressElapsed() {
+        if (!upcomingProgressElapsed || !upcomingProgressStartedAt) return;
+        const elapsedSeconds = Math.floor((Date.now() - upcomingProgressStartedAt) / 1000);
+        upcomingProgressElapsed.textContent = `Elapsed ${elapsedSeconds}s`;
+    }
+
+    function stopUpcomingProgressTimer() {
+        if (upcomingProgressTimer) {
+            window.clearInterval(upcomingProgressTimer);
+            upcomingProgressTimer = null;
+        }
+    }
+
+    async function loadUpcoming() {
+        let pollTimer = null;
+        stopUpcomingProgressTimer();
+        upcomingProgressStartedAt = null;
+        if (upcomingProgressElapsed) {
+            upcomingProgressElapsed.textContent = 'Elapsed 0s';
+        }
+
+        const fetchUpcomingStatus = async () => {
+            try {
+                const response = await fetch(`${apiBase}/api/nfl/upcoming?scope=upcoming`);
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load upcoming games');
+
+                if (data.ready === false || data.status === 'computing') {
+                    const progress = Math.max(10, Math.min(95, Number(data.progress) || 15));
+                    setUpcomingProgress(progress, data.message || 'Forecast is still being computed.');
+                    upcomingTableBody.innerHTML = '<tr><td colspan="8">Forecast is still being computed...</td></tr>';
+                    if (!pollTimer) {
+                        pollTimer = window.setTimeout(() => {
+                            pollTimer = null;
+                            fetchUpcomingStatus();
+                        }, 2500);
+                    }
+                    return;
+                }
+
+                if (pollTimer) {
+                    window.clearTimeout(pollTimer);
+                    pollTimer = null;
+                }
+                if (!data.games.length) {
+                    stopUpcomingProgressTimer();
+                    upcomingProgress.hidden = true;
+                    upcomingMessage.textContent = data.message || 'No upcoming games were found in the schedule feed.';
+                    upcomingTableBody.innerHTML = '<tr><td colspan="8">No upcoming games were found in the schedule feed.</td></tr>';
+                    return;
+                }
+
+                upcomingProgress.hidden = true;
+                stopUpcomingProgressTimer();
+                upcomingMessage.textContent = `Season ${data.season}, week ${data.week}. Each model cell shows predicted home margin / total.`;
+                const invalidGame = data.games.find((game) => {
+                    const schedule = game?.schedule;
+                    return !schedule?.away_team || !schedule?.home_team;
+                });
+                if (invalidGame) {
+                    upcomingMessage.textContent = 'The cached forecast is invalid and is being rebuilt.';
+                    upcomingTableBody.innerHTML = '<tr><td colspan="8">Forecast data is invalid. Refreshing the forecast...</td></tr>';
+                    return;
+                }
+                upcomingTableBody.innerHTML = data.games.map((game) => {
+                    const schedule = game.schedule;
+                    const market = schedule.spread_line === null && schedule.total_line === null
+                        ? '--'
+                        : `${schedule.spread_line ?? '--'} / ${schedule.total_line ?? '--'}`;
+                    return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small></td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${upcomingModelCell(game.models[model])}</td>`).join('')}</tr>`;
+                }).join('');
+            } catch (error) {
+                if (pollTimer) {
+                    window.clearTimeout(pollTimer);
+                    pollTimer = null;
+                }
+                upcomingMessage.textContent = `Unable to load upcoming games: ${error.message}`;
+                upcomingTableBody.innerHTML = '<tr><td colspan="8">Unavailable</td></tr>';
+                if (upcomingProgress) {
+                    stopUpcomingProgressTimer();
+                    upcomingProgress.hidden = true;
+                }
+            }
+        };
+
+        setUpcomingProgress(10, 'Preparing the all-model projection board...');
+        upcomingTableBody.innerHTML = '<tr><td colspan="8">Forecast is still being computed...</td></tr>';
+        await fetchUpcomingStatus();
     }
 
     function ageLabel(seconds) {
@@ -165,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setLoading() {
         message.textContent = `Loading ${state.seasons}-year ${state.model} backtest...`;
-        tableBody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
     }
 
     function render(data) {
@@ -189,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${row.spread_bets}</td>
                 <td>${pct(row.spread_win_rate)}</td>
                 <td>${row.total_bets}</td>
+                <td>${row.total_wins}-${row.total_losses}-${row.total_pushes}</td>
                 <td>${pct(row.total_win_rate)}</td>
             </tr>
         `).join('');
@@ -404,7 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
             render(data);
         } catch (error) {
             message.textContent = `Unable to load the NFL backtest: ${error.message}`;
-            tableBody.innerHTML = '<tr><td colspan="6">No results available.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="7">No results available.</td></tr>';
         }
     }
 
@@ -609,7 +700,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     loadTeams()
-        .then(() => Promise.all([refreshAll(), loadUpcoming()]))
+        .then(() => refreshAll())
         .catch((error) => {
             message.textContent = `Unable to initialize NFL demo: ${error.message}`;
             matchupLabel.textContent = `Unable to load teams: ${error.message}`;

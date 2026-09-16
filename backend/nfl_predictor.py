@@ -1,8 +1,10 @@
 import argparse
 import csv
+import hashlib
 import io
 import json
 import os
+import pickle
 import math
 import statistics
 import tempfile
@@ -81,10 +83,168 @@ INJURY_PROFILES = {
 }
 
 _GAMES_REFRESH_LOCK = threading.Lock()
+_UPCOMING_PREDICTION_LOCK = threading.Lock()
+_UPCOMING_REFRESH_RUNNING = False
+_UPCOMING_PROGRESS_STATE = {
+    "status": "idle",
+    "ready": False,
+    "progress": 0,
+    "message": "Forecast idle.",
+}
 _REQUIRED_GAMES_COLUMNS = {
     "game_id", "season", "week", "game_type", "away_team", "home_team",
     "away_score", "home_score", "spread_line", "total_line",
 }
+
+
+def upcoming_prediction_cache_path() -> str:
+    configured = os.getenv("NFL_UPCOMING_CACHE_PATH", "").strip()
+    if configured:
+        return configured
+    if os.path.isdir("/data"):
+        return "/data/nfl_upcoming_predictions.json"
+    return os.path.join(os.path.dirname(__file__), "data", "nfl_upcoming_predictions.json")
+
+
+def upcoming_prediction_cache_ttl_seconds() -> int:
+    try:
+        return max(0, int(os.getenv("NFL_UPCOMING_CACHE_TTL_SECONDS", str(24 * 60 * 60))))
+    except ValueError:
+        return 24 * 60 * 60
+
+
+def _upcoming_checkpoint_path() -> str:
+    return f"{upcoming_prediction_cache_path()}.checkpoint.pkl"
+
+
+def _upcoming_build_fingerprint(games: List[dict], upcoming: List[dict], season: Optional[int], week: Optional[int]) -> str:
+    source = {
+        "season": season,
+        "week": week,
+        "games": [
+            (game.get("season"), game.get("week"), game.get("game_id"), game.get("away_score"), game.get("home_score"), game.get("spread_line"), game.get("total_line"))
+            for game in games
+        ],
+        "upcoming": upcoming,
+    }
+    return hashlib.sha256(json.dumps(source, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def _write_pickle_cache(cache_path: str, payload) -> None:
+    temporary_path = f"{cache_path}.{os.getpid()}.{time.time_ns()}.tmp"
+    with open(temporary_path, "wb") as target:
+        pickle.dump(payload, target, protocol=pickle.HIGHEST_PROTOCOL)
+        target.flush()
+        os.fsync(target.fileno())
+    os.replace(temporary_path, cache_path)
+
+
+def _load_upcoming_checkpoint(fingerprint: str) -> Optional[dict]:
+    try:
+        with open(_upcoming_checkpoint_path(), "rb") as source:
+            checkpoint = pickle.load(source)
+        if checkpoint.get("fingerprint") != fingerprint:
+            return None
+        if not isinstance(checkpoint.get("trained_models"), dict) or not isinstance(checkpoint.get("rows"), list):
+            return None
+        return checkpoint
+    except (OSError, EOFError, AttributeError, KeyError, pickle.PickleError, TypeError, ValueError):
+        return None
+
+
+def _write_upcoming_checkpoint(fingerprint: str, trained_models: dict, rows: list, next_step: int) -> None:
+    checkpoint_path = _upcoming_checkpoint_path()
+    os.makedirs(os.path.dirname(checkpoint_path) or ".", exist_ok=True)
+    _write_pickle_cache(checkpoint_path, {
+        "fingerprint": fingerprint,
+        "trained_models": trained_models,
+        "rows": rows,
+        "next_step": next_step,
+    })
+
+
+def _clear_upcoming_checkpoint() -> None:
+    try:
+        os.remove(_upcoming_checkpoint_path())
+    except FileNotFoundError:
+        pass
+
+
+def _historical_model_cache_path(profile: str, games: List[dict]) -> str:
+    cache_root = os.getenv("NFL_MODEL_CACHE_DIR", "").strip() or os.path.dirname(upcoming_prediction_cache_path())
+    fingerprint_source = [
+        (game.get("season"), game.get("week"), game.get("game_id"), game.get("away_score"), game.get("home_score"))
+        for game in games
+    ]
+    fingerprint = hashlib.sha256(json.dumps(fingerprint_source, separators=(",", ":")).encode("utf-8")).hexdigest()[:16]
+    return os.path.join(cache_root, f"nfl_{profile}_historical_model_{fingerprint}.pkl")
+
+
+def _write_model_cache(cache_path: str, model) -> None:
+    temporary_path = f"{cache_path}.{os.getpid()}.{time.time_ns()}.tmp"
+    with open(temporary_path, "wb") as target:
+        pickle.dump(model, target, protocol=pickle.HIGHEST_PROTOCOL)
+        target.flush()
+        os.fsync(target.fileno())
+    os.replace(temporary_path, cache_path)
+
+
+def _load_or_train_historical_model(games: List[dict], profile: str):
+    if not games:
+        return create_model(profile)
+
+    cache_path = _historical_model_cache_path(profile, games)
+    try:
+        with open(cache_path, "rb") as source:
+            return pickle.load(source)
+    except (OSError, EOFError, AttributeError, pickle.PickleError, ValueError):
+        model = train_model(games, profile)
+        os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
+        _write_model_cache(cache_path, model)
+        return model
+
+
+def _historical_matchup_cache_path(games: List[dict], away_team: str, home_team: str, profile: str) -> str:
+    cache_root = os.getenv("NFL_HISTORY_CACHE_DIR", "").strip() or os.path.dirname(upcoming_prediction_cache_path())
+    fingerprint_source = [
+        (
+            game.get("season"), game.get("week"), game.get("game_id"),
+            game.get("away_team"), game.get("home_team"), game.get("away_score"),
+            game.get("home_score"), game.get("spread_line"), game.get("total_line"),
+        )
+        for game in games
+    ]
+    fingerprint = hashlib.sha256(json.dumps(fingerprint_source, separators=(",", ":")).encode("utf-8")).hexdigest()[:16]
+    pair = f"{away_team.lower()}_{home_team.lower()}"
+    return os.path.join(cache_root, f"nfl_history_{pair}_{profile}_{fingerprint}.json")
+
+
+def _write_json_cache(cache_path: str, payload) -> None:
+    temporary_path = f"{cache_path}.{os.getpid()}.{time.time_ns()}.tmp"
+    with open(temporary_path, "w", encoding="utf-8") as target:
+        json.dump(payload, target, separators=(",", ":"))
+        target.flush()
+        os.fsync(target.fileno())
+    os.replace(temporary_path, cache_path)
+
+
+def cached_matchup_history(
+    games: List[dict], away_team: str, home_team: str, model_profile: str = "baseline"
+) -> Tuple[List[dict], bool]:
+    """Return cached historical casino-line results, rebuilding when source games change."""
+    cache_path = _historical_matchup_cache_path(games, away_team, home_team, model_profile)
+    try:
+        with open(cache_path, encoding="utf-8") as source:
+            rows = json.load(source)
+        if isinstance(rows, list):
+            return rows, True
+    except (OSError, json.JSONDecodeError):
+        pass
+
+    rows = matchup_history(games, away_team, home_team, model_profile=model_profile)
+    os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
+    _write_json_cache(cache_path, rows)
+    return rows, False
 
 
 class GamesRefreshAlreadyRunning(RuntimeError):
@@ -299,6 +459,238 @@ def load_upcoming_games(season: Optional[int] = None, week: Optional[int] = None
             "temp": _to_float(row.get("temp")), "wind": _to_float(row.get("wind")),
         })
     return upcoming
+
+
+def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], week: Optional[int]) -> dict:
+    _set_upcoming_progress(8, "Loading the next scheduled games and starting the model run.", status="computing", ready=False)
+    upcoming = load_upcoming_games(season, week)
+    if not upcoming:
+        payload = {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "season": season,
+            "week": week,
+            "models": list(MODEL_PROFILES),
+            "games": [],
+            "market_note": "Market lines are included only when published in the schedule feed; no missing line is inferred.",
+        }
+        _set_upcoming_progress(100, "No upcoming games were found in the schedule feed.", status="ready", ready=True)
+        return payload
+
+    current_season = max(game["season"] for game in games)
+    historical_games = [game for game in games if game["season"] < current_season]
+    current_season_games = [game for game in games if game["season"] == current_season]
+    total_model_steps = len(MODEL_PROFILES)
+    total_game_steps = len(upcoming) * len(MODEL_PROFILES)
+    progress_floor = 12
+    progress_ceiling = 88
+    fingerprint = _upcoming_build_fingerprint(games, upcoming, season, week)
+    checkpoint = _load_upcoming_checkpoint(fingerprint)
+
+    if checkpoint:
+        trained_models = checkpoint["trained_models"]
+        rows = checkpoint["rows"]
+        resume_step = max(0, min(total_game_steps, int(checkpoint.get("next_step", 0))))
+        _set_upcoming_progress(
+            progress_floor + 30 + (resume_step / max(1, total_game_steps)) * (progress_ceiling - progress_floor - 30),
+            f"Resuming forecast at step {resume_step + 1}/{total_game_steps}.",
+            status="computing",
+            ready=False,
+        )
+    else:
+        trained_models = {}
+        for index, model in enumerate(MODEL_PROFILES):
+            if model == RSM_PROFILE:
+                trained_models[model] = create_model(RSM_PROFILE)
+            elif model in {"rothstein", "rothstein_plus"}:
+                # These profiles intentionally model only the current season.
+                trained_models[model] = train_model(current_season_games, model)
+            else:
+                trained_models[model] = _load_or_train_historical_model(historical_games, model)
+                for game in current_season_games:
+                    predicted_margin, predicted_total = trained_models[model].predict(game)
+                    trained_models[model].update(game, predicted_margin, predicted_total)
+            completion = progress_floor + ((index + 1) / total_model_steps) * 30
+            _set_upcoming_progress(int(completion), f"Training model {index + 1} of {total_model_steps}: {model}.", status="computing", ready=False)
+        rows = []
+        resume_step = 0
+    rows_by_game_id = {
+        row["schedule"]["game_id"]: row
+        for row in rows
+        if isinstance(row, dict)
+        and isinstance(row.get("schedule"), dict)
+        and row["schedule"].get("game_id")
+    }
+    for game_index, scheduled in enumerate(upcoming):
+        row = rows_by_game_id.setdefault(scheduled["game_id"], {"schedule": scheduled, "models": {}})
+        models = row["models"]
+        for model_index, model in enumerate(MODEL_PROFILES):
+            step_index = (game_index * len(MODEL_PROFILES)) + model_index
+            if step_index < resume_step and model in models:
+                continue
+            completion = progress_floor + 30 + ((step_index + 1) / max(1, total_game_steps)) * (progress_ceiling - progress_floor - 30)
+            _set_upcoming_progress(
+                int(completion),
+                f"Scoring {scheduled['away_team']} at {scheduled['home_team']} with {model} "
+                f"(game {game_index + 1}/{len(upcoming)}, step {step_index + 1}/{total_game_steps}).",
+                status="computing",
+                ready=False,
+            )
+            models[model] = predict_matchup(
+                games,
+                scheduled["away_team"], scheduled["home_team"],
+                scheduled["spread_line"], scheduled["total_line"], model,
+                scheduled["home_rest"], scheduled["away_rest"], scheduled["div_game"],
+                scheduled["roof"], scheduled["temp"], scheduled["wind"],
+                trained_model=trained_models[model],
+            )
+            _write_upcoming_checkpoint(fingerprint, trained_models, list(rows_by_game_id.values()), step_index + 1)
+        rows = list(rows_by_game_id.values())
+
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "season": upcoming[0]["season"] if upcoming else season,
+        "week": upcoming[0]["week"] if upcoming else week,
+        "models": list(MODEL_PROFILES),
+        "games": rows,
+        "market_note": "Market lines are included only when published in the schedule feed; no missing line is inferred.",
+    }
+    _set_upcoming_progress(100, "Forecast complete. The board is ready to view.", status="ready", ready=True)
+    return payload
+
+
+def _write_upcoming_prediction_cache(cache_path: str, payload: dict) -> None:
+    temporary_path = f"{cache_path}.{os.getpid()}.{time.time_ns()}.tmp"
+    with open(temporary_path, "w", encoding="utf-8") as target:
+        json.dump(payload, target, separators=(",", ":"))
+        target.flush()
+        os.fsync(target.fileno())
+    os.replace(temporary_path, cache_path)
+
+
+def _set_upcoming_progress(progress: int, message: str, *, status: str = "computing", ready: bool = False) -> dict:
+    global _UPCOMING_PROGRESS_STATE
+    _UPCOMING_PROGRESS_STATE = {
+        "status": status,
+        "ready": ready,
+        "progress": max(0, min(100, int(progress))),
+        "message": message,
+    }
+    return dict(_UPCOMING_PROGRESS_STATE)
+
+
+def upcoming_prediction_status_snapshot() -> dict:
+    return dict(_UPCOMING_PROGRESS_STATE)
+
+
+def _schedule_upcoming_prediction_refresh(games: List[dict], season: Optional[int], week: Optional[int]) -> bool:
+    global _UPCOMING_REFRESH_RUNNING
+    with _UPCOMING_PREDICTION_LOCK:
+        if _UPCOMING_REFRESH_RUNNING:
+            return False
+        _UPCOMING_REFRESH_RUNNING = True
+
+    _set_upcoming_progress(10, "Scheduling the forecast refresh and preparing the weekly model run.", status="computing", ready=False)
+
+    def _refresh_worker() -> None:
+        try:
+            payload = _build_upcoming_prediction_cache(games, season, week)
+            _write_upcoming_prediction_cache(upcoming_prediction_cache_path(), payload)
+            _clear_upcoming_checkpoint()
+        except Exception:
+            _set_upcoming_progress(0, f"The forecast refresh failed for season={season} week={week}. Please try again shortly.", status="computing", ready=False)
+            print(f"Background upcoming cache refresh failed for season={season} week={week}")
+        finally:
+            global _UPCOMING_REFRESH_RUNNING
+            with _UPCOMING_PREDICTION_LOCK:
+                _UPCOMING_REFRESH_RUNNING = False
+
+    threading.Thread(target=_refresh_worker, daemon=True).start()
+    return True
+
+
+def _empty_upcoming_status(season: Optional[int], week: Optional[int], ttl_seconds: int, message: str = "Forecast still being computed.") -> dict:
+    return {
+        "generated_at": None,
+        "season": season,
+        "week": week,
+        "models": list(MODEL_PROFILES),
+        "games": [],
+        "cache_hit": False,
+        "cache_age_seconds": None,
+        "cache_ttl_seconds": ttl_seconds,
+        "refresh_scheduled": False,
+        "status": "computing",
+        "ready": False,
+        "progress": 0,
+        "message": message,
+    }
+
+
+def _has_valid_upcoming_games(payload: dict) -> bool:
+    games = payload.get("games")
+    if not isinstance(games, list) or not games:
+        return False
+    required_schedule_fields = {"away_team", "home_team", "season", "week"}
+    for game in games:
+        schedule = game.get("schedule") if isinstance(game, dict) else None
+        models = game.get("models") if isinstance(game, dict) else None
+        if not isinstance(schedule, dict) or not required_schedule_fields.issubset(schedule):
+            return False
+        if not isinstance(models, dict) or any(model not in models for model in MODEL_PROFILES):
+            return False
+    return True
+
+
+def cached_upcoming_predictions(
+    games: List[dict],
+    season: Optional[int] = None,
+    week: Optional[int] = None,
+    force: bool = False,
+) -> dict:
+    """Return one daily weekly prediction snapshot, rebuilding it atomically when stale."""
+    cache_path = upcoming_prediction_cache_path()
+    ttl_seconds = upcoming_prediction_cache_ttl_seconds()
+    os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
+    cache_has_games = False
+
+    try:
+        if os.path.exists(cache_path):
+            with open(cache_path, encoding="utf-8") as source:
+                cached = json.load(source)
+            cache_has_games = _has_valid_upcoming_games(cached)
+            with _UPCOMING_PREDICTION_LOCK:
+                cache_age = max(0.0, time.time() - os.path.getmtime(cache_path))
+                same_target = (season is None or cached.get("season") == season) and (week is None or cached.get("week") == week)
+                if not force and cache_age <= ttl_seconds and same_target and cache_has_games:
+                    return {**cached, "cache_hit": True, "cache_age_seconds": cache_age, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": False, "status": "ready", "ready": True, "progress": 100, "message": "Forecast ready."}
+            if not force and same_target and cache_has_games and cache_age > ttl_seconds:
+                refresh_scheduled = _schedule_upcoming_prediction_refresh(games, season, week)
+                progress_state = upcoming_prediction_status_snapshot()
+                return {**cached, "cache_hit": True, "cache_age_seconds": cache_age, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": refresh_scheduled, "status": progress_state.get("status", "computing"), "ready": progress_state.get("ready", False), "progress": progress_state.get("progress", 0), "message": progress_state.get("message", "Forecast is being refreshed in the background.")}
+    except (OSError, json.JSONDecodeError):
+        pass
+
+    if not force and (not os.path.exists(cache_path) or not cache_has_games):
+        refresh_scheduled = _schedule_upcoming_prediction_refresh(games, season, week)
+        progress_state = upcoming_prediction_status_snapshot()
+        return {**_empty_upcoming_status(season, week, ttl_seconds), "refresh_scheduled": refresh_scheduled, "status": progress_state.get("status", "computing"), "ready": progress_state.get("ready", False), "progress": progress_state.get("progress", 0), "message": progress_state.get("message", "Forecast is still being computed; the board will appear once the daily model run finishes.")}
+
+    with _UPCOMING_PREDICTION_LOCK:
+        if os.path.exists(cache_path):
+            try:
+                with open(cache_path, encoding="utf-8") as source:
+                    cached = json.load(source)
+                same_target = (season is None or cached.get("season") == season) and (week is None or cached.get("week") == week)
+                if not force and same_target and isinstance(cached.get("games"), list) and cached.get("games"):
+                    cache_age = max(0.0, time.time() - os.path.getmtime(cache_path))
+                    return {**cached, "cache_hit": True, "cache_age_seconds": cache_age, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": False, "status": "ready", "ready": True, "progress": 100, "message": "Forecast ready."}
+            except (OSError, json.JSONDecodeError):
+                pass
+
+        payload = _build_upcoming_prediction_cache(games, season, week)
+        _write_upcoming_prediction_cache(cache_path, payload)
+        _clear_upcoming_checkpoint()
+        return {**payload, "cache_hit": False, "cache_age_seconds": 0.0, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": False, "status": "ready", "ready": True, "progress": 100, "message": "Forecast ready."}
 
 
 @dataclass
@@ -765,7 +1157,7 @@ def default_total_threshold(model_profile: str) -> float:
 
 
 def model_supports_totals(model_profile: str) -> bool:
-    return model_profile not in {"market_blend", "rothstein_plus", RSM_PROFILE}
+    return model_profile not in {"rothstein_plus", RSM_PROFILE}
 
 
 def model_supports_spread_picks(model_profile: str) -> bool:
@@ -1176,6 +1568,7 @@ def predict_matchup(
     wind: Optional[float] = None,
     market_source: Optional[str] = None,
     market_observed_at: Optional[str] = None,
+    trained_model=None,
 ) -> dict:
     available_teams = set(list_teams(games))
     if away_team not in available_teams:
@@ -1185,7 +1578,9 @@ def predict_matchup(
     if away_team == home_team:
         raise ValueError("away_team and home_team must be different")
 
-    if model_profile == RSM_PROFILE:
+    if trained_model is not None:
+        model = trained_model
+    elif model_profile == RSM_PROFILE:
         model = create_model(model_profile)
     elif model_profile in {"rothstein", "rothstein_plus"}:
         current_season = max(g["season"] for g in games)
@@ -1437,6 +1832,56 @@ def run_backtest(
         model.update(game, pred_margin, pred_total)
 
     return summarize(records), records
+
+
+def _backtest_cache_path(games: List[dict], seasons_to_test: int, spread_threshold: float, total_threshold: float, model_profile: str) -> str:
+    cache_root = os.getenv("NFL_BACKTEST_CACHE_DIR", "").strip() or os.path.dirname(upcoming_prediction_cache_path())
+    fingerprint_source = {
+        "schema_version": 2,
+        "seasons": seasons_to_test,
+        "spread_threshold": spread_threshold,
+        "total_threshold": total_threshold,
+        "model": model_profile,
+        "games": [
+            (
+                game.get("season"), game.get("week"), game.get("game_id"),
+                game.get("away_team"), game.get("home_team"), game.get("away_score"),
+                game.get("home_score"), game.get("spread_line"), game.get("total_line"),
+            )
+            for game in games
+        ],
+    }
+    fingerprint = hashlib.sha256(json.dumps(fingerprint_source, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()[:20]
+    return os.path.join(cache_root, f"nfl_backtest_{model_profile}_{seasons_to_test}_{fingerprint}.json")
+
+
+def cached_backtest(
+    games: List[dict],
+    seasons_to_test: int,
+    spread_threshold: float,
+    total_threshold: float,
+    model_profile: str,
+) -> Tuple[dict, List[Tuple[int, dict]], bool]:
+    """Return a cached backtest summary and season breakdown when inputs match."""
+    cache_path = _backtest_cache_path(games, seasons_to_test, spread_threshold, total_threshold, model_profile)
+    try:
+        with open(cache_path, encoding="utf-8") as source:
+            cached = json.load(source)
+        if isinstance(cached.get("summary"), dict) and isinstance(cached.get("by_season"), list):
+            return cached["summary"], [(row["season"], row["summary"]) for row in cached["by_season"]], True
+    except (OSError, KeyError, TypeError, json.JSONDecodeError):
+        pass
+
+    summary, records = run_backtest(games, seasons_to_test, spread_threshold, total_threshold, model_profile)
+    by_season = summarize_by_season(records)
+    payload = {
+        "summary": summary,
+        "by_season": [{"season": season, "summary": season_summary} for season, season_summary in by_season],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
+    _write_json_cache(cache_path, payload)
+    return summary, by_season, False
 
 
 def rsm_backtest_records(games: List[dict], seasons_to_test: int) -> List[dict]:

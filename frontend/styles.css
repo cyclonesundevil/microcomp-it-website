@@ -108,6 +108,16 @@ h3 {
     margin-bottom: 1rem;
 }
 
+.section-heading h2 a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.section-heading h2 a:hover,
+.section-heading h2 a:focus-visible {
+    color: var(--accent-blue);
+}
+
 .section-heading p {
     color: var(--text-secondary);
     font-size: 1.05rem;
@@ -2972,6 +2982,57 @@ nav a:hover:not(.btn-primary) {
     margin: 0 auto 1.5rem;
     color: var(--text-secondary);
     text-align: center;
+}
+
+.upcoming-progress {
+    max-width: 980px;
+    margin: 0 auto 1.25rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid rgba(0, 240, 255, 0.18);
+    border-radius: 10px;
+    background: rgba(15, 20, 32, 0.8);
+}
+
+.upcoming-progress-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.6rem;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.upcoming-progress-bar {
+    position: relative;
+    height: 12px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.upcoming-progress-elapsed {
+    margin: -0.2rem 0 0.6rem;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
+.upcoming-progress-bar span {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple), var(--accent-blue));
+    background-size: 200% 100%;
+    animation: upcoming-progress-shimmer 1.8s linear infinite;
+    transition: width 0.35s ease;
+}
+
+@keyframes upcoming-progress-shimmer {
+    from { background-position: 0 0; }
+    to { background-position: 200% 0; }
 }
 
 .nfl-metrics {

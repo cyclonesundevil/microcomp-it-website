@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upcoming NFL Week | MicroComp IT</title>
+    <meta name="description" content="Upcoming NFL games projected by every available algorithm.">
+    <meta name="theme-color" content="#03050a">
+    <script src="theme.js?v=1.2"></script>
+    <script src="analytics.js?v=1.2"></script>
+    <link rel="stylesheet" href="styles.css?v=3.2">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="nfl-page">
+    <header class="navbar">
+        <div class="logo"><i class="fa-solid fa-server"></i> MicroComp IT</div>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="nfl-predictor.html">NFL Predictor</a>
+            <button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle color theme" aria-pressed="false">
+                <i class="fa-solid fa-moon"></i>
+                <span data-theme-label>Dark</span>
+            </button>
+        </nav>
+    </header>
+
+    <main>
+        <section class="nfl-hero">
+            <div class="nfl-hero-content">
+                <p class="science-kicker">NFL Forecast Board</p>
+                <h1>Upcoming Week: All Algorithms</h1>
+                <p>Every available model scored against the next scheduled games. Market lines appear only when published in the schedule feed.</p>
+                <div class="nfl-actions">
+                    <button class="btn-primary" id="load-upcoming" type="button">Refresh Upcoming Predictions</button>
+                    <a class="btn-secondary" href="nfl-predictor.html">Back to NFL Predictor</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="nfl-dashboard-section upcoming-section">
+            <div id="upcoming-message" class="nfl-message">Preparing upcoming predictions...</div>
+            <div id="upcoming-progress" class="upcoming-progress" hidden>
+                <div class="upcoming-progress-header">
+                    <span>Forecast generation</span>
+                    <strong id="upcoming-progress-value">0%</strong>
+                </div>
+                <div id="upcoming-progress-elapsed" class="upcoming-progress-elapsed">Elapsed 0s</div>
+                <div class="upcoming-progress-bar">
+                    <span id="upcoming-progress-fill"></span>
+                </div>
+            </div>
+            <div class="nfl-table-wrap">
+                <table class="nfl-table upcoming-table">
+                    <thead>
+                        <tr>
+                            <th>Game</th><th>Market</th><th>Baseline</th><th>Enhanced</th>
+                            <th>Market Blend</th><th>Rothstein</th><th>Rothstein+</th><th>RSM</th>
+                        </tr>
+                    </thead>
+                    <tbody id="upcoming-table-body"><tr><td colspan="8">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="nfl-upcoming.js?v=1.0"></script>
+</body>
+
+</html>

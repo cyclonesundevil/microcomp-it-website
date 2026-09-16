@@ -103,6 +103,17 @@ The page calls:
 /api/nfl/backtest?seasons=10&model=baseline
 ```
 
+Backtest summaries and season breakdowns are persisted in the configured backtest
+cache directory (`NFL_BACKTEST_CACHE_DIR`, or the backend data directory by
+default). The cache key includes the model, season window, thresholds, and the
+graded game inputs, so a refreshed or changed games feed automatically produces
+a new result. API responses include `backtest_cache_hit`.
+
+The `market_blend` profile now reports total-market backtest results as well as
+spread results. Its total projection deliberately blends the model estimate with
+the published market total, so those O/U results are market-informed and should
+not be interpreted as an independent market-beating signal.
+
 It also supports all-team matchup projections:
 
 ```text
