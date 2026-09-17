@@ -113,12 +113,21 @@ def upcoming_prediction_cache_ttl_seconds() -> int:
         return 24 * 60 * 60
 
 
+def _games_source_signature() -> str:
+    try:
+        metadata = os.stat(DEFAULT_CACHE_PATH)
+        return f"{metadata.st_mtime_ns}:{metadata.st_size}"
+    except OSError:
+        return "missing"
+
+
 def _upcoming_checkpoint_path() -> str:
     return f"{upcoming_prediction_cache_path()}.checkpoint.pkl"
 
 
 def _upcoming_build_fingerprint(games: List[dict], upcoming: List[dict], season: Optional[int], week: Optional[int]) -> str:
     source = {
+        "schema_version": 2,
         "season": season,
         "week": week,
         "games": [
@@ -429,8 +438,9 @@ def load_games(
 
 def load_upcoming_games(season: Optional[int] = None, week: Optional[int] = None) -> List[dict]:
     """Load scheduled regular-season games that do not yet have final scores."""
-    with urllib.request.urlopen(GAMES_URL, timeout=60) as response:
-        rows = list(csv.DictReader(io.TextIOWrapper(response, encoding="utf-8-sig")))
+    path = download_games()
+    with open(path, newline="", encoding="utf-8-sig") as source:
+        rows = list(csv.DictReader(source))
 
     target_season = season or max(int(row["season"]) for row in rows if row.get("season"))
     completed_weeks = [
@@ -467,6 +477,8 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
     if not upcoming:
         payload = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
+            "prediction_schema_version": 2,
+            "games_source_signature": _games_source_signature(),
             "season": season,
             "week": week,
             "models": list(MODEL_PROFILES),
@@ -538,7 +550,8 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
             models[model] = predict_matchup(
                 games,
                 scheduled["away_team"], scheduled["home_team"],
-                scheduled["spread_line"], scheduled["total_line"], model,
+                -scheduled["spread_line"] if scheduled["spread_line"] is not None else None,
+                scheduled["total_line"], model,
                 scheduled["home_rest"], scheduled["away_rest"], scheduled["div_game"],
                 scheduled["roof"], scheduled["temp"], scheduled["wind"],
                 trained_model=trained_models[model],
@@ -548,6 +561,8 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
 
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "prediction_schema_version": 2,
+        "games_source_signature": _games_source_signature(),
         "season": upcoming[0]["season"] if upcoming else season,
         "week": upcoming[0]["week"] if upcoming else week,
         "models": list(MODEL_PROFILES),
@@ -652,25 +667,30 @@ def cached_upcoming_predictions(
     ttl_seconds = upcoming_prediction_cache_ttl_seconds()
     os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
     cache_has_games = False
+    cache_has_current_source = False
 
     try:
         if os.path.exists(cache_path):
             with open(cache_path, encoding="utf-8") as source:
                 cached = json.load(source)
             cache_has_games = _has_valid_upcoming_games(cached)
+            cache_has_current_source = (
+                cached.get("prediction_schema_version") == 2
+                and cached.get("games_source_signature") == _games_source_signature()
+            )
             with _UPCOMING_PREDICTION_LOCK:
                 cache_age = max(0.0, time.time() - os.path.getmtime(cache_path))
                 same_target = (season is None or cached.get("season") == season) and (week is None or cached.get("week") == week)
-                if not force and cache_age <= ttl_seconds and same_target and cache_has_games:
+                if not force and cache_age <= ttl_seconds and same_target and cache_has_games and cache_has_current_source:
                     return {**cached, "cache_hit": True, "cache_age_seconds": cache_age, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": False, "status": "ready", "ready": True, "progress": 100, "message": "Forecast ready."}
-            if not force and same_target and cache_has_games and cache_age > ttl_seconds:
+            if not force and same_target and cache_has_games and cache_has_current_source and cache_age > ttl_seconds:
                 refresh_scheduled = _schedule_upcoming_prediction_refresh(games, season, week)
                 progress_state = upcoming_prediction_status_snapshot()
                 return {**cached, "cache_hit": True, "cache_age_seconds": cache_age, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": refresh_scheduled, "status": progress_state.get("status", "computing"), "ready": progress_state.get("ready", False), "progress": progress_state.get("progress", 0), "message": progress_state.get("message", "Forecast is being refreshed in the background.")}
     except (OSError, json.JSONDecodeError):
         pass
 
-    if not force and (not os.path.exists(cache_path) or not cache_has_games):
+    if not force and (not os.path.exists(cache_path) or not cache_has_games or not cache_has_current_source):
         refresh_scheduled = _schedule_upcoming_prediction_refresh(games, season, week)
         progress_state = upcoming_prediction_status_snapshot()
         return {**_empty_upcoming_status(season, week, ttl_seconds), "refresh_scheduled": refresh_scheduled, "status": progress_state.get("status", "computing"), "ready": progress_state.get("ready", False), "progress": progress_state.get("progress", 0), "message": progress_state.get("message", "Forecast is still being computed; the board will appear once the daily model run finishes.")}
@@ -681,7 +701,7 @@ def cached_upcoming_predictions(
                 with open(cache_path, encoding="utf-8") as source:
                     cached = json.load(source)
                 same_target = (season is None or cached.get("season") == season) and (week is None or cached.get("week") == week)
-                if not force and same_target and isinstance(cached.get("games"), list) and cached.get("games"):
+                if not force and same_target and _has_valid_upcoming_games(cached) and cached.get("prediction_schema_version") == 2 and cached.get("games_source_signature") == _games_source_signature():
                     cache_age = max(0.0, time.time() - os.path.getmtime(cache_path))
                     return {**cached, "cache_hit": True, "cache_age_seconds": cache_age, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": False, "status": "ready", "ready": True, "progress": 100, "message": "Forecast ready."}
             except (OSError, json.JSONDecodeError):

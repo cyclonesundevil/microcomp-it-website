@@ -54,7 +54,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const total = prediction.pred_total === null || prediction.pred_total === undefined
             ? '--'
             : Number(prediction.pred_total).toFixed(1);
-        return `${signed(prediction.pred_margin)} / ${total}`;
+        const modelHomeSpread = prediction.pred_margin === null || prediction.pred_margin === undefined
+            ? null
+            : -Number(prediction.pred_margin);
+        return `${signed(modelHomeSpread)} / ${total}`;
     }
 
     function renderGames(data) {
@@ -73,12 +76,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         progressPanel.hidden = true;
-        message.textContent = `Season ${data.season}, week ${data.week}. Each model cell shows predicted home margin / total.`;
+        message.textContent = `Season ${data.season}, week ${data.week}. Each model cell shows predicted home spread / total.`;
         tableBody.innerHTML = data.games.map((game) => {
             const schedule = game.schedule;
-            const market = schedule.spread_line === null && schedule.total_line === null
+            const marketSpread = schedule.spread_line === null || schedule.spread_line === undefined
                 ? '--'
-                : `${schedule.spread_line ?? '--'} / ${schedule.total_line ?? '--'}`;
+                : (-Number(schedule.spread_line)).toFixed(1);
+            const marketTotal = schedule.total_line === null || schedule.total_line === undefined
+                ? '--'
+                : Number(schedule.total_line).toFixed(1);
+            const market = marketSpread === '--' && marketTotal === '--'
+                ? '--'
+                : `${marketSpread} / ${marketTotal}`;
             return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small></td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${modelCell(game.models[model])}</td>`).join('')}</tr>`;
         }).join('');
     }

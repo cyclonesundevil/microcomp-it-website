@@ -89,9 +89,30 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
         payload = await response.get_json()
         self.assertIn("upcoming-week scope", payload["error"])
 
+        def test_upcoming_cache_without_current_source_signature_is_rebuilt(self):
+            cache_file = BACKEND_DIR / "data" / "nfl_upcoming_predictions_old_source.json"
+            snapshot = {
+                "season": 2026, "week": 2, "games_source_signature": "old-source",
+                "games": [{
+                    "schedule": {"away_team": "DAL", "home_team": "NYG", "season": 2026, "week": 2},
+                    "models": {model: {} for model in app_module.MODEL_PROFILES},
+                }],
+            }
+            cache_file.write_text(json.dumps(snapshot), encoding="utf-8")
+            nfl_predictor._UPCOMING_REFRESH_RUNNING = False
+            with patch.object(nfl_predictor, "upcoming_prediction_cache_path", return_value=str(cache_file)), \
+                patch.object(nfl_predictor.threading, "Thread") as mock_thread:
+                result = nfl_predictor.cached_upcoming_predictions([], season=2026, week=2)
+
+            self.assertEqual(result["status"], "computing")
+            self.assertFalse(result["ready"])
+            self.assertTrue(result["refresh_scheduled"])
+            self.assertEqual(mock_thread.call_count, 1)
+            nfl_predictor._UPCOMING_REFRESH_RUNNING = False
+            cache_file.unlink(missing_ok=True)
     def test_stale_upcoming_cache_is_served_without_blocking_and_schedules_background_refresh(self):
         stale_snapshot = {
-            "generated_at": "2026-09-15T13:00:00+00:00", "season": 2026, "week": 2,
+            "generated_at": "2026-09-15T13:00:00+00:00", "prediction_schema_version": 2, "games_source_signature": nfl_predictor._games_source_signature(), "season": 2026, "week": 2,
             "models": list(app_module.MODEL_PROFILES), "games": [{
                 "schedule": {"away_team": "DAL", "home_team": "NYG", "season": 2026, "week": 2},
                 "models": {model: {} for model in app_module.MODEL_PROFILES},

@@ -95,7 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const total = prediction.pred_total === null || prediction.pred_total === undefined
             ? '--'
             : Number(prediction.pred_total).toFixed(1);
-        return `${signed(prediction.pred_margin)} / ${total}`;
+        const modelHomeSpread = prediction.pred_margin === null || prediction.pred_margin === undefined
+            ? null
+            : -Number(prediction.pred_margin);
+        return `${signed(modelHomeSpread)} / ${total}`;
     }
 
     function setUpcomingProgress(percent, message) {
@@ -167,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 upcomingProgress.hidden = true;
                 stopUpcomingProgressTimer();
-                upcomingMessage.textContent = `Season ${data.season}, week ${data.week}. Each model cell shows predicted home margin / total.`;
+                upcomingMessage.textContent = `Season ${data.season}, week ${data.week}. Each model cell shows predicted home spread / total.`;
                 const invalidGame = data.games.find((game) => {
                     const schedule = game?.schedule;
                     return !schedule?.away_team || !schedule?.home_team;

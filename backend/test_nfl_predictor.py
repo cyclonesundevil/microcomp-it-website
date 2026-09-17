@@ -138,6 +138,27 @@ def test_matchup_api_uses_conventional_negative_home_favorite_line():
     assert prediction["spread_edge"] == pytest.approx(prediction["pred_margin"] - 3.0)
 
 
+def test_upcoming_market_blend_converts_nflverse_home_margin_before_prediction():
+    games = [_graded_game()]
+    prediction = predict_matchup(
+        games,
+        away_team="KC",
+        home_team="PHI",
+        spread_line=-3.0,
+        model_profile="market_blend",
+    )
+
+    assert prediction["market_margin"] == 3.0
+    baseline = predict_matchup(
+        games,
+        away_team="KC",
+        home_team="PHI",
+        spread_line=-3.0,
+        model_profile="baseline",
+    )
+    assert prediction["pred_margin"] == pytest.approx((baseline["pred_margin"] + prediction["market_margin"]) / 2)
+
+
 def test_rsm_profile_maps_frozen_margin_to_experimental_winner_and_ats_projection():
     assert "rsm_stage7c" in MODEL_PROFILES
     games = [
