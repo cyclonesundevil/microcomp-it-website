@@ -245,18 +245,10 @@ def _history_cache_metadata(games: List[dict], profile: str) -> dict:
 
 
 def _historical_matchup_cache_path(games: List[dict], away_team: str, home_team: str, profile: str) -> str:
-    cache_root = os.getenv("NFL_HISTORY_CACHE_DIR", "").strip() or os.path.dirname(upcoming_prediction_cache_path())
-    fingerprint_source = [
-        (
-            game.get("season"), game.get("week"), game.get("game_id"),
-            game.get("away_team"), game.get("home_team"), game.get("away_score"),
-            game.get("home_score"), game.get("spread_line"), game.get("total_line"),
-        )
-        for game in games
-    ]
-    fingerprint = hashlib.sha256(json.dumps(fingerprint_source, separators=(",", ":")).encode("utf-8")).hexdigest()[:16]
-    pair = f"{away_team.lower()}_{home_team.lower()}"
-    return os.path.join(cache_root, f"nfl_history_{pair}_{profile}_{fingerprint}.json")
+    metadata = _history_cache_metadata(games, profile)
+    fingerprint = hashlib.sha256(json.dumps(metadata, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()[:16]
+    pair = _history_pair_key(away_team, home_team).lower()
+    return os.path.join(_history_cache_root(), f"nfl_history_pair_{pair}_{profile}_{fingerprint}.json")
 
 
 def _all_matchup_history_cache_path(games: List[dict], profile: str) -> str:
@@ -301,6 +293,41 @@ def _validate_all_matchup_history_cache(payload: dict, metadata: dict) -> Option
         if not isinstance(pair_rows, list):
             return None
     return pairs
+
+
+def _validate_pair_matchup_history_cache(payload: dict, metadata: dict, pair_key: str) -> Optional[List[dict]]:
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("metadata") != metadata or payload.get("pair_key") != pair_key:
+        return None
+    rows = payload.get("rows")
+    return rows if isinstance(rows, list) else None
+
+
+def _write_matchup_history_cache_bundle(cache_path: str, metadata: dict, pairs: Dict[str, List[dict]]) -> None:
+    os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
+    generated_at = datetime.now(timezone.utc).isoformat()
+    _write_json_cache(cache_path, {
+        "metadata": metadata,
+        "generated_at": generated_at,
+        "pairs": pairs,
+    })
+    for pair_key, rows in pairs.items():
+        pair_path = _historical_matchup_cache_path_from_metadata(metadata, pair_key)
+        _write_json_cache(pair_path, {
+            "metadata": metadata,
+            "pair_key": pair_key,
+            "generated_at": generated_at,
+            "rows": rows,
+        })
+
+
+def _historical_matchup_cache_path_from_metadata(metadata: dict, pair_key: str) -> str:
+    fingerprint = hashlib.sha256(json.dumps(metadata, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()[:16]
+    return os.path.join(
+        _history_cache_root(),
+        f"nfl_history_pair_{pair_key.lower()}_{metadata['model_profile']}_{fingerprint}.json",
+    )
 
 
 def _cacheable_matchup_row(game: dict, model_profile: str, eligible: bool, pred_margin: Optional[float], pred_total: Optional[float]) -> dict:
@@ -393,18 +420,23 @@ def warm_matchup_history_cache(games: List[dict], model_profile: str = "baseline
     cache_path = _all_matchup_history_cache_path(games, model_profile)
     try:
         with open(cache_path, encoding="utf-8") as source:
-            if _validate_all_matchup_history_cache(json.load(source), metadata) is not None:
+            pairs = _validate_all_matchup_history_cache(json.load(source), metadata)
+            if pairs is not None:
+                for pair_key, rows in pairs.items():
+                    pair_path = _historical_matchup_cache_path_from_metadata(metadata, pair_key)
+                    if not os.path.exists(pair_path):
+                        _write_json_cache(pair_path, {
+                            "metadata": metadata,
+                            "pair_key": pair_key,
+                            "generated_at": datetime.now(timezone.utc).isoformat(),
+                            "rows": rows,
+                        })
                 return True
     except (OSError, json.JSONDecodeError):
         pass
 
     pairs = _build_all_matchup_history(games, model_profile)
-    os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
-    _write_json_cache(cache_path, {
-        "metadata": metadata,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "pairs": pairs,
-    })
+    _write_matchup_history_cache_bundle(cache_path, metadata, pairs)
     return False
 
 
@@ -415,21 +447,32 @@ def cached_matchup_history(
     metadata = _history_cache_metadata(games, model_profile)
     all_cache_path = _all_matchup_history_cache_path(games, model_profile)
     pair_key = _history_pair_key(away_team, home_team)
+    pair_cache_path = _historical_matchup_cache_path(games, away_team, home_team, model_profile)
+    try:
+        with open(pair_cache_path, encoding="utf-8") as source:
+            pair_rows = _validate_pair_matchup_history_cache(json.load(source), metadata, pair_key)
+        if pair_rows is not None:
+            return _selected_matchup_rows(pair_rows, away_team, home_team), True
+    except (OSError, json.JSONDecodeError):
+        pass
+
     try:
         with open(all_cache_path, encoding="utf-8") as source:
             pairs = _validate_all_matchup_history_cache(json.load(source), metadata)
         if pairs is not None:
-            return _selected_matchup_rows(pairs.get(pair_key, []), away_team, home_team), True
+            pair_rows = pairs.get(pair_key, [])
+            _write_json_cache(pair_cache_path, {
+                "metadata": metadata,
+                "pair_key": pair_key,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "rows": pair_rows,
+            })
+            return _selected_matchup_rows(pair_rows, away_team, home_team), True
     except (OSError, json.JSONDecodeError):
         pass
 
     pairs = _build_all_matchup_history(games, model_profile)
-    os.makedirs(os.path.dirname(all_cache_path) or ".", exist_ok=True)
-    _write_json_cache(all_cache_path, {
-        "metadata": metadata,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "pairs": pairs,
-    })
+    _write_matchup_history_cache_bundle(all_cache_path, metadata, pairs)
     return _selected_matchup_rows(pairs.get(pair_key, []), away_team, home_team), False
 
 

@@ -74,7 +74,7 @@ def start_daily_upcoming_cache_refresh_loop():
     return thread
 
 
-def schedule_history_cache_warmup(games):
+def schedule_history_cache_warmup(games=None):
     """Warm deterministic historical casino-line caches without blocking refresh responses."""
     global _HISTORY_CACHE_WARMUP_RUNNING
     if _HISTORY_CACHE_WARMUP_RUNNING:
@@ -83,8 +83,9 @@ def schedule_history_cache_warmup(games):
     def _worker():
         global _HISTORY_CACHE_WARMUP_RUNNING
         try:
+            active_games = games if games is not None else load_games()
             for model in MODEL_PROFILES:
-                warm_matchup_history_cache(games, model)
+                warm_matchup_history_cache(active_games, model)
         except Exception:
             app.logger.exception("NFL historical casino-line cache warmup failed")
         finally:
@@ -99,6 +100,7 @@ def schedule_history_cache_warmup(games):
 @app.before_serving
 async def _start_daily_upcoming_cache_refresh_on_startup():
     start_daily_upcoming_cache_refresh_loop()
+    schedule_history_cache_warmup()
 
 
 def rsm_shadow_paths():
