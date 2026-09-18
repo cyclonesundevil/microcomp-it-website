@@ -11,9 +11,11 @@ from nfl_predictor import (
     _rsm_artifact,
     _validate_games_csv,
     current_nfl_schedule_week,
+    cached_matchup_history,
     download_games,
     load_upcoming_games,
     list_teams,
+    matchup_history,
     predict_matchup,
     run_backtest,
     side_from_edge,
@@ -146,6 +148,31 @@ def _graded_game(season=2025, away_team="KC", home_team="PHI"):
         "actual_total": 44.0,
         "spread_line": 3.0,
         "total_line": 47.0,
+        "away_rest": 7.0,
+        "home_rest": 7.0,
+        "div_game": False,
+        "roof": "outdoors",
+        "temp": 65.0,
+        "wind": 5.0,
+    }
+
+
+def _history_game(game_id, season, week, away_team, home_team, away_score, home_score, spread_line=-3.0, total_line=44.5):
+    actual_margin = float(home_score - away_score)
+    actual_total = float(home_score + away_score)
+    return {
+        "game_id": game_id,
+        "season": season,
+        "week": week,
+        "gameday": f"{season}-09-{week + 7:02d}",
+        "away_team": away_team,
+        "home_team": home_team,
+        "away_score": float(away_score),
+        "home_score": float(home_score),
+        "actual_margin": actual_margin,
+        "actual_total": actual_total,
+        "spread_line": float(spread_line),
+        "total_line": float(total_line),
         "away_rest": 7.0,
         "home_rest": 7.0,
         "div_game": False,
@@ -295,6 +322,68 @@ def test_rsm_total_is_independent_of_market_total_and_grades_edge_at_zero():
 def test_rsm_missing_snapshot_team_fails_instead_of_fabricating_features():
     with pytest.raises(ValueError, match="snapshot ratings are unavailable"):
         RsmStage7CComparisonModel().predict({"home_team": "PHI", "away_team": "ZZZ"})
+
+
+def test_historical_matchup_cache_reuses_all_pairs_cache(tmp_path, monkeypatch):
+    games = [
+        _history_game("2025_01_A_B", 2025, 1, "A", "B", 10, 20),
+        _history_game("2025_02_C_D", 2025, 2, "C", "D", 17, 14),
+    ]
+    monkeypatch.setenv("NFL_HISTORY_CACHE_DIR", str(tmp_path))
+
+    expected = matchup_history(games, "A", "B", "baseline")
+    first_rows, first_hit = cached_matchup_history(games, "A", "B", "baseline")
+    with monkeypatch.context() as nested:
+        nested.setattr("nfl_predictor._build_all_matchup_history", lambda *_args, **_kwargs: pytest.fail("cache should be reused"))
+        second_rows, second_hit = cached_matchup_history(games, "C", "D", "baseline")
+
+    assert first_rows == expected
+    assert first_hit is False
+    assert second_hit is True
+    assert [row["away_team"] for row in second_rows] == ["C"]
+
+
+def test_historical_matchup_cache_invalidates_by_model_and_games(tmp_path, monkeypatch):
+    games = [_history_game("2025_01_A_B", 2025, 1, "A", "B", 10, 20)]
+    changed_games = [{**games[0], "home_score": 21.0, "actual_margin": 11.0, "actual_total": 31.0}]
+    monkeypatch.setenv("NFL_HISTORY_CACHE_DIR", str(tmp_path))
+
+    baseline_rows, baseline_hit = cached_matchup_history(games, "A", "B", "baseline")
+    enhanced_rows, enhanced_hit = cached_matchup_history(games, "A", "B", "enhanced")
+    changed_rows, changed_hit = cached_matchup_history(changed_games, "A", "B", "baseline")
+
+    assert baseline_hit is False
+    assert enhanced_hit is False
+    assert changed_hit is False
+    assert baseline_rows[0]["model"] == "baseline"
+    assert enhanced_rows[0]["model"] == "enhanced"
+    assert changed_rows[0]["home_score"] == 21.0
+
+
+def test_historical_matchup_cache_rebuilds_malformed_cache(tmp_path, monkeypatch):
+    games = [_history_game("2025_01_A_B", 2025, 1, "A", "B", 10, 20)]
+    monkeypatch.setenv("NFL_HISTORY_CACHE_DIR", str(tmp_path))
+    cache_path = tmp_path / "malformed.json"
+    cache_path.write_text("{not json", encoding="utf-8")
+    monkeypatch.setattr("nfl_predictor._all_matchup_history_cache_path", lambda *_args: str(cache_path))
+
+    rows, cache_hit = cached_matchup_history(games, "A", "B", "baseline")
+
+    assert cache_hit is False
+    assert rows == matchup_history(games, "A", "B", "baseline")
+
+
+def test_historical_matchup_cache_preserves_response_shape_and_selected_spread(tmp_path, monkeypatch):
+    games = [_history_game("2025_01_A_B", 2025, 1, "A", "B", 10, 20, spread_line=-3.0)]
+    monkeypatch.setenv("NFL_HISTORY_CACHE_DIR", str(tmp_path))
+
+    scheduled_rows, _ = cached_matchup_history(games, "A", "B", "baseline")
+    reversed_rows, reversed_hit = cached_matchup_history(games, "B", "A", "baseline")
+
+    assert set(scheduled_rows[0]) == set(matchup_history(games, "A", "B", "baseline")[0])
+    assert scheduled_rows[0]["selected_home_spread"] == -3.0
+    assert reversed_rows[0]["selected_home_spread"] == 3.0
+    assert reversed_hit is True
 
 
 def test_rsm_manual_capture_details_preserve_the_exact_frozen_feature_vector():

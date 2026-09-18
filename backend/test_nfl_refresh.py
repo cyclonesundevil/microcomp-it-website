@@ -39,7 +39,7 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
             {"season": 2026, "week": 2},
         ]
         cache = {"last_updated_utc": "2026-09-15T13:00:00+00:00", "stale": False}
-        with patch.object(app_module, "load_games", return_value=games), patch.object(app_module, "games_cache_info", return_value=cache), patch.object(app_module, "cached_upcoming_predictions", return_value={"generated_at": "2026-09-15T13:00:00+00:00"}):
+        with patch.object(app_module, "load_games", return_value=games), patch.object(app_module, "games_cache_info", return_value=cache), patch.object(app_module, "cached_upcoming_predictions", return_value={"generated_at": "2026-09-15T13:00:00+00:00"}), patch.object(app_module, "schedule_history_cache_warmup", return_value=True):
             response = await self.client.post(
                 "/api/nfl/refresh",
                 headers={"X-NFL-Refresh-Token": "test-refresh-token"},
@@ -51,6 +51,7 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["graded_regular_season_games"], 3)
         self.assertEqual(payload["latest_season"], 2026)
         self.assertEqual(payload["latest_week"], 2)
+        self.assertTrue(payload["history_cache_warmup_scheduled"])
 
     async def test_overlapping_refresh_returns_conflict(self):
         with patch.object(app_module, "load_games", side_effect=GamesRefreshAlreadyRunning("An NFL data refresh is already running.")):
@@ -193,19 +194,24 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
         games = [{
             "season": 2025, "week": 1, "game_id": "2025_01_A_B",
             "away_team": "A", "home_team": "B", "away_score": 10.0,
-            "home_score": 20.0, "spread_line": -3.0, "total_line": 44.5,
+            "home_score": 20.0, "actual_margin": 10.0, "actual_total": 30.0,
+            "spread_line": -3.0, "total_line": 44.5,
         }]
-        rows = [{"season": 2025, "week": 1, "away_team": "A", "home_team": "B"}]
+        rows = [{
+            "season": 2025, "week": 1, "away_team": "A", "home_team": "B",
+            "home_spread": -3.0,
+        }]
         cache_path = BACKEND_DIR / "data" / "test_history_cache.json"
         cache_path.unlink(missing_ok=True)
-        with patch.object(nfl_predictor, "_historical_matchup_cache_path", return_value=str(cache_path)), \
-            patch.object(nfl_predictor, "matchup_history", return_value=rows) as history:
+        with patch.object(nfl_predictor, "_all_matchup_history_cache_path", return_value=str(cache_path)), \
+            patch.object(nfl_predictor, "_history_cache_metadata", return_value={"test": "metadata"}), \
+            patch.object(nfl_predictor, "_build_all_matchup_history", return_value={"A__B": rows}) as history:
             first_rows, first_hit = nfl_predictor.cached_matchup_history(games, "A", "B")
             second_rows, second_hit = nfl_predictor.cached_matchup_history(games, "A", "B")
 
-        self.assertEqual(first_rows, rows)
+        self.assertEqual(first_rows[0]["selected_home_spread"], -3.0)
         self.assertFalse(first_hit)
-        self.assertEqual(second_rows, rows)
+        self.assertEqual(second_rows[0]["selected_home_spread"], -3.0)
         self.assertTrue(second_hit)
         history.assert_called_once()
         cache_path.unlink(missing_ok=True)

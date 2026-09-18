@@ -34,7 +34,7 @@ from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from quart import Response
 from nfl_live_data import live_scoreboard
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _rsm_artifact, cached_backtest, cached_matchup_history, cached_upcoming_predictions, dashboard_snapshot, default_spread_threshold, default_total_threshold, games_cache_info, list_teams, load_games, predict_matchup, summarize_by_season
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _rsm_artifact, cached_backtest, cached_matchup_history, cached_upcoming_predictions, dashboard_snapshot, default_spread_threshold, default_total_threshold, games_cache_info, list_teams, load_games, predict_matchup, summarize_by_season, warm_matchup_history_cache
 from rsm.stage8_evaluation import DEFAULT_OUTCOME_STORE, DEFAULT_TOTAL_OBSERVATION_STORE, TOTAL_MODEL_VERSION, capture_total_observation, evaluation_report, record_outcome, total_evaluation_report
 from rsm.stage8_shadow import DEFAULT_STORE as RSM_DEFAULT_STORE, capture_observation, line_movements
 
@@ -50,6 +50,7 @@ except ZoneInfoNotFoundError:
 app = Quart(__name__, static_folder=frontend_dir, static_url_path="")
 
 _DAILY_UPCOMING_CACHE_REFRESH_RUNNING = False
+_HISTORY_CACHE_WARMUP_RUNNING = False
 
 
 def start_daily_upcoming_cache_refresh_loop():
@@ -71,6 +72,28 @@ def start_daily_upcoming_cache_refresh_loop():
     _DAILY_UPCOMING_CACHE_REFRESH_RUNNING = True
     thread.start()
     return thread
+
+
+def schedule_history_cache_warmup(games):
+    """Warm deterministic historical casino-line caches without blocking refresh responses."""
+    global _HISTORY_CACHE_WARMUP_RUNNING
+    if _HISTORY_CACHE_WARMUP_RUNNING:
+        return False
+
+    def _worker():
+        global _HISTORY_CACHE_WARMUP_RUNNING
+        try:
+            for model in MODEL_PROFILES:
+                warm_matchup_history_cache(games, model)
+        except Exception:
+            app.logger.exception("NFL historical casino-line cache warmup failed")
+        finally:
+            _HISTORY_CACHE_WARMUP_RUNNING = False
+
+    _HISTORY_CACHE_WARMUP_RUNNING = True
+    thread = threading.Thread(target=_worker, daemon=True, name="nfl-history-cache-warmup")
+    thread.start()
+    return True
 
 
 @app.before_serving
@@ -1697,6 +1720,7 @@ async def nfl_refresh():
     try:
         games = await asyncio.to_thread(load_games, refresh=True)
         upcoming_cache = await asyncio.to_thread(cached_upcoming_predictions, games, None, None, True)
+        history_warmup_scheduled = schedule_history_cache_warmup(games)
         cache = games_cache_info()
         latest_season = max(game["season"] for game in games)
         latest_week = max(game["week"] for game in games if game["season"] == latest_season)
@@ -1714,6 +1738,7 @@ async def nfl_refresh():
             "latest_season": latest_season,
             "latest_week": latest_week,
             "upcoming_cache_generated_at": upcoming_cache["generated_at"],
+            "history_cache_warmup_scheduled": history_warmup_scheduled,
         })
     except GamesRefreshAlreadyRunning as error:
         app.logger.warning("NFL data refresh skipped because another refresh is running")

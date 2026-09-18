@@ -216,6 +216,34 @@ def _load_or_train_historical_model(games: List[dict], profile: str):
         return model
 
 
+def _history_cache_root() -> str:
+    return os.getenv("NFL_HISTORY_CACHE_DIR", "").strip() or os.path.dirname(upcoming_prediction_cache_path())
+
+
+def _history_games_fingerprint(games: List[dict]) -> str:
+    fingerprint_source = [
+        (
+            game.get("season"), game.get("week"), game.get("game_id"),
+            game.get("away_team"), game.get("home_team"), game.get("away_score"),
+            game.get("home_score"), game.get("spread_line"), game.get("total_line"),
+            game.get("gameday"),
+        )
+        for game in games
+    ]
+    return hashlib.sha256(json.dumps(fingerprint_source, separators=(",", ":")).encode("utf-8")).hexdigest()[:16]
+
+
+def _history_cache_metadata(games: List[dict], profile: str) -> dict:
+    return {
+        "schema_version": 3,
+        "model_profile": profile,
+        "games_fingerprint": _history_games_fingerprint(games),
+        "games_source_signature": _games_source_signature(),
+        "spread_threshold": default_spread_threshold(profile),
+        "total_threshold": default_total_threshold(profile),
+    }
+
+
 def _historical_matchup_cache_path(games: List[dict], away_team: str, home_team: str, profile: str) -> str:
     cache_root = os.getenv("NFL_HISTORY_CACHE_DIR", "").strip() or os.path.dirname(upcoming_prediction_cache_path())
     fingerprint_source = [
@@ -231,6 +259,12 @@ def _historical_matchup_cache_path(games: List[dict], away_team: str, home_team:
     return os.path.join(cache_root, f"nfl_history_{pair}_{profile}_{fingerprint}.json")
 
 
+def _all_matchup_history_cache_path(games: List[dict], profile: str) -> str:
+    metadata = _history_cache_metadata(games, profile)
+    fingerprint = hashlib.sha256(json.dumps(metadata, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()[:16]
+    return os.path.join(_history_cache_root(), f"nfl_history_all_{profile}_{fingerprint}.json")
+
+
 def _write_json_cache(cache_path: str, payload) -> None:
     temporary_path = f"{cache_path}.{os.getpid()}.{time.time_ns()}.tmp"
     with open(temporary_path, "w", encoding="utf-8") as target:
@@ -240,23 +274,163 @@ def _write_json_cache(cache_path: str, payload) -> None:
     os.replace(temporary_path, cache_path)
 
 
+def _history_pair_key(team_a: str, team_b: str) -> str:
+    return "__".join(sorted((str(team_a).upper(), str(team_b).upper())))
+
+
+def _selected_matchup_rows(cached_rows: List[dict], away_team: str, home_team: str) -> List[dict]:
+    rows = []
+    for row in cached_rows:
+        adjusted = dict(row)
+        home_spread = adjusted.get("home_spread")
+        adjusted["selected_home_spread"] = home_spread if adjusted.get("home_team") == home_team else -home_spread
+        rows.append(adjusted)
+    rows.sort(key=lambda row: (row["season"], row["week"], row.get("gameday") or ""))
+    return rows
+
+
+def _validate_all_matchup_history_cache(payload: dict, metadata: dict) -> Optional[Dict[str, List[dict]]]:
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("metadata") != metadata:
+        return None
+    pairs = payload.get("pairs")
+    if not isinstance(pairs, dict):
+        return None
+    for pair_rows in pairs.values():
+        if not isinstance(pair_rows, list):
+            return None
+    return pairs
+
+
+def _cacheable_matchup_row(game: dict, model_profile: str, eligible: bool, pred_margin: Optional[float], pred_total: Optional[float]) -> dict:
+    spread_threshold = default_spread_threshold(model_profile)
+    total_threshold = default_total_threshold(model_profile)
+    spread_edge = pred_margin - game["spread_line"] if pred_margin is not None else None
+    total_edge = pred_total - game["total_line"] if pred_total is not None else None
+    spread_pick = side_from_edge(spread_edge, spread_threshold) if spread_edge is not None and eligible and model_supports_spread_picks(model_profile) else None
+    total_pick = total_from_edge(total_edge, total_threshold) if total_edge is not None and model_supports_totals(model_profile) else None
+
+    spread_result = None
+    if spread_pick:
+        cover_margin = game["actual_margin"] - game["spread_line"]
+        if abs(cover_margin) < 1e-9:
+            spread_result = "push"
+        elif (spread_pick == "home" and cover_margin > 0) or (spread_pick == "away" and cover_margin < 0):
+            spread_result = "correct"
+        else:
+            spread_result = "wrong"
+
+    total_result = None
+    if total_pick:
+        total_margin = game["actual_total"] - game["total_line"]
+        if abs(total_margin) < 1e-9:
+            total_result = "push"
+        elif (total_pick == "over" and total_margin > 0) or (total_pick == "under" and total_margin < 0):
+            total_result = "correct"
+        else:
+            total_result = "wrong"
+
+    return {
+        "season": game["season"],
+        "week": game["week"],
+        "gameday": game.get("gameday"),
+        "away_team": game["away_team"],
+        "home_team": game["home_team"],
+        "away_score": game["away_score"],
+        "home_score": game["home_score"],
+        "home_spread": game["spread_line"],
+        "total_line": game["total_line"],
+        "actual_total": game["actual_total"],
+        "home_margin": game["actual_margin"],
+        "model": model_profile,
+        "model_eligible": eligible,
+        "pred_margin": pred_margin,
+        "pred_total": pred_total,
+        "spread_pick": spread_pick,
+        "spread_result": spread_result,
+        "total_pick": total_pick,
+        "total_result": total_result,
+    }
+
+
+def _build_all_matchup_history(games: List[dict], model_profile: str) -> Dict[str, List[dict]]:
+    pairs: Dict[str, List[dict]] = {}
+    if model_profile == RSM_PROFILE:
+        rsm_rows = _rsm_validation_rows()
+        for game in games:
+            if game.get("game_id") not in rsm_rows:
+                continue
+            rsm = rsm_rows[game["game_id"]]
+            row = _cacheable_matchup_row(
+                game,
+                RSM_PROFILE,
+                False,
+                _row_float(rsm, "roster_fair_home_margin"),
+                None,
+            )
+            pairs.setdefault(_history_pair_key(game["away_team"], game["home_team"]), []).append(row)
+        return pairs
+
+    model = create_model(model_profile)
+    for game in games:
+        eligible = True
+        if model_profile == "rothstein_plus":
+            eligible = is_rothstein_plus_eligible(model, game)
+
+        pred_margin, pred_total = model.predict(game)
+        row = _cacheable_matchup_row(game, model_profile, eligible, pred_margin, pred_total)
+        pairs.setdefault(_history_pair_key(game["away_team"], game["home_team"]), []).append(row)
+        model.update(game, pred_margin, pred_total)
+
+    for pair_rows in pairs.values():
+        pair_rows.sort(key=lambda row: (row["season"], row["week"], row.get("gameday") or ""))
+    return pairs
+
+
+def warm_matchup_history_cache(games: List[dict], model_profile: str = "baseline") -> bool:
+    metadata = _history_cache_metadata(games, model_profile)
+    cache_path = _all_matchup_history_cache_path(games, model_profile)
+    try:
+        with open(cache_path, encoding="utf-8") as source:
+            if _validate_all_matchup_history_cache(json.load(source), metadata) is not None:
+                return True
+    except (OSError, json.JSONDecodeError):
+        pass
+
+    pairs = _build_all_matchup_history(games, model_profile)
+    os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
+    _write_json_cache(cache_path, {
+        "metadata": metadata,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "pairs": pairs,
+    })
+    return False
+
+
 def cached_matchup_history(
     games: List[dict], away_team: str, home_team: str, model_profile: str = "baseline"
 ) -> Tuple[List[dict], bool]:
     """Return cached historical casino-line results, rebuilding when source games change."""
-    cache_path = _historical_matchup_cache_path(games, away_team, home_team, model_profile)
+    metadata = _history_cache_metadata(games, model_profile)
+    all_cache_path = _all_matchup_history_cache_path(games, model_profile)
+    pair_key = _history_pair_key(away_team, home_team)
     try:
-        with open(cache_path, encoding="utf-8") as source:
-            rows = json.load(source)
-        if isinstance(rows, list):
-            return rows, True
+        with open(all_cache_path, encoding="utf-8") as source:
+            pairs = _validate_all_matchup_history_cache(json.load(source), metadata)
+        if pairs is not None:
+            return _selected_matchup_rows(pairs.get(pair_key, []), away_team, home_team), True
     except (OSError, json.JSONDecodeError):
         pass
 
-    rows = matchup_history(games, away_team, home_team, model_profile=model_profile)
-    os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
-    _write_json_cache(cache_path, rows)
-    return rows, False
+    pairs = _build_all_matchup_history(games, model_profile)
+    os.makedirs(os.path.dirname(all_cache_path) or ".", exist_ok=True)
+    _write_json_cache(all_cache_path, {
+        "metadata": metadata,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "pairs": pairs,
+    })
+    return _selected_matchup_rows(pairs.get(pair_key, []), away_team, home_team), False
 
 
 class GamesRefreshAlreadyRunning(RuntimeError):
