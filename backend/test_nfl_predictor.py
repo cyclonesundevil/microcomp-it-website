@@ -1,4 +1,8 @@
+import csv
+import io
 import pytest
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from nfl_predictor import (
     MODEL_PROFILES,
@@ -6,7 +10,9 @@ from nfl_predictor import (
     RsmStage7CComparisonModel,
     _rsm_artifact,
     _validate_games_csv,
+    current_nfl_schedule_week,
     download_games,
+    load_upcoming_games,
     list_teams,
     predict_matchup,
     run_backtest,
@@ -22,6 +28,14 @@ def _feed_csv(rows=None):
     return (header + "\n" + "\n".join(rows) + "\n").encode()
 
 
+def _schedule_csv(rows):
+    header = (
+        "game_id,season,week,game_type,away_team,home_team,away_score,home_score,"
+        "spread_line,total_line,gameday,gametime,away_rest,home_rest,div_game,roof,temp,wind"
+    )
+    return header + "\n" + "\n".join(rows) + "\n"
+
+
 class _FeedResponse:
     def __init__(self, content):
         self.content = content
@@ -34,6 +48,17 @@ class _FeedResponse:
 
     def read(self):
         return self.content
+
+
+def _FixedDateTime(fixed_now):
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            if tz is None:
+                return fixed_now.replace(tzinfo=None)
+            return fixed_now.astimezone(tz)
+
+    return FixedDateTime
 
 
 def test_forced_refresh_validates_and_atomically_replaces_cache(tmp_path, monkeypatch):
@@ -61,6 +86,46 @@ def test_invalid_refresh_preserves_previous_cache(tmp_path, monkeypatch):
 def test_feed_validation_rejects_header_only_response():
     with pytest.raises(ValueError, match="no data rows"):
         _validate_games_csv(_feed_csv(rows=[]))
+
+
+def test_current_nfl_schedule_week_does_not_advance_after_early_week_final():
+    rows = list(csv.DictReader(io.StringIO(_schedule_csv([
+        "2026_02_LAC_KC,2026,2,REG,LAC,KC,20,24,-3.0,47.5,2026-09-17,20:15,7,7,1,outdoors,,",
+        "2026_02_DAL_NYG,2026,2,REG,DAL,NYG,,,,,2026-09-20,13:00,7,7,1,outdoors,,",
+        "2026_03_SF_SEA,2026,3,REG,SF,SEA,,,,,2026-09-24,20:15,7,7,1,outdoors,,",
+    ]))))
+    now = datetime(2026, 9, 19, 10, 0, tzinfo=ZoneInfo("America/Phoenix"))
+
+    assert current_nfl_schedule_week(rows, season=2026, now=now) == 2
+
+
+def test_current_nfl_schedule_week_advances_on_tuesday_morning():
+    rows = list(csv.DictReader(io.StringIO(_schedule_csv([
+        "2026_02_DAL_NYG,2026,2,REG,DAL,NYG,,,,,2026-09-20,13:00,7,7,1,outdoors,,",
+        "2026_03_SF_SEA,2026,3,REG,SF,SEA,,,,,2026-09-24,20:15,7,7,1,outdoors,,",
+    ]))))
+    before_rollover = datetime(2026, 9, 22, 5, 59, tzinfo=ZoneInfo("America/Phoenix"))
+    after_rollover = datetime(2026, 9, 22, 6, 0, tzinfo=ZoneInfo("America/Phoenix"))
+
+    assert current_nfl_schedule_week(rows, season=2026, now=before_rollover) == 2
+    assert current_nfl_schedule_week(rows, season=2026, now=after_rollover) == 3
+
+
+def test_load_upcoming_games_uses_schedule_week_not_completed_week(tmp_path, monkeypatch):
+    schedule_path = tmp_path / "nfl_games.csv"
+    schedule_path.write_text(_schedule_csv([
+        "2026_02_LAC_KC,2026,2,REG,LAC,KC,20,24,-3.0,47.5,2026-09-17,20:15,7,7,1,outdoors,,",
+        "2026_02_DAL_NYG,2026,2,REG,DAL,NYG,,,-2.5,45.5,2026-09-20,13:00,7,7,1,outdoors,,",
+        "2026_03_SF_SEA,2026,3,REG,SF,SEA,,,-1.5,44.0,2026-09-24,20:15,7,7,1,outdoors,,",
+    ]), encoding="utf-8")
+    now = datetime(2026, 9, 19, 10, 0, tzinfo=ZoneInfo("America/Phoenix"))
+
+    monkeypatch.setattr("nfl_predictor.download_games", lambda *args, **kwargs: str(schedule_path))
+    monkeypatch.setattr("nfl_predictor.datetime", _FixedDateTime(now))
+
+    upcoming = load_upcoming_games()
+
+    assert [game["game_id"] for game in upcoming] == ["2026_02_DAL_NYG"]
 
 
 def _game(season, away_team, home_team):

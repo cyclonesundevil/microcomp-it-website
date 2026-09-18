@@ -11,11 +11,12 @@ import tempfile
 import threading
 import time
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, time as datetime_time, timedelta, timezone
 from collections import Counter
 from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Dict, List, Optional, Tuple
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 GAMES_URL = "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv"
@@ -95,6 +96,8 @@ _REQUIRED_GAMES_COLUMNS = {
     "game_id", "season", "week", "game_type", "away_team", "home_team",
     "away_score", "home_score", "spread_line", "total_line",
 }
+NFL_WEEK_ROLLOVER_TIMEZONE = "America/Phoenix"
+NFL_WEEK_ROLLOVER_HOUR = 6
 
 
 def upcoming_prediction_cache_path() -> str:
@@ -326,6 +329,66 @@ def _to_bool(value: str) -> bool:
     return str(value).strip().lower() in {"1", "true", "t", "yes", "y"}
 
 
+def _nfl_week_rollover_zone():
+    configured = os.getenv("NFL_WEEK_ROLLOVER_TIMEZONE", NFL_WEEK_ROLLOVER_TIMEZONE).strip() or NFL_WEEK_ROLLOVER_TIMEZONE
+    try:
+        return ZoneInfo(configured)
+    except ZoneInfoNotFoundError:
+        return timezone.utc
+
+
+def _nfl_week_rollover_hour() -> int:
+    try:
+        return min(23, max(0, int(os.getenv("NFL_WEEK_ROLLOVER_HOUR", str(NFL_WEEK_ROLLOVER_HOUR)))))
+    except ValueError:
+        return NFL_WEEK_ROLLOVER_HOUR
+
+
+def _parse_gameday(value: str):
+    try:
+        return datetime.strptime(str(value or "").strip(), "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def _tuesday_rollover_before(gameday, rollover_zone):
+    days_since_tuesday = (gameday.weekday() - 1) % 7
+    rollover_day = gameday - timedelta(days=days_since_tuesday)
+    return datetime.combine(
+        rollover_day,
+        datetime_time(hour=_nfl_week_rollover_hour()),
+        tzinfo=rollover_zone,
+    )
+
+
+def current_nfl_schedule_week(rows: List[dict], season: Optional[int] = None, now: Optional[datetime] = None) -> int:
+    """Resolve the current NFL week from Tuesday-morning schedule rollovers."""
+    target_season = season or max(int(row["season"]) for row in rows if row.get("season"))
+    rollover_zone = _nfl_week_rollover_zone()
+    current_time = now or datetime.now(rollover_zone)
+    if current_time.tzinfo is None:
+        current_time = current_time.replace(tzinfo=rollover_zone)
+    else:
+        current_time = current_time.astimezone(rollover_zone)
+
+    week_rollovers = []
+    for row in rows:
+        if row.get("game_type") != "REG" or int(row.get("season", 0)) != target_season or not row.get("week"):
+            continue
+        gameday = _parse_gameday(row.get("gameday"))
+        if gameday is None:
+            continue
+        week_rollovers.append((int(row["week"]), _tuesday_rollover_before(gameday, rollover_zone)))
+
+    if not week_rollovers:
+        return 1
+
+    started_weeks = [week for week, rollover_at in week_rollovers if rollover_at <= current_time]
+    if started_weeks:
+        return max(started_weeks)
+    return min(week for week, _rollover_at in week_rollovers)
+
+
 def _bounded_recent(values: List[float], value: float, limit: int = 4) -> None:
     values.append(value)
     if len(values) > limit:
@@ -443,16 +506,7 @@ def load_upcoming_games(season: Optional[int] = None, week: Optional[int] = None
         rows = list(csv.DictReader(source))
 
     target_season = season or max(int(row["season"]) for row in rows if row.get("season"))
-    completed_weeks = [
-        int(row["week"])
-        for row in rows
-        if row.get("game_type") == "REG"
-        and int(row.get("season", 0)) == target_season
-        and row.get("week")
-        and row.get("away_score") not in (None, "")
-        and row.get("home_score") not in (None, "")
-    ]
-    target_week = week or (max(completed_weeks) + 1 if completed_weeks else 1)
+    target_week = week or current_nfl_schedule_week(rows, target_season)
     upcoming = []
     for row in rows:
         if row.get("game_type") != "REG" or int(row.get("season", 0)) != target_season or int(row.get("week", 0)) != target_week:
