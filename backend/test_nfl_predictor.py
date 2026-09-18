@@ -1,5 +1,7 @@
 import csv
 import io
+import json
+import os
 import pytest
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -9,9 +11,11 @@ from nfl_predictor import (
     MarketBlendNFLModel,
     RsmStage7CComparisonModel,
     _rsm_artifact,
+    _games_source_signature,
     _validate_games_csv,
     current_nfl_schedule_week,
     cached_matchup_history,
+    cached_upcoming_predictions,
     download_games,
     load_upcoming_games,
     list_teams,
@@ -88,6 +92,58 @@ def test_invalid_refresh_preserves_previous_cache(tmp_path, monkeypatch):
 def test_feed_validation_rejects_header_only_response():
     with pytest.raises(ValueError, match="no data rows"):
         _validate_games_csv(_feed_csv(rows=[]))
+
+
+def test_games_source_signature_ignores_file_mtime_for_deploy_stability(tmp_path, monkeypatch):
+    cache_path = tmp_path / "nfl_games.csv"
+    cache_path.write_bytes(_feed_csv())
+    monkeypatch.setattr("nfl_predictor.DEFAULT_CACHE_PATH", str(cache_path))
+
+    first_signature = _games_source_signature()
+    os.utime(cache_path, (100, 100))
+    second_signature = _games_source_signature()
+
+    assert first_signature == second_signature
+
+
+def test_valid_upcoming_cache_is_served_while_source_mismatch_refreshes(tmp_path, monkeypatch):
+    cache_file = tmp_path / "nfl_upcoming_predictions.json"
+    snapshot = {
+        "generated_at": "2026-09-15T13:00:00+00:00",
+        "prediction_schema_version": 2,
+        "games_source_signature": "old-source",
+        "season": 2026,
+        "week": 2,
+        "models": list(MODEL_PROFILES),
+        "games": [{
+            "schedule": {"away_team": "CAR", "home_team": "ATL", "season": 2026, "week": 2},
+            "models": {model: {"model": model} for model in MODEL_PROFILES},
+        }],
+    }
+    cache_file.write_text(json.dumps(snapshot), encoding="utf-8")
+
+    monkeypatch.setattr("nfl_predictor.upcoming_prediction_cache_path", lambda: str(cache_file))
+    monkeypatch.setattr("nfl_predictor._games_source_signature", lambda: "new-source")
+    monkeypatch.setattr("nfl_predictor._UPCOMING_REFRESH_RUNNING", False)
+    started = {"value": False}
+
+    class _NoopThread:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def start(self):
+            started["value"] = True
+
+    with monkeypatch.context() as nested:
+        nested.setattr("nfl_predictor.threading.Thread", _NoopThread)
+        nested.setattr("nfl_predictor._build_upcoming_prediction_cache", lambda *_args, **_kwargs: pytest.fail("request path should not rebuild synchronously"))
+        result = cached_upcoming_predictions([], season=2026, week=2)
+
+    assert result["ready"] is True
+    assert result["cache_hit"] is True
+    assert result["refresh_scheduled"] is True
+    assert started["value"] is True
+    assert result["games"][0]["schedule"]["away_team"] == "CAR"
 
 
 def test_current_nfl_schedule_week_does_not_advance_after_early_week_final():

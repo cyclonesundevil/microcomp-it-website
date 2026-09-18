@@ -118,8 +118,11 @@ def upcoming_prediction_cache_ttl_seconds() -> int:
 
 def _games_source_signature() -> str:
     try:
-        metadata = os.stat(DEFAULT_CACHE_PATH)
-        return f"{metadata.st_mtime_ns}:{metadata.st_size}"
+        digest = hashlib.sha256()
+        with open(DEFAULT_CACHE_PATH, "rb") as source:
+            for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
     except OSError:
         return "missing"
 
@@ -958,6 +961,20 @@ def cached_upcoming_predictions(
                 refresh_scheduled = _schedule_upcoming_prediction_refresh(games, season, week)
                 progress_state = upcoming_prediction_status_snapshot()
                 return {**cached, "cache_hit": True, "cache_age_seconds": cache_age, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": refresh_scheduled, "status": progress_state.get("status", "computing"), "ready": progress_state.get("ready", False), "progress": progress_state.get("progress", 0), "message": progress_state.get("message", "Forecast is being refreshed in the background.")}
+            if not force and same_target and cache_has_games and cached.get("prediction_schema_version") == 2:
+                refresh_scheduled = _schedule_upcoming_prediction_refresh(games, season, week)
+                progress_state = upcoming_prediction_status_snapshot()
+                return {
+                    **cached,
+                    "cache_hit": True,
+                    "cache_age_seconds": cache_age,
+                    "cache_ttl_seconds": ttl_seconds,
+                    "refresh_scheduled": refresh_scheduled,
+                    "status": progress_state.get("status", "computing"),
+                    "ready": True,
+                    "progress": 100,
+                    "message": progress_state.get("message", "Forecast ready from the last valid cache; refreshing in the background."),
+                }
     except (OSError, json.JSONDecodeError):
         pass
 
