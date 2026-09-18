@@ -101,6 +101,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${signed(modelHomeSpread)} / ${total}`;
     }
 
+    function upcomingMarketCell(schedule) {
+        const total = schedule.total_line === null || schedule.total_line === undefined
+            ? '--'
+            : Number(schedule.total_line).toFixed(1);
+        if (schedule.spread_line === null || schedule.spread_line === undefined) {
+            return total === '--' ? '--' : `-- / ${total}`;
+        }
+        const homeMarketMargin = Number(schedule.spread_line);
+        if (Math.abs(homeMarketMargin) < 1e-9) {
+            return `PK / ${total}`;
+        }
+        const favorite = homeMarketMargin > 0 ? schedule.home_team : schedule.away_team;
+        return `${favorite} -${Math.abs(homeMarketMargin).toFixed(1)} / ${total}`;
+    }
+
     function setUpcomingProgress(percent, message) {
         if (!upcomingProgress) return;
         if (!upcomingProgressStartedAt) {
@@ -182,9 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 upcomingTableBody.innerHTML = data.games.map((game) => {
                     const schedule = game.schedule;
-                    const market = schedule.spread_line === null && schedule.total_line === null
-                        ? '--'
-                        : `${schedule.spread_line ?? '--'} / ${schedule.total_line ?? '--'}`;
+                    const market = upcomingMarketCell(schedule);
                     return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small></td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${upcomingModelCell(game.models[model])}</td>`).join('')}</tr>`;
                 }).join('');
             } catch (error) {
