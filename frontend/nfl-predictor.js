@@ -115,13 +115,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (prediction.display_suppressed) {
             return 'Ineligible';
         }
-        return marketFavoriteSpreadCell(
+        const cell = marketFavoriteSpreadCell(
             prediction.pred_margin,
             schedule.spread_line,
             prediction.home_team,
             prediction.away_team,
             prediction.pred_total,
         );
+        return prediction.availability_adjusted ? `${cell} *` : cell;
     }
 
     function upcomingMarketCell(schedule) {
@@ -203,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 upcomingProgress.hidden = true;
                 stopUpcomingProgressTimer();
-                upcomingMessage.textContent = `Season ${data.season}, week ${data.week}. Each cell shows the market favorite's spread / total. Rothstein upcoming values may be stabilized early in the season; Rothstein+ is hidden when ineligible.`;
+                upcomingMessage.textContent = `Season ${data.season}, week ${data.week}. Each cell shows the market favorite's spread / total. Upcoming availability overlays may be applied after core model projections; Rothstein values may be stabilized early in the season and Rothstein+ is hidden when ineligible.`;
                 const invalidGame = data.games.find((game) => {
                     const schedule = game?.schedule;
                     return !schedule?.away_team || !schedule?.home_team;

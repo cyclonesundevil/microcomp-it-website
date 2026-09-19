@@ -10,8 +10,10 @@ from nfl_predictor import (
     MODEL_PROFILES,
     MarketBlendNFLModel,
     RsmStage7CComparisonModel,
+    apply_upcoming_availability_adjustments,
     _rsm_artifact,
     _games_source_signature,
+    _availability_adjustments_signature,
     _validate_games_csv,
     current_nfl_schedule_week,
     cached_matchup_history,
@@ -107,12 +109,28 @@ def test_games_source_signature_ignores_file_mtime_for_deploy_stability(tmp_path
     assert first_signature == second_signature
 
 
+def test_availability_adjustment_signature_changes_with_content(tmp_path, monkeypatch):
+    adjustment_path = tmp_path / "availability.json"
+    adjustment_path.write_text('{"adjustments":[]}', encoding="utf-8")
+    monkeypatch.setenv("NFL_AVAILABILITY_ADJUSTMENTS_PATH", str(adjustment_path))
+
+    first_signature = _availability_adjustments_signature()
+    os.utime(adjustment_path, (100, 100))
+    second_signature = _availability_adjustments_signature()
+    adjustment_path.write_text('{"adjustments":[{"team":"ATL","margin_delta":-4}]}', encoding="utf-8")
+    third_signature = _availability_adjustments_signature()
+
+    assert first_signature == second_signature
+    assert third_signature != first_signature
+
+
 def test_valid_upcoming_cache_is_served_while_source_mismatch_refreshes(tmp_path, monkeypatch):
     cache_file = tmp_path / "nfl_upcoming_predictions.json"
     snapshot = {
         "generated_at": "2026-09-15T13:00:00+00:00",
-        "prediction_schema_version": 4,
+        "prediction_schema_version": 5,
         "games_source_signature": "old-source",
+        "availability_adjustments_signature": "same-availability",
         "season": 2026,
         "week": 2,
         "models": list(MODEL_PROFILES),
@@ -125,6 +143,7 @@ def test_valid_upcoming_cache_is_served_while_source_mismatch_refreshes(tmp_path
 
     monkeypatch.setattr("nfl_predictor.upcoming_prediction_cache_path", lambda: str(cache_file))
     monkeypatch.setattr("nfl_predictor._games_source_signature", lambda: "new-source")
+    monkeypatch.setattr("nfl_predictor._availability_adjustments_signature", lambda: "same-availability")
     monkeypatch.setattr("nfl_predictor._UPCOMING_REFRESH_RUNNING", False)
     started = {"value": False}
 
@@ -386,6 +405,68 @@ def test_mean_reversion_spread_and_total_sign_conventions():
     assert prediction["market_margin"] == 3.0
     assert prediction["spread_edge"] == pytest.approx(prediction["pred_margin"] - 3.0)
     assert prediction["total_edge"] == pytest.approx(prediction["pred_total"] - 47.5)
+
+
+def test_upcoming_availability_adjustment_applies_team_downgrade_after_prediction():
+    prediction = {
+        "model": "baseline",
+        "pred_margin": 5.0,
+        "pred_total": 45.0,
+        "market_margin": -2.5,
+        "total_line": 43.5,
+        "eligible": True,
+        "spread_threshold": 6.0,
+        "total_threshold": 1.5,
+        "model_notes": [],
+    }
+    scheduled = {"season": 2026, "week": 2, "game_id": "2026_02_CAR_ATL", "away_team": "CAR", "home_team": "ATL"}
+    adjustments = [{
+        "season": 2026,
+        "week": 2,
+        "game_id": "2026_02_CAR_ATL",
+        "team": "ATL",
+        "margin_delta": -4.0,
+        "total_delta": -2.5,
+        "label": "ATL QB downgrade",
+        "source": "unit-test",
+    }]
+
+    adjusted = apply_upcoming_availability_adjustments(prediction, scheduled, adjustments)
+
+    assert adjusted["pred_margin"] == pytest.approx(1.0)
+    assert adjusted["pred_total"] == pytest.approx(42.5)
+    assert adjusted["spread_edge"] == pytest.approx(3.5)
+    assert adjusted["total_edge"] == pytest.approx(-1.0)
+    assert adjusted["spread_pick"] is None
+    assert adjusted["total_pick"] is None
+    assert adjusted["winner_pick"] == "home"
+    assert adjusted["raw_pred_margin_before_availability"] == 5.0
+    assert adjusted["availability_adjusted"] is True
+    assert adjusted["availability_adjustments"][0]["team"] == "ATL"
+
+
+def test_upcoming_availability_adjustment_preserves_market_favorite_sign_convention():
+    prediction = {
+        "model": "mean_reversion",
+        "pred_margin": 4.5,
+        "pred_total": 49.5,
+        "market_margin": -2.5,
+        "total_line": 43.5,
+        "eligible": True,
+        "spread_threshold": 4.0,
+        "total_threshold": 2.0,
+        "model_notes": [],
+    }
+    scheduled = {"season": 2026, "week": 2, "game_id": "2026_02_CAR_ATL", "away_team": "CAR", "home_team": "ATL"}
+    adjusted = apply_upcoming_availability_adjustments(prediction, scheduled, [{
+        "season": 2026, "week": 2, "game_id": "2026_02_CAR_ATL", "team": "ATL",
+        "margin_delta": -4.0, "total_delta": -2.5, "label": "ATL QB downgrade", "source": "unit-test",
+    }])
+
+    assert adjusted["market_margin"] == -2.5
+    assert adjusted["pred_margin"] == pytest.approx(0.5)
+    assert adjusted["spread_edge"] == pytest.approx(3.0)
+    assert adjusted["spread_pick"] is None
 
 
 def test_rothstein_upcoming_low_sample_total_is_stabilized():

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "description": "Manual upcoming-only availability overlays applied after core NFL model projections. Positive margin_delta helps the listed team; negative hurts it. total_delta adjusts projected game total. Historical backtests and core model formulas are unchanged.",
+  "adjustments": [
+    {
+      "season": 2026,
+      "week": 2,
+      "game_id": "2026_02_CAR_ATL",
+      "team": "ATL",
+      "margin_delta": -4.0,
+      "total_delta": -2.5,
+      "label": "ATL QB downgrade: Cooper Rush starting; Michael Penix Jr. ruled out; Tua Tagovailoa doubtful; Jack Strand backup.",
+      "source": "AtlantaFalcons.com, 2026-09-18"
+    }
+  ]
+}

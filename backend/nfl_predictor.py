@@ -24,8 +24,9 @@ DEFAULT_CACHE_PATH = os.path.join(os.path.dirname(__file__), "data", "nfl_games.
 RSM_PROFILE = "rsm_stage7c"
 MEAN_REVERSION_PROFILE = "mean_reversion"
 MODEL_PROFILES = ("baseline", "enhanced", "market_blend", MEAN_REVERSION_PROFILE, "rothstein", "rothstein_plus", RSM_PROFILE)
-UPCOMING_PREDICTION_SCHEMA_VERSION = 4
+UPCOMING_PREDICTION_SCHEMA_VERSION = 5
 REPORTS_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "reports"))
+DEFAULT_AVAILABILITY_ADJUSTMENTS_PATH = os.path.join(os.path.dirname(__file__), "config", "nfl_upcoming_availability_adjustments.json")
 INJURY_PROFILES = {
     "general": {
         "label": "General high-impact player",
@@ -118,15 +119,27 @@ def upcoming_prediction_cache_ttl_seconds() -> int:
         return 24 * 60 * 60
 
 
-def _games_source_signature() -> str:
+def availability_adjustments_path() -> str:
+    return os.getenv("NFL_AVAILABILITY_ADJUSTMENTS_PATH", "").strip() or DEFAULT_AVAILABILITY_ADJUSTMENTS_PATH
+
+
+def _file_signature(path: str) -> str:
     try:
         digest = hashlib.sha256()
-        with open(DEFAULT_CACHE_PATH, "rb") as source:
+        with open(path, "rb") as source:
             for chunk in iter(lambda: source.read(1024 * 1024), b""):
                 digest.update(chunk)
         return digest.hexdigest()
     except OSError:
         return "missing"
+
+
+def _games_source_signature() -> str:
+    return _file_signature(DEFAULT_CACHE_PATH)
+
+
+def _availability_adjustments_signature() -> str:
+    return _file_signature(availability_adjustments_path())
 
 
 def _upcoming_checkpoint_path() -> str:
@@ -135,9 +148,10 @@ def _upcoming_checkpoint_path() -> str:
 
 def _upcoming_build_fingerprint(games: List[dict], upcoming: List[dict], season: Optional[int], week: Optional[int]) -> str:
     source = {
-        "schema_version": 2,
+        "schema_version": UPCOMING_PREDICTION_SCHEMA_VERSION,
         "season": season,
         "week": week,
+        "availability_adjustments_signature": _availability_adjustments_signature(),
         "games": [
             (game.get("season"), game.get("week"), game.get("game_id"), game.get("away_score"), game.get("home_score"), game.get("spread_line"), game.get("total_line"))
             for game in games
@@ -145,6 +159,111 @@ def _upcoming_build_fingerprint(games: List[dict], upcoming: List[dict], season:
         "upcoming": upcoming,
     }
     return hashlib.sha256(json.dumps(source, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def load_upcoming_availability_adjustments() -> List[dict]:
+    path = availability_adjustments_path()
+    try:
+        with open(path, encoding="utf-8") as source:
+            payload = json.load(source)
+    except (OSError, json.JSONDecodeError):
+        return []
+    records = payload.get("adjustments", payload) if isinstance(payload, dict) else payload
+    if not isinstance(records, list):
+        return []
+    clean = []
+    for record in records:
+        if not isinstance(record, dict) or not record.get("team"):
+            continue
+        try:
+            clean.append({
+                "season": int(record["season"]) if record.get("season") is not None else None,
+                "week": int(record["week"]) if record.get("week") is not None else None,
+                "game_id": str(record.get("game_id") or "").strip() or None,
+                "team": str(record["team"]).strip().upper(),
+                "margin_delta": float(record.get("margin_delta", 0.0) or 0.0),
+                "total_delta": float(record.get("total_delta", 0.0) or 0.0),
+                "label": str(record.get("label") or "Availability adjustment").strip(),
+                "source": str(record.get("source") or "").strip() or None,
+            })
+        except (TypeError, ValueError):
+            continue
+    return clean
+
+
+def matching_availability_adjustments(game: dict, adjustments: List[dict]) -> List[dict]:
+    matches = []
+    for adjustment in adjustments:
+        if adjustment.get("season") is not None and adjustment["season"] != game.get("season"):
+            continue
+        if adjustment.get("week") is not None and adjustment["week"] != game.get("week"):
+            continue
+        if adjustment.get("game_id") is not None and adjustment["game_id"] != game.get("game_id"):
+            continue
+        if adjustment["team"] not in {game.get("away_team"), game.get("home_team")}:
+            continue
+        matches.append(adjustment)
+    return matches
+
+
+def apply_upcoming_availability_adjustments(prediction: dict, scheduled: dict, adjustments: List[dict]) -> dict:
+    relevant = matching_availability_adjustments(scheduled, adjustments)
+    if not relevant:
+        return prediction
+
+    margin_delta = 0.0
+    total_delta = 0.0
+    public_adjustments = []
+    for adjustment in relevant:
+        team_delta = adjustment["margin_delta"]
+        if adjustment["team"] == scheduled.get("home_team"):
+            margin_delta += team_delta
+        elif adjustment["team"] == scheduled.get("away_team"):
+            margin_delta -= team_delta
+        total_delta += adjustment["total_delta"]
+        public_adjustments.append({
+            "team": adjustment["team"],
+            "margin_delta": adjustment["margin_delta"],
+            "total_delta": adjustment["total_delta"],
+            "label": adjustment["label"],
+            "source": adjustment.get("source"),
+        })
+
+    adjusted = dict(prediction)
+    adjusted["raw_pred_margin_before_availability"] = prediction.get("pred_margin")
+    adjusted["raw_pred_total_before_availability"] = prediction.get("pred_total")
+    adjusted["pred_margin"] = prediction["pred_margin"] + margin_delta if prediction.get("pred_margin") is not None else None
+    adjusted["pred_total"] = prediction["pred_total"] + total_delta if prediction.get("pred_total") is not None else None
+    adjusted["availability_adjusted"] = True
+    adjusted["availability_margin_delta"] = margin_delta
+    adjusted["availability_total_delta"] = total_delta
+    adjusted["availability_adjustments"] = public_adjustments
+
+    market_margin = adjusted.get("market_margin")
+    total_line = adjusted.get("total_line")
+    adjusted["spread_edge"] = adjusted["pred_margin"] - market_margin if adjusted.get("pred_margin") is not None and market_margin is not None else None
+    adjusted["total_edge"] = adjusted["pred_total"] - total_line if adjusted.get("pred_total") is not None and total_line is not None else None
+    adjusted["winner_pick"] = "home" if adjusted.get("pred_margin", 0) > 0 else "away" if adjusted.get("pred_margin", 0) < 0 else None
+
+    eligible = bool(adjusted.get("eligible"))
+    adjusted["spread_pick"] = (
+        side_from_edge(adjusted["spread_edge"], threshold=adjusted["spread_threshold"])
+        if eligible and adjusted["spread_edge"] is not None and model_supports_spread_picks(adjusted["model"])
+        else None
+    )
+    adjusted["total_pick"] = (
+        total_from_edge(adjusted["total_edge"], threshold=0.0)
+        if adjusted["total_edge"] is not None and adjusted["model"] == RSM_PROFILE
+        else (
+            total_from_edge(adjusted["total_edge"], threshold=adjusted["total_threshold"])
+            if eligible and adjusted["total_edge"] is not None and model_supports_totals(adjusted["model"])
+            else None
+        )
+    )
+    notes = list(adjusted.get("model_notes") or [])
+    notes.append("Upcoming availability adjustment applied after the core model projection; historical/backtest model behavior is unchanged.")
+    adjusted["model_notes"] = notes
+    return adjusted
 
 
 def _write_pickle_cache(cache_path: str, payload) -> None:
@@ -755,6 +874,7 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "prediction_schema_version": UPCOMING_PREDICTION_SCHEMA_VERSION,
             "games_source_signature": _games_source_signature(),
+            "availability_adjustments_signature": _availability_adjustments_signature(),
             "season": season,
             "week": week,
             "models": list(MODEL_PROFILES),
@@ -767,6 +887,7 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
     current_season = max(game["season"] for game in games)
     historical_games = [game for game in games if game["season"] < current_season]
     current_season_games = [game for game in games if game["season"] == current_season]
+    availability_adjustments = load_upcoming_availability_adjustments()
     total_model_steps = len(MODEL_PROFILES)
     total_game_steps = len(upcoming) * len(MODEL_PROFILES)
     progress_floor = 12
@@ -823,7 +944,7 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
                 status="computing",
                 ready=False,
             )
-            models[model] = predict_matchup(
+            prediction = predict_matchup(
                 games,
                 scheduled["away_team"], scheduled["home_team"],
                 -scheduled["spread_line"] if scheduled["spread_line"] is not None else None,
@@ -833,6 +954,7 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
                 trained_model=trained_models[model],
                 upcoming_context=True,
             )
+            models[model] = apply_upcoming_availability_adjustments(prediction, scheduled, availability_adjustments)
             _write_upcoming_checkpoint(fingerprint, trained_models, list(rows_by_game_id.values()), step_index + 1)
         rows = list(rows_by_game_id.values())
 
@@ -840,6 +962,7 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "prediction_schema_version": UPCOMING_PREDICTION_SCHEMA_VERSION,
         "games_source_signature": _games_source_signature(),
+        "availability_adjustments_signature": _availability_adjustments_signature(),
         "season": upcoming[0]["season"] if upcoming else season,
         "week": upcoming[0]["week"] if upcoming else week,
         "models": list(MODEL_PROFILES),
@@ -954,6 +1077,7 @@ def cached_upcoming_predictions(
             cache_has_current_source = (
                 cached.get("prediction_schema_version") == UPCOMING_PREDICTION_SCHEMA_VERSION
                 and cached.get("games_source_signature") == _games_source_signature()
+                and cached.get("availability_adjustments_signature") == _availability_adjustments_signature()
             )
             with _UPCOMING_PREDICTION_LOCK:
                 cache_age = max(0.0, time.time() - os.path.getmtime(cache_path))
@@ -992,7 +1116,7 @@ def cached_upcoming_predictions(
                 with open(cache_path, encoding="utf-8") as source:
                     cached = json.load(source)
                 same_target = (season is None or cached.get("season") == season) and (week is None or cached.get("week") == week)
-                if not force and same_target and _has_valid_upcoming_games(cached) and cached.get("prediction_schema_version") == UPCOMING_PREDICTION_SCHEMA_VERSION and cached.get("games_source_signature") == _games_source_signature():
+                if not force and same_target and _has_valid_upcoming_games(cached) and cached.get("prediction_schema_version") == UPCOMING_PREDICTION_SCHEMA_VERSION and cached.get("games_source_signature") == _games_source_signature() and cached.get("availability_adjustments_signature") == _availability_adjustments_signature():
                     cache_age = max(0.0, time.time() - os.path.getmtime(cache_path))
                     return {**cached, "cache_hit": True, "cache_age_seconds": cache_age, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": False, "status": "ready", "ready": True, "progress": 100, "message": "Forecast ready."}
             except (OSError, json.JSONDecodeError):
