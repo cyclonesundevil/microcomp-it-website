@@ -59,6 +59,7 @@
                     <button data-model="baseline">Baseline</button>
                     <button data-model="enhanced">Enhanced</button>
                     <button class="active" data-model="market_blend">Market Blend</button>
+                    <button data-model="mean_reversion">Mean Reversion</button>
                     <button data-model="rothstein">Rothstein</button>
                     <button data-model="rothstein_plus">Rothstein+</button>
                     <button data-model="rsm_stage7c">RSM — Experimental</button>
@@ -339,7 +340,7 @@
             <div>
                 <i class="fa-solid fa-chart-simple"></i>
                 <h3>Research Modes</h3>
-                <p>Market Blend shrinks projections toward the closing line. Rothstein+ adds a midseason and QB-continuity filter.</p>
+                <p>Market Blend shrinks projections toward the closing line. Mean Reversion uses prior two-year PF/PA anchors plus current-season-to-date form. Rothstein+ adds a midseason and QB-continuity filter.</p>
             </div>
             <div>
                 <i class="fa-solid fa-flask"></i>
@@ -361,7 +362,7 @@
         </div>
     </footer>
 
-    <script src="nfl-predictor.js?v=2.4"></script>
+    <script src="nfl-predictor.js?v=2.5"></script>
 </body>
 
 </html>

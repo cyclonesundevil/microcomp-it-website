@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.ready === false || data.status === 'computing') {
                     const progress = Math.max(10, Math.min(95, Number(data.progress) || 15));
                     setUpcomingProgress(progress, data.message || 'Forecast is still being computed.');
-                    upcomingTableBody.innerHTML = '<tr><td colspan="8">Forecast is still being computed...</td></tr>';
+                    upcomingTableBody.innerHTML = '<tr><td colspan="9">Forecast is still being computed...</td></tr>';
                     if (!pollTimer) {
                         pollTimer = window.setTimeout(() => {
                             pollTimer = null;
@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     stopUpcomingProgressTimer();
                     upcomingProgress.hidden = true;
                     upcomingMessage.textContent = data.message || 'No upcoming games were found in the schedule feed.';
-                    upcomingTableBody.innerHTML = '<tr><td colspan="8">No upcoming games were found in the schedule feed.</td></tr>';
+                    upcomingTableBody.innerHTML = '<tr><td colspan="9">No upcoming games were found in the schedule feed.</td></tr>';
                     return;
                 }
 
@@ -210,13 +210,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 if (invalidGame) {
                     upcomingMessage.textContent = 'The cached forecast is invalid and is being rebuilt.';
-                    upcomingTableBody.innerHTML = '<tr><td colspan="8">Forecast data is invalid. Refreshing the forecast...</td></tr>';
+                    upcomingTableBody.innerHTML = '<tr><td colspan="9">Forecast data is invalid. Refreshing the forecast...</td></tr>';
                     return;
                 }
                 upcomingTableBody.innerHTML = data.games.map((game) => {
                     const schedule = game.schedule;
                     const market = upcomingMarketCell(schedule);
-                    return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small></td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${upcomingModelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
+                    return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small></td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'mean_reversion', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${upcomingModelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
                 }).join('');
             } catch (error) {
                 if (pollTimer) {
@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     pollTimer = null;
                 }
                 upcomingMessage.textContent = `Unable to load upcoming games: ${error.message}`;
-                upcomingTableBody.innerHTML = '<tr><td colspan="8">Unavailable</td></tr>';
+                upcomingTableBody.innerHTML = '<tr><td colspan="9">Unavailable</td></tr>';
                 if (upcomingProgress) {
                     stopUpcomingProgressTimer();
                     upcomingProgress.hidden = true;
@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         setUpcomingProgress(10, 'Preparing the all-model projection board...');
-        upcomingTableBody.innerHTML = '<tr><td colspan="8">Forecast is still being computed...</td></tr>';
+        upcomingTableBody.innerHTML = '<tr><td colspan="9">Forecast is still being computed...</td></tr>';
         await fetchUpcomingStatus();
     }
 

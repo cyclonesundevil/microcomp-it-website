@@ -111,7 +111,7 @@ def test_valid_upcoming_cache_is_served_while_source_mismatch_refreshes(tmp_path
     cache_file = tmp_path / "nfl_upcoming_predictions.json"
     snapshot = {
         "generated_at": "2026-09-15T13:00:00+00:00",
-        "prediction_schema_version": 3,
+        "prediction_schema_version": 4,
         "games_source_signature": "old-source",
         "season": 2026,
         "week": 2,
@@ -306,6 +306,86 @@ def test_upcoming_market_blend_converts_nflverse_home_margin_before_prediction()
         model_profile="baseline",
     )
     assert prediction["pred_margin"] == pytest.approx((baseline["pred_margin"] + prediction["market_margin"]) / 2)
+
+
+def test_mean_reversion_early_season_low_sample_is_stable_and_market_independent():
+    games = [
+        _history_game("2024_01_MIN_CHI", 2024, 1, "MIN", "CHI", 21, 20, spread_line=1.5, total_line=42.0),
+        _history_game("2024_02_CHI_MIN", 2024, 2, "CHI", "MIN", 17, 24, spread_line=-3.0, total_line=43.0),
+        _history_game("2025_01_MIN_CHI", 2025, 1, "MIN", "CHI", 20, 19, spread_line=1.0, total_line=41.5),
+        _history_game("2025_02_CHI_MIN", 2025, 2, "CHI", "MIN", 16, 23, spread_line=-2.5, total_line=42.5),
+        _history_game("2026_01_MIN_GB", 2026, 1, "MIN", "GB", 70, 63, spread_line=-3.0, total_line=47.5),
+        _history_game("2026_01_DET_CHI", 2026, 1, "DET", "CHI", 65, 70, spread_line=2.5, total_line=48.5),
+    ]
+
+    favorite_home = predict_matchup(
+        games,
+        away_team="MIN",
+        home_team="CHI",
+        spread_line=-2.5,
+        total_line=48.5,
+        model_profile="mean_reversion",
+    )
+    different_market = predict_matchup(
+        games,
+        away_team="MIN",
+        home_team="CHI",
+        spread_line=7.5,
+        total_line=35.5,
+        model_profile="mean_reversion",
+    )
+
+    assert favorite_home["model"] == "mean_reversion"
+    assert favorite_home["pred_total"] < 70.0
+    assert 30.0 <= favorite_home["pred_total"] <= 62.0
+    assert favorite_home["pred_margin"] == pytest.approx(different_market["pred_margin"])
+    assert favorite_home["pred_total"] == pytest.approx(different_market["pred_total"])
+
+
+def test_mean_reversion_current_season_weight_increases_later_in_season():
+    games = [
+        _history_game("2024_01_MIN_CHI", 2024, 1, "MIN", "CHI", 20, 20),
+        _history_game("2024_02_CHI_MIN", 2024, 2, "CHI", "MIN", 20, 20),
+        _history_game("2025_01_MIN_CHI", 2025, 1, "MIN", "CHI", 20, 20),
+        _history_game("2025_02_CHI_MIN", 2025, 2, "CHI", "MIN", 20, 20),
+        _history_game("2026_01_MIN_GB", 2026, 1, "MIN", "GB", 50, 20),
+        _history_game("2026_02_MIN_DET", 2026, 2, "MIN", "DET", 50, 20),
+        _history_game("2026_03_MIN_BAL", 2026, 3, "MIN", "BAL", 50, 20),
+        _history_game("2026_04_MIN_SEA", 2026, 4, "MIN", "SEA", 50, 20),
+    ]
+    model = train_model(games, "mean_reversion")
+
+    early_margin, early_total = model.predict({
+        "season": 2026, "week": 2, "away_team": "MIN", "home_team": "CHI",
+    })
+    late_margin, late_total = model.predict({
+        "season": 2026, "week": 10, "away_team": "MIN", "home_team": "CHI",
+    })
+
+    assert late_total > early_total
+    assert late_margin < early_margin
+
+
+def test_mean_reversion_spread_and_total_sign_conventions():
+    games = [
+        _history_game("2024_01_KC_PHI", 2024, 1, "KC", "PHI", 21, 24),
+        _history_game("2025_01_KC_PHI", 2025, 1, "KC", "PHI", 20, 24),
+        _history_game("2026_01_KC_BUF", 2026, 1, "KC", "BUF", 27, 20),
+        _history_game("2026_01_DAL_PHI", 2026, 1, "DAL", "PHI", 17, 24),
+    ]
+
+    prediction = predict_matchup(
+        games,
+        away_team="KC",
+        home_team="PHI",
+        spread_line=-3.0,
+        total_line=47.5,
+        model_profile="mean_reversion",
+    )
+
+    assert prediction["market_margin"] == 3.0
+    assert prediction["spread_edge"] == pytest.approx(prediction["pred_margin"] - 3.0)
+    assert prediction["total_edge"] == pytest.approx(prediction["pred_total"] - 47.5)
 
 
 def test_rothstein_upcoming_low_sample_total_is_stabilized():

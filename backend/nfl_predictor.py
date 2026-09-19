@@ -22,8 +22,9 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 GAMES_URL = "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv"
 DEFAULT_CACHE_PATH = os.path.join(os.path.dirname(__file__), "data", "nfl_games.csv")
 RSM_PROFILE = "rsm_stage7c"
-MODEL_PROFILES = ("baseline", "enhanced", "market_blend", "rothstein", "rothstein_plus", RSM_PROFILE)
-UPCOMING_PREDICTION_SCHEMA_VERSION = 3
+MEAN_REVERSION_PROFILE = "mean_reversion"
+MODEL_PROFILES = ("baseline", "enhanced", "market_blend", MEAN_REVERSION_PROFILE, "rothstein", "rothstein_plus", RSM_PROFILE)
+UPCOMING_PREDICTION_SCHEMA_VERSION = 4
 REPORTS_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "reports"))
 INJURY_PROFILES = {
     "general": {
@@ -1268,6 +1269,133 @@ class MarketBlendNFLModel:
         self.base.update(game, base_margin, base_total)
 
 
+@dataclass
+class MeanReversionTeamSeason:
+    points_for: float = 0.0
+    points_against: float = 0.0
+    games: int = 0
+
+    def add_game(self, points_for: float, points_against: float) -> None:
+        self.points_for += float(points_for)
+        self.points_against += float(points_against)
+        self.games += 1
+
+    @property
+    def pf_per_game(self) -> Optional[float]:
+        return self.points_for / self.games if self.games else None
+
+    @property
+    def pa_per_game(self) -> Optional[float]:
+        return self.points_against / self.games if self.games else None
+
+
+@dataclass
+class MeanReversionNFLModel:
+    """PF/PA mean-reversion model using only games known before prediction."""
+
+    mean_total: float = 44.0
+    total_games: int = 0
+    hfa_points: float = 0.8
+    prior_weight_start: float = 0.70
+    prior_weight_floor: float = 0.25
+    current_weight_start: float = 0.10
+    current_weight_ceiling: float = 0.65
+    league_weight: float = 0.20
+    seasons: Dict[int, Dict[str, MeanReversionTeamSeason]] = field(default_factory=dict)
+    league_seasons: Dict[int, MeanReversionTeamSeason] = field(default_factory=dict)
+
+    def _team_season(self, season: int, team: str) -> MeanReversionTeamSeason:
+        if season not in self.seasons:
+            self.seasons[season] = {}
+        if team not in self.seasons[season]:
+            self.seasons[season][team] = MeanReversionTeamSeason()
+        return self.seasons[season][team]
+
+    def _league_season(self, season: int) -> MeanReversionTeamSeason:
+        if season not in self.league_seasons:
+            self.league_seasons[season] = MeanReversionTeamSeason()
+        return self.league_seasons[season]
+
+    def _league_team_points(self) -> float:
+        return self.mean_total / 2
+
+    def _prior_two_year_average(self, team: str, season: int, attr: str) -> Optional[float]:
+        values = []
+        weights = []
+        for prior_season, recency_weight in ((season - 1, 2.0), (season - 2, 1.0)):
+            state = self.seasons.get(prior_season, {}).get(team)
+            value = getattr(state, attr) if state else None
+            if value is not None:
+                values.append(value * recency_weight)
+                weights.append(recency_weight)
+        if not weights:
+            return None
+        return sum(values) / sum(weights)
+
+    def _current_season_average(self, team: str, season: int, attr: str) -> Optional[float]:
+        state = self.seasons.get(season, {}).get(team)
+        return getattr(state, attr) if state else None
+
+    def _week_weights(self, week: int) -> Tuple[float, float, float]:
+        completed_games_estimate = max(0, min(8, int(week or 1) - 1))
+        current_weight = self.current_weight_start + (self.current_weight_ceiling - self.current_weight_start) * (completed_games_estimate / 8)
+        prior_weight = self.prior_weight_start + (self.prior_weight_floor - self.prior_weight_start) * (completed_games_estimate / 8)
+        league_weight = max(0.10, 1.0 - current_weight - prior_weight)
+        total = current_weight + prior_weight + league_weight
+        return prior_weight / total, current_weight / total, league_weight / total
+
+    def _blended_team_rate(self, team: str, season: int, week: int, attr: str) -> float:
+        prior = self._prior_two_year_average(team, season, attr)
+        current = self._current_season_average(team, season, attr)
+        league = self._league_team_points()
+        prior_weight, current_weight, league_weight = self._week_weights(week)
+        weighted_values = []
+        weights = []
+        if prior is not None:
+            weighted_values.append(prior * prior_weight)
+            weights.append(prior_weight)
+        else:
+            league_weight += prior_weight
+        if current is not None:
+            weighted_values.append(current * current_weight)
+            weights.append(current_weight)
+        else:
+            league_weight += current_weight
+        weighted_values.append(league * league_weight)
+        weights.append(league_weight)
+        return sum(weighted_values) / sum(weights)
+
+    def predict(self, game: dict) -> Tuple[float, float]:
+        season = int(game["season"])
+        week = int(game.get("week") or 1)
+        away = game["away_team"]
+        home = game["home_team"]
+        away_offense = self._blended_team_rate(away, season, week, "pf_per_game")
+        away_defense_allowed = self._blended_team_rate(away, season, week, "pa_per_game")
+        home_offense = self._blended_team_rate(home, season, week, "pf_per_game")
+        home_defense_allowed = self._blended_team_rate(home, season, week, "pa_per_game")
+
+        away_points = (away_offense + home_defense_allowed) / 2 - self.hfa_points
+        home_points = (home_offense + away_defense_allowed) / 2 + self.hfa_points
+        predicted_margin = home_points - away_points
+        predicted_total = home_points + away_points
+        return predicted_margin, _bounded(predicted_total, 30.0, 62.0)
+
+    def update(self, game: dict, predicted_margin: float, predicted_total: float) -> None:
+        season = int(game["season"])
+        away = game["away_team"]
+        home = game["home_team"]
+        away_score = float(game["away_score"])
+        home_score = float(game["home_score"])
+        self._team_season(season, away).add_game(away_score, home_score)
+        self._team_season(season, home).add_game(home_score, away_score)
+        league = self._league_season(season)
+        league.add_game(away_score, home_score)
+        league.add_game(home_score, away_score)
+        self.total_games += 1
+        self.mean_total += 0.01 * (float(game["actual_total"]) - self.mean_total)
+
+
 @lru_cache(maxsize=1)
 def _rsm_artifact() -> dict:
     path = os.path.join(REPORTS_ROOT, "rsm-v2-candidate-stage7b.json")
@@ -1437,6 +1565,8 @@ def create_model(profile: str):
         return OnlineNFLModel()
     if profile == "market_blend":
         return MarketBlendNFLModel()
+    if profile == MEAN_REVERSION_PROFILE:
+        return MeanReversionNFLModel()
     if profile in {"rothstein", "rothstein_plus"}:
         return RothsteinNFLModel()
     if profile == RSM_PROFILE:
@@ -1453,6 +1583,8 @@ def default_spread_threshold(model_profile: str) -> float:
         return 0.0
     if model_profile in {"rothstein", "rothstein_plus"}:
         return 2.0
+    if model_profile == MEAN_REVERSION_PROFILE:
+        return 4.0
     if model_profile == "market_blend":
         return 3.0
     return 6.0
@@ -1463,6 +1595,8 @@ def default_total_threshold(model_profile: str) -> float:
         return 999.0
     if model_profile in {"rothstein", "rothstein_plus"}:
         return 4.0
+    if model_profile == MEAN_REVERSION_PROFILE:
+        return 2.0
     return 1.5
 
 
@@ -1643,7 +1777,7 @@ def dashboard_snapshot(
     if model_profile == RSM_PROFILE:
         return rsm_dashboard_snapshot(games, playoff_mode, injury_team, injury_impact, injury_position)
 
-    if model_profile in {"market_blend", "rothstein", "rothstein_plus"}:
+    if model_profile in {"market_blend", MEAN_REVERSION_PROFILE, "rothstein", "rothstein_plus"}:
         model_profile = "baseline"
 
     latest_season = max(game["season"] for game in games)

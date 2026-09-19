@@ -91,14 +91,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!data.games.length) {
             progressPanel.hidden = true;
             message.textContent = data.message || 'No upcoming games were found in the schedule feed.';
-            tableBody.innerHTML = '<tr><td colspan="8">No upcoming games were found in the schedule feed.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="9">No upcoming games were found in the schedule feed.</td></tr>';
             return;
         }
 
         const invalid = data.games.some((game) => !game?.schedule?.away_team || !game?.schedule?.home_team);
         if (invalid) {
             message.textContent = 'The cached forecast is invalid and is being rebuilt.';
-            tableBody.innerHTML = '<tr><td colspan="8">Forecast data is invalid. Refreshing the forecast...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="9">Forecast data is invalid. Refreshing the forecast...</td></tr>';
             return;
         }
 
@@ -107,14 +107,14 @@ document.addEventListener('DOMContentLoaded', () => {
         tableBody.innerHTML = data.games.map((game) => {
             const schedule = game.schedule;
             const market = marketCell(schedule);
-            return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small></td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${modelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
+            return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small></td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'mean_reversion', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${modelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
         }).join('');
     }
 
     async function loadUpcoming() {
         resetProgress();
         message.textContent = 'Preparing the upcoming-week forecast...';
-        tableBody.innerHTML = '<tr><td colspan="8">Forecast is still being computed...</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="9">Forecast is still being computed...</td></tr>';
         refreshButton.disabled = true;
 
         const poll = async () => {
@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (data.ready === false || data.status === 'computing') {
                     showProgress(Math.max(10, Math.min(95, Number(data.progress) || 15)), data.message || 'Forecast is still being computed.');
-                    tableBody.innerHTML = '<tr><td colspan="8">Forecast is still being computed...</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="9">Forecast is still being computed...</td></tr>';
                     pollTimer = window.setTimeout(() => {
                         pollTimer = null;
                         poll();
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 stopTimers();
                 progressPanel.hidden = true;
                 message.textContent = `Unable to load upcoming predictions: ${error.message}`;
-                tableBody.innerHTML = '<tr><td colspan="8">Unavailable</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="9">Unavailable</td></tr>';
             } finally {
                 refreshButton.disabled = false;
             }
