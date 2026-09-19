@@ -90,25 +90,31 @@ document.addEventListener('DOMContentLoaded', () => {
         return number >= 0 ? `+${number.toFixed(1)}` : number.toFixed(1);
     }
 
-    function favoriteSpreadCell(homeMargin, homeTeam, awayTeam, totalValue) {
+    function marketFavoriteSpreadCell(homeMargin, marketHomeMargin, homeTeam, awayTeam, totalValue) {
         const total = totalValue === null || totalValue === undefined
             ? '--'
             : Number(totalValue).toFixed(1);
-        if (homeMargin === null || homeMargin === undefined) {
+        if (homeMargin === null || homeMargin === undefined || marketHomeMargin === null || marketHomeMargin === undefined) {
             return total === '--' ? '--' : `-- / ${total}`;
         }
         const margin = Number(homeMargin);
-        if (Math.abs(margin) < 1e-9) {
+        const marketMargin = Number(marketHomeMargin);
+        if (Math.abs(marketMargin) < 1e-9) {
             return `PK / ${total}`;
         }
-        const favorite = margin > 0 ? homeTeam : awayTeam;
-        return `${favorite} -${Math.abs(margin).toFixed(1)} / ${total}`;
+        const marketFavorite = marketMargin > 0 ? homeTeam : awayTeam;
+        const marketFavoriteSpread = marketMargin > 0 ? -margin : margin;
+        const signedSpread = marketFavoriteSpread > 0
+            ? `+${marketFavoriteSpread.toFixed(1)}`
+            : marketFavoriteSpread.toFixed(1);
+        return `${marketFavorite} ${signedSpread} / ${total}`;
     }
 
-    function upcomingModelCell(prediction) {
+    function upcomingModelCell(prediction, schedule) {
         if (!prediction) return '--';
-        return favoriteSpreadCell(
+        return marketFavoriteSpreadCell(
             prediction.pred_margin,
+            schedule.spread_line,
             prediction.home_team,
             prediction.away_team,
             prediction.pred_total,
@@ -116,7 +122,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function upcomingMarketCell(schedule) {
-        return favoriteSpreadCell(
+        return marketFavoriteSpreadCell(
+            schedule.spread_line,
             schedule.spread_line,
             schedule.home_team,
             schedule.away_team,
@@ -193,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 upcomingProgress.hidden = true;
                 stopUpcomingProgressTimer();
-                upcomingMessage.textContent = `Season ${data.season}, week ${data.week}. Each cell shows favorite spread / total.`;
+                upcomingMessage.textContent = `Season ${data.season}, week ${data.week}. Each cell shows the market favorite's spread / total.`;
                 const invalidGame = data.games.find((game) => {
                     const schedule = game?.schedule;
                     return !schedule?.away_team || !schedule?.home_team;
@@ -206,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 upcomingTableBody.innerHTML = data.games.map((game) => {
                     const schedule = game.schedule;
                     const market = upcomingMarketCell(schedule);
-                    return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small></td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${upcomingModelCell(game.models[model])}</td>`).join('')}</tr>`;
+                    return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small></td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${upcomingModelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
                 }).join('');
             } catch (error) {
                 if (pollTimer) {
