@@ -43,36 +43,38 @@ document.addEventListener('DOMContentLoaded', () => {
         progressFill.style.width = '0%';
     }
 
-    function signed(value) {
-        if (value === null || value === undefined) return '--';
-        const number = Number(value);
-        return number >= 0 ? `+${number.toFixed(1)}` : number.toFixed(1);
+    function favoriteSpreadCell(homeMargin, homeTeam, awayTeam, totalValue) {
+        const total = totalValue === null || totalValue === undefined
+            ? '--'
+            : Number(totalValue).toFixed(1);
+        if (homeMargin === null || homeMargin === undefined) {
+            return total === '--' ? '--' : `-- / ${total}`;
+        }
+        const margin = Number(homeMargin);
+        if (Math.abs(margin) < 1e-9) {
+            return `PK / ${total}`;
+        }
+        const favorite = margin > 0 ? homeTeam : awayTeam;
+        return `${favorite} -${Math.abs(margin).toFixed(1)} / ${total}`;
     }
 
     function modelCell(prediction) {
         if (!prediction) return '--';
-        const total = prediction.pred_total === null || prediction.pred_total === undefined
-            ? '--'
-            : Number(prediction.pred_total).toFixed(1);
-        const modelHomeSpread = prediction.pred_margin === null || prediction.pred_margin === undefined
-            ? null
-            : -Number(prediction.pred_margin);
-        return `${signed(modelHomeSpread)} / ${total}`;
+        return favoriteSpreadCell(
+            prediction.pred_margin,
+            prediction.home_team,
+            prediction.away_team,
+            prediction.pred_total,
+        );
     }
 
     function marketCell(schedule) {
-        const total = schedule.total_line === null || schedule.total_line === undefined
-            ? '--'
-            : Number(schedule.total_line).toFixed(1);
-        if (schedule.spread_line === null || schedule.spread_line === undefined) {
-            return total === '--' ? '--' : `-- / ${total}`;
-        }
-        const homeMarketMargin = Number(schedule.spread_line);
-        if (Math.abs(homeMarketMargin) < 1e-9) {
-            return `PK / ${total}`;
-        }
-        const favorite = homeMarketMargin > 0 ? schedule.home_team : schedule.away_team;
-        return `${favorite} -${Math.abs(homeMarketMargin).toFixed(1)} / ${total}`;
+        return favoriteSpreadCell(
+            schedule.spread_line,
+            schedule.home_team,
+            schedule.away_team,
+            schedule.total_line,
+        );
     }
 
     function renderGames(data) {
@@ -91,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         progressPanel.hidden = true;
-        message.textContent = `Season ${data.season}, week ${data.week}. Each model cell shows predicted home spread / total.`;
+        message.textContent = `Season ${data.season}, week ${data.week}. Each cell shows favorite spread / total.`;
         tableBody.innerHTML = data.games.map((game) => {
             const schedule = game.schedule;
             const market = marketCell(schedule);
