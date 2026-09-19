@@ -23,6 +23,7 @@ GAMES_URL = "https://raw.githubusercontent.com/nflverse/nfldata/master/data/game
 DEFAULT_CACHE_PATH = os.path.join(os.path.dirname(__file__), "data", "nfl_games.csv")
 RSM_PROFILE = "rsm_stage7c"
 MODEL_PROFILES = ("baseline", "enhanced", "market_blend", "rothstein", "rothstein_plus", RSM_PROFILE)
+UPCOMING_PREDICTION_SCHEMA_VERSION = 3
 REPORTS_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "reports"))
 INJURY_PROFILES = {
     "general": {
@@ -751,7 +752,7 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
     if not upcoming:
         payload = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
-            "prediction_schema_version": 2,
+            "prediction_schema_version": UPCOMING_PREDICTION_SCHEMA_VERSION,
             "games_source_signature": _games_source_signature(),
             "season": season,
             "week": week,
@@ -829,13 +830,14 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
                 scheduled["home_rest"], scheduled["away_rest"], scheduled["div_game"],
                 scheduled["roof"], scheduled["temp"], scheduled["wind"],
                 trained_model=trained_models[model],
+                upcoming_context=True,
             )
             _write_upcoming_checkpoint(fingerprint, trained_models, list(rows_by_game_id.values()), step_index + 1)
         rows = list(rows_by_game_id.values())
 
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "prediction_schema_version": 2,
+        "prediction_schema_version": UPCOMING_PREDICTION_SCHEMA_VERSION,
         "games_source_signature": _games_source_signature(),
         "season": upcoming[0]["season"] if upcoming else season,
         "week": upcoming[0]["week"] if upcoming else week,
@@ -949,7 +951,7 @@ def cached_upcoming_predictions(
                 cached = json.load(source)
             cache_has_games = _has_valid_upcoming_games(cached)
             cache_has_current_source = (
-                cached.get("prediction_schema_version") == 2
+                cached.get("prediction_schema_version") == UPCOMING_PREDICTION_SCHEMA_VERSION
                 and cached.get("games_source_signature") == _games_source_signature()
             )
             with _UPCOMING_PREDICTION_LOCK:
@@ -961,7 +963,7 @@ def cached_upcoming_predictions(
                 refresh_scheduled = _schedule_upcoming_prediction_refresh(games, season, week)
                 progress_state = upcoming_prediction_status_snapshot()
                 return {**cached, "cache_hit": True, "cache_age_seconds": cache_age, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": refresh_scheduled, "status": progress_state.get("status", "computing"), "ready": progress_state.get("ready", False), "progress": progress_state.get("progress", 0), "message": progress_state.get("message", "Forecast is being refreshed in the background.")}
-            if not force and same_target and cache_has_games and cached.get("prediction_schema_version") == 2:
+            if not force and same_target and cache_has_games and cached.get("prediction_schema_version") == UPCOMING_PREDICTION_SCHEMA_VERSION:
                 refresh_scheduled = _schedule_upcoming_prediction_refresh(games, season, week)
                 progress_state = upcoming_prediction_status_snapshot()
                 return {
@@ -989,7 +991,7 @@ def cached_upcoming_predictions(
                 with open(cache_path, encoding="utf-8") as source:
                     cached = json.load(source)
                 same_target = (season is None or cached.get("season") == season) and (week is None or cached.get("week") == week)
-                if not force and same_target and _has_valid_upcoming_games(cached) and cached.get("prediction_schema_version") == 2 and cached.get("games_source_signature") == _games_source_signature():
+                if not force and same_target and _has_valid_upcoming_games(cached) and cached.get("prediction_schema_version") == UPCOMING_PREDICTION_SCHEMA_VERSION and cached.get("games_source_signature") == _games_source_signature():
                     cache_age = max(0.0, time.time() - os.path.getmtime(cache_path))
                     return {**cached, "cache_hit": True, "cache_age_seconds": cache_age, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": False, "status": "ready", "ready": True, "progress": 100, "message": "Forecast ready."}
             except (OSError, json.JSONDecodeError):
@@ -1489,6 +1491,102 @@ def is_rothstein_plus_eligible(model: RothsteinNFLModel, game: dict) -> bool:
     return True
 
 
+def _bounded(value: float, lower: float, upper: float) -> float:
+    return max(lower, min(upper, value))
+
+
+def rothstein_upcoming_sample(model: RothsteinNFLModel, game: dict) -> dict:
+    away = model.team(game["away_team"], game["season"])
+    home = model.team(game["home_team"], game["season"])
+    min_team_games = min(away.games, home.games)
+    avg_team_games = (away.games + home.games) / 2
+    return {
+        "away_team_games": away.games,
+        "home_team_games": home.games,
+        "min_team_games": min_team_games,
+        "avg_team_games": avg_team_games,
+        "confidence": "LOW" if min_team_games < 4 else "MEDIUM" if min_team_games < 8 else "HIGH",
+    }
+
+
+def stabilize_rothstein_upcoming_prediction(
+    prediction: dict,
+    model: RothsteinNFLModel,
+    game: dict,
+    model_profile: str,
+) -> dict:
+    """Conservative display guard for same-season Rothstein upcoming forecasts.
+
+    The Rothstein profiles intentionally train only on the current season. In
+    the first few weeks, one high- or low-scoring result can produce extreme raw
+    averages. This stabilizer is used only for the upcoming board/API path; it
+    does not alter the model object, historical backtests, or direct raw
+    predictions unless callers explicitly opt into the upcoming context.
+    """
+    if model_profile not in {"rothstein", "rothstein_plus"}:
+        return prediction
+
+    sample = rothstein_upcoming_sample(model, game)
+    market_margin = prediction.get("market_margin")
+    total_line = prediction.get("total_line")
+    margin_baseline = float(market_margin) if market_margin is not None else 0.0
+    total_baseline = float(total_line) if total_line is not None else float(model.mean_total or 44.0)
+    reliability = _bounded((sample["min_team_games"] - 1) / 7, 0.0, 1.0)
+    raw_margin = float(prediction["pred_margin"])
+    raw_total = float(prediction["pred_total"]) if prediction.get("pred_total") is not None else None
+
+    stabilized_margin = margin_baseline + reliability * (raw_margin - margin_baseline)
+    max_margin_delta = 7.0 + 7.0 * reliability
+    stabilized_margin = _bounded(stabilized_margin, margin_baseline - max_margin_delta, margin_baseline + max_margin_delta)
+    stabilized_margin = _bounded(stabilized_margin, -24.0, 24.0)
+
+    stabilized_total = None
+    if raw_total is not None:
+        stabilized_total = total_baseline + reliability * (raw_total - total_baseline)
+        max_total_delta = 8.0 + 6.0 * reliability
+        stabilized_total = _bounded(stabilized_total, total_baseline - max_total_delta, total_baseline + max_total_delta)
+        stabilized_total = _bounded(stabilized_total, 32.0, 60.0)
+
+    guarded = dict(prediction)
+    guarded["raw_pred_margin"] = raw_margin
+    guarded["raw_pred_total"] = raw_total
+    guarded["pred_margin"] = stabilized_margin
+    guarded["pred_total"] = stabilized_total
+    guarded["rothstein_sample"] = sample
+    guarded["data_confidence"] = sample["confidence"]
+    guarded["upcoming_stabilized"] = (
+        abs(stabilized_margin - raw_margin) > 1e-9
+        or (raw_total is not None and stabilized_total is not None and abs(stabilized_total - raw_total) > 1e-9)
+    )
+    guarded["spread_edge"] = stabilized_margin - market_margin if market_margin is not None else None
+    guarded["total_edge"] = stabilized_total - total_line if stabilized_total is not None and total_line is not None else None
+
+    eligible = bool(guarded.get("eligible"))
+    if model_profile == "rothstein_plus" and sample["confidence"] != "HIGH":
+        eligible = False
+        guarded["eligible"] = False
+        guarded["display_suppressed"] = True
+
+    guarded["spread_pick"] = (
+        side_from_edge(guarded["spread_edge"], threshold=guarded["spread_threshold"])
+        if eligible and guarded["spread_edge"] is not None and model_supports_spread_picks(model_profile)
+        else None
+    )
+    guarded["total_pick"] = (
+        total_from_edge(guarded["total_edge"], threshold=guarded["total_threshold"])
+        if eligible and guarded["total_edge"] is not None and model_supports_totals(model_profile)
+        else None
+    )
+
+    notes = list(guarded.get("model_notes") or [])
+    if guarded["upcoming_stabilized"]:
+        notes.append("Upcoming Rothstein projection is stabilized toward market/league baselines because same-season sample size is low.")
+    if guarded.get("display_suppressed"):
+        notes.append("Rothstein+ is hidden for this upcoming game because its eligibility/data-confidence requirements are not met.")
+    guarded["model_notes"] = notes
+    return guarded
+
+
 def train_model(games: List[dict], model_profile: str = "baseline") -> OnlineNFLModel:
     model = create_model(model_profile)
     for game in games:
@@ -1877,6 +1975,7 @@ def predict_matchup(
     market_source: Optional[str] = None,
     market_observed_at: Optional[str] = None,
     trained_model=None,
+    upcoming_context: bool = False,
 ) -> dict:
     available_teams = set(list_teams(games))
     if away_team not in available_teams:
@@ -1954,7 +2053,7 @@ def predict_matchup(
         if total_line is None:
             rsm_notes.append("No bookmaker total was supplied, so total edge and O/U selection are unavailable; the independent model total remains displayed.")
 
-    return {
+    prediction = {
         "model": model_profile,
         "away_team": away_team,
         "home_team": home_team,
@@ -1978,6 +2077,9 @@ def predict_matchup(
         "latest_training_season": max(g["season"] for g in games),
         "model_notes": rsm_notes if model_profile == RSM_PROFILE else [],
     }
+    if upcoming_context and model_profile in {"rothstein", "rothstein_plus"}:
+        prediction = stabilize_rothstein_upcoming_prediction(prediction, model, game, model_profile)
+    return prediction
 
 
 def side_from_edge(edge: float, threshold: float) -> Optional[str]:

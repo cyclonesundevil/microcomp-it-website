@@ -24,6 +24,7 @@ from nfl_predictor import (
     run_backtest,
     side_from_edge,
     summarize,
+    train_model,
 )
 
 
@@ -110,7 +111,7 @@ def test_valid_upcoming_cache_is_served_while_source_mismatch_refreshes(tmp_path
     cache_file = tmp_path / "nfl_upcoming_predictions.json"
     snapshot = {
         "generated_at": "2026-09-15T13:00:00+00:00",
-        "prediction_schema_version": 2,
+        "prediction_schema_version": 3,
         "games_source_signature": "old-source",
         "season": 2026,
         "week": 2,
@@ -305,6 +306,118 @@ def test_upcoming_market_blend_converts_nflverse_home_margin_before_prediction()
         model_profile="baseline",
     )
     assert prediction["pred_margin"] == pytest.approx((baseline["pred_margin"] + prediction["market_margin"]) / 2)
+
+
+def test_rothstein_upcoming_low_sample_total_is_stabilized():
+    games = [
+        _history_game("2026_01_MIN_GB", 2026, 1, "MIN", "GB", 60, 50, spread_line=-3.0, total_line=47.5),
+        _history_game("2026_01_DET_CHI", 2026, 1, "DET", "CHI", 55, 60, spread_line=2.5, total_line=48.5),
+    ]
+    trained = train_model(games, "rothstein")
+
+    raw = predict_matchup(
+        games,
+        away_team="MIN",
+        home_team="CHI",
+        spread_line=-2.5,
+        total_line=48.5,
+        model_profile="rothstein",
+        trained_model=trained,
+    )
+    upcoming = predict_matchup(
+        games,
+        away_team="MIN",
+        home_team="CHI",
+        spread_line=-2.5,
+        total_line=48.5,
+        model_profile="rothstein",
+        trained_model=trained,
+        upcoming_context=True,
+    )
+
+    assert raw["pred_total"] > 70.0
+    assert upcoming["pred_total"] <= 60.0
+    assert upcoming["pred_total"] == pytest.approx(48.5)
+    assert upcoming["raw_pred_total"] == pytest.approx(raw["pred_total"])
+    assert upcoming["upcoming_stabilized"] is True
+    assert upcoming["data_confidence"] == "LOW"
+
+
+def test_rothstein_upcoming_spread_sign_convention_after_stabilization():
+    games = [
+        _history_game("2026_01_MIN_GB", 2026, 1, "MIN", "GB", 60, 50, spread_line=-3.0, total_line=47.5),
+        _history_game("2026_01_DET_CHI", 2026, 1, "DET", "CHI", 55, 60, spread_line=2.5, total_line=48.5),
+    ]
+    trained = train_model(games, "rothstein")
+
+    prediction = predict_matchup(
+        games,
+        away_team="MIN",
+        home_team="CHI",
+        spread_line=-2.5,
+        total_line=48.5,
+        model_profile="rothstein",
+        trained_model=trained,
+        upcoming_context=True,
+    )
+
+    assert prediction["spread_line"] == -2.5
+    assert prediction["market_margin"] == 2.5
+    assert prediction["pred_margin"] == pytest.approx(2.5)
+    assert prediction["spread_edge"] == pytest.approx(0.0)
+    assert prediction["spread_pick"] is None
+    assert prediction["total_edge"] == pytest.approx(0.0)
+    assert prediction["total_pick"] is None
+
+
+def test_rothstein_plus_upcoming_low_confidence_is_visibly_ineligible():
+    games = [
+        _history_game("2026_01_MIN_GB", 2026, 1, "MIN", "GB", 60, 50, spread_line=-3.0, total_line=47.5),
+        _history_game("2026_01_DET_CHI", 2026, 1, "DET", "CHI", 55, 60, spread_line=2.5, total_line=48.5),
+    ]
+    trained = train_model(games, "rothstein_plus")
+
+    prediction = predict_matchup(
+        games,
+        away_team="MIN",
+        home_team="CHI",
+        spread_line=-2.5,
+        total_line=48.5,
+        model_profile="rothstein_plus",
+        trained_model=trained,
+        upcoming_context=True,
+    )
+
+    assert prediction["eligible"] is False
+    assert prediction["display_suppressed"] is True
+    assert prediction["spread_pick"] is None
+    assert prediction["total_pick"] is None
+    assert "hidden" in " ".join(prediction["model_notes"])
+
+
+def test_upcoming_context_does_not_change_non_rothstein_models():
+    games = [_graded_game(2025, "KC", "PHI"), _graded_game(2026, "KC", "PHI")]
+
+    for model_profile in ("baseline", "enhanced", "market_blend", "rsm_stage7c"):
+        normal = predict_matchup(
+            games,
+            away_team="KC",
+            home_team="PHI",
+            spread_line=-3.0,
+            total_line=47.5,
+            model_profile=model_profile,
+        )
+        upcoming = predict_matchup(
+            games,
+            away_team="KC",
+            home_team="PHI",
+            spread_line=-3.0,
+            total_line=47.5,
+            model_profile=model_profile,
+            upcoming_context=True,
+        )
+        for key in ("pred_margin", "pred_total", "spread_edge", "total_edge", "spread_pick", "total_pick", "eligible"):
+            assert upcoming[key] == normal[key]
 
 
 def test_rsm_profile_maps_frozen_margin_to_experimental_winner_and_ats_projection():

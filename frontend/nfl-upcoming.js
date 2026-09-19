@@ -65,6 +65,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function modelCell(prediction, schedule) {
         if (!prediction) return '--';
+        if (prediction.display_suppressed) {
+            return 'Ineligible';
+        }
         return marketFavoriteSpreadCell(
             prediction.pred_margin,
             schedule.spread_line,
@@ -100,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         progressPanel.hidden = true;
-        message.textContent = `Season ${data.season}, week ${data.week}. Each cell shows the market favorite's spread / total.`;
+        message.textContent = `Season ${data.season}, week ${data.week}. Each cell shows the market favorite's spread / total. Rothstein upcoming values may be stabilized early in the season; Rothstein+ is hidden when ineligible.`;
         tableBody.innerHTML = data.games.map((game) => {
             const schedule = game.schedule;
             const market = marketCell(schedule);
