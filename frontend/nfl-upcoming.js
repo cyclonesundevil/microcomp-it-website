@@ -112,15 +112,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
     }
 
-    async function loadUpcoming() {
+    function adminRefreshToken() {
+        const saved = window.sessionStorage.getItem('nflAdminRefreshToken') || '';
+        const token = window.prompt('Admin token required to rebuild upcoming predictions. Leave blank to cancel.', saved);
+        if (!token) return null;
+        window.sessionStorage.setItem('nflAdminRefreshToken', token);
+        return token;
+    }
+
+    async function loadUpcoming(forceRefresh = false) {
         resetProgress();
-        message.textContent = 'Preparing the upcoming-week forecast...';
+        const token = forceRefresh ? adminRefreshToken() : null;
+        if (forceRefresh && !token) {
+            message.textContent = 'Admin refresh cancelled. Showing the last cached upcoming predictions.';
+            return loadUpcoming(false);
+        }
+        message.textContent = forceRefresh ? 'Admin refresh requested; rebuilding upcoming predictions...' : 'Loading cached upcoming-week forecast...';
         tableBody.innerHTML = '<tr><td colspan="9">Forecast is still being computed...</td></tr>';
         refreshButton.disabled = true;
 
         const poll = async () => {
             try {
-                const response = await fetch(`${apiBase}/api/nfl/upcoming?scope=upcoming`);
+                const url = `${apiBase}/api/nfl/upcoming?scope=upcoming${forceRefresh ? '&refresh=1' : ''}`;
+                const response = await fetch(url, forceRefresh ? { headers: { 'X-NFL-Refresh-Token': token } } : undefined);
                 const data = await response.json();
                 if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load upcoming predictions');
 
@@ -149,6 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
         await poll();
     }
 
-    refreshButton.addEventListener('click', loadUpcoming);
-    loadUpcoming();
+    refreshButton.addEventListener('click', () => loadUpcoming(true));
+    loadUpcoming(false);
 });

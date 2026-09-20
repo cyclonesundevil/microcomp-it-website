@@ -166,6 +166,22 @@ def test_valid_upcoming_cache_is_served_while_source_mismatch_refreshes(tmp_path
     assert result["games"][0]["schedule"]["away_team"] == "CAR"
 
 
+def test_public_upcoming_cache_miss_does_not_schedule_rebuild(tmp_path, monkeypatch):
+    cache_file = tmp_path / "nfl_upcoming_predictions.json"
+    monkeypatch.setattr("nfl_predictor.upcoming_prediction_cache_path", lambda: str(cache_file))
+    monkeypatch.setattr("nfl_predictor._games_source_signature", lambda: "source")
+    monkeypatch.setattr("nfl_predictor._availability_adjustments_signature", lambda: "availability")
+    monkeypatch.setattr("nfl_predictor._UPCOMING_REFRESH_RUNNING", False)
+
+    with monkeypatch.context() as nested:
+        nested.setattr("nfl_predictor._schedule_upcoming_prediction_refresh", lambda *_args, **_kwargs: pytest.fail("public cache read should not schedule rebuild"))
+        result = cached_upcoming_predictions([], season=2026, week=2, allow_background_refresh=False)
+
+    assert result["ready"] is False
+    assert result["refresh_scheduled"] is False
+    assert "Admin refresh" in result["message"]
+
+
 def test_current_nfl_schedule_week_does_not_advance_after_early_week_final():
     rows = list(csv.DictReader(io.StringIO(_schedule_csv([
         "2026_02_LAC_KC,2026,2,REG,LAC,KC,20,24,-3.0,47.5,2026-09-17,20:15,7,7,1,outdoors,,",

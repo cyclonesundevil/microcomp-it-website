@@ -1842,12 +1842,15 @@ async def nfl_upcoming():
         scope = (request.args.get("scope") or "upcoming").strip().lower()
         if scope != "upcoming":
             return jsonify({"success": False, "error": "The upcoming endpoint only supports the upcoming-week scope."}), 400
+        force_refresh = request_bool("refresh", False)
+        if force_refresh and not nfl_data_refresh_authorized():
+            return jsonify({"success": False, "error": "Upcoming prediction refresh requires the admin refresh token."}), 403
         requested_week = request.args.get("week")
         requested_season = request.args.get("season")
         week = int(requested_week) if requested_week else None
         season = int(requested_season) if requested_season else None
         games, cache = await load_nfl_games_for_request()
-        snapshot = await asyncio.to_thread(cached_upcoming_predictions, games, season, week)
+        snapshot = await asyncio.to_thread(cached_upcoming_predictions, games, season, week, force_refresh, force_refresh)
         return jsonify({"success": True, "source": GAMES_URL, "cache": cache, **snapshot})
     except ValueError as error:
         return jsonify({"success": False, "error": str(error)}), 400

@@ -1061,6 +1061,7 @@ def cached_upcoming_predictions(
     season: Optional[int] = None,
     week: Optional[int] = None,
     force: bool = False,
+    allow_background_refresh: bool = True,
 ) -> dict:
     """Return one daily weekly prediction snapshot, rebuilding it atomically when stale."""
     cache_path = upcoming_prediction_cache_path()
@@ -1085,11 +1086,11 @@ def cached_upcoming_predictions(
                 if not force and cache_age <= ttl_seconds and same_target and cache_has_games and cache_has_current_source:
                     return {**cached, "cache_hit": True, "cache_age_seconds": cache_age, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": False, "status": "ready", "ready": True, "progress": 100, "message": "Forecast ready."}
             if not force and same_target and cache_has_games and cache_has_current_source and cache_age > ttl_seconds:
-                refresh_scheduled = _schedule_upcoming_prediction_refresh(games, season, week)
+                refresh_scheduled = _schedule_upcoming_prediction_refresh(games, season, week) if allow_background_refresh else False
                 progress_state = upcoming_prediction_status_snapshot()
-                return {**cached, "cache_hit": True, "cache_age_seconds": cache_age, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": refresh_scheduled, "status": progress_state.get("status", "computing"), "ready": progress_state.get("ready", False), "progress": progress_state.get("progress", 0), "message": progress_state.get("message", "Forecast is being refreshed in the background.")}
+                return {**cached, "cache_hit": True, "cache_age_seconds": cache_age, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": refresh_scheduled, "status": progress_state.get("status", "computing") if refresh_scheduled else "ready", "ready": progress_state.get("ready", False) if refresh_scheduled else True, "progress": progress_state.get("progress", 0) if refresh_scheduled else 100, "message": progress_state.get("message", "Forecast is being refreshed in the background.") if refresh_scheduled else "Forecast ready from the last valid cache; admin refresh required to rebuild."}
             if not force and same_target and cache_has_games and cached.get("prediction_schema_version") == UPCOMING_PREDICTION_SCHEMA_VERSION:
-                refresh_scheduled = _schedule_upcoming_prediction_refresh(games, season, week)
+                refresh_scheduled = _schedule_upcoming_prediction_refresh(games, season, week) if allow_background_refresh else False
                 progress_state = upcoming_prediction_status_snapshot()
                 return {
                     **cached,
@@ -1097,18 +1098,18 @@ def cached_upcoming_predictions(
                     "cache_age_seconds": cache_age,
                     "cache_ttl_seconds": ttl_seconds,
                     "refresh_scheduled": refresh_scheduled,
-                    "status": progress_state.get("status", "computing"),
+                    "status": progress_state.get("status", "computing") if refresh_scheduled else "ready",
                     "ready": True,
                     "progress": 100,
-                    "message": progress_state.get("message", "Forecast ready from the last valid cache; refreshing in the background."),
+                    "message": progress_state.get("message", "Forecast ready from the last valid cache; refreshing in the background.") if refresh_scheduled else "Forecast ready from the last valid cache; admin refresh required to rebuild.",
                 }
     except (OSError, json.JSONDecodeError):
         pass
 
     if not force and (not os.path.exists(cache_path) or not cache_has_games or not cache_has_current_source):
-        refresh_scheduled = _schedule_upcoming_prediction_refresh(games, season, week)
+        refresh_scheduled = _schedule_upcoming_prediction_refresh(games, season, week) if allow_background_refresh else False
         progress_state = upcoming_prediction_status_snapshot()
-        return {**_empty_upcoming_status(season, week, ttl_seconds), "refresh_scheduled": refresh_scheduled, "status": progress_state.get("status", "computing"), "ready": progress_state.get("ready", False), "progress": progress_state.get("progress", 0), "message": progress_state.get("message", "Forecast is still being computed; the board will appear once the daily model run finishes.")}
+        return {**_empty_upcoming_status(season, week, ttl_seconds), "refresh_scheduled": refresh_scheduled, "status": progress_state.get("status", "computing") if refresh_scheduled else "idle", "ready": progress_state.get("ready", False) if refresh_scheduled else False, "progress": progress_state.get("progress", 0) if refresh_scheduled else 0, "message": progress_state.get("message", "Forecast is still being computed; the board will appear once the daily model run finishes.") if refresh_scheduled else "Upcoming forecast cache is not ready. Admin refresh is required to rebuild it."}
 
     with _UPCOMING_PREDICTION_LOCK:
         if os.path.exists(cache_path):

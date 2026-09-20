@@ -163,17 +163,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function loadUpcoming() {
+    function adminRefreshToken() {
+        const saved = window.sessionStorage.getItem('nflAdminRefreshToken') || '';
+        const token = window.prompt('Admin token required to rebuild upcoming predictions. Leave blank to cancel.', saved);
+        if (!token) return null;
+        window.sessionStorage.setItem('nflAdminRefreshToken', token);
+        return token;
+    }
+
+    async function loadUpcoming(forceRefresh = false) {
         let pollTimer = null;
         stopUpcomingProgressTimer();
         upcomingProgressStartedAt = null;
         if (upcomingProgressElapsed) {
             upcomingProgressElapsed.textContent = 'Elapsed 0s';
         }
+        const token = forceRefresh ? adminRefreshToken() : null;
+        if (forceRefresh && !token) {
+            upcomingMessage.textContent = 'Admin refresh cancelled. Showing the last cached upcoming predictions.';
+            return loadUpcoming(false);
+        }
 
         const fetchUpcomingStatus = async () => {
             try {
-                const response = await fetch(`${apiBase}/api/nfl/upcoming?scope=upcoming`);
+                const url = `${apiBase}/api/nfl/upcoming?scope=upcoming${forceRefresh ? '&refresh=1' : ''}`;
+                const response = await fetch(url, forceRefresh ? { headers: { 'X-NFL-Refresh-Token': token } } : undefined);
                 const data = await response.json();
                 if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load upcoming games');
 
@@ -233,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        setUpcomingProgress(10, 'Preparing the all-model projection board...');
+        setUpcomingProgress(10, forceRefresh ? 'Admin refresh requested; rebuilding the all-model projection board...' : 'Loading the cached all-model projection board...');
         upcomingTableBody.innerHTML = '<tr><td colspan="9">Forecast is still being computed...</td></tr>';
         await fetchUpcomingStatus();
     }
@@ -622,7 +636,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    loadUpcomingButton?.addEventListener('click', loadUpcoming);
+    loadUpcomingButton?.addEventListener('click', () => loadUpcoming(true));
 
     document.querySelectorAll('[data-dashboard-mode]').forEach((button) => {
         button.addEventListener('click', () => {
