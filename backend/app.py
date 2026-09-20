@@ -1661,6 +1661,7 @@ def _json_summary(summary):
 
 
 @app.route("/api/nfl/backtest")
+@app.route("/api/v1/nfl/backtest")
 async def nfl_backtest():
     try:
         seasons = int(request.args.get("seasons", "10"))
@@ -1715,6 +1716,7 @@ async def nfl_backtest():
 
 
 @app.route("/api/nfl/refresh", methods=["POST"])
+@app.route("/api/v1/nfl/refresh", methods=["POST"])
 async def nfl_refresh():
     """Refresh nflverse data inside the production web service's own filesystem."""
     if not nfl_data_refresh_authorized():
@@ -1750,6 +1752,7 @@ async def nfl_refresh():
         return jsonify({"success": False, "error": str(error)}), 502
 
 @app.route("/api/nfl/teams")
+@app.route("/api/v1/nfl/teams")
 async def nfl_teams():
     try:
         games, cache = await load_nfl_games_for_request()
@@ -1768,7 +1771,26 @@ async def nfl_teams():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route("/api/v1/nfl/models")
+async def nfl_v1_models():
+    return jsonify({
+        "success": True,
+        "api_version": "v1",
+        "models": [
+            {
+                "id": model,
+                "spread_threshold": default_spread_threshold(model),
+                "total_threshold": default_total_threshold(model),
+                "experimental": model == RSM_PROFILE,
+            }
+            for model in MODEL_PROFILES
+        ],
+        "default_model": "market_blend",
+    })
+
+
 @app.route("/api/nfl/dashboard")
+@app.route("/api/v1/nfl/dashboard")
 async def nfl_dashboard():
     try:
         model = request.args.get("model", "baseline")
@@ -1788,6 +1810,7 @@ async def nfl_dashboard():
 
 
 @app.route("/api/nfl/predict")
+@app.route("/api/v1/nfl/predict")
 async def nfl_predict():
     try:
         away_team = (request.args.get("away_team") or "").strip().upper()
@@ -1856,6 +1879,7 @@ async def nfl_predict():
 
 
 @app.route("/api/nfl/upcoming")
+@app.route("/api/v1/nfl/upcoming")
 async def nfl_upcoming():
     try:
         scope = (request.args.get("scope") or "upcoming").strip().lower()
@@ -1995,6 +2019,7 @@ async def nfl_record_rsm_outcome():
 
 
 @app.route("/api/nfl/history")
+@app.route("/api/v1/nfl/history")
 async def nfl_history():
     try:
         away_team = (request.args.get("away_team") or "").strip().upper()
@@ -2031,6 +2056,7 @@ async def nfl_history():
 
 
 @app.route("/api/nfl/live")
+@app.route("/api/v1/nfl/live")
 async def nfl_live():
     try:
         data = await asyncio.to_thread(live_scoreboard)
