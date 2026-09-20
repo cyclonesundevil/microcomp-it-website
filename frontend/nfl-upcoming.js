@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
             prediction.away_team,
             prediction.pred_total,
         );
-        return prediction.availability_adjusted ? `${cell} <small title="Availability overlay applied after the core model projection">(adj)</small>` : cell;
+        return prediction.availability_adjusted ? `${cell} *` : cell;
     }
 
     function marketCell(schedule) {
@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         progressPanel.hidden = true;
-        message.textContent = `Season ${data.season}, week ${data.week}. Each cell shows the market favorite's spread / total. “(adj)” means a manual availability/QB overlay was applied after the core model projection; Rothstein values may be stabilized early in the season and Rothstein+ is hidden when ineligible.`;
+        message.textContent = `Season ${data.season}, week ${data.week}. Each cell shows the market favorite's spread / total. Rothstein values may be stabilized early in the season and Rothstein+ is hidden when ineligible.`;
         tableBody.innerHTML = data.games.map((game) => {
             const schedule = game.schedule;
             const market = marketCell(schedule);
