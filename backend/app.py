@@ -34,7 +34,7 @@ from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from quart import Response
 from nfl_live_data import live_scoreboard
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _rsm_artifact, cached_backtest, cached_matchup_history, cached_upcoming_predictions, dashboard_snapshot, default_spread_threshold, default_total_threshold, games_cache_info, list_teams, load_games, predict_matchup, summarize_by_season, warm_matchup_history_cache
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _rsm_artifact, apply_upcoming_availability_adjustments, cached_backtest, cached_matchup_history, cached_upcoming_predictions, dashboard_snapshot, default_spread_threshold, default_total_threshold, find_upcoming_scheduled_match, games_cache_info, list_teams, load_games, load_upcoming_availability_adjustments, predict_matchup, summarize_by_season, warm_matchup_history_cache
 from rsm.stage8_evaluation import DEFAULT_OUTCOME_STORE, DEFAULT_TOTAL_OBSERVATION_STORE, TOTAL_MODEL_VERSION, capture_total_observation, evaluation_report, record_outcome, total_evaluation_report
 from rsm.stage8_shadow import DEFAULT_STORE as RSM_DEFAULT_STORE, capture_observation, line_movements
 
@@ -1811,6 +1811,7 @@ async def nfl_predict():
         wind = request.args.get("wind")
 
         games, cache = await load_nfl_games_for_request()
+        scheduled_upcoming = await asyncio.to_thread(find_upcoming_scheduled_match, away_team, home_team)
         prediction = await asyncio.to_thread(
             predict_matchup,
             games,
@@ -1827,7 +1828,25 @@ async def nfl_predict():
             float(wind) if wind else None,
             (request.args.get("market_source") or "").strip() or None,
             (request.args.get("market_observed_at") or "").strip() or None,
+            None,
+            bool(scheduled_upcoming),
         )
+        if scheduled_upcoming:
+            availability_adjustments = await asyncio.to_thread(load_upcoming_availability_adjustments)
+            prediction = await asyncio.to_thread(
+                apply_upcoming_availability_adjustments,
+                prediction,
+                scheduled_upcoming,
+                availability_adjustments,
+            )
+            notes = list(prediction.get("model_notes") or [])
+            notes.append(f"Matched upcoming schedule game {scheduled_upcoming.get('game_id')}; upcoming-only safeguards were applied to this manual matchup display.")
+            prediction["model_notes"] = notes
+            prediction["upcoming_schedule_match"] = {
+                "game_id": scheduled_upcoming.get("game_id"),
+                "season": scheduled_upcoming.get("season"),
+                "week": scheduled_upcoming.get("week"),
+            }
         return jsonify({"success": True, "source": GAMES_URL, "cache": cache, "prediction": prediction})
     except ValueError as e:
         return jsonify({"success": False, "error": str(e)}), 400

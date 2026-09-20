@@ -866,6 +866,20 @@ def load_upcoming_games(season: Optional[int] = None, week: Optional[int] = None
     return upcoming
 
 
+def find_upcoming_scheduled_match(
+    away_team: str,
+    home_team: str,
+    season: Optional[int] = None,
+    week: Optional[int] = None,
+) -> Optional[dict]:
+    away_team = (away_team or "").strip().upper()
+    home_team = (home_team or "").strip().upper()
+    for scheduled in load_upcoming_games(season, week):
+        if scheduled.get("away_team") == away_team and scheduled.get("home_team") == home_team:
+            return scheduled
+    return None
+
+
 def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], week: Optional[int]) -> dict:
     _set_upcoming_progress(8, "Loading the next scheduled games and starting the model run.", status="computing", ready=False)
     upcoming = load_upcoming_games(season, week)

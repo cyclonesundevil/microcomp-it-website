@@ -19,6 +19,7 @@ from nfl_predictor import (
     cached_matchup_history,
     cached_upcoming_predictions,
     download_games,
+    find_upcoming_scheduled_match,
     load_upcoming_games,
     list_teams,
     matchup_history,
@@ -220,6 +221,24 @@ def test_load_upcoming_games_uses_schedule_week_not_completed_week(tmp_path, mon
     upcoming = load_upcoming_games()
 
     assert [game["game_id"] for game in upcoming] == ["2026_02_DAL_NYG"]
+
+
+def test_find_upcoming_scheduled_match_returns_exact_scheduled_game(tmp_path, monkeypatch):
+    schedule_path = tmp_path / "nfl_games.csv"
+    schedule_path.write_text(_schedule_csv([
+        "2026_02_CAR_ATL,2026,2,REG,CAR,ATL,,,-2.5,43.5,2026-09-20,13:00,7,7,1,dome,,",
+        "2026_02_DAL_NYG,2026,2,REG,DAL,NYG,,,-2.5,45.5,2026-09-20,13:00,7,7,1,outdoors,,",
+    ]), encoding="utf-8")
+    now = datetime(2026, 9, 20, 8, 0, tzinfo=ZoneInfo("America/Phoenix"))
+
+    monkeypatch.setattr("nfl_predictor.download_games", lambda *args, **kwargs: str(schedule_path))
+    monkeypatch.setattr("nfl_predictor.datetime", _FixedDateTime(now))
+
+    scheduled = find_upcoming_scheduled_match("CAR", "ATL")
+
+    assert scheduled["game_id"] == "2026_02_CAR_ATL"
+    assert scheduled["spread_line"] == -2.5
+    assert find_upcoming_scheduled_match("ATL", "CAR") is None
 
 
 def _game(season, away_team, home_team):
@@ -545,6 +564,44 @@ def test_rothstein_upcoming_spread_sign_convention_after_stabilization():
     assert prediction["spread_pick"] is None
     assert prediction["total_edge"] == pytest.approx(0.0)
     assert prediction["total_pick"] is None
+
+
+def test_manual_matchup_can_apply_upcoming_rothstein_context_and_availability():
+    games = [
+        _history_game("2026_01_CAR_TB", 2026, 1, "CAR", "TB", 20, 17, spread_line=-1.5, total_line=43.5),
+        _history_game("2026_01_NO_ATL", 2026, 1, "NO", "ATL", 17, 35, spread_line=2.5, total_line=44.5),
+    ]
+    scheduled = {"season": 2026, "week": 2, "game_id": "2026_02_CAR_ATL", "away_team": "CAR", "home_team": "ATL"}
+
+    raw = predict_matchup(
+        games,
+        away_team="CAR",
+        home_team="ATL",
+        spread_line=2.5,
+        total_line=43.5,
+        model_profile="rothstein",
+    )
+    upcoming = predict_matchup(
+        games,
+        away_team="CAR",
+        home_team="ATL",
+        spread_line=2.5,
+        total_line=43.5,
+        model_profile="rothstein",
+        upcoming_context=True,
+    )
+    adjusted = apply_upcoming_availability_adjustments(upcoming, scheduled, [{
+        "season": 2026, "week": 2, "game_id": "2026_02_CAR_ATL", "team": "ATL",
+        "margin_delta": -4.0, "total_delta": -2.5, "label": "ATL QB downgrade", "source": "unit-test",
+    }])
+
+    assert raw["pred_margin"] == pytest.approx(7.5)
+    assert raw["pred_total"] == pytest.approx(44.5)
+    assert upcoming["pred_margin"] == pytest.approx(-2.5)
+    assert adjusted["pred_margin"] == pytest.approx(-6.5)
+    assert adjusted["pred_total"] == pytest.approx(41.0)
+    assert adjusted["availability_adjusted"] is True
+    assert adjusted["winner_pick"] == "away"
 
 
 def test_rothstein_plus_upcoming_low_confidence_is_visibly_ineligible():
