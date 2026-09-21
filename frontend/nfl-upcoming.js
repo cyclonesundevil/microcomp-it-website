@@ -9,10 +9,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const tableBody = document.getElementById('upcoming-table-body');
     const performanceMessage = document.getElementById('weekly-performance-message');
     const performanceBody = document.getElementById('weekly-performance-body');
+    const performanceWeekSelect = document.getElementById('weekly-performance-week');
     const refreshButton = document.getElementById('load-upcoming');
     let pollTimer = null;
     let elapsedTimer = null;
     let startedAt = null;
+    let displayedSeason = null;
 
     function updateElapsed() {
         if (!startedAt || !progressElapsed) return;
@@ -170,6 +172,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
     }
 
+    function populatePerformanceWeekSelector(season, displayedWeek) {
+        displayedSeason = season;
+        const maxWeek = Math.max(1, Number(displayedWeek) || 1);
+        const previousSelection = Number(performanceWeekSelect.value);
+        const selectedWeek = previousSelection >= 1 && previousSelection <= maxWeek ? previousSelection : maxWeek;
+        performanceWeekSelect.innerHTML = Array.from({ length: maxWeek }, (_, index) => {
+            const week = index + 1;
+            return `<option value="${week}">Week ${week}</option>`;
+        }).join('');
+        performanceWeekSelect.value = String(selectedWeek);
+    }
+
     async function loadWeeklyPerformance(season, week) {
         if (!season || !week) {
             performanceMessage.textContent = 'Weekly performance unavailable until a season and week are loaded.';
@@ -227,7 +241,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 stopTimers();
                 renderGames(data);
-                loadWeeklyPerformance(data.season, data.week);
+                populatePerformanceWeekSelector(data.season, data.week);
+                loadWeeklyPerformance(data.season, performanceWeekSelect.value || data.week);
             } catch (error) {
                 stopTimers();
                 progressPanel.hidden = true;
@@ -241,6 +256,10 @@ document.addEventListener('DOMContentLoaded', () => {
         await poll();
     }
 
+    performanceWeekSelect.addEventListener('change', () => {
+        if (!displayedSeason) return;
+        loadWeeklyPerformance(displayedSeason, performanceWeekSelect.value);
+    });
     refreshButton.addEventListener('click', () => loadUpcoming(true));
     loadUpcoming(false);
 });
