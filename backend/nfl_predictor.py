@@ -2529,6 +2529,60 @@ def _weekly_performance_trend_cache_root() -> str:
     return os.getenv("NFL_PERFORMANCE_CACHE_DIR", "").strip() or os.path.dirname(upcoming_prediction_cache_path())
 
 
+def _weekly_performance_cache_metadata(games: List[dict], season: int, week: int, model_profiles: Tuple[str, ...]) -> dict:
+    return {
+        "schema_version": WEEKLY_PERFORMANCE_TREND_SCHEMA_VERSION,
+        "season": season,
+        "week": week,
+        "model_profiles": list(model_profiles),
+        "games_fingerprint": _history_games_fingerprint(games),
+        "games_source_signature": _games_source_signature(),
+        "thresholds": {
+            profile: {
+                "spread_threshold": default_spread_threshold(profile),
+                "total_threshold": default_total_threshold(profile),
+            }
+            for profile in model_profiles
+        },
+    }
+
+
+def _weekly_performance_cache_path(games: List[dict], season: int, week: int, model_profiles: Tuple[str, ...]) -> str:
+    metadata = _weekly_performance_cache_metadata(games, season, week, model_profiles)
+    fingerprint = hashlib.sha256(json.dumps(metadata, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()[:20]
+    return os.path.join(_weekly_performance_trend_cache_root(), f"nfl_weekly_performance_all_{season}_{week}_{fingerprint}.json")
+
+
+def cached_weekly_model_performance(
+    games: List[dict],
+    season: int,
+    week: int,
+    model_profiles: Tuple[str, ...] = MODEL_PROFILES,
+) -> Tuple[dict, bool]:
+    metadata = _weekly_performance_cache_metadata(games, season, week, model_profiles)
+    cache_path = _weekly_performance_cache_path(games, season, week, model_profiles)
+    try:
+        with open(cache_path, encoding="utf-8") as source:
+            cached = json.load(source)
+        if cached.get("metadata") == metadata and isinstance(cached.get("performance"), dict):
+            performance = cached["performance"]
+            performance["generated_at"] = cached.get("generated_at")
+            return performance, True
+    except (OSError, TypeError, json.JSONDecodeError):
+        pass
+
+    performance = weekly_model_performance(games, season, week, model_profiles)
+    generated_at = datetime.now(timezone.utc).isoformat()
+    performance["generated_at"] = generated_at
+    os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
+    _write_json_cache(cache_path, {
+        "metadata": metadata,
+        "performance": performance,
+        "generated_at": generated_at,
+    })
+    return performance, False
+
+
 def _weekly_performance_trend_metadata(games: List[dict], season: int, model_profile: str) -> dict:
     return {
         "schema_version": WEEKLY_PERFORMANCE_TREND_SCHEMA_VERSION,

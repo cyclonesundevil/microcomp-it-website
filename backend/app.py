@@ -34,7 +34,7 @@ from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from quart import Response
 from nfl_live_data import live_scoreboard
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _rsm_artifact, apply_upcoming_availability_adjustments, cached_backtest, cached_matchup_history, cached_upcoming_predictions, cached_weekly_model_performance_trend, dashboard_snapshot, default_spread_threshold, default_total_threshold, find_upcoming_scheduled_match, games_cache_info, list_teams, load_games, load_upcoming_availability_adjustments, predict_matchup, summarize_by_season, warm_matchup_history_cache, weekly_model_performance
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _rsm_artifact, apply_upcoming_availability_adjustments, cached_backtest, cached_matchup_history, cached_upcoming_predictions, cached_weekly_model_performance, cached_weekly_model_performance_trend, dashboard_snapshot, default_spread_threshold, default_total_threshold, find_upcoming_scheduled_match, games_cache_info, list_teams, load_games, load_upcoming_availability_adjustments, predict_matchup, summarize_by_season, warm_matchup_history_cache
 from rsm.stage8_evaluation import DEFAULT_OUTCOME_STORE, DEFAULT_TOTAL_OBSERVATION_STORE, TOTAL_MODEL_VERSION, capture_total_observation, evaluation_report, record_outcome, total_evaluation_report
 from rsm.stage8_shadow import DEFAULT_STORE as RSM_DEFAULT_STORE, capture_observation, line_movements
 
@@ -1916,8 +1916,8 @@ async def nfl_week_performance():
         if not season_games:
             return jsonify({"success": False, "error": f"No completed NFL games are available for season {season}."}), 404
         week = int(requested_week) if requested_week else max(game["week"] for game in season_games)
-        performance = await asyncio.to_thread(weekly_model_performance, games, season, week)
-        return jsonify({"success": True, "source": GAMES_URL, "cache": cache, "performance": performance})
+        performance, cache_hit = await asyncio.to_thread(cached_weekly_model_performance, games, season, week)
+        return jsonify({"success": True, "source": GAMES_URL, "cache": cache, "cache_hit": cache_hit, "performance": performance})
     except ValueError as error:
         return jsonify({"success": False, "error": str(error)}), 400
     except Exception as error:

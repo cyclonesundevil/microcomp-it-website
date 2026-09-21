@@ -25,7 +25,7 @@ Requires the same `X-NFL-Refresh-Token` header as the legacy route.
 
 - Legacy `/api/nfl/*` routes remain available for the website.
 - Public upcoming reads are cache-first and do not trigger expensive rebuilds.
-- Weekly performance grades completed games only after final scores are present in the NFL results feed.
+- Weekly performance grades completed games only after final scores are present in the NFL results feed, and the all-algorithm weekly table is cached by season, week, model set, thresholds, and source-game fingerprint.
 - Weekly performance trends are cached by season, model, thresholds, and source-game fingerprint.
 - Manual refresh/rebuild requires the admin refresh token.
 - Upcoming manual matchup predictions may apply upcoming-only safeguards when the selected teams exactly match a scheduled upcoming game.
