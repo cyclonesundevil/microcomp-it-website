@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFL Algorithm Weekly Performance | MicroComp IT</title>
+    <meta name="description" content="Week-by-week NFL algorithm ATS and over/under performance trends.">
+    <meta name="theme-color" content="#03050a">
+    <script src="theme.js?v=1.2"></script>
+    <script src="analytics.js?v=1.2"></script>
+    <link rel="stylesheet" href="styles.css?v=3.2">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="nfl-page">
+    <header class="navbar">
+        <div class="logo"><i class="fa-solid fa-server"></i> MicroComp IT</div>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="nfl-predictor.html">NFL Predictor</a>
+            <a href="nfl-upcoming.html">Upcoming Week</a>
+            <button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle color theme" aria-pressed="false">
+                <i class="fa-solid fa-moon"></i>
+                <span data-theme-label>Dark</span>
+            </button>
+        </nav>
+    </header>
+
+    <main>
+        <section class="nfl-hero">
+            <div class="nfl-hero-content">
+                <p class="science-kicker">NFL Algorithm Trend</p>
+                <h1 id="performance-title">Algorithm Performance</h1>
+                <p>Week-by-week ATS and over/under percentages for completed games in the selected season.</p>
+                <div class="nfl-actions">
+                    <a class="btn-secondary" href="nfl-upcoming.html">Back to Upcoming Week</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="nfl-dashboard-section">
+            <div class="nfl-controls">
+                <label for="performance-season">Season</label>
+                <input id="performance-season" type="number" min="1999" step="1">
+                <button class="btn-primary" id="load-performance-trend" type="button">Load Trend</button>
+            </div>
+            <div id="performance-trend-message" class="nfl-message">Loading algorithm performance trend...</div>
+            <div id="performance-cache-status" class="nfl-message">Trend cache status loading...</div>
+
+            <div class="nfl-table-wrap">
+                <div id="ats-performance-chart" aria-label="ATS win percentage chart"></div>
+            </div>
+            <div class="nfl-table-wrap">
+                <div id="ou-performance-chart" aria-label="Over under win percentage chart"></div>
+            </div>
+
+            <div class="nfl-table-wrap">
+                <table class="nfl-table">
+                    <thead>
+                        <tr>
+                            <th>Week</th>
+                            <th>Completed Games</th>
+                            <th>ATS</th>
+                            <th>ATS Win %</th>
+                            <th>O/U</th>
+                            <th>O/U Win %</th>
+                            <th>Spread MAE</th>
+                            <th>Total Score MAE</th>
+                        </tr>
+                    </thead>
+                    <tbody id="performance-trend-body"><tr><td colspan="8">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="nfl-algorithm-performance.js?v=1.0"></script>
+</body>
+
+</html>

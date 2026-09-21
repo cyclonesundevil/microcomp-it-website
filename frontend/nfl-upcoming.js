@@ -105,6 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${wins}-${losses}${pushPart}`;
     }
 
+    function algorithmLink(model, season) {
+        const href = `nfl-algorithm-performance.html?model=${encodeURIComponent(model)}&season=${encodeURIComponent(season)}`;
+        return `<a href="${href}">${model}</a>`;
+    }
+
     function modelCell(prediction, schedule) {
         if (!prediction) return '--';
         if (prediction.display_suppressed) {
@@ -168,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         performanceBody.innerHTML = rows.map((row) => {
             const spreadRecord = recordString(row.spread_wins, row.spread_losses, row.spread_pushes, row.spread_bets);
             const totalRecord = recordString(row.total_wins, row.total_losses, row.total_pushes, row.total_bets);
-            return `<tr><td>${row.model}</td><td>${row.completed_games}</td><td>${spreadRecord}</td><td>${formatPercent(row.spread_win_rate)}</td><td>${totalRecord}</td><td>${formatPercent(row.total_win_rate)}</td><td>${formatNumber(row.margin_mae)}</td><td>${formatNumber(row.total_mae)}</td></tr>`;
+            return `<tr><td>${algorithmLink(row.model, performance.season)}</td><td>${row.completed_games}</td><td>${spreadRecord}</td><td>${formatPercent(row.spread_win_rate)}</td><td>${totalRecord}</td><td>${formatPercent(row.total_win_rate)}</td><td>${formatNumber(row.margin_mae)}</td><td>${formatNumber(row.total_mae)}</td></tr>`;
         }).join('');
     }
 

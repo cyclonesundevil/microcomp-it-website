@@ -34,7 +34,7 @@ from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from quart import Response
 from nfl_live_data import live_scoreboard
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _rsm_artifact, apply_upcoming_availability_adjustments, cached_backtest, cached_matchup_history, cached_upcoming_predictions, dashboard_snapshot, default_spread_threshold, default_total_threshold, find_upcoming_scheduled_match, games_cache_info, list_teams, load_games, load_upcoming_availability_adjustments, predict_matchup, summarize_by_season, warm_matchup_history_cache, weekly_model_performance
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _rsm_artifact, apply_upcoming_availability_adjustments, cached_backtest, cached_matchup_history, cached_upcoming_predictions, cached_weekly_model_performance_trend, dashboard_snapshot, default_spread_threshold, default_total_threshold, find_upcoming_scheduled_match, games_cache_info, list_teams, load_games, load_upcoming_availability_adjustments, predict_matchup, summarize_by_season, warm_matchup_history_cache, weekly_model_performance
 from rsm.stage8_evaluation import DEFAULT_OUTCOME_STORE, DEFAULT_TOTAL_OBSERVATION_STORE, TOTAL_MODEL_VERSION, capture_total_observation, evaluation_report, record_outcome, total_evaluation_report
 from rsm.stage8_shadow import DEFAULT_STORE as RSM_DEFAULT_STORE, capture_observation, line_movements
 
@@ -1922,6 +1922,25 @@ async def nfl_week_performance():
         return jsonify({"success": False, "error": str(error)}), 400
     except Exception as error:
         app.logger.exception("Weekly NFL model performance failed")
+        return jsonify({"success": False, "error": str(error)}), 502
+
+
+@app.route("/api/nfl/week-performance-trend")
+@app.route("/api/v1/nfl/week-performance-trend")
+async def nfl_week_performance_trend():
+    try:
+        model = (request.args.get("model") or "baseline").strip()
+        requested_season = request.args.get("season")
+        games, cache = await load_nfl_games_for_request()
+        if not games:
+            return jsonify({"success": False, "error": "No completed NFL games are available for performance trend grading."}), 404
+        season = int(requested_season) if requested_season else max(game["season"] for game in games)
+        trend, cache_hit = await asyncio.to_thread(cached_weekly_model_performance_trend, games, season, model)
+        return jsonify({"success": True, "source": GAMES_URL, "cache": cache, "cache_hit": cache_hit, "trend": trend})
+    except ValueError as error:
+        return jsonify({"success": False, "error": str(error)}), 400
+    except Exception as error:
+        app.logger.exception("Weekly NFL model performance trend failed")
         return jsonify({"success": False, "error": str(error)}), 502
 
 

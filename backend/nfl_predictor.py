@@ -25,6 +25,7 @@ RSM_PROFILE = "rsm_stage7c"
 MEAN_REVERSION_PROFILE = "mean_reversion"
 MODEL_PROFILES = ("baseline", "enhanced", "market_blend", MEAN_REVERSION_PROFILE, "rothstein", "rothstein_plus", RSM_PROFILE)
 UPCOMING_PREDICTION_SCHEMA_VERSION = 5
+WEEKLY_PERFORMANCE_TREND_SCHEMA_VERSION = 1
 REPORTS_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "reports"))
 DEFAULT_AVAILABILITY_ADJUSTMENTS_PATH = os.path.join(os.path.dirname(__file__), "config", "nfl_upcoming_availability_adjustments.json")
 INJURY_PROFILES = {
@@ -2522,6 +2523,122 @@ def weekly_model_performance(games: List[dict], season: int, week: int, model_pr
         "completed_games": len(completed_week_games),
         "models": rows,
     }
+
+
+def _weekly_performance_trend_cache_root() -> str:
+    return os.getenv("NFL_PERFORMANCE_CACHE_DIR", "").strip() or os.path.dirname(upcoming_prediction_cache_path())
+
+
+def _weekly_performance_trend_metadata(games: List[dict], season: int, model_profile: str) -> dict:
+    return {
+        "schema_version": WEEKLY_PERFORMANCE_TREND_SCHEMA_VERSION,
+        "model_profile": model_profile,
+        "season": season,
+        "games_fingerprint": _history_games_fingerprint(games),
+        "games_source_signature": _games_source_signature(),
+        "spread_threshold": default_spread_threshold(model_profile),
+        "total_threshold": default_total_threshold(model_profile),
+    }
+
+
+def _weekly_performance_trend_cache_path(games: List[dict], season: int, model_profile: str) -> str:
+    metadata = _weekly_performance_trend_metadata(games, season, model_profile)
+    fingerprint = hashlib.sha256(json.dumps(metadata, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()[:20]
+    return os.path.join(_weekly_performance_trend_cache_root(), f"nfl_weekly_performance_{model_profile}_{season}_{fingerprint}.json")
+
+
+def _model_week_records(games: List[dict], season: int, model_profile: str) -> Dict[int, List[dict]]:
+    model = create_model(model_profile)
+    records_by_week: Dict[int, List[dict]] = {}
+    for game in games:
+        eligible = True
+        if model_profile == "rothstein_plus":
+            eligible = is_rothstein_plus_eligible(model, game)
+        try:
+            pred_margin, pred_total = model.predict(game)
+        except ValueError:
+            pred_margin, pred_total = None, None
+
+        if game["season"] == season:
+            spread_edge = pred_margin - game["spread_line"] if pred_margin is not None else None
+            total_edge = pred_total - game["total_line"] if pred_total is not None else None
+            spread_pick = side_from_edge(spread_edge, default_spread_threshold(model_profile)) if spread_edge is not None and eligible and model_supports_spread_picks(model_profile) else None
+            if model_profile == RSM_PROFILE:
+                total_pick = total_from_edge(total_edge, 0.0) if total_edge is not None else None
+            else:
+                total_pick = total_from_edge(total_edge, default_total_threshold(model_profile)) if total_edge is not None and eligible and model_supports_totals(model_profile) else None
+            records_by_week.setdefault(game["week"], []).append({
+                "pred_margin": pred_margin,
+                "actual_margin": game["actual_margin"],
+                "pred_total": pred_total,
+                "actual_total": game["actual_total"],
+                "spread_pick": spread_pick,
+                "spread_result": _grade_spread_pick(game, spread_pick),
+                "total_pick": total_pick,
+                "total_result": _grade_total_pick(game, total_pick),
+            })
+
+        if model_profile != RSM_PROFILE and pred_margin is not None and pred_total is not None:
+            model.update(game, pred_margin, pred_total)
+    return records_by_week
+
+
+def weekly_model_performance_trend(games: List[dict], season: int, model_profile: str) -> dict:
+    if model_profile not in MODEL_PROFILES:
+        raise ValueError(f"Unknown model profile: {model_profile}")
+    records_by_week = _model_week_records(games, season, model_profile)
+    weeks = []
+    for week in sorted(records_by_week):
+        records = records_by_week[week]
+        summary = summarize(records)
+        weeks.append({
+            "week": week,
+            "completed_games": len(records),
+            "spread_wins": summary["spread_wins"],
+            "spread_losses": summary["spread_losses"],
+            "spread_pushes": summary["spread_pushes"],
+            "spread_bets": summary["spread_bets"],
+            "spread_win_rate": summary["spread_win_rate"],
+            "total_wins": summary["total_wins"],
+            "total_losses": summary["total_losses"],
+            "total_pushes": summary["total_pushes"],
+            "total_bets": summary["total_bets"],
+            "total_win_rate": summary["total_win_rate"],
+            "margin_mae": summary["margin_mae"],
+            "total_mae": summary["total_mae"],
+        })
+    return {
+        "season": season,
+        "model": model_profile,
+        "weeks": weeks,
+    }
+
+
+def cached_weekly_model_performance_trend(games: List[dict], season: int, model_profile: str) -> Tuple[dict, bool]:
+    if model_profile not in MODEL_PROFILES:
+        raise ValueError(f"Unknown model profile: {model_profile}")
+    metadata = _weekly_performance_trend_metadata(games, season, model_profile)
+    cache_path = _weekly_performance_trend_cache_path(games, season, model_profile)
+    try:
+        with open(cache_path, encoding="utf-8") as source:
+            cached = json.load(source)
+        if cached.get("metadata") == metadata and isinstance(cached.get("trend"), dict):
+            trend = cached["trend"]
+            trend["generated_at"] = cached.get("generated_at")
+            return trend, True
+    except (OSError, TypeError, json.JSONDecodeError):
+        pass
+
+    trend = weekly_model_performance_trend(games, season, model_profile)
+    generated_at = datetime.now(timezone.utc).isoformat()
+    trend["generated_at"] = generated_at
+    os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
+    _write_json_cache(cache_path, {
+        "metadata": metadata,
+        "trend": trend,
+        "generated_at": generated_at,
+    })
+    return trend, False
 
 
 def run_backtest(

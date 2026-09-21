@@ -15,6 +15,7 @@ from nfl_predictor import (
     _games_source_signature,
     _availability_adjustments_signature,
     _validate_games_csv,
+    cached_weekly_model_performance_trend,
     current_nfl_schedule_week,
     cached_matchup_history,
     cached_upcoming_predictions,
@@ -835,6 +836,24 @@ def test_weekly_model_performance_grades_displayed_week_only():
     assert row["total_bets"] >= 0
     assert row["margin_mae"] is not None
     assert row["total_mae"] is not None
+
+
+def test_weekly_performance_trend_cache_reuses_and_invalidates(tmp_path, monkeypatch):
+    games = [
+        _history_game("2026_01_CAR_ATL", 2026, 1, "CAR", "ATL", 17, 20, spread_line=-2.5, total_line=42.5),
+        _history_game("2026_02_TB_ATL", 2026, 2, "TB", "ATL", 21, 24, spread_line=1.5, total_line=44.5),
+    ]
+    monkeypatch.setenv("NFL_PERFORMANCE_CACHE_DIR", str(tmp_path))
+
+    first, first_hit = cached_weekly_model_performance_trend(games, 2026, "baseline")
+    second, second_hit = cached_weekly_model_performance_trend(games, 2026, "baseline")
+    changed, changed_hit = cached_weekly_model_performance_trend([{**games[0], "home_score": 31.0, "actual_margin": 14.0, "actual_total": 48.0}, games[1]], 2026, "baseline")
+
+    assert first_hit is False
+    assert second_hit is True
+    assert first == second
+    assert changed_hit is False
+    assert changed != first
 
 
 def test_summary_reports_uncertainty_and_minus_110_roi():
