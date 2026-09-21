@@ -402,7 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const top = teams[0];
         const isRsm = dashboard.model === 'rsm_stage7c';
 
-        dashboardContextHeader.textContent = isRsm ? 'Roster Confidence' : 'Recent Margin';
+        dashboardContextHeader.textContent = isRsm ? 'Roster Confidence' : 'Recent Margin Avg (4)';
 
         dashboardMessage.textContent = dashboard.playoff_mode
             ? `${dashboard.season} playoff mode after week ${dashboard.completed_week}. Neutral-site, recent-form, and expected-point-edge weights are emphasized.`
@@ -410,7 +410,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const injuryNote = dashboard.injury?.applied
             ? [`Injury adjustment: ${dashboard.injury.team} ${dashboard.injury.label}, ${Number(dashboard.injury.impact).toFixed(1)} impact points`]
             : [];
-        dashboardNotes.innerHTML = [...(dashboard.mode_notes || []), ...injuryNote].map((note) => `<span>${note}</span>`).join('');
+        const recentMarginNote = isRsm ? [] : ['Recent Margin Avg (4) is a rolling four-game average; early-season values can carry over from the prior season until four current-season games are available.'];
+        dashboardNotes.innerHTML = [...(dashboard.mode_notes || []), ...injuryNote, ...recentMarginNote].map((note) => `<span>${note}</span>`).join('');
         dashboardTeamCount.textContent = String(dashboard.league.team_count || teams.length);
         dashboardSeason.textContent = `Season ${dashboard.season}, week ${dashboard.completed_week}`;
         dashboardAvgPoints.textContent = num(dashboard.league.average_expected_points);
