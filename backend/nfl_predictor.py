@@ -2436,6 +2436,94 @@ def summarize_by_season(records: List[dict]) -> List[Tuple[int, dict]]:
     return [(season, summarize([r for r in records if r["season"] == season])) for season in seasons]
 
 
+def _grade_spread_pick(game: dict, spread_pick: Optional[str]) -> Optional[str]:
+    if not spread_pick:
+        return None
+    cover_margin = game["actual_margin"] - game["spread_line"]
+    if abs(cover_margin) < 1e-9:
+        return "push"
+    if (spread_pick == "home" and cover_margin > 0) or (spread_pick == "away" and cover_margin < 0):
+        return "win"
+    return "loss"
+
+
+def _grade_total_pick(game: dict, total_pick: Optional[str]) -> Optional[str]:
+    if not total_pick:
+        return None
+    total_margin = game["actual_total"] - game["total_line"]
+    if abs(total_margin) < 1e-9:
+        return "push"
+    if (total_pick == "over" and total_margin > 0) or (total_pick == "under" and total_margin < 0):
+        return "win"
+    return "loss"
+
+
+def weekly_model_performance(games: List[dict], season: int, week: int, model_profiles: Tuple[str, ...] = MODEL_PROFILES) -> dict:
+    """Grade each model on completed games for one week using chronological pregame predictions."""
+    completed_week_games = [
+        game for game in games
+        if game["season"] == season and game["week"] == week
+    ]
+    rows = []
+    for model_profile in model_profiles:
+        model = create_model(model_profile)
+        records = []
+        for game in games:
+            eligible = True
+            if model_profile == "rothstein_plus":
+                eligible = is_rothstein_plus_eligible(model, game)
+            try:
+                pred_margin, pred_total = model.predict(game)
+            except ValueError:
+                pred_margin, pred_total = None, None
+
+            if game["season"] == season and game["week"] == week:
+                spread_edge = pred_margin - game["spread_line"] if pred_margin is not None else None
+                total_edge = pred_total - game["total_line"] if pred_total is not None else None
+                spread_pick = side_from_edge(spread_edge, default_spread_threshold(model_profile)) if spread_edge is not None and eligible and model_supports_spread_picks(model_profile) else None
+                if model_profile == RSM_PROFILE:
+                    total_pick = total_from_edge(total_edge, 0.0) if total_edge is not None else None
+                else:
+                    total_pick = total_from_edge(total_edge, default_total_threshold(model_profile)) if total_edge is not None and eligible and model_supports_totals(model_profile) else None
+                records.append({
+                    "pred_margin": pred_margin,
+                    "actual_margin": game["actual_margin"],
+                    "pred_total": pred_total,
+                    "actual_total": game["actual_total"],
+                    "spread_pick": spread_pick,
+                    "spread_result": _grade_spread_pick(game, spread_pick),
+                    "total_pick": total_pick,
+                    "total_result": _grade_total_pick(game, total_pick),
+                })
+
+            if model_profile != RSM_PROFILE and pred_margin is not None and pred_total is not None:
+                model.update(game, pred_margin, pred_total)
+
+        summary = summarize(records)
+        rows.append({
+            "model": model_profile,
+            "completed_games": len(records),
+            "spread_wins": summary["spread_wins"],
+            "spread_losses": summary["spread_losses"],
+            "spread_pushes": summary["spread_pushes"],
+            "spread_bets": summary["spread_bets"],
+            "spread_win_rate": summary["spread_win_rate"],
+            "total_wins": summary["total_wins"],
+            "total_losses": summary["total_losses"],
+            "total_pushes": summary["total_pushes"],
+            "total_bets": summary["total_bets"],
+            "total_win_rate": summary["total_win_rate"],
+            "margin_mae": summary["margin_mae"],
+            "total_mae": summary["total_mae"],
+        })
+    return {
+        "season": season,
+        "week": week,
+        "completed_games": len(completed_week_games),
+        "models": rows,
+    }
+
+
 def run_backtest(
     games: List[dict],
     seasons_to_test: int,

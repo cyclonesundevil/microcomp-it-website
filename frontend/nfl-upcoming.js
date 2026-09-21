@@ -5,7 +5,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressElapsed = document.getElementById('upcoming-progress-elapsed');
     const progressFill = document.getElementById('upcoming-progress-fill');
     const message = document.getElementById('upcoming-message');
+    const cacheStatus = document.getElementById('upcoming-cache-status');
     const tableBody = document.getElementById('upcoming-table-body');
+    const performanceMessage = document.getElementById('weekly-performance-message');
+    const performanceBody = document.getElementById('weekly-performance-body');
     const refreshButton = document.getElementById('load-upcoming');
     let pollTimer = null;
     let elapsedTimer = null;
@@ -63,6 +66,43 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${marketFavorite} ${signedSpread} / ${total}`;
     }
 
+    function formatDateTime(value) {
+        if (!value) return '--';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        return date.toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            timeZoneName: 'short',
+        });
+    }
+
+    function formatCacheAge(seconds) {
+        const age = Number(seconds);
+        if (!Number.isFinite(age) || age < 0) return '';
+        if (age < 60) return `${Math.round(age)}s old`;
+        if (age < 3600) return `${Math.round(age / 60)}m old`;
+        if (age < 86400) return `${Math.round(age / 3600)}h old`;
+        return `${Math.round(age / 86400)}d old`;
+    }
+
+    function formatPercent(value) {
+        return value === null || value === undefined ? '--' : `${(Number(value) * 100).toFixed(1)}%`;
+    }
+
+    function formatNumber(value) {
+        return value === null || value === undefined ? '--' : Number(value).toFixed(2);
+    }
+
+    function recordString(wins, losses, pushes, bets) {
+        if (!bets) return 'No picks';
+        const pushPart = pushes ? `-${pushes}` : '';
+        return `${wins}-${losses}${pushPart}`;
+    }
+
     function modelCell(prediction, schedule) {
         if (!prediction) return '--';
         if (prediction.display_suppressed) {
@@ -104,12 +144,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         progressPanel.hidden = true;
+        const ageLabel = formatCacheAge(data.cache_age_seconds);
+        cacheStatus.textContent = data.generated_at
+            ? `Forecast board last rebuilt ${formatDateTime(data.generated_at)}${ageLabel ? ` (${ageLabel})` : ''}.`
+            : 'Forecast board rebuild timestamp unavailable.';
         message.textContent = `Season ${data.season}, week ${data.week}. Each cell shows the market favorite's spread / total. Rothstein values may be stabilized early in the season and Rothstein+ is hidden when ineligible.`;
         tableBody.innerHTML = data.games.map((game) => {
             const schedule = game.schedule;
             const market = marketCell(schedule);
             return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small></td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'mean_reversion', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${modelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
         }).join('');
+    }
+
+    function renderWeeklyPerformance(performance) {
+        const rows = performance?.models || [];
+        performanceMessage.textContent = `Season ${performance.season}, week ${performance.week}: ${performance.completed_games} completed game${performance.completed_games === 1 ? '' : 's'} graded so far.`;
+        if (!rows.length) {
+            performanceBody.innerHTML = '<tr><td colspan="8">No model performance is available yet.</td></tr>';
+            return;
+        }
+        performanceBody.innerHTML = rows.map((row) => {
+            const spreadRecord = recordString(row.spread_wins, row.spread_losses, row.spread_pushes, row.spread_bets);
+            const totalRecord = recordString(row.total_wins, row.total_losses, row.total_pushes, row.total_bets);
+            return `<tr><td>${row.model}</td><td>${row.completed_games}</td><td>${spreadRecord}</td><td>${formatPercent(row.spread_win_rate)}</td><td>${totalRecord}</td><td>${formatPercent(row.total_win_rate)}</td><td>${formatNumber(row.margin_mae)}</td><td>${formatNumber(row.total_mae)}</td></tr>`;
+        }).join('');
+    }
+
+    async function loadWeeklyPerformance(season, week) {
+        if (!season || !week) {
+            performanceMessage.textContent = 'Weekly performance unavailable until a season and week are loaded.';
+            performanceBody.innerHTML = '<tr><td colspan="8">Unavailable</td></tr>';
+            return;
+        }
+        performanceMessage.textContent = 'Loading weekly performance...';
+        performanceBody.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
+        try {
+            const response = await fetch(`${apiBase}/api/v1/nfl/week-performance?season=${encodeURIComponent(season)}&week=${encodeURIComponent(week)}`);
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load weekly performance');
+            renderWeeklyPerformance(data.performance);
+        } catch (error) {
+            performanceMessage.textContent = `Unable to load weekly performance: ${error.message}`;
+            performanceBody.innerHTML = '<tr><td colspan="8">Unavailable</td></tr>';
+        }
     }
 
     function adminRefreshToken() {
@@ -150,6 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 stopTimers();
                 renderGames(data);
+                loadWeeklyPerformance(data.season, data.week);
             } catch (error) {
                 stopTimers();
                 progressPanel.hidden = true;

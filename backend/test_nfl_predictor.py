@@ -28,6 +28,7 @@ from nfl_predictor import (
     side_from_edge,
     summarize,
     train_model,
+    weekly_model_performance,
 )
 
 
@@ -813,6 +814,27 @@ def test_rsm_backtest_uses_committed_validation_rows_without_picks():
     assert summary["games"] == 1
     assert summary["spread_bets"] == 0
     assert summary["margin_mae"] is not None
+
+
+def test_weekly_model_performance_grades_displayed_week_only():
+    games = [
+        _history_game("2026_01_CAR_ATL", 2026, 1, "CAR", "ATL", 17, 20, spread_line=-2.5, total_line=42.5),
+        _history_game("2026_02_TB_ATL", 2026, 2, "TB", "ATL", 21, 24, spread_line=1.5, total_line=44.5),
+    ]
+
+    performance = weekly_model_performance(games, 2026, 2, model_profiles=("baseline",))
+
+    assert performance["season"] == 2026
+    assert performance["week"] == 2
+    assert performance["completed_games"] == 1
+    assert len(performance["models"]) == 1
+    row = performance["models"][0]
+    assert row["model"] == "baseline"
+    assert row["completed_games"] == 1
+    assert row["spread_bets"] >= 0
+    assert row["total_bets"] >= 0
+    assert row["margin_mae"] is not None
+    assert row["total_mae"] is not None
 
 
 def test_summary_reports_uncertainty_and_minus_110_roi():
