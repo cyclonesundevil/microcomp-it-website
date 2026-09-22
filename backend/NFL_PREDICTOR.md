@@ -105,6 +105,11 @@ serving that last valid board with a cache-target warning while it schedules a
 background rebuild for the current upcoming week. This avoids clearing the page
 while the expensive all-algorithm forecast is being regenerated.
 
+The upcoming board intentionally displays the full active football week from
+Tuesday rollover until the next Tuesday rollover. Completed games from that
+active week remain visible with final-score context instead of disappearing
+from the table after they are played.
+
 ## Website Demo
 
 The website exposes a demo page at:

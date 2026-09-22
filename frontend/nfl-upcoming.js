@@ -229,7 +229,8 @@ document.addEventListener('DOMContentLoaded', () => {
         tableBody.innerHTML = data.games.map((game) => {
             const schedule = game.schedule;
             const market = marketCell(schedule);
-            return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small></td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'mean_reversion', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${modelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
+            const status = schedule.is_completed ? `<br><small>Final: ${schedule.away_team} ${schedule.away_score}, ${schedule.home_team} ${schedule.home_score}</small>` : '';
+            return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small>${status}</td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'mean_reversion', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${modelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
         }).join('');
         renderModelSignals(data.games);
     }

@@ -273,7 +273,28 @@ def test_load_upcoming_games_uses_schedule_week_not_completed_week(tmp_path, mon
 
     upcoming = load_upcoming_games()
 
-    assert [game["game_id"] for game in upcoming] == ["2026_02_DAL_NYG"]
+    assert [game["game_id"] for game in upcoming] == ["2026_02_LAC_KC", "2026_02_DAL_NYG"]
+    assert upcoming[0]["is_completed"] is True
+    assert upcoming[1]["is_completed"] is False
+
+
+def test_load_upcoming_games_keeps_entire_active_week_after_games_complete_until_rollover(tmp_path, monkeypatch):
+    schedule_path = tmp_path / "nfl_games.csv"
+    schedule_path.write_text(_schedule_csv([
+        "2026_02_LAC_KC,2026,2,REG,LAC,KC,20,24,-3.0,47.5,2026-09-17,20:15,7,7,1,outdoors,,",
+        "2026_02_DAL_NYG,2026,2,REG,DAL,NYG,17,21,-2.5,45.5,2026-09-20,13:00,7,7,1,outdoors,,",
+        "2026_02_PHI_TEN,2026,2,REG,PHI,TEN,,,-7.0,39.5,2026-09-21,20:15,7,7,0,outdoors,,",
+        "2026_03_SF_SEA,2026,3,REG,SF,SEA,,,-1.5,44.0,2026-09-24,20:15,7,7,1,outdoors,,",
+    ]), encoding="utf-8")
+    now = datetime(2026, 9, 21, 9, 0, tzinfo=ZoneInfo("America/Phoenix"))
+
+    monkeypatch.setattr("nfl_predictor.download_games", lambda *args, **kwargs: str(schedule_path))
+    monkeypatch.setattr("nfl_predictor.datetime", _FixedDateTime(now))
+
+    upcoming = load_upcoming_games()
+
+    assert [game["game_id"] for game in upcoming] == ["2026_02_LAC_KC", "2026_02_DAL_NYG", "2026_02_PHI_TEN"]
+    assert [game["is_completed"] for game in upcoming] == [True, True, False]
 
 
 def test_find_upcoming_scheduled_match_returns_exact_scheduled_game(tmp_path, monkeypatch):

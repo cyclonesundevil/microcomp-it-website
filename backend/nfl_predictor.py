@@ -1035,7 +1035,13 @@ def load_games(
 
 
 def load_upcoming_games(season: Optional[int] = None, week: Optional[int] = None) -> List[dict]:
-    """Load scheduled regular-season games that do not yet have final scores."""
+    """Load all scheduled regular-season games for the active football week.
+
+    NFL display weeks roll over on Tuesday morning. Once a week is active, the
+    public upcoming board should continue to show the entire scheduled week
+    until the next Tuesday rollover, including games that have already been
+    completed during that active week.
+    """
     path = download_games()
     with open(path, newline="", encoding="utf-8-sig") as source:
         rows = list(csv.DictReader(source))
@@ -1046,12 +1052,13 @@ def load_upcoming_games(season: Optional[int] = None, week: Optional[int] = None
     for row in rows:
         if row.get("game_type") != "REG" or int(row.get("season", 0)) != target_season or int(row.get("week", 0)) != target_week:
             continue
-        if row.get("away_score") not in (None, "") or row.get("home_score") not in (None, ""):
-            continue
+        away_score = _to_float(row.get("away_score"))
+        home_score = _to_float(row.get("home_score"))
         upcoming.append({
             "game_id": row.get("game_id"), "season": target_season, "week": target_week,
             "gameday": row.get("gameday") or "", "gametime": row.get("gametime") or "",
             "away_team": row.get("away_team") or "", "home_team": row.get("home_team") or "",
+            "away_score": away_score, "home_score": home_score, "is_completed": away_score is not None and home_score is not None,
             "spread_line": _to_float(row.get("spread_line")), "total_line": _to_float(row.get("total_line")),
             "away_rest": _to_float(row.get("away_rest")) or 7.0, "home_rest": _to_float(row.get("home_rest")) or 7.0,
             "div_game": _to_bool(row.get("div_game")), "roof": (row.get("roof") or "").strip().lower(),
