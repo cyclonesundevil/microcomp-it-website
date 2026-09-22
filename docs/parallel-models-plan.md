@@ -1,6 +1,6 @@
 # Parallel NFL Models Plan: RSM, DSM, and PRM
 
-Phase 0 repository/data audit completed on 2026-09-21. This document is intentionally an audit and implementation plan only. No DSM, PRM, ensemble, or RSM behavior changes were made in Phase 0.
+Phase 0 repository/data audit completed on 2026-09-21. Phase 1 common-interface/RSM-wrapper work was started after the audit. No DSM, PRM, ensemble, or RSM behavior changes were made.
 
 ## Objective
 
@@ -653,3 +653,26 @@ Proceed with Phase 1 only:
 2. wrap existing RSM;
 3. add RSM regression tests;
 4. do not add DSM/PRM logic until the play-by-play/drive data decision is explicitly made.
+
+## Phase 1 status
+
+Implemented on 2026-09-21:
+
+- Added research-only package `backend/parallel_models/`.
+- Added `NFLGameContext` and `NFLPrediction` in `backend/parallel_models/interface.py`.
+- Added `RSMParallelModel` in `backend/parallel_models/rsm_wrapper.py`.
+- The RSM wrapper delegates to the existing `RsmStage7CComparisonModel`.
+- The wrapper derives expected home/away scores only by the legitimate identity:
+  - `home_score = (total + margin) / 2`
+  - `away_score = (total - margin) / 2`
+- The wrapper leaves `home_win_probability` as `None`; RSM display output is not a calibrated win-probability model.
+- Added `backend/test_parallel_models.py` regression tests confirming wrapper output matches the existing RSM adapter and current `predict_matchup(..., model_profile="rsm_stage7c")` core projection.
+
+Still not started:
+
+- DSM implementation.
+- PRM implementation.
+- ensemble diagnostics.
+- walk-forward parallel-model comparison.
+
+Next required decision remains whether to add a play-by-play/drive data source for DSM and EPA-based PRM.
