@@ -755,3 +755,42 @@ Recommended next Phase 2 step:
 2. Inspect the real nflverse schema/field availability.
 3. Generate the drive summary table.
 4. Then add the first DSM/PRM feature builders from the persisted drive/PBP sources.
+
+## Phase 2 update: local nflverse corpus and initial PBP features
+
+Implemented on 2026-09-21:
+
+- Downloaded local research-only nflverse PBP CSVs for seasons 2024, 2025, and 2026.
+- Confirmed each downloaded file has the required 372-column schema, including all required fields for the current drive workflow.
+- Generated local derived drive summaries:
+  - rows: 12,841
+  - output: `backend/data/parallel_models/derived/drive_summaries.csv`
+  - manifest: `backend/data/parallel_models/derived/drive-summary-manifest.json`
+- The raw PBP and derived drive-table artifacts remain ignored local data; they are not committed to the repository.
+- Added `season_type` to derived drive summaries so regular-season and postseason records can be separated before modeling.
+- Added `backend/parallel_models/pbp_features.py` with reusable, leakage-safe feature builders:
+  - load persisted drive summaries;
+  - filter drives strictly before a target game;
+  - aggregate team offense/defense EPA per drive;
+  - aggregate team offense/defense points per drive;
+  - aggregate offensive and defensive red-zone-entry rates;
+  - build matchup-level DSM/PRM-ready feature signals.
+- The conservative pregame filter excludes the target week by default because the shared `NFLGameContext` does not yet guarantee full kickoff ordering within a week.
+- Added tests proving:
+  - current-week games are excluded from PBP features;
+  - postseason records are excluded from regular-season features;
+  - team drive metrics aggregate correctly;
+  - matchup features expose DSM margin and PRM total signals.
+
+Boundaries remain unchanged:
+
+- No production API/UI behavior changed.
+- No RSM behavior changed.
+- No DSM or EPA-based PRM prediction model was exposed yet.
+- The new signals are uncalibrated research features only.
+
+Recommended next Phase 2 step:
+
+1. Add a schedule-aware kickoff ordering source to safely include same-week games that are completed before the target kickoff.
+2. Create frozen train/validation splits for DSM and EPA-based PRM.
+3. Build baseline DSM/PRM candidate models from the feature layer without using market spread/total as model inputs.

@@ -30,6 +30,7 @@ REQUIRED_PBP_FIELDS = frozenset({
 DRIVE_SUMMARY_FIELDS = (
     "game_id",
     "season",
+    "season_type",
     "week",
     "drive",
     "offense",
@@ -47,6 +48,7 @@ DRIVE_SUMMARY_FIELDS = (
 class DriveSummary:
     game_id: str
     season: int
+    season_type: str
     week: int
     drive: str
     offense: str
@@ -259,6 +261,7 @@ def derive_drive_summaries(rows: Iterable[dict]) -> list[DriveSummary]:
         summaries.append(DriveSummary(
             game_id=game_id,
             season=_int_or_none(first.get("season")) or 0,
+            season_type=str(first.get("season_type") or "").upper(),
             week=_int_or_none(first.get("week")) or 0,
             drive=drive,
             offense=offense,
