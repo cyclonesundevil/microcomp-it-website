@@ -72,12 +72,17 @@ Force-refresh the website API cache from a browser or script:
 /api/nfl/backtest?seasons=10&model=baseline&refresh=true
 ```
 
-## Production Tuesday refresh
+## Production refresh cadence
 
-Production refreshes the nflverse feed every Tuesday at 6:00 AM America/Phoenix
-(13:00 UTC) through `.github/workflows/nfl-data-refresh.yml`. The scheduler calls
-the production web service so the data is replaced in that service's own cache.
-The download is validated and atomically installed; a malformed response leaves
+Production refreshes the nflverse feed through `.github/workflows/nfl-data-refresh.yml`.
+Nightly scheduled runs use the lightweight final-score endpoint so completed
+Thursday, Sunday, and Monday games can be added to the active-week table without
+rerunning every algorithm. The weekly full refresh/rebuild runs Tuesday evening
+at 9:00 PM Pacific Standard Time (Wednesday 05:00 UTC), giving users Tuesday
+daytime to review the completed prior week before the board rolls to the next
+week.
+
+Downloads are validated and atomically installed; a malformed response leaves
 the previous cache intact, and overlapping refreshes are rejected.
 
 Configure the same random value in both secret stores:
@@ -93,12 +98,13 @@ production URL changes. The workflow can also be run manually from Actions.
 
 The Upcoming Week: All Algorithms board uses a separate persistent cache
 (`NFL_UPCOMING_CACHE_DIR`/`NFL_UPCOMING_CACHE_TTL_SECONDS`, or the backend data
-directory by default). NFL week rollover is resolved at Tuesday 6:00 AM
-America/Phoenix using `NFL_WEEK_ROLLOVER_TIMEZONE` and `NFL_WEEK_ROLLOVER_HOUR`.
+directory by default). NFL week rollover is resolved at Tuesday 9:00 PM
+America/Los_Angeles by default using `NFL_WEEK_ROLLOVER_TIMEZONE` and
+`NFL_WEEK_ROLLOVER_HOUR`.
 
-On app startup the service attempts to warm the upcoming board immediately, then
-aligns the recurring background refresh to the next configured rollover time
-rather than simply sleeping 24 hours from process start.
+On app startup the service schedules the weekly full rebuild and the nightly
+final-score refresh against the configured clock times rather than simply
+sleeping fixed 24-hour intervals from process start.
 
 If a cached board is still for the previous week after rollover, the API keeps
 serving that last valid board with a cache-target warning while it schedules a
@@ -110,11 +116,11 @@ Tuesday rollover until the next Tuesday rollover. Completed games from that
 active week remain visible with final-score context instead of disappearing
 from the table after they are played.
 
-Daily scheduled upcoming refreshes fetch a fresh nflverse games file and then
-force-rebuild the active-week board. As final scores are published after
-Thursday, Sunday, and Monday games, the next refresh can add those finals to the
-same active-week table. After the Tuesday 6:00 AM America/Phoenix rollover, the
-board switches to the next NFL week and new final-score cells start blank again.
+Nightly scheduled score refreshes fetch a fresh nflverse games file and update
+only final-score fields in the active-week cache when the schedule and market
+inputs still match. They do not rerun the all-algorithm forecast. After the
+Tuesday 9:00 PM Pacific rollover/full refresh, the board switches to the next
+NFL week and new final-score cells start blank again.
 
 ## Website Demo
 

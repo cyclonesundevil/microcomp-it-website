@@ -316,6 +316,48 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["games"][0]["schedule"]["away_score"], 21)
         self.assertTrue(result["games"][0]["schedule"]["is_completed"])
 
+    def test_final_score_refresh_forces_fresh_games_without_cache_rebuild(self):
+        refreshed = {
+            "success": True,
+            "updated_games": 1,
+            "season": 2026,
+            "week": 2,
+            "requires_full_rebuild": False,
+        }
+
+        with patch.object(app_module, "load_games", return_value=[{"season": 2026, "week": 2}]) as load_games, \
+            patch.object(app_module, "refresh_upcoming_final_scores_in_cache", return_value=refreshed) as score_refresh, \
+            patch.object(app_module, "cached_upcoming_predictions", side_effect=AssertionError("score-only refresh should not rebuild predictions")):
+            result = app_module.refresh_upcoming_final_scores_now()
+
+        load_games.assert_called_once_with(refresh=True)
+        score_refresh.assert_called_once_with()
+        self.assertEqual(result["updated_games"], 1)
+        self.assertFalse(result["requires_full_rebuild"])
+
+    async def test_final_score_refresh_endpoint_is_protected_and_lightweight(self):
+        refreshed = {
+            "success": True,
+            "updated_games": 1,
+            "season": 2026,
+            "week": 2,
+            "requires_full_rebuild": False,
+        }
+
+        with patch.object(app_module, "refresh_upcoming_final_scores_now", return_value=refreshed) as score_refresh, \
+            patch.object(app_module, "games_cache_info", return_value={"path": "cache"}), \
+            patch.object(app_module, "cached_upcoming_predictions", side_effect=AssertionError("endpoint should not rebuild predictions")):
+            response = await self.client.post(
+                "/api/v1/nfl/refresh/final-scores",
+                headers={"X-NFL-Refresh-Token": "test-refresh-token"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        payload = await response.get_json()
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["final_score_refresh"]["updated_games"], 1)
+        score_refresh.assert_called_once_with()
+
     def test_missing_upcoming_cache_returns_computing_status_without_blocking(self):
         cache_file = BACKEND_DIR / "data" / "nfl_upcoming_predictions_missing.json"
         missing_path = str(cache_file)

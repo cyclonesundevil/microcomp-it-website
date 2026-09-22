@@ -34,7 +34,7 @@ from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from quart import Response
 from nfl_live_data import live_scoreboard
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _nfl_week_rollover_hour, _nfl_week_rollover_zone, _rsm_artifact, apply_upcoming_availability_adjustments, cached_backtest, cached_matchup_history, cached_upcoming_predictions, cached_weekly_model_performance, cached_weekly_model_performance_trend, dashboard_snapshot, default_spread_threshold, default_total_threshold, find_upcoming_scheduled_match, games_cache_info, list_teams, load_games, load_upcoming_availability_adjustments, predict_matchup, summarize_by_season, warm_matchup_history_cache
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _nfl_week_rollover_hour, _nfl_week_rollover_zone, _rsm_artifact, apply_upcoming_availability_adjustments, cached_backtest, cached_matchup_history, cached_upcoming_predictions, cached_weekly_model_performance, cached_weekly_model_performance_trend, dashboard_snapshot, default_spread_threshold, default_total_threshold, find_upcoming_scheduled_match, games_cache_info, list_teams, load_games, load_upcoming_availability_adjustments, predict_matchup, refresh_upcoming_final_scores_in_cache, summarize_by_season, warm_matchup_history_cache
 from rsm.stage8_evaluation import DEFAULT_OUTCOME_STORE, DEFAULT_TOTAL_OBSERVATION_STORE, TOTAL_MODEL_VERSION, capture_total_observation, evaluation_report, record_outcome, total_evaluation_report
 from rsm.stage8_shadow import DEFAULT_STORE as RSM_DEFAULT_STORE, capture_observation, line_movements
 
@@ -50,6 +50,7 @@ except ZoneInfoNotFoundError:
 app = Quart(__name__, static_folder=frontend_dir, static_url_path="")
 
 _DAILY_UPCOMING_CACHE_REFRESH_RUNNING = False
+_FINAL_SCORE_CACHE_REFRESH_RUNNING = False
 _HISTORY_CACHE_WARMUP_RUNNING = False
 
 
@@ -59,30 +60,79 @@ def refresh_upcoming_prediction_cache_now():
     return cached_upcoming_predictions(games, None, None, True, False)
 
 
+def refresh_upcoming_final_scores_now():
+    """Fetch fresh game data and update only final-score fields in the upcoming cache."""
+    load_games(refresh=True)
+    return refresh_upcoming_final_scores_in_cache()
+
+
+def _final_score_refresh_hour() -> int:
+    try:
+        return min(23, max(0, int(os.getenv("NFL_FINAL_SCORE_REFRESH_HOUR", "21"))))
+    except ValueError:
+        return 21
+
+
+def _seconds_until_next_daily_refresh(hour: int):
+    zone = _nfl_week_rollover_zone()
+    now = datetime.datetime.now(zone)
+    target = now.replace(hour=hour, minute=0, second=0, microsecond=0)
+    if target <= now:
+        target += datetime.timedelta(days=1)
+    return max(60.0, (target - now).total_seconds())
+
+
+def _seconds_until_next_weekly_upcoming_refresh():
+    zone = _nfl_week_rollover_zone()
+    now = datetime.datetime.now(zone)
+    days_until_tuesday = (1 - now.weekday()) % 7
+    target_date = now.date() + datetime.timedelta(days=days_until_tuesday)
+    target = datetime.datetime.combine(
+        target_date,
+        datetime.time(hour=_nfl_week_rollover_hour()),
+        tzinfo=zone,
+    )
+    if target <= now:
+        target += datetime.timedelta(days=7)
+    return max(60.0, (target - now).total_seconds())
+
+
 def start_daily_upcoming_cache_refresh_loop():
-    """Schedule a daily background refresh so the all-model board is rebuilt outside request handling."""
+    """Schedule the weekly all-model rebuild outside request handling."""
     global _DAILY_UPCOMING_CACHE_REFRESH_RUNNING
     if _DAILY_UPCOMING_CACHE_REFRESH_RUNNING:
         return
 
-    def _seconds_until_next_upcoming_refresh():
-        zone = _nfl_week_rollover_zone()
-        now = datetime.datetime.now(zone)
-        target = now.replace(hour=_nfl_week_rollover_hour(), minute=0, second=0, microsecond=0)
-        if target <= now:
-            target += datetime.timedelta(days=1)
-        return max(60.0, (target - now).total_seconds())
-
     def _worker():
         while True:
+            time.sleep(_seconds_until_next_weekly_upcoming_refresh())
             try:
                 refresh_upcoming_prediction_cache_now()
             except Exception:
-                app.logger.exception("Daily upcoming cache refresh failed")
-            time.sleep(_seconds_until_next_upcoming_refresh())
+                app.logger.exception("Weekly upcoming cache refresh failed")
 
     thread = threading.Thread(target=_worker, daemon=True, name="nfl-upcoming-cache-refresh")
     _DAILY_UPCOMING_CACHE_REFRESH_RUNNING = True
+    thread.start()
+    return thread
+
+
+def start_evening_final_score_refresh_loop():
+    """Schedule lightweight evening score-only updates for the active-week board."""
+    global _FINAL_SCORE_CACHE_REFRESH_RUNNING
+    if _FINAL_SCORE_CACHE_REFRESH_RUNNING:
+        return
+
+    def _worker():
+        while True:
+            time.sleep(_seconds_until_next_daily_refresh(_final_score_refresh_hour()))
+            try:
+                refresh_upcoming_final_scores_now()
+            except Exception:
+                app.logger.exception("Evening upcoming final-score refresh failed")
+
+    thread = threading.Thread(target=_worker, daemon=True, name="nfl-upcoming-final-score-refresh")
+    _FINAL_SCORE_CACHE_REFRESH_RUNNING = True
     thread.start()
     return thread
 
@@ -113,6 +163,7 @@ def schedule_history_cache_warmup(games=None):
 @app.before_serving
 async def _start_daily_upcoming_cache_refresh_on_startup():
     start_daily_upcoming_cache_refresh_loop()
+    start_evening_final_score_refresh_loop()
     schedule_history_cache_warmup()
 
 
@@ -1762,6 +1813,29 @@ async def nfl_refresh():
         return jsonify({"success": False, "error": str(error)}), 409
     except Exception as error:
         app.logger.exception("NFL data refresh failed")
+        return jsonify({"success": False, "error": str(error)}), 502
+
+
+@app.route("/api/nfl/refresh/final-scores", methods=["POST"])
+@app.route("/api/v1/nfl/refresh/final-scores", methods=["POST"])
+async def nfl_refresh_final_scores():
+    """Refresh nflverse data and update active-week final scores without rebuilding models."""
+    if not nfl_data_refresh_authorized():
+        return jsonify({"success": False, "error": "NFL data refresh is disabled or the token is invalid."}), 403
+    try:
+        result = await asyncio.to_thread(refresh_upcoming_final_scores_now)
+        cache = games_cache_info()
+        return jsonify({
+            "success": True,
+            "source": GAMES_URL,
+            "cache": cache,
+            "final_score_refresh": result,
+        })
+    except GamesRefreshAlreadyRunning as error:
+        app.logger.warning("NFL final-score refresh skipped because another refresh is running")
+        return jsonify({"success": False, "error": str(error)}), 409
+    except Exception as error:
+        app.logger.exception("NFL final-score refresh failed")
         return jsonify({"success": False, "error": str(error)}), 502
 
 @app.route("/api/nfl/teams")

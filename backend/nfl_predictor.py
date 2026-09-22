@@ -112,8 +112,8 @@ MODEL_SIGNAL_STATUSES = {
     "dsm": "Research only",
     "prm": "Research only",
 }
-NFL_WEEK_ROLLOVER_TIMEZONE = "America/Phoenix"
-NFL_WEEK_ROLLOVER_HOUR = 6
+NFL_WEEK_ROLLOVER_TIMEZONE = "America/Los_Angeles"
+NFL_WEEK_ROLLOVER_HOUR = 21
 
 
 def upcoming_prediction_cache_path() -> str:
@@ -897,7 +897,7 @@ def _tuesday_rollover_before(gameday, rollover_zone):
 
 
 def current_nfl_schedule_week(rows: List[dict], season: Optional[int] = None, now: Optional[datetime] = None) -> int:
-    """Resolve the current NFL week from Tuesday-morning schedule rollovers."""
+    """Resolve the current NFL week from the configured Tuesday rollover time."""
     target_season = season or max(int(row["season"]) for row in rows if row.get("season"))
     rollover_zone = _nfl_week_rollover_zone()
     current_time = now or datetime.now(rollover_zone)
@@ -1037,7 +1037,7 @@ def load_games(
 def load_upcoming_games(season: Optional[int] = None, week: Optional[int] = None) -> List[dict]:
     """Load all scheduled regular-season games for the active football week.
 
-    NFL display weeks roll over on Tuesday morning. Once a week is active, the
+    NFL display weeks roll over at the configured Tuesday evening time. Once a week is active, the
     public upcoming board should continue to show the entire scheduled week
     until the next Tuesday rollover, including games that have already been
     completed during that active week.
@@ -1195,6 +1195,110 @@ def _write_upcoming_prediction_cache(cache_path: str, payload: dict) -> None:
         target.flush()
         os.fsync(target.fileno())
     os.replace(temporary_path, cache_path)
+
+
+_UPCOMING_SCORE_REFRESH_STABLE_FIELDS = (
+    "game_id", "season", "week", "gameday", "gametime", "away_team", "home_team",
+    "spread_line", "total_line", "away_rest", "home_rest", "div_game", "roof",
+    "temp", "wind",
+)
+
+
+def _schedule_values_match(left, right) -> bool:
+    if isinstance(left, float) or isinstance(right, float):
+        if left is None or right is None:
+            return left is None and right is None
+        return math.isclose(float(left), float(right), rel_tol=0.0, abs_tol=1e-9)
+    return left == right
+
+
+def refresh_upcoming_final_scores_in_cache() -> dict:
+    """Update final-score fields in the existing upcoming cache without rerunning models."""
+    cache_path = upcoming_prediction_cache_path()
+    with _UPCOMING_PREDICTION_LOCK:
+        try:
+            with open(cache_path, encoding="utf-8") as source:
+                payload = json.load(source)
+        except (OSError, json.JSONDecodeError):
+            return {
+                "success": False,
+                "updated_games": 0,
+                "reason": "upcoming cache is missing or malformed",
+                "requires_full_rebuild": True,
+            }
+
+        if not _has_valid_upcoming_games(payload):
+            return {
+                "success": False,
+                "updated_games": 0,
+                "reason": "upcoming cache has no valid games",
+                "requires_full_rebuild": True,
+            }
+
+        season = payload.get("season")
+        week = payload.get("week")
+        current_schedule = {
+            game.get("game_id"): game
+            for game in load_upcoming_games(season, week)
+            if game.get("game_id")
+        }
+        if not current_schedule:
+            return {
+                "success": False,
+                "updated_games": 0,
+                "season": season,
+                "week": week,
+                "reason": "no matching active-week games found in refreshed source",
+                "requires_full_rebuild": True,
+            }
+
+        updated_games = 0
+        unsafe_games = []
+        for game in payload.get("games", []):
+            schedule = game.get("schedule") or {}
+            game_id = schedule.get("game_id")
+            refreshed = current_schedule.get(game_id)
+            if not refreshed:
+                unsafe_games.append(game_id or f"{schedule.get('away_team')}@{schedule.get('home_team')}")
+                continue
+
+            stable_changed = any(
+                not _schedule_values_match(schedule.get(field), refreshed.get(field))
+                for field in _UPCOMING_SCORE_REFRESH_STABLE_FIELDS
+            )
+            if stable_changed:
+                unsafe_games.append(game_id)
+                continue
+
+            changed = False
+            for field in ("away_score", "home_score", "is_completed"):
+                if schedule.get(field) != refreshed.get(field):
+                    schedule[field] = refreshed.get(field)
+                    changed = True
+            if changed:
+                updated_games += 1
+
+        refreshed_at = datetime.now(timezone.utc).isoformat()
+        payload["final_scores_refreshed_at"] = refreshed_at
+        payload["final_score_refresh_source"] = GAMES_URL
+        payload["final_score_refresh_updated_games"] = updated_games
+        payload["final_score_refresh_requires_full_rebuild"] = bool(unsafe_games)
+        if unsafe_games:
+            payload["final_score_refresh_unsafe_games"] = unsafe_games
+        else:
+            payload.pop("final_score_refresh_unsafe_games", None)
+            payload["games_source_signature"] = _games_source_signature()
+
+        _write_upcoming_prediction_cache(cache_path, payload)
+        return {
+            "success": True,
+            "updated_games": updated_games,
+            "season": season,
+            "week": week,
+            "refreshed_at": refreshed_at,
+            "requires_full_rebuild": bool(unsafe_games),
+            "unsafe_games": unsafe_games,
+        }
 
 
 def _set_upcoming_progress(progress: int, message: str, *, status: str = "computing", ready: bool = False) -> dict:

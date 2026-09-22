@@ -444,6 +444,32 @@ Example response:
 }
 ```
 
+```http
+POST /api/v1/nfl/refresh/final-scores
+X-NFL-Refresh-Token: <admin token>
+```
+
+Refreshes nflverse game data and updates only the active-week final-score fields
+in the existing upcoming cache. It does not rerun the all-algorithm forecast.
+If schedule or market inputs changed, the response flags that a full rebuild is
+required.
+
+Example response:
+
+```json
+{
+  "success": true,
+  "source": "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv",
+  "final_score_refresh": {
+    "success": true,
+    "updated_games": 1,
+    "season": 2026,
+    "week": 2,
+    "requires_full_rebuild": false
+  }
+}
+```
+
 ## Compatibility notes
 
 - Legacy `/api/nfl/*` routes remain available for the website.

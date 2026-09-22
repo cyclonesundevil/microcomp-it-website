@@ -27,6 +27,7 @@ from nfl_predictor import (
     list_teams,
     matchup_history,
     predict_matchup,
+    refresh_upcoming_final_scores_in_cache,
     run_backtest,
     side_from_edge,
     summarize,
@@ -247,16 +248,77 @@ def test_current_nfl_schedule_week_does_not_advance_after_early_week_final():
     assert current_nfl_schedule_week(rows, season=2026, now=now) == 2
 
 
-def test_current_nfl_schedule_week_advances_on_tuesday_morning():
+def test_current_nfl_schedule_week_advances_on_tuesday_evening(monkeypatch):
+    monkeypatch.delenv("NFL_WEEK_ROLLOVER_TIMEZONE", raising=False)
+    monkeypatch.delenv("NFL_WEEK_ROLLOVER_HOUR", raising=False)
     rows = list(csv.DictReader(io.StringIO(_schedule_csv([
         "2026_02_DAL_NYG,2026,2,REG,DAL,NYG,,,,,2026-09-20,13:00,7,7,1,outdoors,,",
         "2026_03_SF_SEA,2026,3,REG,SF,SEA,,,,,2026-09-24,20:15,7,7,1,outdoors,,",
     ]))))
-    before_rollover = datetime(2026, 9, 22, 5, 59, tzinfo=ZoneInfo("America/Phoenix"))
-    after_rollover = datetime(2026, 9, 22, 6, 0, tzinfo=ZoneInfo("America/Phoenix"))
+    before_rollover = datetime(2026, 9, 22, 20, 59, tzinfo=ZoneInfo("America/Los_Angeles"))
+    after_rollover = datetime(2026, 9, 22, 21, 0, tzinfo=ZoneInfo("America/Los_Angeles"))
 
     assert current_nfl_schedule_week(rows, season=2026, now=before_rollover) == 2
     assert current_nfl_schedule_week(rows, season=2026, now=after_rollover) == 3
+
+
+def test_refresh_upcoming_final_scores_updates_cache_without_changing_models(tmp_path, monkeypatch):
+    cache_file = tmp_path / "nfl_upcoming_predictions.json"
+    source_file = tmp_path / "nfl_games.csv"
+    source_file.write_text(_schedule_csv([
+        "2026_02_CAR_ATL,2026,2,REG,CAR,ATL,21,17,-2.5,43.5,2026-09-20,13:00,7,7,1,dome,,",
+    ]), encoding="utf-8")
+    cached_model = {"model": "baseline", "pred_margin": 1.5, "pred_total": 42.0}
+    snapshot = {
+        "generated_at": "2026-09-19T13:00:00+00:00",
+        "prediction_schema_version": 5,
+        "games_source_signature": "old-source",
+        "availability_adjustments_signature": _availability_adjustments_signature(),
+        "season": 2026,
+        "week": 2,
+        "models": list(MODEL_PROFILES),
+        "games": [{
+            "schedule": {
+                "game_id": "2026_02_CAR_ATL",
+                "season": 2026,
+                "week": 2,
+                "gameday": "2026-09-20",
+                "gametime": "13:00",
+                "away_team": "CAR",
+                "home_team": "ATL",
+                "away_score": None,
+                "home_score": None,
+                "is_completed": False,
+                "spread_line": -2.5,
+                "total_line": 43.5,
+                "away_rest": 7.0,
+                "home_rest": 7.0,
+                "div_game": True,
+                "roof": "dome",
+                "temp": None,
+                "wind": None,
+            },
+            "models": {model: dict(cached_model, model=model) for model in MODEL_PROFILES},
+        }],
+    }
+    cache_file.write_text(json.dumps(snapshot), encoding="utf-8")
+
+    monkeypatch.setattr("nfl_predictor.upcoming_prediction_cache_path", lambda: str(cache_file))
+    monkeypatch.setattr("nfl_predictor.download_games", lambda *args, **kwargs: str(source_file))
+    monkeypatch.setattr("nfl_predictor._games_source_signature", lambda: "new-source")
+
+    result = refresh_upcoming_final_scores_in_cache()
+    refreshed = json.loads(cache_file.read_text(encoding="utf-8"))
+    schedule = refreshed["games"][0]["schedule"]
+
+    assert result["success"] is True
+    assert result["updated_games"] == 1
+    assert result["requires_full_rebuild"] is False
+    assert schedule["away_score"] == 21.0
+    assert schedule["home_score"] == 17.0
+    assert schedule["is_completed"] is True
+    assert refreshed["games"][0]["models"]["baseline"] == cached_model
+    assert refreshed["games_source_signature"] == "new-source"
 
 
 def test_load_upcoming_games_uses_schedule_week_not_completed_week(tmp_path, monkeypatch):

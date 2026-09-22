@@ -2,10 +2,10 @@ name: Refresh production NFL data
 
 on:
   schedule:
-    # Arizona stays on UTC-7 year-round.
-    - cron: "0 13 * * 2"
-    - cron: "0 13 * * 3"
-    - cron: "0 12 * * 0"
+    # 05:00 UTC is 9 PM Pacific Standard Time.
+    # Scheduled runs use the lightweight final-score refresh nightly, except
+    # Wednesday UTC, which corresponds to the Tuesday 9 PM PST weekly rollover.
+    - cron: "0 5 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -21,6 +21,7 @@ jobs:
     timeout-minutes: 5
     env:
       REFRESH_URL: ${{ vars.NFL_REFRESH_URL || 'https://www.microcompit.com/api/nfl/refresh' }}
+      FINAL_SCORE_REFRESH_URL: ${{ vars.NFL_FINAL_SCORE_REFRESH_URL || 'https://www.microcompit.com/api/nfl/refresh/final-scores' }}
     steps:
       - name: Refresh nflverse cache in production
         shell: bash
@@ -29,6 +30,12 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$REFRESH_TOKEN"
+          refresh_url="$FINAL_SCORE_REFRESH_URL"
+          refresh_kind="final-score-only"
+          if [[ "${GITHUB_EVENT_NAME:-}" == "workflow_dispatch" || "$(date -u +%u)" == "3" ]]; then
+            refresh_url="$REFRESH_URL"
+            refresh_kind="full-weekly"
+          fi
           response_file="$(mktemp)"
           trap 'rm -f "$response_file"' EXIT
           curl --fail-with-body --silent --show-error \
@@ -36,19 +43,29 @@ jobs:
             --request POST \
             --header "X-NFL-Refresh-Token: $REFRESH_TOKEN" \
             --output "$response_file" \
-            "$REFRESH_URL"
-          python - "$response_file" <<'PY'
+            "$refresh_url"
+          python - "$response_file" "$refresh_kind" <<'PY'
           import json
           import pathlib
           import sys
 
           payload = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          refresh_kind = sys.argv[2]
           if payload.get("success") is not True:
               raise SystemExit(f"Production NFL refresh did not succeed: {payload}")
-          print(
-              "Production NFL refresh completed:",
-              payload.get("graded_regular_season_games"),
-              "graded games through",
-              f"{payload.get('latest_season')} week {payload.get('latest_week')}",
-          )
+          if refresh_kind == "full-weekly":
+              print(
+                  "Production full NFL refresh completed:",
+                  payload.get("graded_regular_season_games"),
+                  "graded games through",
+                  f"{payload.get('latest_season')} week {payload.get('latest_week')}",
+              )
+          else:
+              final_score_refresh = payload.get("final_score_refresh") or {}
+              print(
+                  "Production final-score refresh completed:",
+                  final_score_refresh.get("updated_games"),
+                  "updated games for",
+                  f"{final_score_refresh.get('season')} week {final_score_refresh.get('week')}",
+              )
           PY
