@@ -100,6 +100,18 @@ _REQUIRED_GAMES_COLUMNS = {
     "game_id", "season", "week", "game_type", "away_team", "home_team",
     "away_score", "home_score", "spread_line", "total_line",
 }
+MODEL_SIGNAL_STATUSES = {
+    "market": "Market baseline",
+    "baseline": "Production",
+    "enhanced": "Production",
+    "market_blend": "Production",
+    MEAN_REVERSION_PROFILE: "Production",
+    "rothstein": "Production",
+    "rothstein_plus": "Experimental",
+    RSM_PROFILE: "Experimental",
+    "dsm": "Research only",
+    "prm": "Research only",
+}
 NFL_WEEK_ROLLOVER_TIMEZONE = "America/Phoenix"
 NFL_WEEK_ROLLOVER_HOUR = 6
 
@@ -265,6 +277,187 @@ def apply_upcoming_availability_adjustments(prediction: dict, scheduled: dict, a
     notes.append("Upcoming availability adjustment applied after the core model projection; historical/backtest model behavior is unchanged.")
     adjusted["model_notes"] = notes
     return adjusted
+
+
+def model_status_labels(model_profiles: Tuple[str, ...] = MODEL_PROFILES) -> dict:
+    labels = {"market": MODEL_SIGNAL_STATUSES["market"]}
+    labels.update({model: MODEL_SIGNAL_STATUSES.get(model, "Production") for model in model_profiles})
+    return labels
+
+
+def build_model_signals(upcoming_row: dict, model_profiles: Tuple[str, ...] = MODEL_PROFILES) -> dict:
+    schedule = upcoming_row.get("schedule") or {}
+    models = upcoming_row.get("models") or {}
+    home_team = schedule.get("home_team")
+    away_team = schedule.get("away_team")
+    market_margin = _to_float(schedule.get("spread_line"))
+    market_total = _to_float(schedule.get("total_line"))
+    usable = []
+    missing_models = []
+    for model in model_profiles:
+        prediction = models.get(model)
+        if not isinstance(prediction, dict) or prediction.get("display_suppressed"):
+            missing_models.append(model)
+            continue
+        pred_margin = _to_float(prediction.get("pred_margin"))
+        pred_total = _to_float(prediction.get("pred_total"))
+        if pred_margin is None and pred_total is None:
+            missing_models.append(model)
+            continue
+        usable.append({
+            "model": model,
+            "status": MODEL_SIGNAL_STATUSES.get(model, "Production"),
+            "pred_margin": pred_margin,
+            "pred_total": pred_total,
+            "availability_adjusted": bool(prediction.get("availability_adjusted")),
+        })
+    margins = [item["pred_margin"] for item in usable if item["pred_margin"] is not None]
+    totals = [item["pred_total"] for item in usable if item["pred_total"] is not None]
+    spread_range = _range_or_none(margins)
+    total_range = _range_or_none(totals)
+    model_count = len(usable)
+    missing_count = len(model_profiles) - model_count
+    favorite_count, underdog_count, split_count = _favorite_counts(margins, market_margin)
+    agreement_label = _agreement_label(model_count, spread_range, split_count)
+    market_alignment_label = _market_alignment_label(margins, market_margin)
+    total_outlook_label = _total_outlook_label(totals, market_total)
+    story = _model_signal_story(
+        away_team=away_team,
+        home_team=home_team,
+        market_margin=market_margin,
+        market_total=market_total,
+        agreement_label=agreement_label,
+        market_alignment_label=market_alignment_label,
+        total_outlook_label=total_outlook_label,
+        favorite_count=favorite_count,
+        underdog_count=underdog_count,
+        model_count=model_count,
+        missing_count=missing_count,
+    )
+    return {
+        "schema_version": 1,
+        "disclaimer": "Model Signals are matchup comparison tools, not betting recommendations.",
+        "agreement_label": agreement_label,
+        "market_alignment_label": market_alignment_label,
+        "total_outlook_label": total_outlook_label,
+        "model_spread_range": spread_range,
+        "model_total_range": total_range,
+        "models_favoring_market_favorite": favorite_count,
+        "models_favoring_market_underdog": underdog_count,
+        "models_without_output": missing_count,
+        "model_count": model_count,
+        "model_statuses": model_status_labels(model_profiles),
+        "included_models": usable,
+        "missing_models": missing_models,
+        "story": story,
+    }
+
+
+def attach_model_signals(payload: dict) -> dict:
+    games = payload.get("games")
+    if not isinstance(games, list):
+        return payload
+    for row in games:
+        if isinstance(row, dict):
+            row["model_signals"] = build_model_signals(row)
+    payload["model_signals_note"] = "Model Signals are matchup comparison tools, not betting recommendations."
+    return payload
+
+
+def _range_or_none(values: List[float]) -> Optional[float]:
+    return max(values) - min(values) if values else None
+
+
+def _favorite_counts(margins: List[float], market_margin: Optional[float]) -> Tuple[int, int, int]:
+    if market_margin is None or abs(market_margin) < 1e-9:
+        home = sum(1 for margin in margins if margin > 0)
+        away = sum(1 for margin in margins if margin < 0)
+        return home, away, min(home, away)
+    favorite_sign = 1 if market_margin > 0 else -1
+    favorite = sum(1 for margin in margins if margin * favorite_sign > 0)
+    underdog = sum(1 for margin in margins if margin * favorite_sign < 0)
+    return favorite, underdog, min(favorite, underdog)
+
+
+def _agreement_label(model_count: int, spread_range: Optional[float], split_count: int) -> str:
+    if model_count < 3 or spread_range is None:
+        return "Insufficient model coverage"
+    if split_count >= 2 or spread_range >= 14:
+        return "High disagreement"
+    if split_count == 1 or spread_range >= 8:
+        return "Mixed signals"
+    if spread_range >= 4:
+        return "Moderate agreement"
+    return "Strong agreement"
+
+
+def _market_alignment_label(margins: List[float], market_margin: Optional[float]) -> str:
+    if market_margin is None or not margins:
+        return "No market line available"
+    if abs(market_margin) < 1e-9:
+        home = sum(1 for margin in margins if margin > 1)
+        away = sum(1 for margin in margins if margin < -1)
+        return "Models split from market" if home and away else "Models align with market"
+    favorite_sign = 1 if market_margin > 0 else -1
+    favorite_margins = [margin * favorite_sign for margin in margins]
+    favorites = sum(1 for value in favorite_margins if value > 0)
+    underdogs = sum(1 for value in favorite_margins if value < 0)
+    avg_favorite_margin = sum(favorite_margins) / len(favorite_margins)
+    market_favorite_margin = abs(market_margin)
+    if favorites and underdogs and min(favorites, underdogs) >= 2:
+        return "Models split from market"
+    if underdogs > favorites:
+        return "Models lean toward underdog"
+    if avg_favorite_margin > market_favorite_margin + 2:
+        return "Models lean stronger than market favorite"
+    return "Models align with market"
+
+
+def _total_outlook_label(totals: List[float], market_total: Optional[float]) -> str:
+    if market_total is None or not totals:
+        return "No total signal"
+    above = sum(1 for total in totals if total > market_total + 1.5)
+    below = sum(1 for total in totals if total < market_total - 1.5)
+    if above and below:
+        return "Totals mixed"
+    if above > len(totals) / 2:
+        return "Models lean higher scoring"
+    if below > len(totals) / 2:
+        return "Models lean lower scoring"
+    return "Totals mixed"
+
+
+def _model_signal_story(
+    *,
+    away_team: Optional[str],
+    home_team: Optional[str],
+    market_margin: Optional[float],
+    market_total: Optional[float],
+    agreement_label: str,
+    market_alignment_label: str,
+    total_outlook_label: str,
+    favorite_count: int,
+    underdog_count: int,
+    model_count: int,
+    missing_count: int,
+) -> str:
+    matchup = f"{away_team} at {home_team}" if away_team and home_team else "This matchup"
+    if market_margin is None:
+        market_text = "No market spread is available."
+    elif abs(market_margin) < 1e-9:
+        market_text = "Market lists the spread near pick'em."
+    else:
+        favorite = home_team if market_margin > 0 else away_team
+        market_text = f"Market favors {favorite} by {abs(market_margin):.1f}."
+    total_text = f"Market total is {market_total:.1f}." if market_total is not None else "No market total is available."
+    coverage_text = f"{model_count} models returned comparison values"
+    if missing_count:
+        coverage_text += f"; {missing_count} did not return a displayable output"
+    return (
+        f"{matchup}: {market_text} {total_text} "
+        f"{coverage_text}. {agreement_label}. {market_alignment_label}; {total_outlook_label}. "
+        f"Model count relative to the market favorite: {favorite_count} aligned, {underdog_count} opposite."
+    )
 
 
 def _write_pickle_cache(cache_path: str, payload) -> None:
@@ -897,7 +1090,7 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
             "market_note": "Market lines are included only when published in the schedule feed; no missing line is inferred.",
         }
         _set_upcoming_progress(100, "No upcoming games were found in the schedule feed.", status="ready", ready=True)
-        return payload
+        return attach_model_signals(payload)
 
     current_season = max(game["season"] for game in games)
     historical_games = [game for game in games if game["season"] < current_season]
@@ -985,7 +1178,7 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
         "market_note": "Market lines are included only when published in the schedule feed; no missing line is inferred.",
     }
     _set_upcoming_progress(100, "Forecast complete. The board is ready to view.", status="ready", ready=True)
-    return payload
+    return attach_model_signals(payload)
 
 
 def _write_upcoming_prediction_cache(cache_path: str, payload: dict) -> None:
@@ -1071,6 +1264,11 @@ def _has_valid_upcoming_games(payload: dict) -> bool:
     return True
 
 
+def _upcoming_response(payload: dict, **overrides) -> dict:
+    response = {**payload, **overrides}
+    return attach_model_signals(response)
+
+
 def cached_upcoming_predictions(
     games: List[dict],
     season: Optional[int] = None,
@@ -1099,32 +1297,32 @@ def cached_upcoming_predictions(
                 cache_age = max(0.0, time.time() - os.path.getmtime(cache_path))
                 same_target = (season is None or cached.get("season") == season) and (week is None or cached.get("week") == week)
                 if not force and cache_age <= ttl_seconds and same_target and cache_has_games and cache_has_current_source:
-                    return {**cached, "cache_hit": True, "cache_age_seconds": cache_age, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": False, "status": "ready", "ready": True, "progress": 100, "message": "Forecast ready."}
+                    return _upcoming_response(cached, cache_hit=True, cache_age_seconds=cache_age, cache_ttl_seconds=ttl_seconds, refresh_scheduled=False, status="ready", ready=True, progress=100, message="Forecast ready.")
             if not force and same_target and cache_has_games and cache_has_current_source and cache_age > ttl_seconds:
                 refresh_scheduled = _schedule_upcoming_prediction_refresh(games, season, week) if allow_background_refresh else False
                 progress_state = upcoming_prediction_status_snapshot()
-                return {**cached, "cache_hit": True, "cache_age_seconds": cache_age, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": refresh_scheduled, "status": progress_state.get("status", "computing") if refresh_scheduled else "ready", "ready": progress_state.get("ready", False) if refresh_scheduled else True, "progress": progress_state.get("progress", 0) if refresh_scheduled else 100, "message": progress_state.get("message", "Forecast is being refreshed in the background.") if refresh_scheduled else "Forecast ready from the last valid cache; admin refresh required to rebuild."}
+                return _upcoming_response(cached, cache_hit=True, cache_age_seconds=cache_age, cache_ttl_seconds=ttl_seconds, refresh_scheduled=refresh_scheduled, status=progress_state.get("status", "computing") if refresh_scheduled else "ready", ready=progress_state.get("ready", False) if refresh_scheduled else True, progress=progress_state.get("progress", 0) if refresh_scheduled else 100, message=progress_state.get("message", "Forecast is being refreshed in the background.") if refresh_scheduled else "Forecast ready from the last valid cache; admin refresh required to rebuild.")
             if not force and same_target and cache_has_games and cached.get("prediction_schema_version") == UPCOMING_PREDICTION_SCHEMA_VERSION:
                 refresh_scheduled = _schedule_upcoming_prediction_refresh(games, season, week) if allow_background_refresh else False
                 progress_state = upcoming_prediction_status_snapshot()
-                return {
-                    **cached,
-                    "cache_hit": True,
-                    "cache_age_seconds": cache_age,
-                    "cache_ttl_seconds": ttl_seconds,
-                    "refresh_scheduled": refresh_scheduled,
-                    "status": progress_state.get("status", "computing") if refresh_scheduled else "ready",
-                    "ready": True,
-                    "progress": 100,
-                    "message": progress_state.get("message", "Forecast ready from the last valid cache; refreshing in the background.") if refresh_scheduled else "Forecast ready from the last valid cache; admin refresh required to rebuild.",
-                }
+                return _upcoming_response(
+                    cached,
+                    cache_hit=True,
+                    cache_age_seconds=cache_age,
+                    cache_ttl_seconds=ttl_seconds,
+                    refresh_scheduled=refresh_scheduled,
+                    status=progress_state.get("status", "computing") if refresh_scheduled else "ready",
+                    ready=True,
+                    progress=100,
+                    message=progress_state.get("message", "Forecast ready from the last valid cache; refreshing in the background.") if refresh_scheduled else "Forecast ready from the last valid cache; admin refresh required to rebuild.",
+                )
     except (OSError, json.JSONDecodeError):
         pass
 
     if not force and (not os.path.exists(cache_path) or not cache_has_games or not cache_has_current_source):
         refresh_scheduled = _schedule_upcoming_prediction_refresh(games, season, week) if allow_background_refresh else False
         progress_state = upcoming_prediction_status_snapshot()
-        return {**_empty_upcoming_status(season, week, ttl_seconds), "refresh_scheduled": refresh_scheduled, "status": progress_state.get("status", "computing") if refresh_scheduled else "idle", "ready": progress_state.get("ready", False) if refresh_scheduled else False, "progress": progress_state.get("progress", 0) if refresh_scheduled else 0, "message": progress_state.get("message", "Forecast is still being computed; the board will appear once the daily model run finishes.") if refresh_scheduled else "Upcoming forecast cache is not ready. Admin refresh is required to rebuild it."}
+        return _upcoming_response(_empty_upcoming_status(season, week, ttl_seconds), refresh_scheduled=refresh_scheduled, status=progress_state.get("status", "computing") if refresh_scheduled else "idle", ready=progress_state.get("ready", False) if refresh_scheduled else False, progress=progress_state.get("progress", 0) if refresh_scheduled else 0, message=progress_state.get("message", "Forecast is still being computed; the board will appear once the daily model run finishes.") if refresh_scheduled else "Upcoming forecast cache is not ready. Admin refresh is required to rebuild it.")
 
     with _UPCOMING_PREDICTION_LOCK:
         if os.path.exists(cache_path):
@@ -1134,14 +1332,14 @@ def cached_upcoming_predictions(
                 same_target = (season is None or cached.get("season") == season) and (week is None or cached.get("week") == week)
                 if not force and same_target and _has_valid_upcoming_games(cached) and cached.get("prediction_schema_version") == UPCOMING_PREDICTION_SCHEMA_VERSION and cached.get("games_source_signature") == _games_source_signature() and cached.get("availability_adjustments_signature") == _availability_adjustments_signature():
                     cache_age = max(0.0, time.time() - os.path.getmtime(cache_path))
-                    return {**cached, "cache_hit": True, "cache_age_seconds": cache_age, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": False, "status": "ready", "ready": True, "progress": 100, "message": "Forecast ready."}
+                    return _upcoming_response(cached, cache_hit=True, cache_age_seconds=cache_age, cache_ttl_seconds=ttl_seconds, refresh_scheduled=False, status="ready", ready=True, progress=100, message="Forecast ready.")
             except (OSError, json.JSONDecodeError):
                 pass
 
         payload = _build_upcoming_prediction_cache(games, season, week)
         _write_upcoming_prediction_cache(cache_path, payload)
         _clear_upcoming_checkpoint()
-        return {**payload, "cache_hit": False, "cache_age_seconds": 0.0, "cache_ttl_seconds": ttl_seconds, "refresh_scheduled": False, "status": "ready", "ready": True, "progress": 100, "message": "Forecast ready."}
+        return _upcoming_response(payload, cache_hit=False, cache_age_seconds=0.0, cache_ttl_seconds=ttl_seconds, refresh_scheduled=False, status="ready", ready=True, progress=100, message="Forecast ready.")
 
 
 @dataclass

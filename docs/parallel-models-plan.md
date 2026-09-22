@@ -925,3 +925,44 @@ Recommended next Phase 2 step:
    - PRM: score/total from EPA/points only.
 2. Add a controlled ablation to test whether PRM’s slight spread improvement is stable or just noise.
 3. Keep production exposure blocked until a future validation pass shows a durable advantage or a clear complementary use case.
+
+## Public display update: NFL Model Signals
+
+Implemented after the RSM/DSM/PRM comparison work:
+
+- Added a public-facing “NFL Model Signals” preview section to the upcoming-week page.
+- The section uses the existing cached upcoming prediction payload and does not trigger additional model recalculation.
+- Existing Upcoming Week: All Algorithms behavior remains intact.
+- Existing model formulas, thresholds, RSM behavior, DSM/PRM research code, and production prediction outputs are unchanged.
+
+Purpose:
+
+- summarize model agreement/disagreement for a general audience;
+- explain market alignment in plain language;
+- show scoring outlook and model-output coverage;
+- turn the side-by-side model table into matchup intelligence rather than a recommendation system.
+
+The section reports:
+
+- agreement label;
+- market-alignment label;
+- total-outlook label;
+- model spread range;
+- model total range;
+- number of models aligned with the market favorite;
+- number of models on the opposite side;
+- number of models without displayable output;
+- a short matchup story.
+
+Model status labels:
+
+- Market baseline;
+- Production;
+- Experimental;
+- Research only.
+
+Boundary:
+
+- Model Signals are matchup comparison tools, not betting recommendations.
+- No stakes, confidence picks, or wagering workflow were added.
+- DSM/PRM are not shown in upcoming public signals unless a future safe pregame upcoming path is explicitly added.

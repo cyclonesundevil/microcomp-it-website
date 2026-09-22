@@ -11,6 +11,7 @@ from nfl_predictor import (
     MarketBlendNFLModel,
     RsmStage7CComparisonModel,
     apply_upcoming_availability_adjustments,
+    build_model_signals,
     _rsm_artifact,
     _games_source_signature,
     _availability_adjustments_signature,
@@ -873,6 +874,61 @@ def test_weekly_performance_trend_cache_reuses_and_invalidates(tmp_path, monkeyp
     assert first == second
     assert changed_hit is False
     assert changed != first
+
+
+def _signal_row(margins, totals=None, market_margin=-3.0, market_total=44.0, profiles=None):
+    profiles = profiles or tuple(f"m{i}" for i in range(len(margins)))
+    totals = totals if totals is not None else [market_total for _ in margins]
+    return {
+        "schedule": {
+            "away_team": "CAR",
+            "home_team": "ATL",
+            "spread_line": market_margin,
+            "total_line": market_total,
+        },
+        "models": {
+            profile: {
+                "model": profile,
+                "away_team": "CAR",
+                "home_team": "ATL",
+                "pred_margin": margin,
+                "pred_total": total,
+            }
+            for profile, margin, total in zip(profiles, margins, totals)
+        },
+    }
+
+
+def test_model_signals_classify_strong_mixed_and_high_disagreement():
+    strong = build_model_signals(_signal_row([-3.1, -3.4, -2.9]), ("m0", "m1", "m2"))
+    mixed = build_model_signals(_signal_row([-5.0, -2.0, 3.0]), ("m0", "m1", "m2"))
+    high = build_model_signals(_signal_row([-10.0, 8.0, 9.0, -7.0]), ("m0", "m1", "m2", "m3"))
+
+    assert strong["agreement_label"] == "Strong agreement"
+    assert mixed["agreement_label"] == "Mixed signals"
+    assert high["agreement_label"] == "High disagreement"
+
+
+def test_model_signals_market_favorite_sign_convention_for_away_favorite():
+    signals = build_model_signals(_signal_row([-4.0, -5.0, 2.0], market_margin=-2.5), ("m0", "m1", "m2"))
+
+    assert signals["models_favoring_market_favorite"] == 2
+    assert signals["models_favoring_market_underdog"] == 1
+    assert signals["market_alignment_label"] == "Models align with market"
+    assert "Market favors CAR by 2.5" in signals["story"]
+
+
+def test_model_signals_handle_missing_outputs_and_research_status_labels():
+    row = _signal_row([1.0, 2.0], profiles=("dsm", "prm"))
+    row["models"]["prm"]["display_suppressed"] = True
+
+    signals = build_model_signals(row, ("dsm", "prm", "missing_model"))
+
+    assert signals["agreement_label"] == "Insufficient model coverage"
+    assert signals["models_without_output"] == 2
+    assert signals["model_statuses"]["dsm"] == "Research only"
+    assert signals["model_statuses"]["prm"] == "Research only"
+    assert signals["included_models"][0]["model"] == "dsm"
 
 
 def test_summary_reports_uncertainty_and_minus_110_roi():

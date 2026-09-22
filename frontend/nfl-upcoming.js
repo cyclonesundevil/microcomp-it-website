@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const message = document.getElementById('upcoming-message');
     const cacheStatus = document.getElementById('upcoming-cache-status');
     const tableBody = document.getElementById('upcoming-table-body');
+    const signalsGrid = document.getElementById('model-signals-grid');
     const performanceMessage = document.getElementById('weekly-performance-message');
     const performanceBody = document.getElementById('weekly-performance-body');
     const performanceWeekSelect = document.getElementById('weekly-performance-week');
@@ -110,6 +111,71 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<a href="${href}">${model}</a>`;
     }
 
+    function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+        }[char]));
+    }
+
+    function signalClass(label) {
+        const text = String(label || '').toLowerCase();
+        if (text.includes('strong') || text.includes('align')) return 'signal-good';
+        if (text.includes('moderate') || text.includes('mixed')) return 'signal-neutral';
+        if (text.includes('high') || text.includes('split') || text.includes('underdog')) return 'signal-watch';
+        return 'signal-muted';
+    }
+
+    function formatRange(value) {
+        return value === null || value === undefined ? '--' : Number(value).toFixed(1);
+    }
+
+    function renderStatusPills(statuses) {
+        const entries = Object.entries(statuses || {}).filter(([model]) => model !== 'market');
+        if (!entries.length) return '';
+        return `<div class="model-status-pills">${entries.map(([model, status]) => `<span class="model-status-pill">${escapeHtml(model)}: ${escapeHtml(status)}</span>`).join('')}</div>`;
+    }
+
+    function renderModelSignals(games) {
+        if (!signalsGrid) return;
+        const rows = (games || []).filter((game) => game && game.schedule && game.model_signals);
+        if (!rows.length) {
+            signalsGrid.innerHTML = '<article class="model-signal-card"><h3>No model signals available</h3><p>Signals appear when the cached upcoming forecast has model comparison metadata.</p></article>';
+            return;
+        }
+        signalsGrid.innerHTML = rows.map((game) => {
+            const schedule = game.schedule;
+            const signals = game.model_signals;
+            const agreement = escapeHtml(signals.agreement_label);
+            const alignment = escapeHtml(signals.market_alignment_label);
+            const total = escapeHtml(signals.total_outlook_label);
+            return `
+                <article class="model-signal-card">
+                    <div class="model-signal-card-header">
+                        <h3>${escapeHtml(schedule.away_team)} at ${escapeHtml(schedule.home_team)}</h3>
+                        <span class="signal-badge ${signalClass(signals.agreement_label)}">${agreement}</span>
+                    </div>
+                    <p class="model-signal-story">${escapeHtml(signals.story)}</p>
+                    <div class="model-signal-badges">
+                        <span class="signal-badge ${signalClass(signals.market_alignment_label)}">${alignment}</span>
+                        <span class="signal-badge ${signalClass(signals.total_outlook_label)}">${total}</span>
+                    </div>
+                    <dl class="model-signal-metrics">
+                        <div><dt>Spread range</dt><dd>${formatRange(signals.model_spread_range)}</dd></div>
+                        <div><dt>Total range</dt><dd>${formatRange(signals.model_total_range)}</dd></div>
+                        <div><dt>Favorite view</dt><dd>${Number(signals.models_favoring_market_favorite || 0)}</dd></div>
+                        <div><dt>Opposite view</dt><dd>${Number(signals.models_favoring_market_underdog || 0)}</dd></div>
+                        <div><dt>No output</dt><dd>${Number(signals.models_without_output || 0)}</dd></div>
+                    </dl>
+                    ${renderStatusPills(signals.model_statuses)}
+                </article>
+            `;
+        }).join('');
+    }
+
     function modelCell(prediction, schedule) {
         if (!prediction) return '--';
         if (prediction.display_suppressed) {
@@ -140,6 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
             progressPanel.hidden = true;
             message.textContent = data.message || 'No upcoming games were found in the schedule feed.';
             tableBody.innerHTML = '<tr><td colspan="9">No upcoming games were found in the schedule feed.</td></tr>';
+            renderModelSignals([]);
             return;
         }
 
@@ -147,6 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (invalid) {
             message.textContent = 'The cached forecast is invalid and is being rebuilt.';
             tableBody.innerHTML = '<tr><td colspan="9">Forecast data is invalid. Refreshing the forecast...</td></tr>';
+            renderModelSignals([]);
             return;
         }
 
@@ -161,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const market = marketCell(schedule);
             return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small></td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'mean_reversion', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${modelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
         }).join('');
+        renderModelSignals(data.games);
     }
 
     function renderWeeklyPerformance(performance) {
@@ -237,6 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.ready === false || data.status === 'computing') {
                     showProgress(Math.max(10, Math.min(95, Number(data.progress) || 15)), data.message || 'Forecast is still being computed.');
                     tableBody.innerHTML = '<tr><td colspan="9">Forecast is still being computed...</td></tr>';
+                    renderModelSignals([]);
                     pollTimer = window.setTimeout(() => {
                         pollTimer = null;
                         poll();
@@ -253,6 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 progressPanel.hidden = true;
                 message.textContent = `Unable to load upcoming predictions: ${error.message}`;
                 tableBody.innerHTML = '<tr><td colspan="9">Unavailable</td></tr>';
+                renderModelSignals([]);
             } finally {
                 refreshButton.disabled = false;
             }
