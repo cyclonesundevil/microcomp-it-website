@@ -794,3 +794,43 @@ Recommended next Phase 2 step:
 1. Add a schedule-aware kickoff ordering source to safely include same-week games that are completed before the target kickoff.
 2. Create frozen train/validation splits for DSM and EPA-based PRM.
 3. Build baseline DSM/PRM candidate models from the feature layer without using market spread/total as model inputs.
+
+## Phase 2 update: DSM/PRM research baselines
+
+Implemented on 2026-09-21:
+
+- Extended PBP feature filtering to accept an optional schedule-aware `game_order` plus target `game_id`.
+- The default remains conservative: if no game order is supplied, all target-week games are excluded.
+- When schedule order is supplied, same-week games are included only when their known kickoff/order is strictly before the target game.
+- Added frozen research split helper in `backend/parallel_models/evaluation.py`:
+  - training: 2024
+  - validation: 2025
+  - prospective/current observation: 2026
+- Added research-only baseline model classes in `backend/parallel_models/drive_models.py`:
+  - `DriveSuccessModel` / DSM baseline from drive-level EPA margin signal;
+  - `EPAPointsModel` / PRM baseline from drive-level points/EPA signal.
+- Both baseline classes:
+  - use injected drive summaries;
+  - use only pregame historical drive data;
+  - do not use market spread or market total as model inputs;
+  - shrink toward league priors when sample drive counts are low;
+  - emit `NFLPrediction` objects through the common research interface;
+  - are not wired into production API/UI.
+- Added tests proving:
+  - same-week prior games are included only with known schedule order;
+  - target-week future/current games are excluded;
+  - split assignment is chronological and frozen;
+  - DSM/PRM predictions are marked research-only;
+  - PRM output is unchanged by supplied market spread/total.
+
+Boundaries remain unchanged:
+
+- No production algorithm behavior changed.
+- No existing RSM, baseline, enhanced, market-blend, Rothstein, Rothstein+, or mean-reversion behavior changed.
+- DSM and PRM are still research candidates, not production recommendations.
+
+Recommended next Phase 2 step:
+
+1. Build a walk-forward evaluator for DSM/PRM using the frozen 2024 train / 2025 validation split.
+2. Compare DSM/PRM against RSM through the shared `NFLPrediction` interface.
+3. Only after validation, decide whether either candidate deserves a non-production UI/API preview.

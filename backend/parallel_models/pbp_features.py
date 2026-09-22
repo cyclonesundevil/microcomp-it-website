@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Mapping, Optional
+from typing import Iterable, Mapping, Optional, Sequence
 
 from .interface import NFLGameContext
 from .nflverse_pbp import DriveSummary, drive_summary_path
@@ -89,19 +89,22 @@ def filter_drives_before_game(
     *,
     include_prior_seasons: bool = True,
     season_type: str = "REG",
+    game_order: Optional[Mapping[str, Sequence[object]]] = None,
+    target_game_id: Optional[str] = None,
 ) -> list[DriveSummary]:
     """Return drive summaries available before the target game.
 
     The conservative default excludes all games in the target week because the
     common app context does not always include kickoff ordering within a week.
-    If a caller needs same-week Thursday-to-Sunday ordering later, it should
-    pass a richer schedule-aware filter instead of loosening this function.
+    If a caller passes `game_order` and `target_game_id`, same-week games with
+    a known order strictly before the target game may be included.
     """
     if game_context.season is None or game_context.week is None:
         raise ValueError("game_context.season and game_context.week are required for pregame PBP features")
     target_season = int(game_context.season)
     target_week = int(game_context.week)
     desired_type = season_type.upper()
+    target_order = _target_order(game_order, target_game_id)
     result = []
     for summary in summaries:
         if desired_type and summary.season_type and summary.season_type != desired_type:
@@ -109,6 +112,13 @@ def filter_drives_before_game(
         if summary.season < target_season and include_prior_seasons:
             result.append(summary)
         elif summary.season == target_season and summary.week < target_week:
+            result.append(summary)
+        elif (
+            summary.season == target_season
+            and summary.week == target_week
+            and target_order is not None
+            and _drive_game_order(game_order, summary.game_id) < target_order
+        ):
             result.append(summary)
     return result
 
@@ -168,8 +178,16 @@ def build_matchup_pbp_features(
     summaries: Iterable[DriveSummary],
     *,
     season_type: str = "REG",
+    game_order: Optional[Mapping[str, Sequence[object]]] = None,
+    target_game_id: Optional[str] = None,
 ) -> MatchupPBPFeatures:
-    history = filter_drives_before_game(summaries, game_context, season_type=season_type)
+    history = filter_drives_before_game(
+        summaries,
+        game_context,
+        season_type=season_type,
+        game_order=game_order,
+        target_game_id=target_game_id,
+    )
     home = game_context.home_team.upper()
     away = game_context.away_team.upper()
     stats = aggregate_team_drive_stats(history, teams=[home, away])
@@ -271,3 +289,23 @@ def _optional_float(value: object) -> Optional[float]:
 def _bool(value: object) -> bool:
     text = str(value or "").strip().lower()
     return text in {"1", "true", "t", "yes", "y"}
+
+
+def _target_order(
+    game_order: Optional[Mapping[str, Sequence[object]]],
+    target_game_id: Optional[str],
+) -> Optional[tuple]:
+    if not game_order or not target_game_id:
+        return None
+    if target_game_id not in game_order:
+        return None
+    return tuple(game_order[target_game_id])
+
+
+def _drive_game_order(
+    game_order: Optional[Mapping[str, Sequence[object]]],
+    game_id: str,
+) -> tuple:
+    if not game_order:
+        return tuple()
+    return tuple(game_order.get(game_id, (float("inf"), str(game_id))))

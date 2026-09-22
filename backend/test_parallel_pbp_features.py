@@ -51,6 +51,24 @@ def test_filter_drives_before_game_excludes_target_week_and_playoffs():
     assert [drive.game_id for drive in filtered] == ["2025_18_A_B", "2026_01_A_B"]
 
 
+def test_filter_drives_before_game_includes_known_same_week_prior_games_only():
+    drives = [
+        _drive("2026_02_THU_A_B", 2026, 2, "A", "B", 1.0, 7.0),
+        _drive("2026_02_SUN_C_D", 2026, 2, "C", "D", 99.0, 7.0),
+        _drive("2026_02_MNF_E_F", 2026, 2, "E", "F", 100.0, 7.0),
+    ]
+    context = NFLGameContext(home_team="C", away_team="D", season=2026, week=2, metadata={"game_id": "2026_02_SUN_C_D"})
+    order = {
+        "2026_02_THU_A_B": (2026, 2, "2026-09-17T20:15:00Z", "2026_02_THU_A_B"),
+        "2026_02_SUN_C_D": (2026, 2, "2026-09-20T13:00:00Z", "2026_02_SUN_C_D"),
+        "2026_02_MNF_E_F": (2026, 2, "2026-09-21T20:15:00Z", "2026_02_MNF_E_F"),
+    }
+
+    filtered = filter_drives_before_game(drives, context, game_order=order, target_game_id="2026_02_SUN_C_D")
+
+    assert [drive.game_id for drive in filtered] == ["2026_02_THU_A_B"]
+
+
 def test_aggregate_team_drive_stats_calculates_offense_and_defense_rates():
     drives = [
         _drive("g1", 2026, 1, "A", "B", 2.0, 7.0, red_zone=True),
