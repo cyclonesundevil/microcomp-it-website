@@ -843,9 +843,7 @@ Implemented on 2026-09-21:
 - Added CLI command:
   - `python -m parallel_models evaluate-drive-models --period validation`
 - Added validation artifact generation:
-  - `reports/parallel_models/dsm-prm-validation-predictions.csv`
-  - `reports/parallel_models/dsm-prm-validation-metrics.json`
-  - `reports/parallel_models/dsm-prm-validation-summary.md`
+  - superseded by the RSM/DSM/PRM comparison artifacts below
 - Added tests covering evaluator season selection, metric generation, and artifact writing.
 
 Frozen validation run:
@@ -878,3 +876,52 @@ Recommended next Phase 2 step:
    - DSM focused on drive success and margin only;
    - PRM focused on EPA/points and total/score only.
 3. Only after RSM/DSM/PRM comparison, decide whether a non-production preview endpoint is warranted.
+
+## Phase 2 update: RSM / DSM / PRM validation comparison
+
+Implemented on 2026-09-21:
+
+- Added RSM comparison rows to the existing validation evaluator.
+- RSM is evaluated through `RSMParallelModel`; no production RSM code or artifacts were changed.
+- Added market baseline rows when `spread_line` and `total_line` are available.
+- The market baseline is clearly labeled `market_baseline` and is not treated as an algorithmic model.
+- Replaced the DSM/PRM-only artifacts with unified comparison artifacts:
+  - `reports/parallel_models/rsm-dsm-prm-validation-predictions.csv`
+  - `reports/parallel_models/rsm-dsm-prm-validation-metrics.json`
+  - `reports/parallel_models/rsm-dsm-prm-validation-summary.md`
+- Added tests proving:
+  - RSM is included through the wrapper path;
+  - all compared rows use the same eligible validation game set;
+  - market baseline rows are included separately;
+  - output artifact names and shapes are stable.
+
+Frozen validation comparison:
+
+- Training period remains 2024.
+- Validation period is 2025 regular season.
+- Prospective/current observation period remains 2026.
+- Games evaluated: 272.
+- Prediction rows: 1,088.
+
+| Row | Games | Spread MAE | Total Score MAE | Spread RMSE | Total Score RMSE | Avg sample drives |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| RSM | 272 | 10.877 | 11.090 | 13.889 | 13.951 | - |
+| DSM | 272 | 11.194 | 10.648 | 14.018 | 13.480 | 535.952 |
+| PRM | 272 | 10.803 | 10.648 | 13.728 | 13.480 | 535.952 |
+| market_baseline | 272 | 9.722 | 10.393 | 12.271 | 13.186 | - |
+
+Interpretation:
+
+- The market baseline is best on both spread and total error, which is expected and is not a model claim.
+- PRM is slightly better than RSM and DSM on 2025 spread MAE/RMSE in this baseline validation.
+- DSM and PRM share the same total-score path in the current baseline, so their total metrics are identical.
+- RSM has worse total-score MAE than DSM/PRM here, but RSM remains the only production/frozen model in this comparison.
+- DSM/PRM are still research candidates and are not production recommendations.
+
+Recommended next Phase 2 step:
+
+1. Separate DSM and PRM responsibilities more cleanly:
+   - DSM: margin/spread from drive success only;
+   - PRM: score/total from EPA/points only.
+2. Add a controlled ablation to test whether PRM’s slight spread improvement is stable or just noise.
+3. Keep production exposure blocked until a future validation pass shows a durable advantage or a clear complementary use case.

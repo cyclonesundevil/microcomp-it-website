@@ -15,12 +15,24 @@
     "notes": "Research-only split for DSM/PRM candidate development after nflverse PBP source approval. Current/prospective 2026 games are not used for coefficient or threshold selection."
   },
   "games_evaluated": 272,
-  "prediction_rows": 544,
+  "prediction_rows": 1088,
   "models": [
+    "RSM",
     "dsm",
-    "prm"
+    "prm",
+    "market_baseline"
   ],
   "metrics": [
+    {
+      "model_name": "RSM",
+      "period": "validation",
+      "games": 272,
+      "margin_mae": 10.876687478067012,
+      "total_score_mae": 11.089506056529613,
+      "margin_rmse": 13.88886129728184,
+      "total_score_rmse": 13.950967118318857,
+      "avg_sample_drives": null
+    },
     {
       "model_name": "dsm",
       "period": "validation",
@@ -40,7 +52,17 @@
       "margin_rmse": 13.728347259220843,
       "total_score_rmse": 13.480023171745023,
       "avg_sample_drives": 535.9522058823529
+    },
+    {
+      "model_name": "market_baseline",
+      "period": "validation",
+      "games": 272,
+      "margin_mae": 9.722426470588236,
+      "total_score_mae": 10.393382352941176,
+      "margin_rmse": 12.271177672521421,
+      "total_score_rmse": 13.18644580397525,
+      "avg_sample_drives": null
     }
   ],
-  "prediction_csv": "reports/parallel_models/dsm-prm-validation-predictions.csv"
+  "prediction_csv": "reports/parallel_models/rsm-dsm-prm-validation-predictions.csv"
 }

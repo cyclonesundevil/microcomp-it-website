@@ -12,6 +12,7 @@ from .evaluation import DEFAULT_PARALLEL_MODEL_PERIODS, FrozenEvaluationPeriods
 from .interface import NFLGameContext, NFLPrediction
 from .nflverse_pbp import DriveSummary, drive_summary_path
 from .pbp_features import load_drive_summaries
+from .rsm_wrapper import RSMParallelModel
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -99,25 +100,26 @@ def evaluate_drive_models(
     periods: FrozenEvaluationPeriods = DEFAULT_PARALLEL_MODEL_PERIODS,
     period: str = "validation",
     game_type: str = "REG",
+    include_rsm: bool = True,
+    include_market_baseline: bool = True,
 ) -> dict:
     games = load_game_rows(games_path)
     drives = load_drive_summaries(drive_summaries_path)
     game_order = build_game_order(games)
     seasons = getattr(periods, f"{period}_seasons")
     eligible_games = eligible_completed_games(games, seasons, game_type=game_type)
-    models = [
-        DriveSuccessModel(drives, game_order=game_order),
-        EPAPointsModel(drives, game_order=game_order),
-    ]
+    models = _prediction_models(drives, game_order, include_rsm=include_rsm)
     records = []
     for game in eligible_games:
         context = _context_from_game(game)
         for model in models:
             prediction = model.predict(context)
             records.append(_record_prediction(prediction, game, period))
+        if include_market_baseline and _has_market_baseline(game):
+            records.append(_record_prediction(_market_baseline_prediction(context), game, period))
     metrics = [
-        asdict(_metrics_for_model(model.model_name, period, records))
-        for model in models
+        asdict(_metrics_for_model(model_name, period, records))
+        for model_name in _ordered_model_names(records)
     ]
     return {
         "schema_version": 1,
@@ -126,7 +128,7 @@ def evaluate_drive_models(
         "periods": asdict(periods),
         "games_evaluated": len(eligible_games),
         "prediction_rows": len(records),
-        "models": [model.model_name for model in models],
+        "models": _ordered_model_names(records),
         "metrics": metrics,
         "records": records,
     }
@@ -145,9 +147,9 @@ def write_drive_model_backtest(
         period=period,
     )
     output_dir.mkdir(parents=True, exist_ok=True)
-    csv_path = output_dir / f"dsm-prm-{period}-predictions.csv"
-    json_path = output_dir / f"dsm-prm-{period}-metrics.json"
-    md_path = output_dir / f"dsm-prm-{period}-summary.md"
+    csv_path = output_dir / f"rsm-dsm-prm-{period}-predictions.csv"
+    json_path = output_dir / f"rsm-dsm-prm-{period}-metrics.json"
+    md_path = output_dir / f"rsm-dsm-prm-{period}-summary.md"
     with csv_path.open("w", newline="", encoding="utf-8") as target:
         writer = csv.DictWriter(target, fieldnames=list(PREDICTION_FIELDNAMES))
         writer.writeheader()
@@ -162,6 +164,55 @@ def write_drive_model_backtest(
         "metrics_json": _repo_relative(json_path),
         "summary_markdown": _repo_relative(md_path),
     }
+
+
+def _prediction_models(
+    drives: Sequence[DriveSummary],
+    game_order: Mapping[str, Sequence[object]],
+    *,
+    include_rsm: bool,
+) -> list:
+    models = []
+    if include_rsm:
+        models.append(RSMParallelModel())
+    models.extend([
+        DriveSuccessModel(drives, game_order=game_order),
+        EPAPointsModel(drives, game_order=game_order),
+    ])
+    return models
+
+
+def _has_market_baseline(game: Mapping[str, object]) -> bool:
+    return _optional_float(game.get("spread_line")) is not None and _optional_float(game.get("total_line")) is not None
+
+
+def _market_baseline_prediction(game_context: NFLGameContext) -> NFLPrediction:
+    predicted_margin = float(game_context.market_home_margin)
+    predicted_total = float(game_context.market_total)
+    home_score = (predicted_total + predicted_margin) / 2.0
+    away_score = (predicted_total - predicted_margin) / 2.0
+    return NFLPrediction(
+        model_name="market_baseline",
+        model_version="market_spread_total_baseline_not_model",
+        home_team=game_context.home_team,
+        away_team=game_context.away_team,
+        kickoff=game_context.kickoff,
+        expected_home_score=home_score,
+        expected_away_score=away_score,
+        expected_margin=predicted_margin,
+        expected_total=predicted_total,
+        home_win_probability=None,
+        uncertainty={"baseline": "market", "research_only": True},
+        metadata={"baseline_note": "Market spread_line and total_line baseline; not an algorithmic model."},
+    )
+
+
+def _ordered_model_names(records: Iterable[Mapping[str, object]]) -> list[str]:
+    preferred = ["RSM", "dsm", "prm", "market_baseline"]
+    seen = {str(record["model_name"]) for record in records}
+    ordered = [name for name in preferred if name in seen]
+    ordered.extend(sorted(seen - set(ordered)))
+    return ordered
 
 
 def _context_from_game(game: Mapping[str, object]) -> NFLGameContext:
@@ -229,16 +280,16 @@ def _metrics_for_model(model_name: str, period: str, records: Iterable[Mapping[s
 def _render_summary_markdown(payload: Mapping[str, object]) -> str:
     metrics = payload["metrics"]
     lines = [
-        "# DSM / PRM Research Backtest",
+        "# RSM / DSM / PRM Research Backtest",
         "",
-        "Research-only validation artifact. These models are not production recommendations.",
+        "Research-only validation artifact. DSM/PRM are not production recommendations. RSM is evaluated through the existing wrapper without changing production behavior.",
         "",
         f"Period: `{payload['period']}`",
         f"Game type: `{payload['game_type']}`",
         f"Games evaluated: {payload['games_evaluated']}",
         f"Prediction rows: {payload['prediction_rows']}",
         "",
-        "| Model | Games | Spread MAE | Total Score MAE | Spread RMSE | Total Score RMSE | Avg sample drives |",
+        "| Row | Games | Spread MAE | Total Score MAE | Spread RMSE | Total Score RMSE | Avg sample drives |",
         "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for item in metrics:
@@ -261,7 +312,11 @@ def _render_summary_markdown(payload: Mapping[str, object]) -> str:
         "- Validation: 2025",
         "- Prospective/current observation: 2026",
         "",
-        "Important boundary: market spread and market total are not model inputs for DSM/PRM.",
+        "Important boundaries:",
+        "",
+        "- Market spread and market total are not model inputs for DSM/PRM.",
+        "- `market_baseline` is a line baseline, not an algorithmic model.",
+        "- RSM rows are generated through `RSMParallelModel`; production RSM behavior is not changed.",
     ])
     return "\n".join(lines) + "\n"
 
