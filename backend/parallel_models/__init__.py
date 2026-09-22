@@ -6,6 +6,7 @@ behind a common interface; it does not implement DSM, PRM, or ensembles.
 """
 
 from .interface import NFLGameContext, NFLPrediction
+from .nflverse_pbp import DriveSummary
 from .rsm_wrapper import RSMParallelModel
 
-__all__ = ["NFLGameContext", "NFLPrediction", "RSMParallelModel"]
+__all__ = ["DriveSummary", "NFLGameContext", "NFLPrediction", "RSMParallelModel"]

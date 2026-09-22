@@ -676,3 +676,42 @@ Still not started:
 - walk-forward parallel-model comparison.
 
 Next required decision remains whether to add a play-by-play/drive data source for DSM and EPA-based PRM.
+
+## Phase 2 status: nflverse PBP source scaffolding
+
+Implemented on 2026-09-21 after explicit approval to use nflverse play-by-play data:
+
+- Added `backend/parallel_models/nflverse_pbp.py`.
+- Added nflverse release URL template:
+  - `https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_{season}.csv`
+- Added explicit, dependency-free CSV downloader/manifest functions:
+  - `download_pbp_season`
+  - `update_pbp_sources`
+  - `pbp_path`
+  - `pbp_manifest_path`
+- Added source manifest schema with URL template, seasons, bytes, SHA-256, and retrieval timestamp.
+- Added `read_pbp_rows` for local CSV rows.
+- Added strict pregame filter:
+  - `filter_pbp_strictly_before_game`
+  - excludes target-game and future-game plays using chronological game order.
+- Added baseline drive summary derivation:
+  - `DriveSummary`
+  - `derive_drive_summaries`
+  - groups by game, drive, and offense;
+  - computes plays, summed EPA, drive points, drive result, starting yardline, and red-zone entry.
+- Added `backend/test_parallel_pbp.py`.
+
+Important boundaries:
+
+- No large play-by-play files were downloaded during implementation or tests.
+- No DSM model was implemented yet.
+- No PRM model was implemented yet.
+- Existing RSM and production NFL predictor behavior were not changed.
+
+Next Phase 2 work:
+
+1. Run `update_pbp_sources` for selected seasons only when ready to download large files.
+2. Inspect real nflverse PBP columns in the downloaded files and lock a required-field contract.
+3. Add derived drive-table persistence and fingerprinting.
+4. Add broader leakage tests against real schedule ordering.
+5. Only then begin DSM baseline implementation.
