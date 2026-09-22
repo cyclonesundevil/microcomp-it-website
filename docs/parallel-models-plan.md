@@ -834,3 +834,47 @@ Recommended next Phase 2 step:
 1. Build a walk-forward evaluator for DSM/PRM using the frozen 2024 train / 2025 validation split.
 2. Compare DSM/PRM against RSM through the shared `NFLPrediction` interface.
 3. Only after validation, decide whether either candidate deserves a non-production UI/API preview.
+
+## Phase 2 update: DSM/PRM validation evaluator
+
+Implemented on 2026-09-21:
+
+- Added `backend/parallel_models/backtest.py`.
+- Added CLI command:
+  - `python -m parallel_models evaluate-drive-models --period validation`
+- Added validation artifact generation:
+  - `reports/parallel_models/dsm-prm-validation-predictions.csv`
+  - `reports/parallel_models/dsm-prm-validation-metrics.json`
+  - `reports/parallel_models/dsm-prm-validation-summary.md`
+- Added tests covering evaluator season selection, metric generation, and artifact writing.
+
+Frozen validation run:
+
+- Training period remains 2024.
+- Validation period is 2025 regular season.
+- Prospective/current observation period remains 2026.
+- Games evaluated: 272.
+- Prediction rows: 544.
+
+Validation metrics:
+
+| Model | Games | Spread MAE | Total Score MAE | Spread RMSE | Total Score RMSE | Avg sample drives |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| DSM | 272 | 11.194 | 10.648 | 14.018 | 13.480 | 535.952 |
+| PRM | 272 | 10.803 | 10.648 | 13.728 | 13.480 | 535.952 |
+
+Interpretation:
+
+- PRM is slightly better than DSM on 2025 spread/margin error in this baseline run.
+- DSM and PRM have identical total-score metrics because the current DSM total estimate is intentionally using the same drive-level points/drive total signal path as the PRM baseline.
+- Neither DSM nor PRM is production-ready yet.
+- These results validate the evaluation pipeline more than they validate a final predictive model.
+- Market spread and market total remain excluded as model inputs.
+
+Recommended next Phase 2 step:
+
+1. Add RSM comparison rows to the same validation artifact.
+2. Decide whether DSM and PRM should diverge more clearly:
+   - DSM focused on drive success and margin only;
+   - PRM focused on EPA/points and total/score only.
+3. Only after RSM/DSM/PRM comparison, decide whether a non-production preview endpoint is warranted.

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "period": "validation",
+  "game_type": "REG",
+  "periods": {
+    "training_seasons": [
+      2024
+    ],
+    "validation_seasons": [
+      2025
+    ],
+    "prospective_seasons": [
+      2026
+    ],
+    "notes": "Research-only split for DSM/PRM candidate development after nflverse PBP source approval. Current/prospective 2026 games are not used for coefficient or threshold selection."
+  },
+  "games_evaluated": 272,
+  "prediction_rows": 544,
+  "models": [
+    "dsm",
+    "prm"
+  ],
+  "metrics": [
+    {
+      "model_name": "dsm",
+      "period": "validation",
+      "games": 272,
+      "margin_mae": 11.193732691274034,
+      "total_score_mae": 10.648414854523635,
+      "margin_rmse": 14.01830073527604,
+      "total_score_rmse": 13.480023171745023,
+      "avg_sample_drives": 535.9522058823529
+    },
+    {
+      "model_name": "prm",
+      "period": "validation",
+      "games": 272,
+      "margin_mae": 10.803155206855305,
+      "total_score_mae": 10.648414854523635,
+      "margin_rmse": 13.728347259220843,
+      "total_score_rmse": 13.480023171745023,
+      "avg_sample_drives": 535.9522058823529
+    }
+  ],
+  "prediction_csv": "reports/parallel_models/dsm-prm-validation-predictions.csv"
+}
