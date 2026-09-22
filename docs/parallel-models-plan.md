@@ -715,3 +715,43 @@ Next Phase 2 work:
 3. Add derived drive-table persistence and fingerprinting.
 4. Add broader leakage tests against real schedule ordering.
 5. Only then begin DSM baseline implementation.
+
+## Phase 2 update: local PBP/drive-table workflow
+
+Implemented on 2026-09-21:
+
+- Added research-only CLI entry point under `backend/parallel_models/__main__.py`.
+- Supported commands, run from the `backend/` directory:
+  - `python -m parallel_models update-pbp --seasons 2024 2025`
+  - `python -m parallel_models inspect-pbp --seasons 2024 2025`
+  - `python -m parallel_models derive-drives --seasons 2024 2025`
+- Added required nflverse PBP field contract:
+  - `game_id`
+  - `season`
+  - `week`
+  - `drive`
+  - `posteam`
+  - `defteam`
+  - `epa`
+  - `yardline_100`
+- Added schema inspection and validation before derived drive-table creation.
+- Added persisted derived drive summaries:
+  - default raw PBP location: `backend/data/parallel_models/raw/pbp/play_by_play_{season}.csv`
+  - default derived drive table: `backend/data/parallel_models/derived/drive_summaries.csv`
+  - default drive manifest: `backend/data/parallel_models/derived/drive-summary-manifest.json`
+- The drive manifest records source file fingerprints, schema inspection, output row count, output bytes, and output SHA-256.
+- Added tests for malformed schema rejection and drive-summary persistence.
+
+Boundaries remain unchanged:
+
+- No large nflverse PBP files were downloaded during tests.
+- No DSM model was implemented yet.
+- No EPA-based PRM model was implemented yet.
+- Existing RSM and production NFL predictor behavior were not changed.
+
+Recommended next Phase 2 step:
+
+1. Download selected seasons into the research data root.
+2. Inspect the real nflverse schema/field availability.
+3. Generate the drive summary table.
+4. Then add the first DSM/PRM feature builders from the persisted drive/PBP sources.

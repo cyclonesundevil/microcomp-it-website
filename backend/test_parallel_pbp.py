@@ -6,12 +6,17 @@ import pytest
 
 from parallel_models.nflverse_pbp import (
     derive_drive_summaries,
+    drive_summary_manifest_path,
+    drive_summary_path,
     filter_pbp_strictly_before_game,
+    inspect_pbp_schema,
     pbp_manifest_path,
     pbp_path,
     pbp_url,
     read_pbp_rows,
     update_pbp_sources,
+    validate_pbp_schema,
+    write_drive_summaries,
 )
 
 
@@ -121,3 +126,69 @@ def test_read_pbp_rows_and_derive_drive_summaries(tmp_path):
     assert drive.result == "TOUCHDOWN"
     assert drive.start_yardline_100 == pytest.approx(75.0)
     assert drive.red_zone_entry is True
+
+
+def test_pbp_schema_validation_reports_missing_required_fields(tmp_path):
+    path = tmp_path / "bad_play_by_play.csv"
+    path.write_text("game_id,season\n2026_01_A_B,2026\n", encoding="utf-8")
+
+    inspection = inspect_pbp_schema([path])
+
+    assert "drive" in inspection["files"][0]["missing_required"]
+    assert "posteam" in inspection["combined_missing_required"]
+    with pytest.raises(ValueError, match="missing required fields"):
+        validate_pbp_schema([path])
+
+
+def test_write_drive_summaries_persists_csv_and_manifest(tmp_path):
+    path = pbp_path(2026, tmp_path)
+    _write_csv(path, [
+        {
+            "game_id": "2026_01_A_B",
+            "season": "2026",
+            "week": "1",
+            "drive": "1",
+            "posteam": "A",
+            "defteam": "B",
+            "epa": "0.5",
+            "yardline_100": "75",
+            "touchdown": "0",
+            "field_goal_result": "",
+            "fixed_drive_result": "",
+            "fumble_lost": "0",
+            "interception": "0",
+            "punt_result": "",
+            "safety": "0",
+        },
+        {
+            "game_id": "2026_01_A_B",
+            "season": "2026",
+            "week": "1",
+            "drive": "1",
+            "posteam": "A",
+            "defteam": "B",
+            "epa": "2.0",
+            "yardline_100": "10",
+            "touchdown": "1",
+            "field_goal_result": "",
+            "fixed_drive_result": "Touchdown",
+            "fumble_lost": "0",
+            "interception": "0",
+            "punt_result": "",
+            "safety": "0",
+        },
+    ])
+    output = drive_summary_path(tmp_path)
+    manifest_file = drive_summary_manifest_path(tmp_path)
+
+    manifest = write_drive_summaries([path], output, manifest_file)
+    rows = list(csv.DictReader(output.open(newline="", encoding="utf-8")))
+    stored = json.loads(manifest_file.read_text(encoding="utf-8"))
+
+    assert len(rows) == 1
+    assert rows[0]["game_id"] == "2026_01_A_B"
+    assert rows[0]["result"] == "TOUCHDOWN"
+    assert rows[0]["red_zone_entry"] == "True"
+    assert manifest["drive_summary"]["rows"] == 1
+    assert stored["drive_summary"]["sha256"] == manifest["drive_summary"]["sha256"]
+    assert stored["source_files"][0]["sha256"]

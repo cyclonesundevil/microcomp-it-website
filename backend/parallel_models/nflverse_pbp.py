@@ -6,7 +6,7 @@ import json
 import os
 import tempfile
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Iterator, Mapping, Optional, Sequence
@@ -16,6 +16,31 @@ NFLVERSE_DATA_RELEASE_BASE = "https://github.com/nflverse/nflverse-data/releases
 PBP_RELEASE_URL_TEMPLATE = NFLVERSE_DATA_RELEASE_BASE + "/pbp/play_by_play_{season}.csv"
 DEFAULT_PARALLEL_DATA_ROOT = Path(__file__).resolve().parents[1] / "data" / "parallel_models"
 PBP_MANIFEST_SCHEMA_VERSION = 1
+DRIVE_SUMMARY_SCHEMA_VERSION = 1
+REQUIRED_PBP_FIELDS = frozenset({
+    "game_id",
+    "season",
+    "week",
+    "drive",
+    "posteam",
+    "defteam",
+    "epa",
+    "yardline_100",
+})
+DRIVE_SUMMARY_FIELDS = (
+    "game_id",
+    "season",
+    "week",
+    "drive",
+    "offense",
+    "defense",
+    "plays",
+    "epa",
+    "points",
+    "result",
+    "start_yardline_100",
+    "red_zone_entry",
+)
 
 
 @dataclass(frozen=True)
@@ -40,6 +65,14 @@ def pbp_path(season: int, data_root: Path = DEFAULT_PARALLEL_DATA_ROOT) -> Path:
 
 def pbp_manifest_path(data_root: Path = DEFAULT_PARALLEL_DATA_ROOT) -> Path:
     return data_root / "pbp-source-manifest.json"
+
+
+def drive_summary_path(data_root: Path = DEFAULT_PARALLEL_DATA_ROOT) -> Path:
+    return data_root / "derived" / "drive_summaries.csv"
+
+
+def drive_summary_manifest_path(data_root: Path = DEFAULT_PARALLEL_DATA_ROOT) -> Path:
+    return data_root / "derived" / "drive-summary-manifest.json"
 
 
 def pbp_url(season: int) -> str:
@@ -114,6 +147,44 @@ def read_pbp_rows(paths: Iterable[Path]) -> Iterator[dict]:
 
 def pbp_paths_for_seasons(seasons: Iterable[int], data_root: Path = DEFAULT_PARALLEL_DATA_ROOT) -> list[Path]:
     return [pbp_path(int(season), data_root) for season in seasons]
+
+
+def inspect_pbp_schema(paths: Iterable[Path], required_fields: frozenset[str] = REQUIRED_PBP_FIELDS) -> dict:
+    files = []
+    combined_fields: set[str] = set()
+    for path in paths:
+        with path.open(newline="", encoding="utf-8-sig") as source:
+            reader = csv.DictReader(source)
+            fields = list(reader.fieldnames or [])
+        field_set = set(fields)
+        combined_fields.update(field_set)
+        files.append({
+            "path": str(path),
+            "field_count": len(fields),
+            "fields": fields,
+            "missing_required": sorted(required_fields - field_set),
+            "sha256": _sha256(path),
+            "bytes": path.stat().st_size,
+        })
+    return {
+        "schema_version": PBP_MANIFEST_SCHEMA_VERSION,
+        "inspected_at": _utc_now(),
+        "required_fields": sorted(required_fields),
+        "files": files,
+        "combined_missing_required": sorted(required_fields - combined_fields),
+    }
+
+
+def validate_pbp_schema(paths: Iterable[Path], required_fields: frozenset[str] = REQUIRED_PBP_FIELDS) -> dict:
+    inspection = inspect_pbp_schema(paths, required_fields)
+    missing = {
+        item["path"]: item["missing_required"]
+        for item in inspection["files"]
+        if item["missing_required"]
+    }
+    if missing:
+        raise ValueError(f"PBP files are missing required fields: {missing}")
+    return inspection
 
 
 def _float_or_none(value: object) -> Optional[float]:
@@ -200,6 +271,47 @@ def derive_drive_summaries(rows: Iterable[dict]) -> list[DriveSummary]:
             red_zone_entry=red_zone_entry,
         ))
     return sorted(summaries, key=lambda drive: (drive.season, drive.week, drive.game_id, int(drive.drive) if drive.drive.isdigit() else drive.drive, drive.offense))
+
+
+def write_drive_summaries(
+    pbp_paths: Iterable[Path],
+    output_path: Path,
+    manifest_path: Optional[Path] = None,
+) -> dict:
+    paths = list(pbp_paths)
+    schema = validate_pbp_schema(paths)
+    summaries = derive_drive_summaries(read_pbp_rows(paths))
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", newline="", encoding="utf-8") as target:
+        writer = csv.DictWriter(target, fieldnames=list(DRIVE_SUMMARY_FIELDS))
+        writer.writeheader()
+        for summary in summaries:
+            writer.writerow(asdict(summary))
+    manifest = {
+        "schema_version": DRIVE_SUMMARY_SCHEMA_VERSION,
+        "created_at": _utc_now(),
+        "source_family": "nflverse play-by-play",
+        "source_files": [
+            {
+                "path": str(path),
+                "bytes": path.stat().st_size,
+                "sha256": _sha256(path),
+            }
+            for path in paths
+        ],
+        "required_pbp_fields": sorted(REQUIRED_PBP_FIELDS),
+        "schema_inspection": schema,
+        "drive_summary": {
+            "path": str(output_path),
+            "rows": len(summaries),
+            "bytes": output_path.stat().st_size,
+            "sha256": _sha256(output_path),
+        },
+    }
+    if manifest_path is not None:
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    return manifest
 
 
 def _drive_points(plays: list[dict]) -> float:
