@@ -104,8 +104,12 @@ def start_daily_upcoming_cache_refresh_loop():
         return
 
     def _worker():
+        first_run = True
         while True:
-            time.sleep(_seconds_until_next_weekly_upcoming_refresh())
+            if first_run:
+                first_run = False
+            else:
+                time.sleep(_seconds_until_next_weekly_upcoming_refresh())
             try:
                 refresh_upcoming_prediction_cache_now()
             except Exception:

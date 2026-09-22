@@ -102,9 +102,11 @@ directory by default). NFL week rollover is resolved at Tuesday 9:00 PM
 America/Los_Angeles by default using `NFL_WEEK_ROLLOVER_TIMEZONE` and
 `NFL_WEEK_ROLLOVER_HOUR`.
 
-On app startup the service schedules the weekly full rebuild and the nightly
-final-score refresh against the configured clock times rather than simply
-sleeping fixed 24-hour intervals from process start.
+On app startup the service immediately reconciles the upcoming-board cache once
+in the background, then schedules the weekly full rebuild and nightly final-score
+refresh against the configured clock times rather than simply sleeping fixed
+24-hour intervals from process start. This protects deployments from continuing
+to serve a board that was generated under an older rollover rule.
 
 If a cached board is still for the previous week after rollover, the API keeps
 serving that last valid board with a cache-target warning while it schedules a
