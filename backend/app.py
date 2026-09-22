@@ -53,6 +53,12 @@ _DAILY_UPCOMING_CACHE_REFRESH_RUNNING = False
 _HISTORY_CACHE_WARMUP_RUNNING = False
 
 
+def refresh_upcoming_prediction_cache_now():
+    """Fetch fresh game data and synchronously rebuild the active-week board."""
+    games = load_games(refresh=True)
+    return cached_upcoming_predictions(games, None, None, True, False)
+
+
 def start_daily_upcoming_cache_refresh_loop():
     """Schedule a daily background refresh so the all-model board is rebuilt outside request handling."""
     global _DAILY_UPCOMING_CACHE_REFRESH_RUNNING
@@ -70,8 +76,7 @@ def start_daily_upcoming_cache_refresh_loop():
     def _worker():
         while True:
             try:
-                games = load_games()
-                cached_upcoming_predictions(games, None, None, False)
+                refresh_upcoming_prediction_cache_now()
             except Exception:
                 app.logger.exception("Daily upcoming cache refresh failed")
             time.sleep(_seconds_until_next_upcoming_refresh())

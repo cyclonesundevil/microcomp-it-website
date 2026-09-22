@@ -110,6 +110,12 @@ Tuesday rollover until the next Tuesday rollover. Completed games from that
 active week remain visible with final-score context instead of disappearing
 from the table after they are played.
 
+Daily scheduled upcoming refreshes fetch a fresh nflverse games file and then
+force-rebuild the active-week board. As final scores are published after
+Thursday, Sunday, and Monday games, the next refresh can add those finals to the
+same active-week table. After the Tuesday 6:00 AM America/Phoenix rollover, the
+board switches to the next NFL week and new final-score cells start blank again.
+
 ## Website Demo
 
 The website exposes a demo page at:

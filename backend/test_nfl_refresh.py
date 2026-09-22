@@ -113,7 +113,12 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
             cache_file.unlink(missing_ok=True)
     def test_stale_upcoming_cache_is_served_without_blocking_and_schedules_background_refresh(self):
         stale_snapshot = {
-            "generated_at": "2026-09-15T13:00:00+00:00", "prediction_schema_version": 2, "games_source_signature": nfl_predictor._games_source_signature(), "season": 2026, "week": 2,
+            "generated_at": "2026-09-15T13:00:00+00:00",
+            "prediction_schema_version": nfl_predictor.UPCOMING_PREDICTION_SCHEMA_VERSION,
+            "games_source_signature": nfl_predictor._games_source_signature(),
+            "availability_adjustments_signature": nfl_predictor._availability_adjustments_signature(),
+            "season": 2026,
+            "week": 2,
             "models": list(app_module.MODEL_PROFILES), "games": [{
                 "schedule": {"away_team": "DAL", "home_team": "NYG", "season": 2026, "week": 2},
                 "models": {model: {} for model in app_module.MODEL_PROFILES},
@@ -202,9 +207,17 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
             "home_spread": -3.0,
         }]
         cache_path = BACKEND_DIR / "data" / "test_history_cache.json"
+        pair_cache_path = BACKEND_DIR / "data" / "test_history_pair_a_b.json"
         cache_path.unlink(missing_ok=True)
+        pair_cache_path.unlink(missing_ok=True)
+
+        def pair_cache_path_for_test(_metadata, _pair_key):
+            return str(pair_cache_path)
+
         with patch.object(nfl_predictor, "_all_matchup_history_cache_path", return_value=str(cache_path)), \
-            patch.object(nfl_predictor, "_history_cache_metadata", return_value={"test": "metadata"}), \
+            patch.object(nfl_predictor, "_history_cache_metadata", return_value={"test": "metadata", "model_profile": "baseline"}), \
+            patch.object(nfl_predictor, "_historical_matchup_cache_path", return_value=str(pair_cache_path)), \
+            patch.object(nfl_predictor, "_historical_matchup_cache_path_from_metadata", side_effect=pair_cache_path_for_test), \
             patch.object(nfl_predictor, "_build_all_matchup_history", return_value={"A__B": rows}) as history:
             first_rows, first_hit = nfl_predictor.cached_matchup_history(games, "A", "B")
             second_rows, second_hit = nfl_predictor.cached_matchup_history(games, "A", "B")
@@ -215,6 +228,7 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(second_hit)
         history.assert_called_once()
         cache_path.unlink(missing_ok=True)
+        pair_cache_path.unlink(missing_ok=True)
 
     def test_upcoming_build_resumes_after_checkpointed_step(self):
         games = [{"season": 2026, "week": 1}]
@@ -237,7 +251,7 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
             result = nfl_predictor._build_upcoming_prediction_cache(games, 2026, 2)
 
         self.assertEqual(len(result["games"]), 2)
-        self.assertEqual(predict.call_count, 7)
+        self.assertEqual(predict.call_count, (len(app_module.MODEL_PROFILES) - 5) + len(app_module.MODEL_PROFILES))
 
     def test_backtest_cache_reuses_computed_result(self):
         games = [{
@@ -275,6 +289,32 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(mock_thread.called)
         self.assertTrue(mock_thread.call_args.kwargs["daemon"])
+
+    def test_daily_upcoming_refresh_forces_fresh_games_and_cache_rebuild(self):
+        games = [{"season": 2026, "week": 2, "away_score": 21, "home_score": 17}]
+        rebuilt = {
+            "ready": True,
+            "season": 2026,
+            "week": 2,
+            "games": [{
+                "schedule": {
+                    "away_team": "CAR",
+                    "home_team": "ATL",
+                    "away_score": 21,
+                    "home_score": 17,
+                    "is_completed": True,
+                }
+            }],
+        }
+
+        with patch.object(app_module, "load_games", return_value=games) as load_games, \
+            patch.object(app_module, "cached_upcoming_predictions", return_value=rebuilt) as upcoming:
+            result = app_module.refresh_upcoming_prediction_cache_now()
+
+        load_games.assert_called_once_with(refresh=True)
+        upcoming.assert_called_once_with(games, None, None, True, False)
+        self.assertEqual(result["games"][0]["schedule"]["away_score"], 21)
+        self.assertTrue(result["games"][0]["schedule"]["is_completed"])
 
     def test_missing_upcoming_cache_returns_computing_status_without_blocking(self):
         cache_file = BACKEND_DIR / "data" / "nfl_upcoming_predictions_missing.json"
