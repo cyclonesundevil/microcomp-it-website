@@ -171,6 +171,55 @@ def test_valid_upcoming_cache_is_served_while_source_mismatch_refreshes(tmp_path
     assert result["games"][0]["schedule"]["away_team"] == "CAR"
 
 
+def test_upcoming_cache_target_mismatch_serves_last_valid_and_schedules_current_week(tmp_path, monkeypatch):
+    cache_file = tmp_path / "nfl_upcoming_predictions.json"
+    snapshot = {
+        "generated_at": "2026-09-21T13:00:00+00:00",
+        "prediction_schema_version": 5,
+        "games_source_signature": "source",
+        "availability_adjustments_signature": "availability",
+        "season": 2026,
+        "week": 2,
+        "models": list(MODEL_PROFILES),
+        "games": [{
+            "schedule": {"away_team": "PHI", "home_team": "TEN", "season": 2026, "week": 2},
+            "models": {model: {"model": model} for model in MODEL_PROFILES},
+        }],
+    }
+    cache_file.write_text(json.dumps(snapshot), encoding="utf-8")
+
+    monkeypatch.setattr("nfl_predictor.upcoming_prediction_cache_path", lambda: str(cache_file))
+    monkeypatch.setattr("nfl_predictor._games_source_signature", lambda: "source")
+    monkeypatch.setattr("nfl_predictor._availability_adjustments_signature", lambda: "availability")
+    monkeypatch.setattr("nfl_predictor.load_upcoming_games", lambda season=None, week=None: [{
+        "game_id": "2026_03_ATL_GB",
+        "season": 2026,
+        "week": 3,
+        "away_team": "ATL",
+        "home_team": "GB",
+    }])
+    monkeypatch.setattr("nfl_predictor._UPCOMING_REFRESH_RUNNING", False)
+    scheduled = {}
+
+    def fake_schedule(_games, season, week):
+        scheduled["season"] = season
+        scheduled["week"] = week
+        return True
+
+    monkeypatch.setattr("nfl_predictor._schedule_upcoming_prediction_refresh", fake_schedule)
+    result = cached_upcoming_predictions([], allow_background_refresh=True)
+
+    assert result["ready"] is True
+    assert result["cache_hit"] is True
+    assert result["cache_target_mismatch"] is True
+    assert result["requested_season"] == 2026
+    assert result["requested_week"] == 3
+    assert result["week"] == 2
+    assert result["games"][0]["schedule"]["away_team"] == "PHI"
+    assert result["refresh_scheduled"] is True
+    assert scheduled == {"season": 2026, "week": 3}
+
+
 def test_public_upcoming_cache_miss_does_not_schedule_rebuild(tmp_path, monkeypatch):
     cache_file = tmp_path / "nfl_upcoming_predictions.json"
     monkeypatch.setattr("nfl_predictor.upcoming_prediction_cache_path", lambda: str(cache_file))

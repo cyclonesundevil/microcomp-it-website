@@ -223,7 +223,9 @@ document.addEventListener('DOMContentLoaded', () => {
         cacheStatus.textContent = data.generated_at
             ? `Forecast board last rebuilt ${formatDateTime(data.generated_at)}${ageLabel ? ` (${ageLabel})` : ''}.`
             : 'Forecast board rebuild timestamp unavailable.';
-        message.textContent = `Season ${data.season}, week ${data.week}. Each cell shows the market favorite's spread / total. Rothstein values may be stabilized early in the season and Rothstein+ is hidden when ineligible.`;
+        message.textContent = data.cache_target_mismatch
+            ? `${data.message} Each cell shows the market favorite's spread / total.`
+            : `Season ${data.season}, week ${data.week}. Each cell shows the market favorite's spread / total. Rothstein values may be stabilized early in the season and Rothstein+ is hidden when ineligible.`;
         tableBody.innerHTML = data.games.map((game) => {
             const schedule = game.schedule;
             const market = marketCell(schedule);
@@ -303,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load upcoming predictions');
 
-                if (data.ready === false || data.status === 'computing') {
+                if (data.ready === false || (data.status === 'computing' && !data.cache_hit)) {
                     showProgress(Math.max(10, Math.min(95, Number(data.progress) || 15)), data.message || 'Forecast is still being computed.');
                     tableBody.innerHTML = '<tr><td colspan="9">Forecast is still being computed...</td></tr>';
                     renderModelSignals([]);

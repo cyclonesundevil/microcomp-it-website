@@ -89,6 +89,22 @@ The default production endpoint is `https://www.microcompit.com/api/nfl/refresh`
 Set the GitHub Actions repository variable `NFL_REFRESH_URL` only if the public
 production URL changes. The workflow can also be run manually from Actions.
 
+## Upcoming Week cache behavior
+
+The Upcoming Week: All Algorithms board uses a separate persistent cache
+(`NFL_UPCOMING_CACHE_DIR`/`NFL_UPCOMING_CACHE_TTL_SECONDS`, or the backend data
+directory by default). NFL week rollover is resolved at Tuesday 6:00 AM
+America/Phoenix using `NFL_WEEK_ROLLOVER_TIMEZONE` and `NFL_WEEK_ROLLOVER_HOUR`.
+
+On app startup the service attempts to warm the upcoming board immediately, then
+aligns the recurring background refresh to the next configured rollover time
+rather than simply sleeping 24 hours from process start.
+
+If a cached board is still for the previous week after rollover, the API keeps
+serving that last valid board with a cache-target warning while it schedules a
+background rebuild for the current upcoming week. This avoids clearing the page
+while the expensive all-algorithm forecast is being regenerated.
+
 ## Website Demo
 
 The website exposes a demo page at:
