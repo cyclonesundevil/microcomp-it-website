@@ -1363,6 +1363,10 @@ def _empty_upcoming_status(season: Optional[int], week: Optional[int], ttl_secon
 
 
 def _has_valid_upcoming_games(payload: dict) -> bool:
+    return _has_displayable_upcoming_games(payload)
+
+
+def _has_displayable_upcoming_games(payload: dict) -> bool:
     games = payload.get("games")
     if not isinstance(games, list) or not games:
         return False
@@ -1372,6 +1376,17 @@ def _has_valid_upcoming_games(payload: dict) -> bool:
         models = game.get("models") if isinstance(game, dict) else None
         if not isinstance(schedule, dict) or not required_schedule_fields.issubset(schedule):
             return False
+        if not isinstance(models, dict) or not any(model in models for model in MODEL_PROFILES):
+            return False
+    return True
+
+
+def _has_all_upcoming_models(payload: dict) -> bool:
+    games = payload.get("games")
+    if not isinstance(games, list) or not games:
+        return False
+    for game in games:
+        models = game.get("models") if isinstance(game, dict) else None
         if not isinstance(models, dict) or any(model not in models for model in MODEL_PROFILES):
             return False
     return True
@@ -1416,6 +1431,7 @@ def cached_upcoming_predictions(
             cache_has_games = _has_valid_upcoming_games(cached)
             cache_has_current_source = (
                 cached.get("prediction_schema_version") == UPCOMING_PREDICTION_SCHEMA_VERSION
+                and _has_all_upcoming_models(cached)
                 and cached.get("games_source_signature") == _games_source_signature()
                 and cached.get("availability_adjustments_signature") == _availability_adjustments_signature()
             )
@@ -1479,7 +1495,7 @@ def cached_upcoming_predictions(
                 with open(cache_path, encoding="utf-8") as source:
                     cached = json.load(source)
                 same_target = (target_season is None or cached.get("season") == target_season) and (target_week is None or cached.get("week") == target_week)
-                if not force and same_target and _has_valid_upcoming_games(cached) and cached.get("prediction_schema_version") == UPCOMING_PREDICTION_SCHEMA_VERSION and cached.get("games_source_signature") == _games_source_signature() and cached.get("availability_adjustments_signature") == _availability_adjustments_signature():
+                if not force and same_target and _has_valid_upcoming_games(cached) and cached.get("prediction_schema_version") == UPCOMING_PREDICTION_SCHEMA_VERSION and _has_all_upcoming_models(cached) and cached.get("games_source_signature") == _games_source_signature() and cached.get("availability_adjustments_signature") == _availability_adjustments_signature():
                     cache_age = max(0.0, time.time() - os.path.getmtime(cache_path))
                     return _upcoming_response(cached, cache_hit=True, cache_age_seconds=cache_age, cache_ttl_seconds=ttl_seconds, refresh_scheduled=False, status="ready", ready=True, progress=100, message="Forecast ready.")
             except (OSError, json.JSONDecodeError):

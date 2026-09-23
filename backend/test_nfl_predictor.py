@@ -175,6 +175,50 @@ def test_valid_upcoming_cache_is_served_while_source_mismatch_refreshes(tmp_path
     assert result["games"][0]["schedule"]["away_team"] == "CAR"
 
 
+def test_upcoming_cache_missing_new_model_still_renders_and_refreshes(tmp_path, monkeypatch):
+    cache_file = tmp_path / "nfl_upcoming_predictions.json"
+    old_models = [model for model in MODEL_PROFILES if model != "rsm_plus"]
+    snapshot = {
+        "generated_at": "2026-09-15T13:00:00+00:00",
+        "prediction_schema_version": 5,
+        "games_source_signature": "source",
+        "availability_adjustments_signature": "availability",
+        "season": 2026,
+        "week": 2,
+        "models": old_models,
+        "games": [{
+            "schedule": {"away_team": "CAR", "home_team": "ATL", "season": 2026, "week": 2},
+            "models": {model: {"model": model} for model in old_models},
+        }],
+    }
+    cache_file.write_text(json.dumps(snapshot), encoding="utf-8")
+
+    monkeypatch.setattr("nfl_predictor.upcoming_prediction_cache_path", lambda: str(cache_file))
+    monkeypatch.setattr("nfl_predictor._games_source_signature", lambda: "source")
+    monkeypatch.setattr("nfl_predictor._availability_adjustments_signature", lambda: "availability")
+    monkeypatch.setattr("nfl_predictor._UPCOMING_REFRESH_RUNNING", False)
+    started = {"value": False}
+
+    class _NoopThread:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def start(self):
+            started["value"] = True
+
+    with monkeypatch.context() as nested:
+        nested.setattr("nfl_predictor.threading.Thread", _NoopThread)
+        nested.setattr("nfl_predictor._build_upcoming_prediction_cache", lambda *_args, **_kwargs: pytest.fail("request path should not rebuild synchronously"))
+        result = cached_upcoming_predictions([], season=2026, week=2)
+
+    assert result["ready"] is True
+    assert result["cache_hit"] is True
+    assert result["refresh_scheduled"] is True
+    assert started["value"] is True
+    assert result["games"][0]["schedule"]["away_team"] == "CAR"
+    assert "rsm_plus" not in result["games"][0]["models"]
+
+
 def test_upcoming_cache_target_mismatch_serves_last_valid_and_schedules_current_week(tmp_path, monkeypatch):
     cache_file = tmp_path / "nfl_upcoming_predictions.json"
     snapshot = {
