@@ -83,6 +83,156 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(payload["games"]), 1)
         self.assertEqual(set(payload["games"][0]["models"]), set(app_module.MODEL_PROFILES))
 
+    async def test_mobile_upcoming_uses_cache_without_background_rebuild_and_normalizes_shape(self):
+        games = [{"season": 2026, "week": 1, "away_team": "KC", "home_team": "PHI"}]
+        scheduled = {
+            "season": 2026, "week": 3, "away_team": "SEA", "home_team": "ARI",
+            "spread_line": -3.5, "total_line": 40.5, "home_rest": 7.0, "away_rest": 7.0,
+            "div_game": True, "roof": "outdoors", "temp": None, "wind": None,
+            "game_id": "2026_03_SEA_ARI", "gameday": "2026-09-20", "gametime": "16:25",
+            "away_score": 31.0, "home_score": 7.0, "is_completed": True,
+        }
+        snapshot = {
+            "generated_at": "2026-09-15T13:00:00+00:00",
+            "season": 2026,
+            "week": 3,
+            "models": list(app_module.MODEL_PROFILES),
+            "games": [{
+                "schedule": scheduled,
+                "models": {
+                    model: {
+                        "model": model,
+                        "eligible": True,
+                        "pred_margin": -4.0,
+                        "pred_total": 42.0,
+                        "spread_edge": -0.5,
+                        "total_edge": 1.5,
+                        "model_notes": [],
+                    }
+                    for model in app_module.MODEL_PROFILES
+                },
+                "model_signals": {"agreement_label": "Strong agreement"},
+            }],
+            "cache_hit": True,
+            "ready": True,
+            "status": "ready",
+            "cache_age_seconds": 5.0,
+            "cache_ttl_seconds": 86400,
+        }
+        with patch.object(app_module, "load_nfl_games_for_request", new=AsyncMock(return_value=(games, {"stale": False}))), \
+            patch.object(app_module, "cached_upcoming_predictions", return_value=snapshot) as cached:
+            response = await self.client.get("/api/v1/nfl/mobile/upcoming")
+        payload = await response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        cached.assert_called_once_with(games, None, None, False, False)
+        self.assertEqual(payload["client_contract"], "nfl-mobile-1")
+        self.assertEqual(payload["season"], 2026)
+        self.assertEqual(payload["week"], 3)
+        self.assertEqual(payload["football_week_start"], "2026-09-15")
+        self.assertEqual(payload["last_rebuild_at"], "2026-09-15T13:00:00+00:00")
+        game = payload["games"][0]
+        self.assertEqual(game["game_status"], "final")
+        self.assertEqual(game["market"]["favorite"]["team"], "SEA")
+        self.assertEqual(game["algorithms"]["baseline"]["market_favorite_relative_spread"], -4.0)
+        self.assertIn("rsm_stage7c", game["algorithms"])
+        self.assertIn("spread_sign_convention", payload)
+
+    async def test_mobile_model_signals_returns_display_only_cached_signals(self):
+        games = [{"season": 2026, "week": 1}]
+        snapshot = {
+            "generated_at": "2026-09-15T13:00:00+00:00",
+            "season": 2026,
+            "week": 3,
+            "games": [{
+                "schedule": {
+                    "season": 2026, "week": 3, "away_team": "SEA", "home_team": "ARI",
+                    "spread_line": -3.5, "total_line": 40.5,
+                    "game_id": "2026_03_SEA_ARI", "gameday": "2026-09-20", "gametime": "16:25",
+                },
+                "models": {},
+                "model_signals": {
+                    "agreement_label": "Mixed signals",
+                    "market_alignment_label": "Models split from market",
+                    "story": "Display-only story.",
+                },
+            }],
+            "cache_hit": True,
+            "ready": True,
+            "status": "ready",
+        }
+        with patch.object(app_module, "load_nfl_games_for_request", new=AsyncMock(return_value=(games, {"stale": False}))), \
+            patch.object(app_module, "cached_upcoming_predictions", return_value=snapshot) as cached:
+            response = await self.client.get("/api/v1/nfl/mobile/model-signals")
+        payload = await response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        cached.assert_called_once_with(games, None, None, False, False)
+        self.assertEqual(payload["disclaimer"], "Model Signals are matchup comparison tools, not betting recommendations.")
+        self.assertEqual(payload["games"][0]["model_signals"]["agreement_label"], "Mixed signals")
+        self.assertNotIn("algorithms", payload["games"][0])
+
+    async def test_mobile_weekly_and_algorithm_performance_shapes_are_stable(self):
+        games = [{"season": 2026, "week": 1}, {"season": 2026, "week": 2}]
+        performance = {
+            "season": 2026,
+            "week": 2,
+            "completed_games": 16,
+            "generated_at": "2026-09-22T05:00:00+00:00",
+            "models": [{
+                "model": "baseline",
+                "completed_games": 16,
+                "spread_wins": 9,
+                "spread_losses": 7,
+                "spread_pushes": 0,
+                "spread_bets": 16,
+                "spread_win_rate": 0.5625,
+                "total_wins": 8,
+                "total_losses": 8,
+                "total_pushes": 0,
+                "total_bets": 16,
+                "total_win_rate": 0.5,
+                "margin_mae": 8.5,
+                "total_mae": 9.5,
+            }],
+        }
+        trend = {
+            "season": 2026,
+            "model": "baseline",
+            "generated_at": "2026-09-22T05:05:00+00:00",
+            "weeks": [{
+                "week": 1,
+                "completed_games": 16,
+                "spread_wins": 8,
+                "spread_losses": 8,
+                "spread_pushes": 0,
+                "spread_bets": 16,
+                "spread_win_rate": 0.5,
+                "total_wins": 7,
+                "total_losses": 9,
+                "total_pushes": 0,
+                "total_bets": 16,
+                "total_win_rate": 0.4375,
+                "margin_mae": 10.0,
+                "total_mae": 11.0,
+            }],
+        }
+        with patch.object(app_module, "load_nfl_games_for_request", new=AsyncMock(return_value=(games, {"stale": False}))), \
+            patch.object(app_module, "cached_weekly_model_performance", return_value=(performance, True)), \
+            patch.object(app_module, "cached_weekly_model_performance_trend", return_value=(trend, True)):
+            weekly_response = await self.client.get("/api/v1/nfl/mobile/weekly-performance?season=2026&week=2")
+            trend_response = await self.client.get("/api/v1/nfl/mobile/algorithm-performance/baseline?season=2026")
+        weekly_payload = await weekly_response.get_json()
+        trend_payload = await trend_response.get_json()
+
+        self.assertEqual(weekly_response.status_code, 200)
+        self.assertEqual(weekly_payload["performance"]["models"][0]["spread_mae"], 8.5)
+        self.assertEqual(weekly_payload["performance"]["models"][0]["total_score_mae"], 9.5)
+        self.assertNotIn("margin_mae", weekly_payload["performance"]["models"][0])
+        self.assertEqual(trend_response.status_code, 200)
+        self.assertEqual(trend_payload["trend"]["weeks"][0]["spread_mae"], 10.0)
+        self.assertEqual(trend_payload["trend"]["weeks"][0]["total_score_mae"], 11.0)
+
     async def test_upcoming_rejects_non_upcoming_scope(self):
         response = await self.client.get("/api/nfl/upcoming?scope=all")
 

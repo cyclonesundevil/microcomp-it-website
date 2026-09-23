@@ -473,6 +473,7 @@ Example response:
 ## Compatibility notes
 
 - Legacy `/api/nfl/*` routes remain available for the website.
+- iPhone-ready read-only wrappers are documented separately in `docs/ios-api-contract.md` under `/api/v1/nfl/mobile/*`.
 - Public upcoming reads are cache-first and do not trigger expensive rebuilds.
 - Weekly performance grades completed games only after final scores are present in the NFL results feed, and the all-algorithm weekly table is cached by season, week, model set, thresholds, and source-game fingerprint.
 - Weekly performance trends are cached by season, model, thresholds, and source-game fingerprint.
