@@ -49,6 +49,18 @@ document.addEventListener('DOMContentLoaded', () => {
         progressFill.style.width = '0%';
     }
 
+    async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 15000) {
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const response = await fetch(url, { ...options, signal: controller.signal });
+            const data = await response.json();
+            return { response, data };
+        } finally {
+            window.clearTimeout(timeout);
+        }
+    }
+
     function marketFavoriteSpreadCell(homeMargin, marketHomeMargin, homeTeam, awayTeam, totalValue) {
         const total = totalValue === null || totalValue === undefined
             ? '--'
@@ -316,13 +328,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         message.textContent = forceRefresh ? 'Admin refresh requested; rebuilding upcoming predictions...' : 'Loading cached upcoming-week forecast...';
         tableBody.innerHTML = '<tr><td colspan="9">Forecast is still being computed...</td></tr>';
+        showProgress(10, message.textContent);
         refreshButton.disabled = true;
 
         const poll = async () => {
             try {
                 const url = `${apiBase}/api/nfl/upcoming?scope=upcoming${forceRefresh ? '&refresh=1' : ''}`;
-                const response = await fetch(url, forceRefresh ? { headers: { 'X-NFL-Refresh-Token': token } } : undefined);
-                const data = await response.json();
+                const { response, data } = await fetchJsonWithTimeout(
+                    url,
+                    forceRefresh ? { headers: { 'X-NFL-Refresh-Token': token } } : {},
+                    15000,
+                );
                 if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load upcoming predictions');
 
                 if (data.ready === false || (data.status === 'computing' && !data.cache_hit)) {
@@ -349,6 +365,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 stopTimers();
             } catch (error) {
+                if (error.name === 'AbortError') {
+                    showProgress(15, 'Forecast request is still waiting on the server. Keeping this progress tracker visible and retrying...');
+                    pollTimer = window.setTimeout(() => {
+                        pollTimer = null;
+                        poll();
+                    }, 5000);
+                    return;
+                }
                 stopTimers();
                 progressPanel.hidden = true;
                 message.textContent = `Unable to load upcoming predictions: ${error.message}`;
