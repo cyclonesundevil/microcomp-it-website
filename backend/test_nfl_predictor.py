@@ -17,6 +17,7 @@ from nfl_predictor import (
     _availability_adjustments_signature,
     _UPCOMING_PREDICTION_LOCK,
     _schedule_upcoming_prediction_refresh,
+    _set_upcoming_progress,
     _validate_games_csv,
     cached_weekly_model_performance,
     cached_weekly_model_performance_trend,
@@ -210,6 +211,7 @@ def test_upcoming_cache_target_mismatch_serves_last_valid_and_schedules_current_
         return True
 
     monkeypatch.setattr("nfl_predictor._schedule_upcoming_prediction_refresh", fake_schedule)
+    _set_upcoming_progress(57, "Scoring ATL at GB with market_blend (game 1/16, step 3/112).", status="computing", ready=False)
     result = cached_upcoming_predictions([], allow_background_refresh=True)
 
     assert result["ready"] is True
@@ -220,6 +222,8 @@ def test_upcoming_cache_target_mismatch_serves_last_valid_and_schedules_current_
     assert result["week"] == 2
     assert result["games"][0]["schedule"]["away_team"] == "PHI"
     assert result["refresh_scheduled"] is True
+    assert result["progress"] == 57
+    assert result["message"] == "Scoring ATL at GB with market_blend (game 1/16, step 3/112)."
     assert scheduled == {"season": 2026, "week": 3}
 
 

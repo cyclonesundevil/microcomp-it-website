@@ -1436,9 +1436,10 @@ def cached_upcoming_predictions(
                         requested_week=target_week,
                         status=progress_state.get("status", "computing") if refresh_scheduled else "ready",
                         ready=True,
-                        progress=100,
+                        progress=progress_state.get("progress", 10) if refresh_scheduled else 100,
                         message=(
-                            f"Showing the last valid forecast for season {cached.get('season')}, week {cached.get('week')} "
+                            progress_state.get("message")
+                            or f"Showing the last valid forecast for season {cached.get('season')}, week {cached.get('week')} "
                             f"while season {target_season}, week {target_week} is rebuilt."
                             if refresh_scheduled
                             else f"Showing the last valid forecast for season {cached.get('season')}, week {cached.get('week')}; admin refresh is required to rebuild season {target_season}, week {target_week}."
