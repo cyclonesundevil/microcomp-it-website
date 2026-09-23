@@ -39,12 +39,21 @@ Example response:
       "id": "baseline",
       "spread_threshold": 1.5,
       "total_threshold": 3.0,
+      "status_label": "Production",
       "experimental": false
     },
     {
       "id": "rsm_stage7c",
-      "spread_threshold": 999.0,
-      "total_threshold": 0.0,
+      "spread_threshold": 0.0,
+      "total_threshold": 999.0,
+      "status_label": "Experimental",
+      "experimental": true
+    },
+    {
+      "id": "rsm_plus",
+      "spread_threshold": 0.0,
+      "total_threshold": 999.0,
+      "status_label": "Experimental",
       "experimental": true
     }
   ]
@@ -111,7 +120,8 @@ Example response, abbreviated:
     "mean_reversion",
     "rothstein",
     "rothstein_plus",
-    "rsm_stage7c"
+    "rsm_stage7c",
+    "rsm_plus"
   ],
   "games": [
     {
@@ -145,6 +155,8 @@ Example response, abbreviated:
   ]
 }
 ```
+
+`rsm_plus` is an additive experimental profile. It keeps the existing RSM output separate and adds display-only fields such as `base_rsm_margin`, `matchup_adjustment`, `data_confidence`, `matchup_explanations`, and `model_notes` when the RSM snapshot data can support the unit-mismatch layer. It is not a betting recommendation model.
 
 ### Weekly Algorithm Performance
 

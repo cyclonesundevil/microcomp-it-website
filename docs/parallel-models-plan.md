@@ -92,6 +92,7 @@ Important: this is a public comparison/display adapter and is separate from the 
 
 ```python
 RSM_PROFILE = "rsm_stage7c"
+RSM_PLUS_PROFILE = "rsm_plus"
 MODEL_PROFILES = (
     "baseline",
     "enhanced",
@@ -100,6 +101,7 @@ MODEL_PROFILES = (
     "rothstein",
     "rothstein_plus",
     RSM_PROFILE,
+    RSM_PLUS_PROFILE,
 )
 ```
 
@@ -308,8 +310,11 @@ Candidate future fields if derived from PBP:
 - `rothstein`
 - `rothstein_plus`
 - `rsm_stage7c`
+- `rsm_plus`
 
 These are web predictor algorithms, not the proposed PRM/DSM architecture. They should remain unchanged while the parallel-model experiment is developed.
+
+`rsm_plus` is an additive Experimental profile. It wraps the frozen RSM projection with a conservative unit-mismatch layer and does not alter the existing `rsm_stage7c` output.
 
 ## Current feature engineering
 

@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!data.games.length) {
             progressPanel.hidden = true;
             message.textContent = data.message || 'No upcoming games were found in the schedule feed.';
-            tableBody.innerHTML = '<tr><td colspan="9">No upcoming games were found in the schedule feed.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="10">No upcoming games were found in the schedule feed.</td></tr>';
             renderModelSignals([]);
             return;
         }
@@ -231,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const invalid = data.games.some((game) => !game?.schedule?.away_team || !game?.schedule?.home_team);
         if (invalid) {
             message.textContent = 'The cached forecast is invalid and is being rebuilt.';
-            tableBody.innerHTML = '<tr><td colspan="9">Forecast data is invalid. Refreshing the forecast...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="10">Forecast data is invalid. Refreshing the forecast...</td></tr>';
             renderModelSignals([]);
             return;
         }
@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const schedule = game.schedule;
             const market = marketCell(schedule);
             const status = schedule.is_completed ? `<br><small>Final: ${schedule.away_team} ${schedule.away_score}, ${schedule.home_team} ${schedule.home_score}</small>` : '';
-            return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small>${status}</td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'mean_reversion', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${modelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
+            return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small>${status}</td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'mean_reversion', 'rothstein', 'rothstein_plus', 'rsm_stage7c', 'rsm_plus'].map((model) => `<td>${modelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
         }).join('');
         renderModelSignals(data.games);
     }
@@ -333,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return loadUpcoming(false);
         }
         message.textContent = forceRefresh ? 'Admin refresh requested; rebuilding upcoming predictions...' : 'Loading cached upcoming-week forecast...';
-        tableBody.innerHTML = '<tr><td colspan="9">Forecast is still being computed...</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="10">Forecast is still being computed...</td></tr>';
         showProgress(10, message.textContent);
         refreshButton.disabled = true;
 
@@ -349,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (data.ready === false || (data.status === 'computing' && !data.cache_hit)) {
                     showProgress(Math.max(10, Math.min(95, Number(data.progress) || 15)), data.message || 'Forecast is still being computed.');
-                    tableBody.innerHTML = '<tr><td colspan="9">Forecast is still being computed...</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="10">Forecast is still being computed...</td></tr>';
                     renderModelSignals([]);
                     pollTimer = window.setTimeout(() => {
                         pollTimer = null;
@@ -390,7 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 stopTimers();
                 progressPanel.hidden = true;
                 message.textContent = `Unable to load upcoming predictions: ${error.message}`;
-                tableBody.innerHTML = '<tr><td colspan="9">Unavailable</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="10">Unavailable</td></tr>';
                 renderModelSignals([]);
             } finally {
                 refreshButton.disabled = false;

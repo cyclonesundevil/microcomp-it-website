@@ -2068,6 +2068,7 @@ async def nfl_teams():
 
 @app.route("/api/v1/nfl/models")
 async def nfl_v1_models():
+    statuses = model_status_labels()
     return jsonify({
         "success": True,
         "api_version": "v1",
@@ -2076,7 +2077,8 @@ async def nfl_v1_models():
                 "id": model,
                 "spread_threshold": default_spread_threshold(model),
                 "total_threshold": default_total_threshold(model),
-                "experimental": model == RSM_PROFILE,
+                "status_label": statuses.get(model, "Production"),
+                "experimental": statuses.get(model) == "Experimental",
             }
             for model in MODEL_PROFILES
         ],

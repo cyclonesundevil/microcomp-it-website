@@ -889,6 +889,97 @@ def test_rsm_total_is_independent_of_market_total_and_grades_edge_at_zero():
     assert with_line["total_pick"] is None
 
 
+def test_rsm_plus_is_separate_experimental_profile_with_matchup_explanations():
+    assert "rsm_stage7c" in MODEL_PROFILES
+    assert "rsm_plus" in MODEL_PROFILES
+    assert MODEL_PROFILES.index("rsm_plus") > MODEL_PROFILES.index("rsm_stage7c")
+    games = [_graded_game(2025, "KC", "PHI"), _graded_game(2026, "KC", "PHI")]
+
+    rsm_before = predict_matchup(
+        games,
+        away_team="KC",
+        home_team="PHI",
+        spread_line=-3.0,
+        total_line=47.5,
+        model_profile="rsm_stage7c",
+    )
+    rsm_plus = predict_matchup(
+        games,
+        away_team="KC",
+        home_team="PHI",
+        spread_line=-3.0,
+        total_line=47.5,
+        model_profile="rsm_plus",
+    )
+    rsm_after = predict_matchup(
+        games,
+        away_team="KC",
+        home_team="PHI",
+        spread_line=-3.0,
+        total_line=47.5,
+        model_profile="rsm_stage7c",
+    )
+
+    assert rsm_plus["model"] == "rsm_plus"
+    assert rsm_before["pred_margin"] == pytest.approx(rsm_after["pred_margin"])
+    assert rsm_before["pred_total"] == pytest.approx(rsm_after["pred_total"])
+    assert rsm_plus["base_rsm_margin"] == pytest.approx(rsm_before["pred_margin"])
+    assert rsm_plus["pred_margin"] == pytest.approx(rsm_plus["base_rsm_margin"] + rsm_plus["matchup_adjustment"])
+    assert abs(rsm_plus["matchup_adjustment"]) <= 2.5
+    assert rsm_plus["data_confidence"] == "LOW"
+    assert rsm_plus["lineup_confidence"] == "LOW"
+    assert rsm_plus["matchup_explanations"]
+    assert rsm_plus["matchup_contributions"]
+    assert rsm_plus["model_notes"]
+    assert "player-vs-player" in " ".join(rsm_plus["model_notes"])
+
+
+def test_rsm_plus_prediction_does_not_use_market_lines_as_inputs():
+    games = [_graded_game(2025, "KC", "PHI"), _graded_game(2026, "KC", "PHI")]
+
+    favorite_line = predict_matchup(
+        games,
+        away_team="KC",
+        home_team="PHI",
+        spread_line=-3.0,
+        total_line=41.5,
+        model_profile="rsm_plus",
+    )
+    underdog_line = predict_matchup(
+        games,
+        away_team="KC",
+        home_team="PHI",
+        spread_line=7.0,
+        total_line=55.5,
+        model_profile="rsm_plus",
+    )
+
+    assert favorite_line["pred_margin"] == pytest.approx(underdog_line["pred_margin"])
+    assert favorite_line["pred_total"] == pytest.approx(underdog_line["pred_total"])
+    assert favorite_line["spread_edge"] != pytest.approx(underdog_line["spread_edge"])
+    assert favorite_line["total_edge"] != pytest.approx(underdog_line["total_edge"])
+
+
+def test_rsm_plus_missing_market_line_and_coarse_data_notes_do_not_crash():
+    prediction = predict_matchup(
+        [_graded_game(2025, "KC", "PHI"), _graded_game(2026, "KC", "PHI")],
+        away_team="KC",
+        home_team="PHI",
+        spread_line=None,
+        total_line=None,
+        model_profile="rsm_plus",
+    )
+
+    assert prediction["market_margin"] is None
+    assert prediction["spread_edge"] is None
+    assert prediction["spread_pick"] is None
+    assert prediction["pred_margin"] is not None
+    assert prediction["pred_total"] is not None
+    assert prediction["total_pick"] is None
+    assert prediction["data_confidence"] == "LOW"
+    assert any("coarse" in note for note in prediction["model_notes"])
+
+
 def test_rsm_missing_snapshot_team_fails_instead_of_fabricating_features():
     with pytest.raises(ValueError, match="snapshot ratings are unavailable"):
         RsmStage7CComparisonModel().predict({"home_team": "PHI", "away_team": "ZZZ"})

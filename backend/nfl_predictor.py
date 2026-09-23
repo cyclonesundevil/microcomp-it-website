@@ -22,8 +22,9 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 GAMES_URL = "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv"
 DEFAULT_CACHE_PATH = os.path.join(os.path.dirname(__file__), "data", "nfl_games.csv")
 RSM_PROFILE = "rsm_stage7c"
+RSM_PLUS_PROFILE = "rsm_plus"
 MEAN_REVERSION_PROFILE = "mean_reversion"
-MODEL_PROFILES = ("baseline", "enhanced", "market_blend", MEAN_REVERSION_PROFILE, "rothstein", "rothstein_plus", RSM_PROFILE)
+MODEL_PROFILES = ("baseline", "enhanced", "market_blend", MEAN_REVERSION_PROFILE, "rothstein", "rothstein_plus", RSM_PROFILE, RSM_PLUS_PROFILE)
 UPCOMING_PREDICTION_SCHEMA_VERSION = 5
 WEEKLY_PERFORMANCE_TREND_SCHEMA_VERSION = 1
 REPORTS_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "reports"))
@@ -109,6 +110,7 @@ MODEL_SIGNAL_STATUSES = {
     "rothstein": "Production",
     "rothstein_plus": "Experimental",
     RSM_PROFILE: "Experimental",
+    RSM_PLUS_PROFILE: "Experimental",
     "dsm": "Research only",
     "prm": "Research only",
 }
@@ -266,7 +268,7 @@ def apply_upcoming_availability_adjustments(prediction: dict, scheduled: dict, a
     )
     adjusted["total_pick"] = (
         total_from_edge(adjusted["total_edge"], threshold=0.0)
-        if adjusted["total_edge"] is not None and adjusted["model"] == RSM_PROFILE
+        if adjusted["total_edge"] is not None and _is_rsm_family(adjusted["model"])
         else (
             total_from_edge(adjusted["total_edge"], threshold=adjusted["total_threshold"])
             if eligible and adjusted["total_edge"] is not None and model_supports_totals(adjusted["model"])
@@ -1123,8 +1125,8 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
     else:
         trained_models = {}
         for index, model in enumerate(MODEL_PROFILES):
-            if model == RSM_PROFILE:
-                trained_models[model] = create_model(RSM_PROFILE)
+            if _is_rsm_family(model):
+                trained_models[model] = create_model(model)
             elif model in {"rothstein", "rothstein_plus"}:
                 # These profiles intentionally model only the current season.
                 trained_models[model] = train_model(current_season_games, model)
@@ -2030,6 +2032,112 @@ class RsmStage7CComparisonModel:
         return None
 
 
+def _rsm_plus_signal(feature_value: float, weight: float) -> float:
+    return weight * math.tanh(float(feature_value) / 8.0)
+
+
+def _rsm_plus_explanation(label: str, value: float, home_team: str, away_team: str) -> Optional[str]:
+    if abs(value) < 2.0:
+        return None
+    favored = home_team if value > 0 else away_team
+    if label == "qb_pressure":
+        return f"QB/pass-rush matchup favors {favored}; opposing pressure risk is the primary mismatch flag."
+    if label == "qb_coverage":
+        return f"QB vs coverage/secondary matchup favors {favored}."
+    if label == "ol_pass":
+        return f"Offensive line pass-protection vs pass-rush matchup favors {favored}."
+    if label == "ol_run":
+        return f"Offensive line run-game vs front-seven matchup favors {favored}."
+    if label == "receiving":
+        return f"Receiving/TE group vs opponent secondary matchup favors {favored}."
+    if label == "rushing":
+        return f"Rushing/RB group vs opponent front seven matchup favors {favored}."
+    if label == "weakest_coverage":
+        return f"Weakest-link coverage comparison favors {favored}."
+    return f"Unit mismatch favors {favored}."
+
+
+def _rsm_plus_matchup_layer(details: dict, game: dict) -> dict:
+    features = details.get("features") or {}
+    signals = [
+        ("qb_pressure", "qb_vs_pass_rush_matchup", 0.35),
+        ("qb_coverage", "qb_vs_coverage_matchup", 0.25),
+        ("ol_pass", "ol_pass_vs_pass_rush_matchup", 0.30),
+        ("ol_run", "ol_run_vs_front_matchup", 0.20),
+        ("receiving", "receiving_vs_secondary_matchup", 0.30),
+        ("rushing", "rushing_vs_front_matchup", 0.15),
+        ("weakest_coverage", "weakest_coverage_diff", 0.15),
+        ("receiving", "te1_diff", 0.10),
+        ("receiving", "wr1_diff", 0.08),
+        ("receiving", "wr2_diff", 0.08),
+        ("ol_pass", "ol_weakest_diff", 0.10),
+        ("qb_pressure", "pass_rusher1_diff", 0.10),
+    ]
+    raw_adjustment = 0.0
+    explanations = []
+    contributions = []
+    for label, feature_name, weight in signals:
+        value = _to_float(features.get(feature_name))
+        if value is None:
+            continue
+        contribution = _rsm_plus_signal(value, weight)
+        raw_adjustment += contribution
+        contributions.append({
+            "label": label,
+            "feature": feature_name,
+            "value": value,
+            "contribution": contribution,
+        })
+        explanation = _rsm_plus_explanation(label, value, game["home_team"], game["away_team"])
+        if explanation and explanation not in explanations:
+            explanations.append(explanation)
+
+    adjustment = _bounded(raw_adjustment, -2.5, 2.5)
+    notes = [
+        "RSM+ is experimental and additive; it leaves the frozen RSM model unchanged.",
+        "RSM+ uses coarse unit-vs-unit roster mismatch features, not verified player-vs-player speed, route, alignment, or coverage assignments.",
+        "RSM+ margin adjustment is conservatively capped at +/- 2.5 points and is not tuned for ATS or O/U performance.",
+    ]
+    if not explanations:
+        explanations.append("No strong unit-mismatch flag exceeded the conservative display threshold.")
+    return {
+        "base_rsm_margin": details["predicted_margin"],
+        "matchup_adjustment": adjustment,
+        "raw_matchup_adjustment": raw_adjustment,
+        "matchup_explanations": explanations[:6],
+        "matchup_contributions": sorted(contributions, key=lambda item: abs(item["contribution"]), reverse=True)[:8],
+        "data_confidence": "LOW",
+        "model_notes": notes,
+    }
+
+
+@dataclass
+class RsmPlusMatchupModel:
+    """Experimental RSM+ adapter: frozen RSM plus bounded unit-mismatch layer."""
+
+    base_model: RsmStage7CComparisonModel = field(default_factory=RsmStage7CComparisonModel)
+
+    def prediction_details(self, game: dict) -> dict:
+        details = dict(self.base_model.prediction_details(game))
+        layer = _rsm_plus_matchup_layer(details, game)
+        details.update(layer)
+        details["predicted_margin"] = details["predicted_margin"] + layer["matchup_adjustment"]
+        details["lineup_confidence"] = layer["data_confidence"]
+        details["model_version"] = "RSM+ experimental unit-mismatch layer v0.1"
+        return details
+
+    def predict(self, game: dict) -> Tuple[float, Optional[float]]:
+        details = self.prediction_details(game)
+        return details["predicted_margin"], details["predicted_total"]
+
+    def update(self, game: dict, predicted_margin: float, predicted_total: Optional[float]) -> None:
+        return None
+
+
+def _is_rsm_family(model_profile: str) -> bool:
+    return model_profile in {RSM_PROFILE, RSM_PLUS_PROFILE}
+
+
 def create_model(profile: str):
     if profile == "baseline":
         return OnlineNFLModel(
@@ -2056,11 +2164,13 @@ def create_model(profile: str):
         return RothsteinNFLModel()
     if profile == RSM_PROFILE:
         return RsmStage7CComparisonModel()
+    if profile == RSM_PLUS_PROFILE:
+        return RsmPlusMatchupModel()
     raise ValueError(f"Unknown model profile: {profile}")
 
 
 def default_spread_threshold(model_profile: str) -> float:
-    if model_profile == RSM_PROFILE:
+    if _is_rsm_family(model_profile):
         # Presentation-only: every nonzero frozen-margin/market disagreement
         # receives a directional ATS projection. This is deliberately separate
         # from the frozen Stage 7C anomaly thresholds and never affects its
@@ -2076,7 +2186,7 @@ def default_spread_threshold(model_profile: str) -> float:
 
 
 def default_total_threshold(model_profile: str) -> float:
-    if model_profile == RSM_PROFILE:
+    if _is_rsm_family(model_profile):
         return 999.0
     if model_profile in {"rothstein", "rothstein_plus"}:
         return 4.0
@@ -2086,7 +2196,7 @@ def default_total_threshold(model_profile: str) -> float:
 
 
 def model_supports_totals(model_profile: str) -> bool:
-    return model_profile not in {"rothstein_plus", RSM_PROFILE}
+    return model_profile not in {"rothstein_plus", RSM_PROFILE, RSM_PLUS_PROFILE}
 
 
 def model_supports_spread_picks(model_profile: str) -> bool:
@@ -2606,7 +2716,7 @@ def predict_matchup(
 
     if trained_model is not None:
         model = trained_model
-    elif model_profile == RSM_PROFILE:
+    elif _is_rsm_family(model_profile):
         model = create_model(model_profile)
     elif model_profile in {"rothstein", "rothstein_plus"}:
         current_season = max(g["season"] for g in games)
@@ -2620,10 +2730,10 @@ def predict_matchup(
     # a home favorite is negative, so convert it at this boundary.
     # RSM never substitutes a pick'em line when no market line was supplied.
     market_margin = -spread_line if spread_line is not None else None
-    if market_margin is None and model_profile != RSM_PROFILE:
+    if market_margin is None and not _is_rsm_family(model_profile):
         market_margin = 0.0
     effective_total_line = total_line
-    if effective_total_line is None and model_profile != RSM_PROFILE:
+    if effective_total_line is None and not _is_rsm_family(model_profile):
         effective_total_line = 44.5
     game = {
         "season": max(g["season"] for g in games),
@@ -2639,7 +2749,7 @@ def predict_matchup(
         "temp": temp,
         "wind": wind,
     }
-    rsm_details = model.prediction_details(game) if model_profile == RSM_PROFILE else None
+    rsm_details = model.prediction_details(game) if _is_rsm_family(model_profile) else None
     if rsm_details:
         pred_margin, pred_total = rsm_details["predicted_margin"], rsm_details["predicted_total"]
     else:
@@ -2667,10 +2777,21 @@ def predict_matchup(
         rsm_notes.append("No market spread was supplied, so no ATS selection is shown.")
     elif not market_source or not market_observed_at:
         rsm_notes.append("The supplied market line has no verified source and observation time.")
-    if model_profile == RSM_PROFILE:
+    if _is_rsm_family(model_profile):
         rsm_notes.append("Prospective lineup confidence is unavailable for this snapshot-based display.")
         if total_line is None:
             rsm_notes.append("No bookmaker total was supplied, so total edge and O/U selection are unavailable; the independent model total remains displayed.")
+
+    if model_profile == RSM_PLUS_PROFILE and rsm_details:
+        rsm_plus_notes = list(rsm_details.get("model_notes", []))
+        rsm_plus_notes.extend(
+            note for note in rsm_notes
+            if note not in rsm_plus_notes
+            and note.startswith(("No market", "The supplied", "Prospective", "No bookmaker"))
+        )
+        rsm_notes = rsm_plus_notes
+    elif model_profile != RSM_PROFILE:
+        rsm_notes = []
 
     prediction = {
         "model": model_profile,
@@ -2688,14 +2809,24 @@ def predict_matchup(
         "eligible": eligible,
         "winner_pick": winner_pick,
         "spread_pick": spread_pick,
-        "total_pick": total_from_edge(total_edge, threshold=0.0) if total_edge is not None and model_profile == RSM_PROFILE else (total_from_edge(total_edge, threshold=total_threshold) if total_edge is not None and model_supports_totals(model_profile) else None),
+        "total_pick": total_from_edge(total_edge, threshold=0.0) if total_edge is not None and _is_rsm_family(model_profile) else (total_from_edge(total_edge, threshold=total_threshold) if total_edge is not None and model_supports_totals(model_profile) else None),
         "market_source": market_source or None,
         "market_observed_at": market_observed_at or None,
         "lineup_confidence": rsm_details["lineup_confidence"] if rsm_details else "not_applicable",
         "total_model_version": rsm_details["total_model_version"] if rsm_details else None,
         "latest_training_season": max(g["season"] for g in games),
-        "model_notes": rsm_notes if model_profile == RSM_PROFILE else [],
+        "model_notes": rsm_notes if _is_rsm_family(model_profile) else [],
     }
+    if model_profile == RSM_PLUS_PROFILE and rsm_details:
+        prediction.update({
+            "base_rsm_margin": rsm_details.get("base_rsm_margin"),
+            "matchup_adjustment": rsm_details.get("matchup_adjustment"),
+            "raw_matchup_adjustment": rsm_details.get("raw_matchup_adjustment"),
+            "matchup_explanations": rsm_details.get("matchup_explanations", []),
+            "matchup_contributions": rsm_details.get("matchup_contributions", []),
+            "data_confidence": rsm_details.get("data_confidence", "LOW"),
+            "model_version": rsm_details.get("model_version"),
+        })
     if upcoming_context and model_profile in {"rothstein", "rothstein_plus"}:
         prediction = stabilize_rothstein_upcoming_prediction(prediction, model, game, model_profile)
     return prediction
@@ -2827,7 +2958,7 @@ def weekly_model_performance(games: List[dict], season: int, week: int, model_pr
                 spread_edge = pred_margin - game["spread_line"] if pred_margin is not None else None
                 total_edge = pred_total - game["total_line"] if pred_total is not None else None
                 spread_pick = side_from_edge(spread_edge, default_spread_threshold(model_profile)) if spread_edge is not None and eligible and model_supports_spread_picks(model_profile) else None
-                if model_profile == RSM_PROFILE:
+                if _is_rsm_family(model_profile):
                     total_pick = total_from_edge(total_edge, 0.0) if total_edge is not None else None
                 else:
                     total_pick = total_from_edge(total_edge, default_total_threshold(model_profile)) if total_edge is not None and eligible and model_supports_totals(model_profile) else None
@@ -2842,7 +2973,7 @@ def weekly_model_performance(games: List[dict], season: int, week: int, model_pr
                     "total_result": _grade_total_pick(game, total_pick),
                 })
 
-            if model_profile != RSM_PROFILE and pred_margin is not None and pred_total is not None:
+            if not _is_rsm_family(model_profile) and pred_margin is not None and pred_total is not None:
                 model.update(game, pred_margin, pred_total)
 
         summary = summarize(records)
@@ -2962,7 +3093,7 @@ def _model_week_records(games: List[dict], season: int, model_profile: str) -> D
             spread_edge = pred_margin - game["spread_line"] if pred_margin is not None else None
             total_edge = pred_total - game["total_line"] if pred_total is not None else None
             spread_pick = side_from_edge(spread_edge, default_spread_threshold(model_profile)) if spread_edge is not None and eligible and model_supports_spread_picks(model_profile) else None
-            if model_profile == RSM_PROFILE:
+            if _is_rsm_family(model_profile):
                 total_pick = total_from_edge(total_edge, 0.0) if total_edge is not None else None
             else:
                 total_pick = total_from_edge(total_edge, default_total_threshold(model_profile)) if total_edge is not None and eligible and model_supports_totals(model_profile) else None
@@ -2977,7 +3108,7 @@ def _model_week_records(games: List[dict], season: int, model_profile: str) -> D
                 "total_result": _grade_total_pick(game, total_pick),
             })
 
-        if model_profile != RSM_PROFILE and pred_margin is not None and pred_total is not None:
+        if not _is_rsm_family(model_profile) and pred_margin is not None and pred_total is not None:
             model.update(game, pred_margin, pred_total)
     return records_by_week
 
