@@ -15,6 +15,7 @@ from nfl_predictor import (
     _rsm_artifact,
     _games_source_signature,
     _availability_adjustments_signature,
+    _schedule_upcoming_prediction_refresh,
     _validate_games_csv,
     cached_weekly_model_performance,
     cached_weekly_model_performance_trend,
@@ -219,6 +220,12 @@ def test_upcoming_cache_target_mismatch_serves_last_valid_and_schedules_current_
     assert result["games"][0]["schedule"]["away_team"] == "PHI"
     assert result["refresh_scheduled"] is True
     assert scheduled == {"season": 2026, "week": 3}
+
+
+def test_upcoming_refresh_already_running_reports_active_refresh(monkeypatch):
+    monkeypatch.setattr("nfl_predictor._UPCOMING_REFRESH_RUNNING", True)
+
+    assert _schedule_upcoming_prediction_refresh([], 2026, 3) is True
 
 
 def test_public_upcoming_cache_miss_does_not_schedule_rebuild(tmp_path, monkeypatch):

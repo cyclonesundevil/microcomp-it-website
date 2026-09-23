@@ -235,6 +235,25 @@ document.addEventListener('DOMContentLoaded', () => {
         renderModelSignals(data.games);
     }
 
+    function shouldTrackBackgroundRefresh(data) {
+        if (!data) return false;
+        if (data.ready === false) return true;
+        if (data.cache_target_mismatch) return true;
+        if (data.refresh_scheduled && data.status === 'computing') return true;
+        return false;
+    }
+
+    function showBackgroundRefreshProgress(data) {
+        const progress = Math.max(10, Math.min(95, Number(data.progress) || 15));
+        const target = data.requested_season && data.requested_week
+            ? ` for season ${data.requested_season}, week ${data.requested_week}`
+            : '';
+        const stale = data.cache_target_mismatch
+            ? ` Showing the last valid week ${data.week} board while the new forecast${target} is rebuilt.`
+            : '';
+        showProgress(progress, `${data.message || 'Forecast is being refreshed in the background.'}${stale}`);
+    }
+
     function renderWeeklyPerformance(performance) {
         const rows = performance?.models || [];
         performanceMessage.textContent = `Season ${performance.season}, week ${performance.week}: ${performance.completed_games} completed game${performance.completed_games === 1 ? '' : 's'} graded so far.`;
@@ -317,10 +336,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                stopTimers();
                 renderGames(data);
                 populatePerformanceWeekSelector(data.season, data.week);
                 loadWeeklyPerformance(data.season, performanceWeekSelect.value || data.week);
+                if (shouldTrackBackgroundRefresh(data)) {
+                    showBackgroundRefreshProgress(data);
+                    pollTimer = window.setTimeout(() => {
+                        pollTimer = null;
+                        poll();
+                    }, 2500);
+                    return;
+                }
+                stopTimers();
             } catch (error) {
                 stopTimers();
                 progressPanel.hidden = true;

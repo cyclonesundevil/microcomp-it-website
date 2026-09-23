@@ -1320,7 +1320,7 @@ def _schedule_upcoming_prediction_refresh(games: List[dict], season: Optional[in
     global _UPCOMING_REFRESH_RUNNING
     with _UPCOMING_PREDICTION_LOCK:
         if _UPCOMING_REFRESH_RUNNING:
-            return False
+            return True
         _UPCOMING_REFRESH_RUNNING = True
 
     _set_upcoming_progress(10, "Scheduling the forecast refresh and preparing the weekly model run.", status="computing", ready=False)
