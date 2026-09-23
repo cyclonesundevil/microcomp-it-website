@@ -34,7 +34,7 @@ from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from quart import Response
 from nfl_live_data import live_scoreboard
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _nfl_week_rollover_hour, _nfl_week_rollover_zone, _rsm_artifact, apply_upcoming_availability_adjustments, cached_backtest, cached_matchup_history, cached_upcoming_predictions, cached_weekly_model_performance, cached_weekly_model_performance_trend, dashboard_snapshot, default_spread_threshold, default_total_threshold, find_upcoming_scheduled_match, games_cache_info, list_teams, load_games, load_upcoming_availability_adjustments, model_status_labels, predict_matchup, refresh_upcoming_final_scores_in_cache, summarize_by_season, warm_matchup_history_cache
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _nfl_week_rollover_hour, _nfl_week_rollover_zone, _rsm_artifact, apply_upcoming_availability_adjustments, cached_backtest, cached_matchup_history, cached_upcoming_predictions, cached_weekly_model_performance, cached_weekly_model_performance_trend, dashboard_snapshot, default_spread_threshold, default_total_threshold, find_upcoming_scheduled_match, games_cache_info, list_teams, load_games, load_upcoming_availability_adjustments, model_status_labels, predict_matchup, refresh_upcoming_final_scores_in_cache, summarize_by_season, upcoming_prediction_status_snapshot, warm_matchup_history_cache
 from rsm.stage8_evaluation import DEFAULT_OUTCOME_STORE, DEFAULT_TOTAL_OBSERVATION_STORE, TOTAL_MODEL_VERSION, capture_total_observation, evaluation_report, record_outcome, total_evaluation_report
 from rsm.stage8_shadow import DEFAULT_STORE as RSM_DEFAULT_STORE, capture_observation, line_movements
 
@@ -2195,6 +2195,17 @@ async def nfl_upcoming():
     except Exception as error:
         app.logger.exception("Upcoming NFL batch prediction failed")
         return jsonify({"success": False, "error": str(error)}), 502
+
+
+@app.route("/api/nfl/upcoming/status")
+@app.route("/api/v1/nfl/upcoming/status")
+async def nfl_upcoming_status():
+    """Lightweight progress endpoint that never loads games or starts a rebuild."""
+    return jsonify({
+        "success": True,
+        "source": GAMES_URL,
+        "progress": upcoming_prediction_status_snapshot(),
+    })
 
 
 @app.route("/api/nfl/week-performance")

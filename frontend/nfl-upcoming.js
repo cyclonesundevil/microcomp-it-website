@@ -61,6 +61,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function fetchUpcomingStatus() {
+        const { response, data } = await fetchJsonWithTimeout(`${apiBase}/api/v1/nfl/upcoming/status`, {}, 5000);
+        if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load forecast progress');
+        return data.progress || {};
+    }
+
     function marketFavoriteSpreadCell(homeMargin, marketHomeMargin, homeTeam, awayTeam, totalValue) {
         const total = totalValue === null || totalValue === undefined
             ? '--'
@@ -366,7 +372,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 stopTimers();
             } catch (error) {
                 if (error.name === 'AbortError') {
-                    showProgress(15, 'Forecast request is still waiting on the server. Keeping this progress tracker visible and retrying...');
+                    try {
+                        const status = await fetchUpcomingStatus();
+                        showProgress(
+                            Math.max(10, Math.min(95, Number(status.progress) || 15)),
+                            status.message || 'Forecast request is still waiting on the server. Keeping this progress tracker visible and retrying...',
+                        );
+                    } catch (_statusError) {
+                        showProgress(15, 'Forecast request is still waiting on the server. Keeping this progress tracker visible and retrying...');
+                    }
                     pollTimer = window.setTimeout(() => {
                         pollTimer = null;
                         poll();

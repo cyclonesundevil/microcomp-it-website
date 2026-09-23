@@ -13,7 +13,7 @@ sys.path.insert(0, str(BACKEND_DIR))
 import app as app_module
 import nfl_predictor
 from app import app
-from nfl_predictor import GamesRefreshAlreadyRunning
+from nfl_predictor import GamesRefreshAlreadyRunning, _set_upcoming_progress
 
 
 class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
@@ -240,6 +240,17 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 400)
         payload = await response.get_json()
         self.assertIn("upcoming-week scope", payload["error"])
+
+    async def test_upcoming_status_returns_progress_without_loading_games(self):
+        _set_upcoming_progress(44, "Scoring ATL at GB with baseline (game 1/16, step 1/112).", status="computing", ready=False)
+        with patch.object(app_module, "load_games", side_effect=AssertionError("status endpoint should not load games")):
+            response = await self.client.get("/api/v1/nfl/upcoming/status")
+        payload = await response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["progress"]["progress"], 44)
+        self.assertEqual(payload["progress"]["message"], "Scoring ATL at GB with baseline (game 1/16, step 1/112).")
 
         def test_upcoming_cache_without_current_source_signature_is_rebuilt(self):
             cache_file = BACKEND_DIR / "data" / "nfl_upcoming_predictions_old_source.json"
