@@ -15,6 +15,7 @@ from nfl_predictor import (
     _rsm_artifact,
     _games_source_signature,
     _availability_adjustments_signature,
+    _UPCOMING_PREDICTION_LOCK,
     _schedule_upcoming_prediction_refresh,
     _validate_games_csv,
     cached_weekly_model_performance,
@@ -226,6 +227,25 @@ def test_upcoming_refresh_already_running_reports_active_refresh(monkeypatch):
     monkeypatch.setattr("nfl_predictor._UPCOMING_REFRESH_RUNNING", True)
 
     assert _schedule_upcoming_prediction_refresh([], 2026, 3) is True
+
+
+def test_upcoming_refresh_can_be_scheduled_while_cache_lock_is_held(monkeypatch):
+    monkeypatch.setattr("nfl_predictor._UPCOMING_REFRESH_RUNNING", False)
+    started = {"value": False}
+
+    class _NoopThread:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def start(self):
+            started["value"] = True
+
+    monkeypatch.setattr("nfl_predictor.threading.Thread", _NoopThread)
+    with _UPCOMING_PREDICTION_LOCK:
+        assert _schedule_upcoming_prediction_refresh([], 2026, 3) is True
+
+    assert started["value"] is True
+    monkeypatch.setattr("nfl_predictor._UPCOMING_REFRESH_RUNNING", False)
 
 
 def test_public_upcoming_cache_miss_does_not_schedule_rebuild(tmp_path, monkeypatch):

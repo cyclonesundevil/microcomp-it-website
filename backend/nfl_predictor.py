@@ -88,7 +88,7 @@ INJURY_PROFILES = {
 }
 
 _GAMES_REFRESH_LOCK = threading.Lock()
-_UPCOMING_PREDICTION_LOCK = threading.Lock()
+_UPCOMING_PREDICTION_LOCK = threading.RLock()
 _UPCOMING_REFRESH_RUNNING = False
 _UPCOMING_PROGRESS_STATE = {
     "status": "idle",
