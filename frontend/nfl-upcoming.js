@@ -54,7 +54,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
         try {
             const response = await fetch(url, { ...options, signal: controller.signal });
-            const data = await response.json();
+            const text = await response.text();
+            let data;
+            try {
+                data = text ? JSON.parse(text) : {};
+            } catch (error) {
+                const preview = text.replace(/\s+/g, ' ').slice(0, 80);
+                throw new Error(`Expected JSON but received ${response.status} ${response.statusText || 'response'}: ${preview || 'empty response'}`);
+            }
             return { response, data };
         } finally {
             window.clearTimeout(timeout);

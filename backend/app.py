@@ -2187,6 +2187,30 @@ async def nfl_upcoming():
             return jsonify({"success": False, "error": "Upcoming prediction refresh requires the admin refresh token."}), 403
         requested_week = request.args.get("week")
         requested_season = request.args.get("season")
+        progress = upcoming_prediction_status_snapshot()
+        if (
+            not force_refresh
+            and not requested_week
+            and not requested_season
+            and progress.get("status") == "computing"
+            and not progress.get("ready")
+        ):
+            return jsonify({
+                "success": True,
+                "source": GAMES_URL,
+                "cache": games_cache_info(),
+                "generated_at": None,
+                "cache_hit": False,
+                "refresh_scheduled": True,
+                "ready": False,
+                "status": "computing",
+                "progress": progress.get("progress", 0),
+                "message": progress.get("message", "Forecast is still being computed."),
+                "models": list(MODEL_PROFILES),
+                "games": [],
+                "model_signals": [],
+                "model_signals_note": "Model Signals are matchup comparison tools, not betting recommendations.",
+            })
         week = int(requested_week) if requested_week else None
         season = int(requested_season) if requested_season else None
         games, cache = await load_nfl_games_for_request()
