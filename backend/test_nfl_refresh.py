@@ -75,11 +75,12 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
             "cache_hit": False, "cache_age_seconds": 0.0, "cache_ttl_seconds": 86400,
         }
         with patch.object(app_module, "load_nfl_games_for_request", new=AsyncMock(return_value=(games, {"stale": False}))), \
-            patch.object(app_module, "cached_upcoming_predictions", return_value=snapshot):
+            patch.object(app_module, "cached_upcoming_predictions", return_value=snapshot) as cached:
             response = await self.client.get("/api/nfl/upcoming")
         payload = await response.get_json()
 
         self.assertEqual(response.status_code, 200)
+        cached.assert_called_once_with(games, None, None, False, True)
         self.assertEqual(len(payload["games"]), 1)
         self.assertEqual(set(payload["games"][0]["models"]), set(app_module.MODEL_PROFILES))
 

@@ -2188,7 +2188,7 @@ async def nfl_upcoming():
         week = int(requested_week) if requested_week else None
         season = int(requested_season) if requested_season else None
         games, cache = await load_nfl_games_for_request()
-        snapshot = await asyncio.to_thread(cached_upcoming_predictions, games, season, week, force_refresh, force_refresh)
+        snapshot = await asyncio.to_thread(cached_upcoming_predictions, games, season, week, force_refresh, True)
         return jsonify({"success": True, "source": GAMES_URL, "cache": cache, **snapshot})
     except ValueError as error:
         return jsonify({"success": False, "error": str(error)}), 400
