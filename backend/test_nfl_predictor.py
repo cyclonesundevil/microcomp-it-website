@@ -1091,6 +1091,29 @@ def test_historical_matchup_cache_preserves_response_shape_and_selected_spread(t
     assert reversed_hit is True
 
 
+def test_rsm_history_keeps_matchups_without_frozen_artifact_rows(tmp_path, monkeypatch):
+    games = [
+        _history_game("2021_04_KC_PHI", 2021, 4, "KC", "PHI", 42, 30, spread_line=-7.5),
+        _history_game("2023_11_PHI_KC", 2023, 11, "PHI", "KC", 21, 17, spread_line=2.5),
+    ]
+    monkeypatch.setenv("NFL_HISTORY_CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr(
+        "nfl_predictor._rsm_validation_rows",
+        lambda: {"2023_11_PHI_KC": {"roster_fair_home_margin": "2.25"}},
+    )
+
+    rows, cache_hit = cached_matchup_history(games, "KC", "PHI", "rsm_stage7c")
+
+    assert cache_hit is False
+    assert [row["season"] for row in rows] == [2021, 2023]
+    assert rows[0]["model_available"] is False
+    assert rows[0]["pred_margin"] is None
+    assert rows[1]["model_available"] is True
+    assert rows[1]["pred_margin"] == 2.25
+    assert rows[0]["selected_home_spread"] == -7.5
+    assert rows[1]["selected_home_spread"] == -2.5
+
+
 def test_rsm_manual_capture_details_preserve_the_exact_frozen_feature_vector():
     details = RsmStage7CComparisonModel().prediction_details({"home_team": "PHI", "away_team": "KC", "home_rest": 7, "away_rest": 7})
 

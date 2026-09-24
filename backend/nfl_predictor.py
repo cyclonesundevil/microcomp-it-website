@@ -402,7 +402,7 @@ def _opportunity_summary(
     if score >= 3:
         return "moderate", "Explore market divergence", score
     if spread_gap is None and total_gap is None:
-        return "none", "No market comparison"
+        return "none", "No market comparison", score
     return "low", "Market-tracking profile", score
 
 
@@ -603,7 +603,7 @@ def _history_games_fingerprint(games: List[dict]) -> str:
 
 def _history_cache_metadata(games: List[dict], profile: str) -> dict:
     return {
-        "schema_version": 3,
+        "schema_version": 4,
         "model_profile": profile,
         "games_fingerprint": _history_games_fingerprint(games),
         "games_source_signature": _games_source_signature(),
@@ -739,6 +739,7 @@ def _cacheable_matchup_row(game: dict, model_profile: str, eligible: bool, pred_
         "actual_total": game["actual_total"],
         "home_margin": game["actual_margin"],
         "model": model_profile,
+        "model_available": pred_margin is not None or pred_total is not None,
         "model_eligible": eligible,
         "pred_margin": pred_margin,
         "pred_total": pred_total,
@@ -754,17 +755,17 @@ def _build_all_matchup_history(games: List[dict], model_profile: str) -> Dict[st
     if model_profile == RSM_PROFILE:
         rsm_rows = _rsm_validation_rows()
         for game in games:
-            if game.get("game_id") not in rsm_rows:
-                continue
-            rsm = rsm_rows[game["game_id"]]
+            rsm = rsm_rows.get(game.get("game_id"))
             row = _cacheable_matchup_row(
                 game,
                 RSM_PROFILE,
                 False,
-                _row_float(rsm, "roster_fair_home_margin"),
+                _row_float(rsm, "roster_fair_home_margin") if rsm else None,
                 None,
             )
             pairs.setdefault(_history_pair_key(game["away_team"], game["home_team"]), []).append(row)
+        for pair_rows in pairs.values():
+            pair_rows.sort(key=lambda row: (row["season"], row["week"], row.get("gameday") or ""))
         return pairs
 
     model = create_model(model_profile)
@@ -2702,6 +2703,7 @@ def matchup_history(games: List[dict], away_team: str, home_team: str, model_pro
                 "actual_total": game["actual_total"],
                 "home_margin": game["actual_margin"],
                 "model": model_profile,
+                "model_available": pred_margin is not None or pred_total is not None,
                 "model_eligible": eligible,
                 "pred_margin": pred_margin,
                 "pred_total": pred_total,
@@ -2722,9 +2724,9 @@ def rsm_matchup_history(games: List[dict], away_team: str, home_team: str) -> Li
     rsm_rows = _rsm_validation_rows()
     rows = []
     for game in games:
-        if {game["away_team"], game["home_team"]} != selected or game.get("game_id") not in rsm_rows:
+        if {game["away_team"], game["home_team"]} != selected:
             continue
-        rsm = rsm_rows[game["game_id"]]
+        rsm = rsm_rows.get(game.get("game_id"))
         selected_home_spread = game["spread_line"] if game["home_team"] == home_team else -game["spread_line"]
         rows.append({
             "season": game["season"],
@@ -2740,8 +2742,9 @@ def rsm_matchup_history(games: List[dict], away_team: str, home_team: str) -> Li
             "actual_total": game["actual_total"],
             "home_margin": game["actual_margin"],
             "model": RSM_PROFILE,
+            "model_available": rsm is not None,
             "model_eligible": False,
-            "pred_margin": _row_float(rsm, "roster_fair_home_margin"),
+            "pred_margin": _row_float(rsm, "roster_fair_home_margin") if rsm else None,
             "pred_total": None,
             "spread_pick": None,
             "spread_result": None,

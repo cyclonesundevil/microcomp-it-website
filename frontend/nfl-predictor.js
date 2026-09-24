@@ -291,7 +291,10 @@ document.addEventListener('DOMContentLoaded', () => {
             : { label: 'Not covered', className: 'result-not-covered' };
     }
 
-    function algorithmResult(result, pick, type) {
+    function algorithmResult(game, type) {
+        if (game.model_available === false) return { label: 'RSM unavailable', className: 'result-push' };
+        const result = type === 'spread' ? game.spread_result : game.total_result;
+        const pick = type === 'spread' ? game.spread_pick : game.total_pick;
         if (!pick) return { label: 'No pick', className: 'result-push' };
         const pickLabel = type === 'spread'
             ? (pick === 'home' ? 'Home' : 'Away')
@@ -448,7 +451,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderHistory(data) {
-        historyNote.textContent = `${data.games.length} historical regular-season meeting${data.games.length === 1 ? '' : 's'} for ${data.away_team} and ${data.home_team}. Spreads, over/unders, and ${data.model} results are shown by year.`;
+        const modelAvailable = data.games.filter((game) => game.model_available !== false).length;
+        const availabilityNote = data.model === 'rsm_stage7c'
+            ? ` RSM projections are available for ${modelAvailable} of ${data.games.length}.`
+            : '';
+        historyNote.textContent = `${data.games.length} historical regular-season meeting${data.games.length === 1 ? '' : 's'} for ${data.away_team} and ${data.home_team}. Spreads, over/unders, and ${data.model} results are shown by year.${availabilityNote}`;
         if (!data.games.length) {
             historyTableBody.innerHTML = '<tr><td colspan="11">No historical regular-season meetings found.</td></tr>';
             return;
@@ -457,8 +464,8 @@ document.addEventListener('DOMContentLoaded', () => {
         historyTableBody.innerHTML = data.games.map((game) => {
             const ou = totalResult(game);
             const favorite = favoriteResult(game);
-            const algoSpread = algorithmResult(game.spread_result, game.spread_pick, 'spread');
-            const algoTotal = algorithmResult(game.total_result, game.total_pick, 'total');
+            const algoSpread = algorithmResult(game, 'spread');
+            const algoTotal = algorithmResult(game, 'total');
             return `
                 <tr>
                     <td>${game.season}</td>
