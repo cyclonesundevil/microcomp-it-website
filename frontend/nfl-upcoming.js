@@ -148,9 +148,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function signalClass(label) {
         const text = String(label || '').toLowerCase();
-        if (text.includes('strong') || text.includes('align')) return 'signal-good';
+        if (text.includes('market-tracking') || text.includes('align') || text.includes('strong')) return 'signal-muted';
+        if (text.includes('opportunity') || text.includes('divergence') || text.includes('explore') || text.includes('split') || text.includes('underdog')) return 'signal-opportunity';
         if (text.includes('moderate') || text.includes('mixed')) return 'signal-neutral';
-        if (text.includes('high') || text.includes('split') || text.includes('underdog')) return 'signal-watch';
+        if (text.includes('high')) return 'signal-watch';
+        return 'signal-muted';
+    }
+
+    function opportunityClass(tier) {
+        const text = String(tier || '').toLowerCase();
+        if (text === 'high') return 'signal-opportunity-high';
+        if (text === 'moderate') return 'signal-opportunity';
         return 'signal-muted';
     }
 
@@ -171,9 +179,15 @@ document.addEventListener('DOMContentLoaded', () => {
             signalsGrid.innerHTML = '<article class="model-signal-card"><h3>No model signals available</h3><p>Signals appear when the cached upcoming forecast has model comparison metadata.</p></article>';
             return;
         }
-        signalsGrid.innerHTML = rows.map((game) => {
+        const sortedRows = rows.slice().sort((a, b) => {
+            const aScore = Number(a?.model_signals?.opportunity_score || 0);
+            const bScore = Number(b?.model_signals?.opportunity_score || 0);
+            return bScore - aScore;
+        });
+        signalsGrid.innerHTML = sortedRows.map((game) => {
             const schedule = game.schedule;
             const signals = game.model_signals;
+            const opportunity = escapeHtml(signals.opportunity_label || 'Market comparison');
             const agreement = escapeHtml(signals.agreement_label);
             const alignment = escapeHtml(signals.market_alignment_label);
             const total = escapeHtml(signals.total_outlook_label);
@@ -181,14 +195,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 <article class="model-signal-card">
                     <div class="model-signal-card-header">
                         <h3>${escapeHtml(schedule.away_team)} at ${escapeHtml(schedule.home_team)}</h3>
-                        <span class="signal-badge ${signalClass(signals.agreement_label)}">${agreement}</span>
+                        <span class="signal-badge ${opportunityClass(signals.opportunity_tier)}">${opportunity}</span>
                     </div>
                     <p class="model-signal-story">${escapeHtml(signals.story)}</p>
                     <div class="model-signal-badges">
+                        <span class="signal-badge ${signalClass(signals.agreement_label)}">${agreement}</span>
                         <span class="signal-badge ${signalClass(signals.market_alignment_label)}">${alignment}</span>
                         <span class="signal-badge ${signalClass(signals.total_outlook_label)}">${total}</span>
                     </div>
                     <dl class="model-signal-metrics">
+                        <div><dt>Spread gap</dt><dd>${formatRange(signals.max_spread_market_gap)}</dd></div>
+                        <div><dt>Total gap</dt><dd>${formatRange(signals.max_total_market_gap)}</dd></div>
                         <div><dt>Spread range</dt><dd>${formatRange(signals.model_spread_range)}</dd></div>
                         <div><dt>Total range</dt><dd>${formatRange(signals.model_total_range)}</dd></div>
                         <div><dt>Favorite view</dt><dd>${Number(signals.models_favoring_market_favorite || 0)}</dd></div>

@@ -3100,6 +3100,17 @@ nav a:hover:not(.btn-primary) {
     background: rgba(94, 230, 140, 0.92);
 }
 
+.signal-opportunity {
+    color: #06121f;
+    background: rgba(125, 211, 252, 0.94);
+}
+
+.signal-opportunity-high {
+    color: #07110d;
+    background: rgba(52, 211, 153, 0.96);
+    box-shadow: 0 0 0 1px rgba(209, 250, 229, 0.45);
+}
+
 .signal-neutral {
     color: #101018;
     background: rgba(255, 210, 120, 0.92);
@@ -3118,7 +3129,7 @@ nav a:hover:not(.btn-primary) {
 
 .model-signal-metrics {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
     gap: 0.5rem;
     margin: 0.9rem 0 0;
 }

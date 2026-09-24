@@ -1205,6 +1205,10 @@ def test_model_signals_classify_strong_mixed_and_high_disagreement():
     assert strong["agreement_label"] == "Strong agreement"
     assert mixed["agreement_label"] == "Mixed signals"
     assert high["agreement_label"] == "High disagreement"
+    assert strong["opportunity_label"] == "Market-tracking profile"
+    assert mixed["opportunity_label"] == "High market divergence"
+    assert high["opportunity_label"] == "High market divergence"
+    assert high["max_spread_market_gap"] == pytest.approx(12.0)
 
 
 def test_model_signals_market_favorite_sign_convention_for_away_favorite():
@@ -1213,7 +1217,20 @@ def test_model_signals_market_favorite_sign_convention_for_away_favorite():
     assert signals["models_favoring_market_favorite"] == 2
     assert signals["models_favoring_market_underdog"] == 1
     assert signals["market_alignment_label"] == "Models align with market"
+    assert signals["max_spread_market_gap"] == pytest.approx(4.5)
     assert "Market favors CAR by 2.5" in signals["story"]
+
+
+def test_model_signals_surface_total_market_gap_as_opportunity():
+    signals = build_model_signals(
+        _signal_row([-3.0, -3.2, -2.8], totals=[51.5, 50.0, 52.0], market_total=44.0),
+        ("m0", "m1", "m2"),
+    )
+
+    assert signals["agreement_label"] == "Strong agreement"
+    assert signals["opportunity_tier"] == "high"
+    assert signals["max_total_market_gap"] == pytest.approx(8.0)
+    assert "largest total gap is 8.0" in signals["story"]
 
 
 def test_model_signals_handle_missing_outputs_and_research_status_labels():

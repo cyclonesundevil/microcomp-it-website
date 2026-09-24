@@ -317,6 +317,12 @@ def build_model_signals(upcoming_row: dict, model_profiles: Tuple[str, ...] = MO
     totals = [item["pred_total"] for item in usable if item["pred_total"] is not None]
     spread_range = _range_or_none(margins)
     total_range = _range_or_none(totals)
+    spread_market_gap = _max_abs_gap(margins, market_margin)
+    total_market_gap = _max_abs_gap(totals, market_total)
+    opportunity_tier, opportunity_label, opportunity_score = _opportunity_summary(
+        spread_market_gap,
+        total_market_gap,
+    )
     model_count = len(usable)
     missing_count = len(model_profiles) - model_count
     favorite_count, underdog_count, split_count = _favorite_counts(margins, market_margin)
@@ -331,6 +337,9 @@ def build_model_signals(upcoming_row: dict, model_profiles: Tuple[str, ...] = MO
         agreement_label=agreement_label,
         market_alignment_label=market_alignment_label,
         total_outlook_label=total_outlook_label,
+        opportunity_label=opportunity_label,
+        spread_market_gap=spread_market_gap,
+        total_market_gap=total_market_gap,
         favorite_count=favorite_count,
         underdog_count=underdog_count,
         model_count=model_count,
@@ -342,8 +351,13 @@ def build_model_signals(upcoming_row: dict, model_profiles: Tuple[str, ...] = MO
         "agreement_label": agreement_label,
         "market_alignment_label": market_alignment_label,
         "total_outlook_label": total_outlook_label,
+        "opportunity_label": opportunity_label,
+        "opportunity_tier": opportunity_tier,
+        "opportunity_score": opportunity_score,
         "model_spread_range": spread_range,
         "model_total_range": total_range,
+        "max_spread_market_gap": spread_market_gap,
+        "max_total_market_gap": total_market_gap,
         "models_favoring_market_favorite": favorite_count,
         "models_favoring_market_underdog": underdog_count,
         "models_without_output": missing_count,
@@ -368,6 +382,28 @@ def attach_model_signals(payload: dict) -> dict:
 
 def _range_or_none(values: List[float]) -> Optional[float]:
     return max(values) - min(values) if values else None
+
+
+def _max_abs_gap(values: List[float], market_value: Optional[float]) -> Optional[float]:
+    if market_value is None or not values:
+        return None
+    return max(abs(value - market_value) for value in values)
+
+
+def _opportunity_summary(
+    spread_gap: Optional[float],
+    total_gap: Optional[float],
+) -> Tuple[str, str, float]:
+    spread_score = spread_gap if spread_gap is not None else 0.0
+    total_score = total_gap if total_gap is not None else 0.0
+    score = max(spread_score, total_score)
+    if score >= 6:
+        return "high", "High market divergence", score
+    if score >= 3:
+        return "moderate", "Explore market divergence", score
+    if spread_gap is None and total_gap is None:
+        return "none", "No market comparison"
+    return "low", "Market-tracking profile", score
 
 
 def _favorite_counts(margins: List[float], market_margin: Optional[float]) -> Tuple[int, int, int]:
@@ -438,6 +474,9 @@ def _model_signal_story(
     agreement_label: str,
     market_alignment_label: str,
     total_outlook_label: str,
+    opportunity_label: str,
+    spread_market_gap: Optional[float],
+    total_market_gap: Optional[float],
     favorite_count: int,
     underdog_count: int,
     model_count: int,
@@ -452,12 +491,21 @@ def _model_signal_story(
         favorite = home_team if market_margin > 0 else away_team
         market_text = f"Market favors {favorite} by {abs(market_margin):.1f}."
     total_text = f"Market total is {market_total:.1f}." if market_total is not None else "No market total is available."
+    gap_parts = []
+    if spread_market_gap is not None:
+        gap_parts.append(f"largest spread gap is {spread_market_gap:.1f}")
+    if total_market_gap is not None:
+        gap_parts.append(f"largest total gap is {total_market_gap:.1f}")
+    opportunity_text = f"{opportunity_label}"
+    if gap_parts:
+        opportunity_text += f" ({'; '.join(gap_parts)})"
     coverage_text = f"{model_count} models returned comparison values"
     if missing_count:
         coverage_text += f"; {missing_count} did not return a displayable output"
     return (
         f"{matchup}: {market_text} {total_text} "
         f"{coverage_text}. {agreement_label}. {market_alignment_label}; {total_outlook_label}. "
+        f"{opportunity_text}. "
         f"Model count relative to the market favorite: {favorite_count} aligned, {underdog_count} opposite."
     )
 
