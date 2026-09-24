@@ -204,10 +204,186 @@ def rsm_total_observation_store():
     return Path(root) / "stage8-total-observations.sqlite3" if root else DEFAULT_TOTAL_OBSERVATION_STORE
 
 
+REPORTS_DIR = Path(base_dir).parent / "reports"
+EXPERIMENTAL_MODEL_DETAILS = {
+    "rothstein_plus": {
+        "label": "Rothstein+",
+        "family": "Production predictor experiment",
+        "surface": "Live matchup, history, backtest, upcoming board",
+        "notes": "Midseason/QB-continuity filter layered on the Rothstein profile.",
+    },
+    RSM_PROFILE: {
+        "label": "RSM - Experimental",
+        "family": "Roster Strength Model",
+        "surface": "Live matchup, history, backtest, upcoming board",
+        "notes": "Frozen RSM display snapshot with margin and separately versioned total projection.",
+    },
+    "rsm_plus": {
+        "label": "RSM+",
+        "family": "Roster Strength Model",
+        "surface": "Live matchup and upcoming board",
+        "notes": "Additive unit-mismatch layer on top of the frozen RSM projection.",
+    },
+}
+EXPERIMENTAL_LIVE_MODELS = tuple(model for model in MODEL_PROFILES if model in EXPERIMENTAL_MODEL_DETAILS)
+
+
+def _read_report_json(relative_path: str):
+    path = REPORTS_DIR / relative_path
+    try:
+        with path.open(encoding="utf-8") as source:
+            return json.load(source)
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _round_number(value, digits=3):
+    if isinstance(value, (int, float)):
+        return round(float(value), digits)
+    return value
+
+
+def _summarize_pgp_report(relative_path: str, label: str) -> dict | None:
+    report = _read_report_json(relative_path)
+    if not isinstance(report, dict):
+        return None
+    return {
+        "id": f"pgp_{report.get('prior_source', label).lower()}",
+        "label": label,
+        "family": "Pre-Game Predictability",
+        "surface": "Research report only",
+        "test_season": report.get("test_season"),
+        "games_evaluated": report.get("games_evaluated"),
+        "prediction_rows": report.get("prediction_rows"),
+        "runtime_seconds": _round_number(report.get("runtime_seconds"), 2),
+        "configuration": report.get("configuration") or {},
+        "metrics": [
+            {
+                "tier": row.get("tier"),
+                "games": row.get("games"),
+                "score_mae": _round_number(row.get("score_mae")),
+                "margin_mae": _round_number(row.get("margin_mae")),
+                "total_mae": _round_number(row.get("total_mae")),
+                "home_win_brier": _round_number(row.get("home_win_brier")),
+                "total_interval_80_coverage": _round_number(row.get("total_interval_80_coverage")),
+                "margin_interval_80_coverage": _round_number(row.get("margin_interval_80_coverage")),
+            }
+            for row in report.get("metrics", [])
+        ],
+        "artifact": str((REPORTS_DIR / relative_path).as_posix()),
+        "notes": "Offline Monte Carlo experiment; not registered as a live nfl_predictor.py model profile.",
+    }
+
+
+def _summarize_parallel_models() -> dict | None:
+    report = _read_report_json("parallel_models/rsm-dsm-prm-validation-metrics.json")
+    if not isinstance(report, dict):
+        return None
+    return {
+        "label": "RSM / DSM / PRM validation comparison",
+        "family": "Parallel research models",
+        "surface": "Research report only",
+        "period": report.get("period"),
+        "games_evaluated": report.get("games_evaluated"),
+        "prediction_rows": report.get("prediction_rows"),
+        "models": report.get("models", []),
+        "metrics": [
+            {
+                "model_name": row.get("model_name"),
+                "games": row.get("games"),
+                "margin_mae": _round_number(row.get("margin_mae")),
+                "total_score_mae": _round_number(row.get("total_score_mae")),
+                "margin_rmse": _round_number(row.get("margin_rmse")),
+                "total_score_rmse": _round_number(row.get("total_score_rmse")),
+                "avg_sample_drives": _round_number(row.get("avg_sample_drives")),
+            }
+            for row in report.get("metrics", [])
+        ],
+        "artifact": str((REPORTS_DIR / "parallel_models/rsm-dsm-prm-validation-metrics.json").as_posix()),
+        "notes": "Research-only comparison artifact; DSM and PRM are not live predictor profiles.",
+    }
+
+
+def _summarize_rsm_stage7c() -> dict | None:
+    report = _read_report_json("rsm-stage7c-anomaly-analysis.json")
+    if not isinstance(report, dict):
+        return None
+    validation = report.get("validation") or {}
+    all_games = validation.get("all_games") or {}
+    return {
+        "label": "RSM Stage 7C anomaly validation",
+        "family": "Roster Strength Model",
+        "surface": "Frozen research artifact plus live display adapter",
+        "model_version": report.get("model_version"),
+        "production_ready": bool(report.get("production_ready")),
+        "scope": report.get("scope") or {},
+        "all_games": {
+            "games": all_games.get("games"),
+            "wins": all_games.get("wins"),
+            "losses": all_games.get("losses"),
+            "pushes": all_games.get("pushes"),
+            "ats_accuracy": _round_number(all_games.get("ats_accuracy")),
+        },
+        "rules": [
+            {
+                "rule": row.get("rule"),
+                "games": row.get("games"),
+                "wins": row.get("wins"),
+                "losses": row.get("losses"),
+                "pushes": row.get("pushes"),
+                "ats_accuracy": _round_number(row.get("ats_accuracy")),
+                "validation_coverage": _round_number(row.get("validation_coverage")),
+                "threshold": _round_number(row.get("threshold")),
+            }
+            for row in validation.get("rules", [])
+        ],
+        "artifact": str((REPORTS_DIR / "rsm-stage7c-anomaly-analysis.json").as_posix()),
+    }
+
+
+def experimental_models_payload() -> dict:
+    statuses = model_status_labels()
+    return {
+        "success": True,
+        "protected": True,
+        "live_experimental_models": [
+            {
+                "id": model,
+                "status_label": statuses.get(model, "Experimental"),
+                "spread_threshold": default_spread_threshold(model),
+                "total_threshold": default_total_threshold(model),
+                **EXPERIMENTAL_MODEL_DETAILS[model],
+            }
+            for model in EXPERIMENTAL_LIVE_MODELS
+        ],
+        "research_models": {
+            "pgp": [
+                item for item in (
+                    _summarize_pgp_report("pgp-score/pgp-evaluation-summary.json", "PGP score prior"),
+                    _summarize_pgp_report("pgp-drive/pgp-evaluation-summary.json", "PGP drive prior"),
+                )
+                if item
+            ],
+            "parallel": _summarize_parallel_models(),
+            "rsm_stage7c": _summarize_rsm_stage7c(),
+        },
+        "notes": [
+            "This admin view reads committed report artifacts and lightweight predictor metadata only.",
+            "PGP, DSM, and PRM are research artifacts here; they are not live production predictor profiles.",
+        ],
+    }
+
+
 def rsm_manual_write_authorized():
     token = os.getenv("RSM_MANUAL_CAPTURE_TOKEN", "").strip()
     supplied = request.headers.get("X-RSM-Manual-Token", "")
     return bool(token) and hmac.compare_digest(token, supplied)
+
+
+def admin_secret_authorized():
+    secret = os.getenv("ADMIN_SECRET", "microcomp-admin")
+    supplied = request.headers.get("X-Admin-Secret", "") or request.args.get("secret", "")
+    return bool(secret) and hmac.compare_digest(secret, supplied)
 
 
 def nfl_data_refresh_authorized():
@@ -2104,6 +2280,69 @@ async def nfl_v1_models():
         ],
         "default_model": "market_blend",
     })
+
+
+@app.route("/nfl-predictor/experimental")
+async def nfl_experimental_models_page():
+    if not admin_secret_authorized():
+        return "Unauthorized. Add ?secret=YOUR_SECRET to the URL.", 401
+    return await send_from_directory(app.static_folder, "nfl-experimental-models.html")
+
+
+@app.route("/api/nfl/experimental-models")
+@app.route("/api/v1/nfl/experimental-models")
+async def nfl_experimental_models():
+    if not admin_secret_authorized():
+        return jsonify({"success": False, "error": "Admin token is required."}), 403
+    return jsonify(experimental_models_payload())
+
+
+@app.route("/api/nfl/experimental-models/predict")
+@app.route("/api/v1/nfl/experimental-models/predict")
+async def nfl_experimental_models_predict():
+    if not admin_secret_authorized():
+        return jsonify({"success": False, "error": "Admin token is required."}), 403
+    try:
+        away_team = (request.args.get("away_team") or "").strip().upper()
+        home_team = (request.args.get("home_team") or "").strip().upper()
+        if not away_team or not home_team or away_team == home_team:
+            return jsonify({"success": False, "error": "Provide distinct away_team and home_team values."}), 400
+
+        spread_line = request.args.get("spread_line")
+        total_line = request.args.get("total_line")
+        games, cache = await load_nfl_games_for_request()
+        predictions = []
+        errors = []
+        for model in EXPERIMENTAL_LIVE_MODELS:
+            try:
+                prediction = await asyncio.to_thread(
+                    predict_matchup,
+                    games,
+                    away_team,
+                    home_team,
+                    float(spread_line) if spread_line not in (None, "") else 0.0,
+                    float(total_line) if total_line not in (None, "") else None,
+                    model,
+                )
+                predictions.append(prediction)
+            except Exception as model_error:
+                errors.append({"model": model, "error": str(model_error)})
+
+        return jsonify({
+            "success": True,
+            "cache": cache,
+            "away_team": away_team,
+            "home_team": home_team,
+            "spread_line": float(spread_line) if spread_line not in (None, "") else 0.0,
+            "total_line": float(total_line) if total_line not in (None, "") else None,
+            "models": predictions,
+            "model_errors": errors,
+        })
+    except ValueError:
+        return jsonify({"success": False, "error": "spread_line and total_line must be numeric when supplied."}), 400
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route("/api/nfl/dashboard")

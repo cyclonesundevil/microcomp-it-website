@@ -20,17 +20,78 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.client = app.test_client()
         self.previous_token = os.environ.get("NFL_DATA_REFRESH_TOKEN")
+        self.previous_admin_secret = os.environ.get("ADMIN_SECRET")
         os.environ["NFL_DATA_REFRESH_TOKEN"] = "test-refresh-token"
+        os.environ["ADMIN_SECRET"] = "test-admin-secret"
 
     async def asyncTearDown(self):
         if self.previous_token is None:
             os.environ.pop("NFL_DATA_REFRESH_TOKEN", None)
         else:
             os.environ["NFL_DATA_REFRESH_TOKEN"] = self.previous_token
+        if self.previous_admin_secret is None:
+            os.environ.pop("ADMIN_SECRET", None)
+        else:
+            os.environ["ADMIN_SECRET"] = self.previous_admin_secret
 
     async def test_refresh_requires_server_side_token(self):
         response = await self.client.post("/api/nfl/refresh")
         self.assertEqual(response.status_code, 403)
+
+    async def test_experimental_models_admin_view_requires_secret(self):
+        api_response = await self.client.get("/api/nfl/experimental-models")
+        page_response = await self.client.get("/nfl-predictor/experimental")
+
+        self.assertEqual(api_response.status_code, 403)
+        self.assertEqual(page_response.status_code, 401)
+
+    async def test_experimental_models_inventory_is_admin_protected(self):
+        response = await self.client.get("/api/nfl/experimental-models?secret=test-admin-secret")
+        payload = await response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(payload["success"])
+        live_ids = {model["id"] for model in payload["live_experimental_models"]}
+        self.assertEqual(live_ids, set(app_module.EXPERIMENTAL_LIVE_MODELS))
+        self.assertNotIn("market_blend", live_ids)
+        self.assertGreaterEqual(len(payload["research_models"]["pgp"]), 1)
+
+    async def test_experimental_models_page_is_admin_protected(self):
+        response = await self.client.get("/nfl-predictor/experimental?secret=test-admin-secret")
+        body = await response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("NFL Experimental Models", body)
+
+    async def test_experimental_matchup_probe_uses_only_experimental_profiles(self):
+        games = [{"season": 2026, "week": 1}]
+        called_models = []
+
+        def fake_predict(_games, away_team, home_team, spread_line, total_line, model):
+            called_models.append(model)
+            return {
+                "model": model,
+                "away_team": away_team,
+                "home_team": home_team,
+                "pred_margin": 1.0,
+                "pred_total": 44.0,
+                "spread_edge": 1.0 - spread_line,
+                "total_edge": 44.0 - total_line,
+                "spread_pick": None,
+                "total_pick": None,
+            }
+
+        with patch.object(app_module, "load_nfl_games_for_request", new=AsyncMock(return_value=(games, {"stale": False}))), \
+            patch.object(app_module, "predict_matchup", side_effect=fake_predict):
+            response = await self.client.get(
+                "/api/nfl/experimental-models/predict?secret=test-admin-secret&away_team=KC&home_team=PHI&spread_line=0&total_line=47.5"
+            )
+        payload = await response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(payload["success"])
+        self.assertEqual(called_models, list(app_module.EXPERIMENTAL_LIVE_MODELS))
+        self.assertEqual({row["model"] for row in payload["models"]}, set(app_module.EXPERIMENTAL_LIVE_MODELS))
 
     async def test_refresh_returns_updated_provenance(self):
         games = [
