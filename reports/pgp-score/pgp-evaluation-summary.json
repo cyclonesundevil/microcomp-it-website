@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "model": "PGP",
+  "train_through": 2024,
+  "test_season": 2025,
+  "game_type": "REG",
+  "tiers": [
+    0,
+    1
+  ],
+  "configuration": {
+    "simulations": 25000,
+    "seed": 12345,
+    "possessions_per_team": 11,
+    "max_score": 80,
+    "prior_source": "score"
+  },
+  "prior_source": "score",
+  "games_evaluated": 272,
+  "prediction_rows": 544,
+  "runtime_seconds": 84.85115620004945,
+  "metrics": [
+    {
+      "tier": 0,
+      "games": 272,
+      "home_score_mae": 7.931452352941176,
+      "away_score_mae": 7.972716323529412,
+      "score_mae": 7.952084338235293,
+      "margin_mae": 11.154730147058824,
+      "total_mae": 11.0006725,
+      "home_score_rmse": 9.974937981384086,
+      "away_score_rmse": 9.973218165496737,
+      "margin_rmse": 14.298242736658441,
+      "total_rmse": 13.910039225742679,
+      "home_win_brier": 0.25152018535882353,
+      "total_interval_80_coverage": 0.8088235294117647,
+      "margin_interval_80_coverage": 0.7757352941176471
+    },
+    {
+      "tier": 1,
+      "games": 272,
+      "home_score_mae": 7.796445735294118,
+      "away_score_mae": 7.754085735294118,
+      "score_mae": 7.775265735294118,
+      "margin_mae": 10.680035294117646,
+      "total_mae": 11.083174999999999,
+      "home_score_rmse": 9.84969160867755,
+      "away_score_rmse": 9.828514075608844,
+      "margin_rmse": 13.820972125552316,
+      "total_rmse": 14.007603540423826,
+      "home_win_brier": 0.23890807370588238,
+      "total_interval_80_coverage": 0.8051470588235294,
+      "margin_interval_80_coverage": 0.7647058823529411
+    }
+  ],
+  "prediction_csv": "..\\reports\\pgp-score\\pgp-evaluation-games.csv"
+}
