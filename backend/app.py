@@ -127,20 +127,7 @@ def _load_upcoming_prediction_cache_snapshot():
 
 
 def _upcoming_cache_needs_startup_rebuild(snapshot: dict | None) -> bool:
-    if not isinstance(snapshot, dict) or not _has_valid_upcoming_games(snapshot):
-        return True
-    target_season, target_week = _resolve_upcoming_cache_target(None, None)
-    if target_season is not None and snapshot.get("season") != target_season:
-        return True
-    if target_week is not None and snapshot.get("week") != target_week:
-        return True
-    if not _has_all_upcoming_models(snapshot):
-        return True
-    if snapshot.get("games_source_signature") != _games_source_signature():
-        return True
-    if snapshot.get("availability_adjustments_signature") != _availability_adjustments_signature():
-        return True
-    return False
+    return not isinstance(snapshot, dict) or not _has_valid_upcoming_games(snapshot)
 
 
 def schedule_startup_upcoming_cache_rebuild_if_needed():
@@ -2220,34 +2207,10 @@ async def nfl_upcoming():
             return jsonify({"success": False, "error": "Upcoming prediction refresh requires the admin refresh token."}), 403
         requested_week = request.args.get("week")
         requested_season = request.args.get("season")
-        progress = upcoming_prediction_status_snapshot()
-        if (
-            not force_refresh
-            and not requested_week
-            and not requested_season
-            and progress.get("status") == "computing"
-            and not progress.get("ready")
-        ):
-            return jsonify({
-                "success": True,
-                "source": GAMES_URL,
-                "cache": games_cache_info(),
-                "generated_at": None,
-                "cache_hit": False,
-                "refresh_scheduled": True,
-                "ready": False,
-                "status": "computing",
-                "progress": progress.get("progress", 0),
-                "message": progress.get("message", "Forecast is still being computed."),
-                "models": list(MODEL_PROFILES),
-                "games": [],
-                "model_signals": [],
-                "model_signals_note": "Model Signals are matchup comparison tools, not betting recommendations.",
-            })
         week = int(requested_week) if requested_week else None
         season = int(requested_season) if requested_season else None
         games, cache = await load_nfl_games_for_request()
-        snapshot = await asyncio.to_thread(cached_upcoming_predictions, games, season, week, force_refresh, True)
+        snapshot = await asyncio.to_thread(cached_upcoming_predictions, games, season, week, force_refresh, False)
         return jsonify({"success": True, "source": GAMES_URL, "cache": cache, **snapshot})
     except ValueError as error:
         return jsonify({"success": False, "error": str(error)}), 400

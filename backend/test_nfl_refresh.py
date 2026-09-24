@@ -80,9 +80,35 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
         payload = await response.get_json()
 
         self.assertEqual(response.status_code, 200)
-        cached.assert_called_once_with(games, None, None, False, True)
+        cached.assert_called_once_with(games, None, None, False, False)
         self.assertEqual(len(payload["games"]), 1)
         self.assertEqual(set(payload["games"][0]["models"]), set(app_module.MODEL_PROFILES))
+
+    async def test_upcoming_serves_cache_even_when_background_rebuild_is_computing(self):
+        games = [{"season": 2026, "week": 1, "away_team": "KC", "home_team": "PHI"}]
+        snapshot = {
+            "generated_at": "2026-09-15T13:00:00+00:00",
+            "season": 2026,
+            "week": 2,
+            "models": list(app_module.MODEL_PROFILES),
+            "games": [{
+                "schedule": {"season": 2026, "week": 2, "away_team": "DAL", "home_team": "NYG"},
+                "models": {model: {"model": model} for model in app_module.MODEL_PROFILES},
+            }],
+            "cache_hit": True,
+            "ready": True,
+            "status": "ready",
+        }
+        with patch.object(app_module, "upcoming_prediction_status_snapshot", return_value={"status": "computing", "ready": False, "progress": 24}), \
+            patch.object(app_module, "load_nfl_games_for_request", new=AsyncMock(return_value=(games, {"stale": False}))), \
+            patch.object(app_module, "cached_upcoming_predictions", return_value=snapshot) as cached:
+            response = await self.client.get("/api/nfl/upcoming")
+        payload = await response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        cached.assert_called_once_with(games, None, None, False, False)
+        self.assertTrue(payload["ready"])
+        self.assertEqual(len(payload["games"]), 1)
 
     async def test_mobile_upcoming_uses_cache_without_background_rebuild_and_normalizes_shape(self):
         games = [{"season": 2026, "week": 1, "away_team": "KC", "home_team": "PHI"}]
@@ -501,7 +527,7 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
             patch.object(app_module, "_schedule_upcoming_prediction_refresh", side_effect=AssertionError("valid startup cache should not schedule rebuild")):
             self.assertFalse(app_module.schedule_startup_upcoming_cache_rebuild_if_needed())
 
-    def test_startup_missing_current_model_schedules_background_rebuild(self):
+    def test_startup_displayable_cache_with_missing_current_model_does_not_schedule_background_rebuild(self):
         old_models = [model for model in app_module.MODEL_PROFILES if model != "rsm_plus"]
         snapshot = {
             "season": 2026,
@@ -513,18 +539,14 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
                 "models": {model: {"model": model} for model in old_models},
             }],
         }
-        games = [{"season": 2026, "week": 2}]
 
         with patch.object(app_module, "_load_upcoming_prediction_cache_snapshot", return_value=snapshot), \
             patch.object(app_module, "_resolve_upcoming_cache_target", return_value=(2026, 3)), \
             patch.object(app_module, "_games_source_signature", return_value="source"), \
             patch.object(app_module, "_availability_adjustments_signature", return_value="availability"), \
-            patch.object(app_module, "load_games", return_value=games) as load_games, \
-            patch.object(app_module, "_schedule_upcoming_prediction_refresh", return_value=True) as schedule:
-            self.assertTrue(app_module.schedule_startup_upcoming_cache_rebuild_if_needed())
-
-        load_games.assert_called_once_with(refresh=False)
-        schedule.assert_called_once_with(games, 2026, 3)
+            patch.object(app_module, "load_games", side_effect=AssertionError("startup should not load games for displayable cache")), \
+            patch.object(app_module, "_schedule_upcoming_prediction_refresh", side_effect=AssertionError("startup should not schedule model rebuild for displayable cache")):
+            self.assertFalse(app_module.schedule_startup_upcoming_cache_rebuild_if_needed())
 
     def test_daily_upcoming_refresh_forces_fresh_games_and_cache_rebuild(self):
         games = [{"season": 2026, "week": 2, "away_score": 21, "home_score": 17}]
