@@ -34,7 +34,7 @@ from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from quart import Response
 from nfl_live_data import live_scoreboard
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _nfl_week_rollover_hour, _nfl_week_rollover_zone, _rsm_artifact, apply_upcoming_availability_adjustments, cached_backtest, cached_matchup_history, cached_upcoming_predictions, cached_weekly_model_performance, cached_weekly_model_performance_trend, dashboard_snapshot, default_spread_threshold, default_total_threshold, find_upcoming_scheduled_match, games_cache_info, list_teams, load_games, load_upcoming_availability_adjustments, model_status_labels, predict_matchup, refresh_upcoming_final_scores_in_cache, summarize_by_season, upcoming_prediction_status_snapshot, warm_matchup_history_cache
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _availability_adjustments_signature, _games_source_signature, _has_all_upcoming_models, _has_valid_upcoming_games, _nfl_week_rollover_hour, _nfl_week_rollover_zone, _resolve_upcoming_cache_target, _rsm_artifact, _schedule_upcoming_prediction_refresh, apply_upcoming_availability_adjustments, cached_backtest, cached_matchup_history, cached_upcoming_predictions, cached_weekly_model_performance, cached_weekly_model_performance_trend, dashboard_snapshot, default_spread_threshold, default_total_threshold, find_upcoming_scheduled_match, games_cache_info, list_teams, load_games, load_upcoming_availability_adjustments, model_status_labels, predict_matchup, refresh_upcoming_final_scores_in_cache, summarize_by_season, upcoming_prediction_cache_path, upcoming_prediction_status_snapshot, warm_matchup_history_cache
 from rsm.stage8_evaluation import DEFAULT_OUTCOME_STORE, DEFAULT_TOTAL_OBSERVATION_STORE, TOTAL_MODEL_VERSION, capture_total_observation, evaluation_report, record_outcome, total_evaluation_report
 from rsm.stage8_shadow import DEFAULT_STORE as RSM_DEFAULT_STORE, capture_observation, line_movements
 
@@ -104,12 +104,8 @@ def start_daily_upcoming_cache_refresh_loop():
         return
 
     def _worker():
-        first_run = True
         while True:
-            if first_run:
-                first_run = False
-            else:
-                time.sleep(_seconds_until_next_weekly_upcoming_refresh())
+            time.sleep(_seconds_until_next_weekly_upcoming_refresh())
             try:
                 refresh_upcoming_prediction_cache_now()
             except Exception:
@@ -119,6 +115,42 @@ def start_daily_upcoming_cache_refresh_loop():
     _DAILY_UPCOMING_CACHE_REFRESH_RUNNING = True
     thread.start()
     return thread
+
+
+def _load_upcoming_prediction_cache_snapshot():
+    """Read the persisted upcoming board without loading games or rebuilding models."""
+    try:
+        with open(upcoming_prediction_cache_path(), encoding="utf-8") as source:
+            return json.load(source)
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _upcoming_cache_needs_startup_rebuild(snapshot: dict | None) -> bool:
+    if not isinstance(snapshot, dict) or not _has_valid_upcoming_games(snapshot):
+        return True
+    target_season, target_week = _resolve_upcoming_cache_target(None, None)
+    if target_season is not None and snapshot.get("season") != target_season:
+        return True
+    if target_week is not None and snapshot.get("week") != target_week:
+        return True
+    if not _has_all_upcoming_models(snapshot):
+        return True
+    if snapshot.get("games_source_signature") != _games_source_signature():
+        return True
+    if snapshot.get("availability_adjustments_signature") != _availability_adjustments_signature():
+        return True
+    return False
+
+
+def schedule_startup_upcoming_cache_rebuild_if_needed():
+    """Serve the persisted board on startup and rebuild only when the cache cannot satisfy current inputs."""
+    snapshot = _load_upcoming_prediction_cache_snapshot()
+    if not _upcoming_cache_needs_startup_rebuild(snapshot):
+        return False
+    target_season, target_week = _resolve_upcoming_cache_target(None, None)
+    games = load_games(refresh=False)
+    return _schedule_upcoming_prediction_refresh(games, target_season, target_week)
 
 
 def start_evening_final_score_refresh_loop():
@@ -167,6 +199,7 @@ def schedule_history_cache_warmup(games=None):
 @app.before_serving
 async def _start_daily_upcoming_cache_refresh_on_startup():
     start_daily_upcoming_cache_refresh_loop()
+    await asyncio.to_thread(schedule_startup_upcoming_cache_rebuild_if_needed)
     start_evening_final_score_refresh_loop()
     schedule_history_cache_warmup()
 
