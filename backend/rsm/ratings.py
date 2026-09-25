@@ -41,6 +41,10 @@ def _weighted_average(values: Iterable[Tuple[float, float]], default: float = 50
     return sum(value * weight for value, weight in entries) / total if total else default
 
 
+def _is_available_roster_status(status: object) -> bool:
+    return str(status or "").strip().upper() == "ACT"
+
+
 def aggregate_player_stats(rows: Iterable[dict]) -> Dict[Tuple[str, int], dict]:
     aggregates: Dict[Tuple[str, int], dict] = {}
     update_player_stat_aggregates(aggregates, rows)
@@ -327,14 +331,14 @@ def expected_lineups(
             chosen = None
             for candidate in slot_rows:
                 roster_row = roster_by_id.get((candidate.get("gsis_id") or "").strip(), {})
-                if (roster_row.get("status") or "").upper() == "ACT":
+                if _is_available_roster_status(roster_row.get("status")):
                     chosen = candidate
                     break
             chosen = chosen or slot_rows[0]
             player_id = (chosen.get("gsis_id") or "").strip()
             roster_row = roster_by_id.get(player_id, {})
             status = (roster_row.get("status") or "UNKNOWN").upper()
-            availability = 1.0 if status == "ACT" else 0.0
+            availability = 1.0 if _is_available_roster_status(status) else 0.0
             position = normalize_position(chosen.get("pos_abb") or roster_row.get("depth_chart_position") or "")
             if category == "special" and position != "K":
                 continue
@@ -354,7 +358,13 @@ def expected_lineups(
 
 
 def _group_rating(starters: List[LineupPlayer], ratings: Dict[str, PlayerRating], position: str, replacement: float) -> float:
-    values = [ratings[player.player_id].rating for player in starters if player.position == position and player.player_id in ratings]
+    values = [
+        ratings[player.player_id].rating
+        for player in starters
+        if player.position == position
+        and player.availability > 0
+        and player.player_id in ratings
+    ]
     return statistics.mean(values) if values else replacement
 
 
@@ -375,7 +385,7 @@ def build_team_ratings(
                  for position in OFFENSE_POSITIONS | DEFENSE_POSITIONS | {"K"}}
         ol_entries = []
         for player in starters:
-            if player.position != "OL" or player.player_id not in player_ratings:
+            if player.position != "OL" or player.availability <= 0 or player.player_id not in player_ratings:
                 continue
             slot = player.slot if player.slot in config.ol_position_weights else "C"
             ol_entries.append((player_ratings[player.player_id].rating, config.ol_position_weights.get(slot, 0.18)))

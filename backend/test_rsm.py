@@ -187,6 +187,34 @@ def test_inactive_depth_chart_starter_is_replaced_by_active_backup():
     assert [player.player_id for player in lineups["KC"]] == ["qb2"]
 
 
+def test_unavailable_depth_chart_player_does_not_boost_team_rating():
+    depth = complete_depth()
+    roster = [roster_player(row["gsis_id"], row["player_name"], "KC", row["pos_abb"]) for row in depth]
+    for player in roster:
+        if player["gsis_id"] == "rde":
+            player["status"] = "RES"
+    ratings = {row["gsis_id"]: rating(row["gsis_id"], normalize_position(row["pos_abb"]), 50) for row in depth}
+    ratings["rde"] = rating("rde", "EDGE", 95)
+
+    team = build_team_ratings(roster, depth, ratings, "2026-09-11T00:00:00Z")[0]
+
+    assert team.edge_rating == 50.0
+
+
+def test_reserve_player_rating_still_reported_but_excluded_from_current_lineup_strength():
+    roster = [
+        roster_player("edge1", "Reserve Edge", "GB", "EDGE", status="RES"),
+    ]
+    depth = [depth_row("GB", "edge1", "RDE", 1, group="Base 4-3 D")]
+    ratings = {"edge1": rating("edge1", "EDGE", 90, team="GB")}
+
+    lineups = expected_lineups(depth, roster, ratings)
+    team = build_team_ratings(roster, depth, ratings, "2026-09-11T00:00:00Z")[0]
+
+    assert lineups["GB"][0].availability == 0.0
+    assert team.edge_rating == 50.0
+
+
 def test_qb_has_more_offense_influence_than_running_back():
     depth = complete_depth()
     roster = [roster_player(row["gsis_id"], row["player_name"], "KC", row["pos_abb"]) for row in depth]
