@@ -1457,16 +1457,7 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
                 status="computing",
                 ready=False,
             )
-            prediction = predict_matchup(
-                games,
-                scheduled["away_team"], scheduled["home_team"],
-                -scheduled["spread_line"] if scheduled["spread_line"] is not None else None,
-                scheduled["total_line"], model,
-                scheduled["home_rest"], scheduled["away_rest"], scheduled["div_game"],
-                scheduled["roof"], scheduled["temp"], scheduled["wind"],
-                trained_model=trained_models[model],
-                upcoming_context=True,
-            )
+            prediction = predict_upcoming_with_trained_model(scheduled, model, trained_models[model])
             static_models[model] = prediction
             models[model] = apply_upcoming_availability_adjustments(prediction, scheduled, availability_adjustments)
             if checkpoint_enabled:
@@ -3317,6 +3308,90 @@ def predict_matchup(
         })
     if upcoming_context and model_profile in {"rothstein", "rothstein_plus"}:
         prediction = stabilize_rothstein_upcoming_prediction(prediction, model, game, model_profile)
+    return prediction
+
+
+def predict_upcoming_with_trained_model(
+    scheduled: dict,
+    model_profile: str,
+    trained_model,
+) -> dict:
+    market_margin = scheduled.get("spread_line")
+    total_line = scheduled.get("total_line")
+    game = {
+        "season": scheduled.get("season"),
+        "week": scheduled.get("week"),
+        "away_team": scheduled.get("away_team"),
+        "home_team": scheduled.get("home_team"),
+        "spread_line": market_margin,
+        "total_line": total_line,
+        "away_rest": scheduled.get("away_rest", 7.0),
+        "home_rest": scheduled.get("home_rest", 7.0),
+        "div_game": scheduled.get("div_game", False),
+        "roof": scheduled.get("roof", ""),
+        "temp": scheduled.get("temp"),
+        "wind": scheduled.get("wind"),
+    }
+    rsm_details = trained_model.prediction_details(game) if _is_rsm_family(model_profile) else None
+    if rsm_details:
+        pred_margin, pred_total = rsm_details["predicted_margin"], rsm_details["predicted_total"]
+    else:
+        pred_margin, pred_total = trained_model.predict(game)
+    spread_edge = pred_margin - market_margin if market_margin is not None else None
+    total_edge = pred_total - total_line if pred_total is not None and total_line is not None else None
+    spread_threshold = default_spread_threshold(model_profile)
+    total_threshold = default_total_threshold(model_profile)
+    eligible = True
+    if model_profile == "rothstein_plus":
+        eligible = is_rothstein_plus_eligible(trained_model, game)
+    prediction = {
+        "model": model_profile,
+        "away_team": scheduled.get("away_team"),
+        "home_team": scheduled.get("home_team"),
+        "pred_margin": pred_margin,
+        "pred_total": pred_total,
+        "spread_line": -market_margin if market_margin is not None else None,
+        "market_margin": market_margin,
+        "total_line": total_line,
+        "spread_edge": spread_edge,
+        "total_edge": total_edge,
+        "spread_threshold": spread_threshold,
+        "total_threshold": total_threshold,
+        "eligible": eligible,
+        "winner_pick": "home" if pred_margin > 0 else "away" if pred_margin < 0 else None,
+        "spread_pick": (
+            side_from_edge(spread_edge, threshold=spread_threshold)
+            if eligible and spread_edge is not None and model_supports_spread_picks(model_profile)
+            else None
+        ),
+        "total_pick": (
+            total_from_edge(total_edge, threshold=0.0)
+            if total_edge is not None and _is_rsm_family(model_profile)
+            else (
+                total_from_edge(total_edge, threshold=total_threshold)
+                if eligible and total_edge is not None and model_supports_totals(model_profile)
+                else None
+            )
+        ),
+        "market_source": None,
+        "market_observed_at": None,
+        "lineup_confidence": rsm_details["lineup_confidence"] if rsm_details else "not_applicable",
+        "total_model_version": rsm_details["total_model_version"] if rsm_details else None,
+        "latest_training_season": scheduled.get("season"),
+        "model_notes": [],
+    }
+    if model_profile == RSM_PLUS_PROFILE and rsm_details:
+        prediction.update({
+            "base_rsm_margin": rsm_details.get("base_rsm_margin"),
+            "matchup_adjustment": rsm_details.get("matchup_adjustment"),
+            "raw_matchup_adjustment": rsm_details.get("raw_matchup_adjustment"),
+            "matchup_explanations": rsm_details.get("matchup_explanations", []),
+            "matchup_contributions": rsm_details.get("matchup_contributions", []),
+            "data_confidence": rsm_details.get("data_confidence", "LOW"),
+            "model_version": rsm_details.get("model_version"),
+        })
+    if model_profile in {"rothstein", "rothstein_plus"}:
+        prediction = stabilize_rothstein_upcoming_prediction(prediction, trained_model, game, model_profile)
     return prediction
 
 

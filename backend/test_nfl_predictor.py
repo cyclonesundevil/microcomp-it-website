@@ -489,7 +489,7 @@ def test_upcoming_build_uses_current_season_training_by_default(monkeypatch):
     monkeypatch.setattr("nfl_predictor._clear_upcoming_checkpoint", lambda: None)
     monkeypatch.setattr("nfl_predictor._set_upcoming_progress", lambda *args, **kwargs: {})
     monkeypatch.setattr("nfl_predictor.attach_model_signals", lambda payload: payload)
-    monkeypatch.setattr("nfl_predictor.predict_matchup", lambda *args, **kwargs: {"model": args[5], "pred_margin": 1.0, "pred_total": 42.0})
+    monkeypatch.setattr("nfl_predictor.predict_upcoming_with_trained_model", lambda scheduled, model, trained_model: {"model": model, "pred_margin": 1.0, "pred_total": 42.0})
 
     nfl_predictor._build_upcoming_prediction_cache(games, 2026, 2)
 

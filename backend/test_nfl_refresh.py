@@ -329,8 +329,13 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("upcoming-week scope", payload["error"])
 
     async def test_upcoming_status_returns_progress_without_loading_games(self):
-        _set_upcoming_progress(44, "Scoring ATL at GB with baseline (game 1/16, step 1/112).", status="computing", ready=False)
-        with patch.object(app_module, "load_games", side_effect=AssertionError("status endpoint should not load games")):
+        cache_file = BACKEND_DIR / "data" / "nfl_upcoming_predictions_status_test.json"
+        with patch.object(nfl_predictor, "upcoming_prediction_cache_path", return_value=str(cache_file)), \
+            patch.object(app_module, "upcoming_prediction_cache_path", return_value=str(cache_file)):
+            _set_upcoming_progress(44, "Scoring ATL at GB with baseline (game 1/16, step 1/112).", status="computing", ready=False)
+        with patch.object(nfl_predictor, "upcoming_prediction_cache_path", return_value=str(cache_file)), \
+            patch.object(app_module, "upcoming_prediction_cache_path", return_value=str(cache_file)), \
+            patch.object(app_module, "load_games", side_effect=AssertionError("status endpoint should not load games")):
             response = await self.client.get("/api/v1/nfl/upcoming/status")
         payload = await response.get_json()
 
@@ -338,6 +343,7 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(payload["success"])
         self.assertEqual(payload["progress"]["progress"], 44)
         self.assertEqual(payload["progress"]["message"], "Scoring ATL at GB with baseline (game 1/16, step 1/112).")
+        Path(f"{cache_file}.progress.json").unlink(missing_ok=True)
 
         def test_upcoming_cache_without_current_source_signature_is_rebuilt(self):
             cache_file = BACKEND_DIR / "data" / "nfl_upcoming_predictions_old_source.json"
@@ -497,7 +503,7 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
             patch.object(nfl_predictor, "_upcoming_build_fingerprint", return_value="resume-fingerprint"), \
             patch.object(nfl_predictor, "_load_upcoming_checkpoint", return_value=checkpoint), \
             patch.object(nfl_predictor, "_write_upcoming_checkpoint"), \
-            patch.object(nfl_predictor, "predict_matchup", return_value={"pred_margin": 1.0, "pred_total": 44.0}) as predict:
+            patch.object(nfl_predictor, "predict_upcoming_with_trained_model", return_value={"pred_margin": 1.0, "pred_total": 44.0}) as predict:
             result = nfl_predictor._build_upcoming_prediction_cache(games, 2026, 2)
 
         self.assertEqual(len(result["games"]), 2)
