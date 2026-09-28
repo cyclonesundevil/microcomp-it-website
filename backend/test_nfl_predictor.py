@@ -1,4 +1,5 @@
 import csv
+import errno
 import io
 import json
 import os
@@ -494,6 +495,34 @@ def test_upcoming_build_uses_current_season_training_by_default(monkeypatch):
 
     assert seen_lengths
     assert all(length == 1 and seasons == {2026} for _profile, length, seasons in seen_lengths)
+
+
+def test_historical_model_cache_write_failure_returns_trained_model(tmp_path, monkeypatch):
+    games = [{"season": 2026, "week": 1, "game_id": "new", "away_score": 17.0, "home_score": 20.0}]
+    trained = object()
+    monkeypatch.setattr("nfl_predictor._historical_model_cache_path", lambda profile, rows: str(tmp_path / "nfl_baseline_historical_model_test.pkl"))
+    monkeypatch.setattr("nfl_predictor.train_model", lambda rows, profile: trained)
+
+    def fail_write(_path, _model):
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    monkeypatch.setattr("nfl_predictor._write_model_cache", fail_write)
+
+    assert nfl_predictor._load_or_train_historical_model(games, "baseline") is trained
+
+
+def test_write_model_cache_cleans_temp_file_on_failure(tmp_path, monkeypatch):
+    cache_path = tmp_path / "nfl_baseline_historical_model_test.pkl"
+
+    def fail_dump(*_args, **_kwargs):
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    monkeypatch.setattr("nfl_predictor.pickle.dump", fail_dump)
+
+    with pytest.raises(OSError):
+        nfl_predictor._write_model_cache(str(cache_path), object())
+
+    assert not list(tmp_path.glob("*.tmp"))
 
 
 def test_upcoming_refresh_can_be_scheduled_while_cache_lock_is_held(monkeypatch):

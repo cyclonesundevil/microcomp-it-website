@@ -755,13 +755,41 @@ def _historical_model_cache_path(profile: str, games: List[dict]) -> str:
     return os.path.join(cache_root, f"nfl_{profile}_historical_model_{fingerprint}.pkl")
 
 
+def _prune_historical_model_cache(root: str, keep: int = 8) -> int:
+    try:
+        entries = [
+            os.path.join(root, name)
+            for name in os.listdir(root)
+            if name.startswith("nfl_") and ("_historical_model_" in name or name.endswith(".tmp"))
+        ]
+    except OSError:
+        return 0
+    entries = [path for path in entries if os.path.isfile(path)]
+    entries.sort(key=lambda path: os.path.getmtime(path), reverse=True)
+    removed = 0
+    for path in entries[max(0, keep):]:
+        try:
+            os.remove(path)
+            removed += 1
+        except OSError:
+            pass
+    return removed
+
+
 def _write_model_cache(cache_path: str, model) -> None:
     temporary_path = f"{cache_path}.{os.getpid()}.{time.time_ns()}.tmp"
-    with open(temporary_path, "wb") as target:
-        pickle.dump(model, target, protocol=pickle.HIGHEST_PROTOCOL)
-        target.flush()
-        os.fsync(target.fileno())
-    os.replace(temporary_path, cache_path)
+    try:
+        with open(temporary_path, "wb") as target:
+            pickle.dump(model, target, protocol=pickle.HIGHEST_PROTOCOL)
+            target.flush()
+            os.fsync(target.fileno())
+        os.replace(temporary_path, cache_path)
+    except OSError:
+        try:
+            os.remove(temporary_path)
+        except OSError:
+            pass
+        raise
 
 
 def _load_or_train_historical_model(games: List[dict], profile: str):
@@ -774,8 +802,14 @@ def _load_or_train_historical_model(games: List[dict], profile: str):
             return pickle.load(source)
     except (OSError, EOFError, AttributeError, pickle.PickleError, ValueError):
         model = train_model(games, profile)
-        os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
-        _write_model_cache(cache_path, model)
+        root = os.path.dirname(cache_path) or "."
+        try:
+            os.makedirs(root, exist_ok=True)
+            _prune_historical_model_cache(root)
+            _write_model_cache(cache_path, model)
+        except OSError as error:
+            if getattr(error, "errno", None) == errno.ENOSPC:
+                _prune_historical_model_cache(root, keep=2)
         return model
 
 
