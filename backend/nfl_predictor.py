@@ -169,6 +169,10 @@ def _upcoming_progress_path() -> str:
     return f"{upcoming_prediction_cache_path()}.progress.json"
 
 
+def _upcoming_checkpoint_enabled() -> bool:
+    return os.getenv("NFL_UPCOMING_CHECKPOINTS", "").strip().lower() in {"1", "true", "yes"}
+
+
 def _upcoming_build_fingerprint(games: List[dict], upcoming: List[dict], season: Optional[int], week: Optional[int]) -> str:
     source = {
         "schema_version": UPCOMING_PREDICTION_SCHEMA_VERSION,
@@ -1353,7 +1357,10 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
     progress_floor = 12
     progress_ceiling = 88
     fingerprint = _upcoming_build_fingerprint(games, upcoming, season, week)
-    checkpoint = _load_upcoming_checkpoint(fingerprint)
+    checkpoint_enabled = _upcoming_checkpoint_enabled()
+    if not checkpoint_enabled:
+        _clear_upcoming_checkpoint()
+    checkpoint = _load_upcoming_checkpoint(fingerprint) if checkpoint_enabled else None
 
     if checkpoint:
         trained_models = checkpoint["trained_models"]
@@ -1419,7 +1426,8 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
             )
             static_models[model] = prediction
             models[model] = apply_upcoming_availability_adjustments(prediction, scheduled, availability_adjustments)
-            _write_upcoming_checkpoint(fingerprint, trained_models, list(rows_by_game_id.values()), step_index + 1)
+            if checkpoint_enabled:
+                _write_upcoming_checkpoint(fingerprint, trained_models, list(rows_by_game_id.values()), step_index + 1)
         rows = list(rows_by_game_id.values())
 
     payload = {

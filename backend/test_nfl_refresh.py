@@ -480,6 +480,7 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
         pair_cache_path.unlink(missing_ok=True)
 
     def test_upcoming_build_resumes_after_checkpointed_step(self):
+        os.environ["NFL_UPCOMING_CHECKPOINTS"] = "1"
         games = [{"season": 2026, "week": 1}]
         upcoming = [
             {"game_id": "game-1", "season": 2026, "week": 2, "away_team": "A", "home_team": "B", "spread_line": None, "total_line": None, "home_rest": 7.0, "away_rest": 7.0, "div_game": False, "roof": "", "temp": None, "wind": None},
@@ -501,6 +502,7 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(len(result["games"]), 2)
         self.assertEqual(predict.call_count, (len(app_module.MODEL_PROFILES) - 5) + len(app_module.MODEL_PROFILES))
+        os.environ.pop("NFL_UPCOMING_CHECKPOINTS", None)
 
     def test_backtest_cache_reuses_computed_result(self):
         games = [{
