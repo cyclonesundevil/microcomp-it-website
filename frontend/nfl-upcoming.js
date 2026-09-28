@@ -489,7 +489,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 );
                 if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load upcoming predictions');
 
-                if (data.ready === false || (data.status === 'computing' && !data.cache_hit)) {
+                const waitingForForecast = data.ready === false && (data.refresh_scheduled || data.status === 'computing');
+                if (waitingForForecast || (data.status === 'computing' && !data.cache_hit)) {
                     showProgress(Math.max(10, Math.min(95, Number(data.progress) || 15)), data.message || 'Forecast is still being computed.');
                     tableBody.innerHTML = '<tr><td colspan="10">Forecast is still being computed...</td></tr>';
                     renderModelSignals([]);
@@ -524,6 +525,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         pollTimer = null;
                         poll();
                     }, 2500);
+                    return;
+                }
+                if (data.ready === false) {
+                    stopTimers();
+                    progressPanel.hidden = true;
+                    message.textContent = data.message || 'Upcoming forecast cache is not ready. Use Refresh Upcoming Predictions to rebuild it.';
+                    tableBody.innerHTML = '<tr><td colspan="10">Forecast cache is not ready.</td></tr>';
+                    if (rosterComparisonBody) rosterComparisonBody.innerHTML = '<tr><td colspan="13">Forecast cache is not ready.</td></tr>';
+                    renderModelSignals([]);
                     return;
                 }
                 stopTimers();

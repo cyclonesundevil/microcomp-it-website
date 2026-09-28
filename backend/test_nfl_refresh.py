@@ -141,7 +141,7 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
         payload = await response.get_json()
 
         self.assertEqual(response.status_code, 200)
-        cached.assert_called_once_with(games, None, None, False, False)
+        cached.assert_called_once_with(games, None, None, False, True)
         self.assertEqual(len(payload["games"]), 1)
         self.assertEqual(set(payload["games"][0]["models"]), set(app_module.MODEL_PROFILES))
 
@@ -167,7 +167,7 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
         payload = await response.get_json()
 
         self.assertEqual(response.status_code, 200)
-        cached.assert_called_once_with(games, None, None, False, False)
+        cached.assert_called_once_with(games, None, None, False, True)
         self.assertTrue(payload["ready"])
         self.assertEqual(len(payload["games"]), 1)
 

@@ -1730,6 +1730,12 @@ def upcoming_predictions_for_roster_basis(payload: dict, roster_basis: str = "ac
     response["availability_adjustment_count"] = adjustment_count
     response["availability_adjustments_signature"] = _availability_adjustments_signature()
 
+    if response.get("ready") is False and not response.get("games"):
+        response["availability_adjustments_applied"] = False
+        if basis == "comparison":
+            response["comparison_rows"] = []
+        return response
+
     if basis == "static":
         for game in response.get("games") or []:
             if isinstance(game, dict) and isinstance(game.get("static_models"), dict):

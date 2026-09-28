@@ -221,6 +221,27 @@ def test_upcoming_roster_basis_active_uses_adjusted_predictions(monkeypatch):
     assert prediction["availability_adjusted"] is True
 
 
+def test_upcoming_roster_basis_preserves_not_ready_status(monkeypatch):
+    monkeypatch.setattr("nfl_predictor.upcoming_availability_adjustment_count", lambda season=None, week=None: 0)
+    monkeypatch.setattr("nfl_predictor._availability_adjustments_signature", lambda: "adjustments")
+    payload = {
+        "season": 2026,
+        "week": 3,
+        "games": [],
+        "ready": False,
+        "status": "idle",
+        "refresh_scheduled": False,
+        "message": "Upcoming forecast cache is not ready. Admin refresh is required to rebuild it.",
+    }
+
+    response = upcoming_predictions_for_roster_basis(payload, "active")
+
+    assert response["ready"] is False
+    assert response["status"] == "idle"
+    assert response["availability_adjustments_applied"] is False
+    assert response["message"] == "Upcoming forecast cache is not ready. Admin refresh is required to rebuild it."
+
+
 def test_upcoming_roster_basis_comparison_returns_deltas_and_pick_changes(monkeypatch):
     monkeypatch.setattr("nfl_predictor.upcoming_availability_adjustment_count", lambda season=None, week=None: 1)
     monkeypatch.setattr("nfl_predictor._availability_adjustments_signature", lambda: "adjustments")
