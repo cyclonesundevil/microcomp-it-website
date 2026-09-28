@@ -7,6 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const message = document.getElementById('upcoming-message');
     const cacheStatus = document.getElementById('upcoming-cache-status');
     const tableBody = document.getElementById('upcoming-table-body');
+    const upcomingBoardWrap = tableBody?.closest('.nfl-table-wrap');
+    const rosterBasisMessage = document.getElementById('roster-basis-message');
+    const rosterBasisButtons = Array.from(document.querySelectorAll('[data-roster-basis]'));
+    const rosterComparisonPanel = document.getElementById('roster-comparison-panel');
+    const rosterComparisonBody = document.getElementById('roster-comparison-body');
     const signalsGrid = document.getElementById('model-signals-grid');
     const performanceMessage = document.getElementById('weekly-performance-message');
     const performanceBody = document.getElementById('weekly-performance-body');
@@ -16,6 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let elapsedTimer = null;
     let startedAt = null;
     let displayedSeason = null;
+    const initialParams = new URLSearchParams(window.location.search);
+    const initialRosterBasis = initialParams.get('roster_basis');
+    let selectedRosterBasis = ['static', 'active', 'comparison'].includes(initialRosterBasis) ? initialRosterBasis : 'active';
+    let rosterBasisExplicit = ['static', 'active', 'comparison'].includes(initialRosterBasis);
 
     function updateElapsed() {
         if (!startedAt || !progressElapsed) return;
@@ -125,6 +134,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return value === null || value === undefined ? '--' : Number(value).toFixed(2);
     }
 
+    function formatOneDecimal(value) {
+        return value === null || value === undefined ? '--' : Number(value).toFixed(1);
+    }
+
+    function formatDelta(value) {
+        if (value === null || value === undefined) return '--';
+        const number = Number(value);
+        if (!Number.isFinite(number)) return '--';
+        if (Math.abs(number) < 0.05) return '0.0';
+        return number > 0 ? `+${number.toFixed(1)}` : number.toFixed(1);
+    }
+
+    function formatPick(value) {
+        return value ? String(value).toUpperCase() : '--';
+    }
+
+    function formatHomeMargin(value, schedule) {
+        if (value === null || value === undefined) return '--';
+        const number = Number(value);
+        if (!Number.isFinite(number)) return '--';
+        const team = schedule?.home_team || 'HOME';
+        return `${team} ${number > 0 ? '+' : ''}${number.toFixed(1)}`;
+    }
+
     function recordString(wins, losses, pushes, bets) {
         if (!bets) return 'No picks';
         const pushPart = pushes ? `-${pushes}` : '';
@@ -170,6 +203,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const entries = Object.entries(statuses || {}).filter(([model]) => model !== 'market');
         if (!entries.length) return '';
         return `<div class="model-status-pills">${entries.map(([model, status]) => `<span class="model-status-pill">${escapeHtml(model)}: ${escapeHtml(status)}</span>`).join('')}</div>`;
+    }
+
+    function setRosterBasisButtons() {
+        rosterBasisButtons.forEach((button) => {
+            const active = button.dataset.rosterBasis === selectedRosterBasis;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+    }
+
+    function updateRosterBasisUrl() {
+        const url = new URL(window.location.href);
+        url.searchParams.set('roster_basis', selectedRosterBasis);
+        window.history.replaceState({}, '', url);
+    }
+
+    function rosterBasisNote(data) {
+        const count = Number(data.availability_adjustment_count || 0);
+        if (data.roster_basis === 'static') {
+            return 'Showing pregame static roster projections. Approved roster adjustments are not applied.';
+        }
+        if (data.roster_basis === 'comparison') {
+            return count
+                ? `Comparing pregame static projections against known active roster projections with ${count} approved adjustment${count === 1 ? '' : 's'}.`
+                : 'No approved roster adjustments are available for this week.';
+        }
+        return count
+            ? `Showing projections with approved roster/inactive adjustments applied (${count} adjustment${count === 1 ? '' : 's'}).`
+            : 'No approved roster adjustments are available for this week.';
     }
 
     function renderModelSignals(games) {
@@ -243,7 +305,23 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     }
 
+    function adjustmentSummary(adjustments) {
+        const rows = adjustments || [];
+        if (!rows.length) return '--';
+        return rows.map((item) => {
+            const deltas = [
+                item.margin_delta ? `spread ${formatDelta(item.margin_delta)}` : '',
+                item.total_delta ? `total ${formatDelta(item.total_delta)}` : '',
+            ].filter(Boolean).join(', ');
+            const source = item.source ? ` (${escapeHtml(item.source)})` : '';
+            return `${escapeHtml(item.team || '')}: ${escapeHtml(item.label || 'Availability adjustment')}${deltas ? `; ${deltas}` : ''}${source}`;
+        }).join('<br>');
+    }
+
     function renderGames(data) {
+        if (upcomingBoardWrap) upcomingBoardWrap.hidden = data.roster_basis === 'comparison';
+        if (rosterComparisonPanel) rosterComparisonPanel.hidden = data.roster_basis !== 'comparison';
+        if (rosterBasisMessage) rosterBasisMessage.textContent = rosterBasisNote(data);
         if (!data.games.length) {
             progressPanel.hidden = true;
             message.textContent = data.message || 'No upcoming games were found in the schedule feed.';
@@ -275,6 +353,46 @@ document.addEventListener('DOMContentLoaded', () => {
             return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small>${status}</td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'mean_reversion', 'rothstein', 'rothstein_plus', 'rsm_stage7c', 'rsm_plus'].map((model) => `<td>${modelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
         }).join('');
         renderModelSignals(data.games);
+    }
+
+    function renderRosterComparison(data) {
+        if (upcomingBoardWrap) upcomingBoardWrap.hidden = true;
+        if (rosterComparisonPanel) rosterComparisonPanel.hidden = false;
+        if (rosterBasisMessage) rosterBasisMessage.textContent = rosterBasisNote(data);
+        progressPanel.hidden = true;
+        const ageLabel = formatCacheAge(data.cache_age_seconds);
+        cacheStatus.textContent = data.generated_at
+            ? `Forecast board last rebuilt ${formatDateTime(data.generated_at)}${ageLabel ? ` (${ageLabel})` : ''}.`
+            : 'Forecast board rebuild timestamp unavailable.';
+        message.textContent = `Season ${data.season}, week ${data.week}. Comparing pregame static roster projections to known active roster projections.`;
+        const rows = data.comparison_rows || [];
+        if (!rows.length) {
+            rosterComparisonBody.innerHTML = '<tr><td colspan="13">No roster comparison rows are available.</td></tr>';
+            renderModelSignals(data.games || []);
+            return;
+        }
+        rosterComparisonBody.innerHTML = rows.map((row) => {
+            const schedule = row.schedule || {};
+            const matchup = `${escapeHtml(row.matchup || '')}<br><small>${escapeHtml(schedule.gameday || '--')} ${escapeHtml(schedule.gametime || '')}</small>`;
+            const atsClass = row.ats_pick_changed ? ' class="pick-changed"' : '';
+            const ouClass = row.ou_pick_changed ? ' class="pick-changed"' : '';
+            return `<tr>
+                <td>${matchup}</td>
+                <td>${escapeHtml(row.model)}</td>
+                <td>${formatHomeMargin(row.static_margin, schedule)}</td>
+                <td>${formatHomeMargin(row.active_margin, schedule)}</td>
+                <td>${formatDelta(row.margin_delta)}</td>
+                <td>${formatOneDecimal(row.static_total)}</td>
+                <td>${formatOneDecimal(row.active_total)}</td>
+                <td>${formatDelta(row.total_delta)}</td>
+                <td${atsClass}>${formatPick(row.static_ats_pick)}</td>
+                <td${atsClass}>${formatPick(row.active_ats_pick)}</td>
+                <td${ouClass}>${formatPick(row.static_ou_pick)}</td>
+                <td${ouClass}>${formatPick(row.active_ou_pick)}</td>
+                <td>${adjustmentSummary(row.adjustments)}</td>
+            </tr>`;
+        }).join('');
+        renderModelSignals(data.games || []);
     }
 
     function shouldTrackBackgroundRefresh(data) {
@@ -363,7 +481,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const poll = async () => {
             try {
-                const url = `${apiBase}/api/nfl/upcoming?scope=upcoming${forceRefresh ? '&refresh=1' : ''}`;
+                const url = `${apiBase}/api/nfl/upcoming?scope=upcoming&roster_basis=${encodeURIComponent(selectedRosterBasis)}${forceRefresh ? '&refresh=1' : ''}`;
                 const { response, data } = await fetchJsonWithTimeout(
                     url,
                     forceRefresh ? { headers: { 'X-NFL-Refresh-Token': token } } : {},
@@ -382,7 +500,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                renderGames(data);
+                if (!rosterBasisExplicit && selectedRosterBasis === 'active' && Number(data.availability_adjustment_count || 0) === 0) {
+                    selectedRosterBasis = 'static';
+                    setRosterBasisButtons();
+                    updateRosterBasisUrl();
+                    pollTimer = window.setTimeout(() => {
+                        pollTimer = null;
+                        poll();
+                    }, 0);
+                    return;
+                }
+
+                if (data.roster_basis === 'comparison') {
+                    renderRosterComparison(data);
+                } else {
+                    renderGames(data);
+                }
                 populatePerformanceWeekSelector(data.season, data.week);
                 loadWeeklyPerformance(data.season, performanceWeekSelect.value || data.week);
                 if (shouldTrackBackgroundRefresh(data)) {
@@ -428,6 +561,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!displayedSeason) return;
         loadWeeklyPerformance(displayedSeason, performanceWeekSelect.value);
     });
+    rosterBasisButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            const basis = button.dataset.rosterBasis;
+            if (!['static', 'active', 'comparison'].includes(basis) || basis === selectedRosterBasis) return;
+            selectedRosterBasis = basis;
+            rosterBasisExplicit = true;
+            setRosterBasisButtons();
+            updateRosterBasisUrl();
+            loadUpcoming(false);
+        });
+    });
     refreshButton.addEventListener('click', () => loadUpcoming(true));
+    setRosterBasisButtons();
+    updateRosterBasisUrl();
     loadUpcoming(false);
 });

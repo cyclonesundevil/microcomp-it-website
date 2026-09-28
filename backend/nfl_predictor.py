@@ -1,4 +1,5 @@
 import argparse
+import copy
 import csv
 import errno
 import hashlib
@@ -26,7 +27,7 @@ RSM_PROFILE = "rsm_stage7c"
 RSM_PLUS_PROFILE = "rsm_plus"
 MEAN_REVERSION_PROFILE = "mean_reversion"
 MODEL_PROFILES = ("baseline", "enhanced", "market_blend", MEAN_REVERSION_PROFILE, "rothstein", "rothstein_plus", RSM_PROFILE, RSM_PLUS_PROFILE)
-UPCOMING_PREDICTION_SCHEMA_VERSION = 5
+UPCOMING_PREDICTION_SCHEMA_VERSION = 6
 WEEKLY_PERFORMANCE_TREND_SCHEMA_VERSION = 1
 EXPERIMENTAL_PROBABILITY_SCHEMA_VERSION = 1
 REPORTS_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "reports"))
@@ -282,6 +283,17 @@ def apply_upcoming_availability_adjustments(prediction: dict, scheduled: dict, a
     notes.append("Upcoming availability adjustment applied after the core model projection; historical/backtest model behavior is unchanged.")
     adjusted["model_notes"] = notes
     return adjusted
+
+
+def upcoming_availability_adjustment_count(season: Optional[int] = None, week: Optional[int] = None) -> int:
+    count = 0
+    for adjustment in load_upcoming_availability_adjustments():
+        if season is not None and adjustment.get("season") not in {None, season}:
+            continue
+        if week is not None and adjustment.get("week") not in {None, week}:
+            continue
+        count += 1
+    return count
 
 
 def model_status_labels(model_profiles: Tuple[str, ...] = MODEL_PROFILES) -> dict:
@@ -1374,11 +1386,14 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
         and row["schedule"].get("game_id")
     }
     for game_index, scheduled in enumerate(upcoming):
-        row = rows_by_game_id.setdefault(scheduled["game_id"], {"schedule": scheduled, "models": {}})
+        row = rows_by_game_id.setdefault(scheduled["game_id"], {"schedule": scheduled, "models": {}, "static_models": {}})
         models = row["models"]
+        static_models = row.setdefault("static_models", {})
+        if not static_models and models:
+            static_models.update(copy.deepcopy(models))
         for model_index, model in enumerate(MODEL_PROFILES):
             step_index = (game_index * len(MODEL_PROFILES)) + model_index
-            if step_index < resume_step and model in models:
+            if step_index < resume_step and model in models and model in static_models:
                 continue
             completion = progress_floor + 30 + ((step_index + 1) / max(1, total_game_steps)) * (progress_ceiling - progress_floor - 30)
             _set_upcoming_progress(
@@ -1398,6 +1413,7 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
                 trained_model=trained_models[model],
                 upcoming_context=True,
             )
+            static_models[model] = prediction
             models[model] = apply_upcoming_availability_adjustments(prediction, scheduled, availability_adjustments)
             _write_upcoming_checkpoint(fingerprint, trained_models, list(rows_by_game_id.values()), step_index + 1)
         rows = list(rows_by_game_id.values())
@@ -1621,6 +1637,115 @@ def _has_all_upcoming_models(payload: dict) -> bool:
 
 def _upcoming_response(payload: dict, **overrides) -> dict:
     response = {**payload, **overrides}
+    return attach_model_signals(response)
+
+
+def _prediction_value(prediction: Optional[dict], field: str):
+    if not isinstance(prediction, dict) or prediction.get("display_suppressed"):
+        return None
+    return prediction.get(field)
+
+
+def _prediction_delta(active: Optional[dict], static: Optional[dict], field: str) -> Optional[float]:
+    active_value = _prediction_value(active, field)
+    static_value = _prediction_value(static, field)
+    if active_value is None or static_value is None:
+        return None
+    return float(active_value) - float(static_value)
+
+
+def _pick_changed(active: Optional[dict], static: Optional[dict], field: str) -> bool:
+    active_pick = _prediction_value(active, field)
+    static_pick = _prediction_value(static, field)
+    return active_pick is not None and static_pick is not None and active_pick != static_pick
+
+
+def _game_adjustment_details(game: dict) -> List[dict]:
+    details = []
+    for prediction in (game.get("models") or {}).values():
+        for adjustment in prediction.get("availability_adjustments") or [] if isinstance(prediction, dict) else []:
+            key = (
+                adjustment.get("team"),
+                adjustment.get("margin_delta"),
+                adjustment.get("total_delta"),
+                adjustment.get("label"),
+                adjustment.get("source"),
+            )
+            if key not in {
+                (
+                    existing.get("team"),
+                    existing.get("margin_delta"),
+                    existing.get("total_delta"),
+                    existing.get("label"),
+                    existing.get("source"),
+                )
+                for existing in details
+            }:
+                details.append(dict(adjustment))
+    return details
+
+
+def _upcoming_roster_comparison_rows(payload: dict) -> List[dict]:
+    rows = []
+    for game in payload.get("games") or []:
+        schedule = game.get("schedule") or {}
+        active_models = game.get("models") or {}
+        static_models = game.get("static_models") or {}
+        adjustments = _game_adjustment_details(game)
+        for model in MODEL_PROFILES:
+            active = active_models.get(model)
+            static = static_models.get(model)
+            rows.append({
+                "matchup": f"{schedule.get('away_team', '')} at {schedule.get('home_team', '')}".strip(),
+                "game_id": schedule.get("game_id"),
+                "schedule": schedule,
+                "model": model,
+                "static_margin": _prediction_value(static, "pred_margin"),
+                "active_margin": _prediction_value(active, "pred_margin"),
+                "margin_delta": _prediction_delta(active, static, "pred_margin"),
+                "static_total": _prediction_value(static, "pred_total"),
+                "active_total": _prediction_value(active, "pred_total"),
+                "total_delta": _prediction_delta(active, static, "pred_total"),
+                "static_ats_pick": _prediction_value(static, "spread_pick"),
+                "active_ats_pick": _prediction_value(active, "spread_pick"),
+                "ats_pick_changed": _pick_changed(active, static, "spread_pick"),
+                "static_ou_pick": _prediction_value(static, "total_pick"),
+                "active_ou_pick": _prediction_value(active, "total_pick"),
+                "ou_pick_changed": _pick_changed(active, static, "total_pick"),
+                "adjustments": adjustments,
+            })
+    return rows
+
+
+def upcoming_predictions_for_roster_basis(payload: dict, roster_basis: str = "active") -> dict:
+    basis = (roster_basis or "active").strip().lower()
+    if basis not in {"static", "active", "comparison"}:
+        raise ValueError("roster_basis must be one of: static, active, comparison")
+
+    response = copy.deepcopy(payload)
+    season = response.get("season")
+    week = response.get("week")
+    adjustment_count = upcoming_availability_adjustment_count(season, week)
+    response["roster_basis"] = basis
+    response["availability_adjustment_count"] = adjustment_count
+    response["availability_adjustments_signature"] = _availability_adjustments_signature()
+
+    if basis == "static":
+        for game in response.get("games") or []:
+            if isinstance(game, dict) and isinstance(game.get("static_models"), dict):
+                game["models"] = copy.deepcopy(game["static_models"])
+        response["availability_adjustments_applied"] = False
+        response["message"] = "Forecast ready with pregame static roster projections."
+        return attach_model_signals(response)
+
+    if basis == "comparison":
+        response["availability_adjustments_applied"] = adjustment_count > 0
+        response["comparison_rows"] = _upcoming_roster_comparison_rows(response)
+        response["message"] = "Forecast ready with static vs known active roster comparison."
+        return response
+
+    response["availability_adjustments_applied"] = True
+    response["message"] = "Forecast ready with approved roster/inactive adjustments applied."
     return attach_model_signals(response)
 
 

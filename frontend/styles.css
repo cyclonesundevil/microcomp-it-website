@@ -3030,6 +3030,56 @@ nav a:hover:not(.btn-primary) {
     transition: width 0.35s ease;
 }
 
+.roster-basis-controls {
+    max-width: 980px;
+    margin: 0 auto 0.9rem;
+    justify-content: center;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.roster-basis-controls > span {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.segmented-control {
+    display: inline-flex;
+    padding: 0.18rem;
+    border: 1px solid rgba(0, 240, 255, 0.22);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.045);
+}
+
+.segmented-button {
+    min-height: 34px;
+    padding: 0.35rem 0.7rem;
+    border: 0;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    background: transparent;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.segmented-button.is-active {
+    color: #041014;
+    background: var(--accent-blue);
+}
+
+.roster-comparison-table {
+    min-width: 1320px;
+}
+
+.pick-changed {
+    color: #04110a;
+    background: rgba(94, 230, 140, 0.92);
+}
+
 .experimental-shell {
     width: min(1180px, calc(100% - 2rem));
     margin: 0 auto;

@@ -40,6 +40,7 @@ from nfl_predictor import (
     side_from_edge,
     summarize,
     train_model,
+    upcoming_predictions_for_roster_basis,
     weekly_model_performance,
 )
 
@@ -82,6 +83,61 @@ def _FixedDateTime(fixed_now):
             return fixed_now.astimezone(tz)
 
     return FixedDateTime
+
+
+def _roster_basis_payload():
+    return {
+        "generated_at": "2026-09-28T20:00:00+00:00",
+        "prediction_schema_version": 6,
+        "season": 2026,
+        "week": 3,
+        "models": list(MODEL_PROFILES),
+        "games": [{
+            "schedule": {
+                "game_id": "2026_03_PHI_CHI",
+                "season": 2026,
+                "week": 3,
+                "away_team": "PHI",
+                "home_team": "CHI",
+                "spread_line": -3.5,
+                "total_line": 42.5,
+            },
+            "static_models": {
+                "baseline": {
+                    "model": "baseline",
+                    "away_team": "PHI",
+                    "home_team": "CHI",
+                    "pred_margin": -1.0,
+                    "pred_total": 43.0,
+                    "market_margin": -3.5,
+                    "total_line": 42.5,
+                    "spread_pick": "home",
+                    "total_pick": "over",
+                },
+            },
+            "models": {
+                "baseline": {
+                    "model": "baseline",
+                    "away_team": "PHI",
+                    "home_team": "CHI",
+                    "pred_margin": -5.0,
+                    "pred_total": 40.0,
+                    "market_margin": -3.5,
+                    "total_line": 42.5,
+                    "spread_pick": "away",
+                    "total_pick": "under",
+                    "availability_adjusted": True,
+                    "availability_adjustments": [{
+                        "team": "CHI",
+                        "margin_delta": -4.0,
+                        "total_delta": -3.0,
+                        "label": "CHI QB downgrade confirmed.",
+                        "source": "Official inactive report",
+                    }],
+                },
+            },
+        }],
+    }
 
 
 def test_forced_refresh_validates_and_atomically_replaces_cache(tmp_path, monkeypatch):
@@ -138,11 +194,61 @@ def test_availability_adjustment_signature_changes_with_content(tmp_path, monkey
     assert third_signature != first_signature
 
 
+def test_upcoming_roster_basis_static_uses_unadjusted_predictions(monkeypatch):
+    monkeypatch.setattr("nfl_predictor.upcoming_availability_adjustment_count", lambda season=None, week=None: 1)
+    monkeypatch.setattr("nfl_predictor._availability_adjustments_signature", lambda: "adjustments")
+
+    response = upcoming_predictions_for_roster_basis(_roster_basis_payload(), "static")
+
+    prediction = response["games"][0]["models"]["baseline"]
+    assert response["roster_basis"] == "static"
+    assert response["availability_adjustments_applied"] is False
+    assert prediction["pred_margin"] == -1.0
+    assert prediction.get("availability_adjusted") is None
+
+
+def test_upcoming_roster_basis_active_uses_adjusted_predictions(monkeypatch):
+    monkeypatch.setattr("nfl_predictor.upcoming_availability_adjustment_count", lambda season=None, week=None: 1)
+    monkeypatch.setattr("nfl_predictor._availability_adjustments_signature", lambda: "adjustments")
+
+    response = upcoming_predictions_for_roster_basis(_roster_basis_payload(), "active")
+
+    prediction = response["games"][0]["models"]["baseline"]
+    assert response["roster_basis"] == "active"
+    assert response["availability_adjustments_applied"] is True
+    assert response["availability_adjustment_count"] == 1
+    assert prediction["pred_margin"] == -5.0
+    assert prediction["availability_adjusted"] is True
+
+
+def test_upcoming_roster_basis_comparison_returns_deltas_and_pick_changes(monkeypatch):
+    monkeypatch.setattr("nfl_predictor.upcoming_availability_adjustment_count", lambda season=None, week=None: 1)
+    monkeypatch.setattr("nfl_predictor._availability_adjustments_signature", lambda: "adjustments")
+
+    response = upcoming_predictions_for_roster_basis(_roster_basis_payload(), "comparison")
+
+    row = next(item for item in response["comparison_rows"] if item["model"] == "baseline")
+    assert response["roster_basis"] == "comparison"
+    assert row["static_margin"] == -1.0
+    assert row["active_margin"] == -5.0
+    assert row["margin_delta"] == -4.0
+    assert row["static_total"] == 43.0
+    assert row["active_total"] == 40.0
+    assert row["total_delta"] == -3.0
+    assert row["static_ats_pick"] == "home"
+    assert row["active_ats_pick"] == "away"
+    assert row["ats_pick_changed"] is True
+    assert row["static_ou_pick"] == "over"
+    assert row["active_ou_pick"] == "under"
+    assert row["ou_pick_changed"] is True
+    assert row["adjustments"][0]["label"] == "CHI QB downgrade confirmed."
+
+
 def test_valid_upcoming_cache_is_served_while_source_mismatch_refreshes(tmp_path, monkeypatch):
     cache_file = tmp_path / "nfl_upcoming_predictions.json"
     snapshot = {
         "generated_at": "2026-09-15T13:00:00+00:00",
-        "prediction_schema_version": 5,
+        "prediction_schema_version": 6,
         "games_source_signature": "old-source",
         "availability_adjustments_signature": "same-availability",
         "season": 2026,
@@ -185,7 +291,7 @@ def test_upcoming_cache_missing_new_model_still_renders_and_refreshes(tmp_path, 
     old_models = [model for model in MODEL_PROFILES if model != "rsm_plus"]
     snapshot = {
         "generated_at": "2026-09-15T13:00:00+00:00",
-        "prediction_schema_version": 5,
+        "prediction_schema_version": 6,
         "games_source_signature": "source",
         "availability_adjustments_signature": "availability",
         "season": 2026,
@@ -228,7 +334,7 @@ def test_upcoming_cache_target_mismatch_serves_last_valid_and_schedules_current_
     cache_file = tmp_path / "nfl_upcoming_predictions.json"
     snapshot = {
         "generated_at": "2026-09-21T13:00:00+00:00",
-        "prediction_schema_version": 5,
+        "prediction_schema_version": 6,
         "games_source_signature": "source",
         "availability_adjustments_signature": "availability",
         "season": 2026,

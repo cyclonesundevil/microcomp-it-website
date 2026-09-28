@@ -34,7 +34,8 @@ from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from quart import Response
 from nfl_live_data import live_scoreboard
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _availability_adjustments_signature, _games_source_signature, _has_all_upcoming_models, _has_valid_upcoming_games, _nfl_week_rollover_hour, _nfl_week_rollover_zone, _resolve_upcoming_cache_target, _rsm_artifact, _schedule_upcoming_prediction_refresh, apply_upcoming_availability_adjustments, cached_backtest, cached_matchup_history, cached_upcoming_predictions, cached_weekly_model_performance, cached_weekly_model_performance_trend, dashboard_snapshot, default_spread_threshold, default_total_threshold, experimental_market_probabilities, find_upcoming_scheduled_match, games_cache_info, list_teams, load_games, load_upcoming_availability_adjustments, load_upcoming_games, model_status_labels, postgame_game_results, postgame_grading_summary, predict_matchup, refresh_upcoming_final_scores_in_cache, summarize_by_season, upcoming_prediction_cache_path, upcoming_prediction_status_snapshot, warm_matchup_history_cache
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _availability_adjustments_signature, _games_source_signature, _has_all_upcoming_models, _has_valid_upcoming_games, _nfl_week_rollover_hour, _nfl_week_rollover_zone, _resolve_upcoming_cache_target, _rsm_artifact, _schedule_upcoming_prediction_refresh, apply_upcoming_availability_adjustments, cached_backtest, cached_matchup_history, cached_upcoming_predictions, cached_weekly_model_performance, cached_weekly_model_performance_trend, dashboard_snapshot, default_spread_threshold, default_total_threshold, experimental_market_probabilities, find_upcoming_scheduled_match, games_cache_info, list_teams, load_games, load_upcoming_availability_adjustments, load_upcoming_games, model_status_labels, postgame_game_results, postgame_grading_summary, predict_matchup, refresh_upcoming_final_scores_in_cache, summarize_by_season, upcoming_prediction_cache_path, upcoming_prediction_status_snapshot, upcoming_predictions_for_roster_basis, warm_matchup_history_cache
+from qb_availability_audit import DEFAULT_MNF_JSON_REPORT, DEFAULT_MNF_MD_REPORT, apply_ready_availability_adjustments, build_monday_night_roster_audit, merge_existing_review_fields, read_json_report, write_json_report, write_markdown_report
 from rsm.stage8_evaluation import DEFAULT_OUTCOME_STORE, DEFAULT_TOTAL_OBSERVATION_STORE, TOTAL_MODEL_VERSION, capture_total_observation, evaluation_report, record_outcome, total_evaluation_report
 from rsm.stage8_shadow import DEFAULT_STORE as RSM_DEFAULT_STORE, capture_observation, line_movements
 
@@ -2244,6 +2245,48 @@ async def nfl_refresh_final_scores():
         app.logger.exception("NFL final-score refresh failed")
         return jsonify({"success": False, "error": str(error)}), 502
 
+
+@app.route("/api/nfl/monday-night-roster-audit", methods=["POST"])
+@app.route("/api/v1/nfl/monday-night-roster-audit", methods=["POST"])
+async def nfl_monday_night_roster_audit():
+    """Generate the protected Monday-night roster review artifact for both teams."""
+    if not nfl_data_refresh_authorized():
+        return jsonify({"success": False, "error": "NFL Monday-night roster audit requires the admin refresh token."}), 403
+    try:
+        requested_week = request.args.get("week")
+        requested_season = request.args.get("season")
+        season = int(requested_season) if requested_season else None
+        week = int(requested_week) if requested_week else None
+        generated_report = await asyncio.to_thread(build_monday_night_roster_audit, season, week)
+        existing_report = await asyncio.to_thread(read_json_report, DEFAULT_MNF_JSON_REPORT)
+        report = await asyncio.to_thread(merge_existing_review_fields, generated_report, existing_report)
+        supplied = await request.get_json(silent=True)
+        if isinstance(supplied, dict):
+            report = supplied.get("audit") if isinstance(supplied.get("audit"), dict) else supplied
+        await asyncio.to_thread(write_json_report, report, DEFAULT_MNF_JSON_REPORT)
+        await asyncio.to_thread(write_markdown_report, report, DEFAULT_MNF_MD_REPORT)
+        apply_result = await asyncio.to_thread(apply_ready_availability_adjustments, report)
+        refreshed = None
+        if apply_result["ready_adjustments"] > 0:
+            games = await asyncio.to_thread(load_games, refresh=True)
+            refreshed = await asyncio.to_thread(cached_upcoming_predictions, games, season, week, True, False)
+        return jsonify({
+            "success": True,
+            "source": GAMES_URL,
+            "json_report": DEFAULT_MNF_JSON_REPORT,
+            "markdown_report": DEFAULT_MNF_MD_REPORT,
+            "availability_adjustments": apply_result,
+            "upcoming_cache_refreshed": refreshed is not None,
+            "upcoming_cache_generated_at": refreshed.get("generated_at") if refreshed else None,
+            "audit": report,
+        })
+    except ValueError as error:
+        return jsonify({"success": False, "error": str(error)}), 400
+    except Exception as error:
+        app.logger.exception("NFL Monday-night roster audit failed")
+        return jsonify({"success": False, "error": str(error)}), 502
+
+
 @app.route("/api/nfl/teams")
 @app.route("/api/v1/nfl/teams")
 async def nfl_teams():
@@ -2475,10 +2518,12 @@ async def nfl_upcoming():
             return jsonify({"success": False, "error": "Upcoming prediction refresh requires the admin refresh token."}), 403
         requested_week = request.args.get("week")
         requested_season = request.args.get("season")
+        roster_basis = (request.args.get("roster_basis") or "active").strip().lower()
         week = int(requested_week) if requested_week else None
         season = int(requested_season) if requested_season else None
         games, cache = await load_nfl_games_for_request()
         snapshot = await asyncio.to_thread(cached_upcoming_predictions, games, season, week, force_refresh, False)
+        snapshot = await asyncio.to_thread(upcoming_predictions_for_roster_basis, snapshot, roster_basis)
         return jsonify({"success": True, "source": GAMES_URL, "cache": cache, **snapshot})
     except ValueError as error:
         return jsonify({"success": False, "error": str(error)}), 400

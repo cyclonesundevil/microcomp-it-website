@@ -6,6 +6,8 @@ on:
     # Scheduled runs use the lightweight final-score refresh nightly, except
     # Wednesday UTC, which corresponds to the Tuesday 9 PM PST weekly rollover.
     - cron: "0 5 * * *"
+    # Monday 22:00 UTC is Monday afternoon in Arizona/Pacific, before most MNF kickoffs.
+    - cron: "0 22 * * 1"
   workflow_dispatch:
 
 concurrency:
@@ -22,6 +24,7 @@ jobs:
     env:
       REFRESH_URL: ${{ vars.NFL_REFRESH_URL || 'https://www.microcompit.com/api/nfl/refresh' }}
       FINAL_SCORE_REFRESH_URL: ${{ vars.NFL_FINAL_SCORE_REFRESH_URL || 'https://www.microcompit.com/api/nfl/refresh/final-scores' }}
+      MNF_ROSTER_AUDIT_URL: ${{ vars.NFL_MNF_ROSTER_AUDIT_URL || 'https://www.microcompit.com/api/v1/nfl/monday-night-roster-audit' }}
     steps:
       - name: Refresh nflverse cache in production
         shell: bash
@@ -68,4 +71,40 @@ jobs:
                   "updated games for",
                   f"{final_score_refresh.get('season')} week {final_score_refresh.get('week')}",
               )
+          PY
+
+      - name: Generate Monday-night roster audit
+        shell: bash
+        env:
+          REFRESH_TOKEN: ${{ secrets.NFL_DATA_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$REFRESH_TOKEN"
+          if [[ "${GITHUB_EVENT_NAME:-}" == "schedule" && "$(date -u +%u:%H)" != "1:22" ]]; then
+            echo "Skipping Monday-night roster audit outside the Monday pregame schedule."
+            exit 0
+          fi
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+          curl --fail-with-body --silent --show-error \
+            --retry 2 --retry-all-errors --retry-delay 10 \
+            --request POST \
+            --header "X-NFL-Refresh-Token: $REFRESH_TOKEN" \
+            --output "$response_file" \
+            "$MNF_ROSTER_AUDIT_URL"
+          python - "$response_file" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          payload = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          if payload.get("success") is not True:
+              raise SystemExit(f"Monday-night roster audit did not succeed: {payload}")
+          audit = payload.get("audit") or {}
+          print(
+              "Monday-night roster audit generated:",
+              len(audit.get("candidate_overlays") or []),
+              "team rows for",
+              f"{audit.get('season')} week {audit.get('week')}",
+          )
           PY
