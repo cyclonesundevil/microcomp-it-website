@@ -1,5 +1,6 @@
 import argparse
 import csv
+import errno
 import hashlib
 import io
 import json
@@ -797,11 +798,18 @@ def _all_matchup_history_cache_path(games: List[dict], profile: str) -> str:
 
 def _write_json_cache(cache_path: str, payload) -> None:
     temporary_path = f"{cache_path}.{os.getpid()}.{time.time_ns()}.tmp"
-    with open(temporary_path, "w", encoding="utf-8") as target:
-        json.dump(payload, target, separators=(",", ":"))
-        target.flush()
-        os.fsync(target.fileno())
-    os.replace(temporary_path, cache_path)
+    try:
+        with open(temporary_path, "w", encoding="utf-8") as target:
+            json.dump(payload, target, separators=(",", ":"))
+            target.flush()
+            os.fsync(target.fileno())
+        os.replace(temporary_path, cache_path)
+    except OSError:
+        try:
+            os.remove(temporary_path)
+        except OSError:
+            pass
+        raise
 
 
 def _history_pair_key(team_a: str, team_b: str) -> str:
@@ -3242,6 +3250,44 @@ def _weekly_performance_trend_cache_root() -> str:
     return os.getenv("NFL_PERFORMANCE_CACHE_DIR", "").strip() or os.path.dirname(upcoming_prediction_cache_path())
 
 
+def _prune_weekly_performance_cache(root: str, keep: int = 24) -> int:
+    try:
+        entries = [
+            os.path.join(root, name)
+            for name in os.listdir(root)
+            if name.startswith("nfl_weekly_performance") and (name.endswith(".json") or ".json." in name)
+        ]
+    except OSError:
+        return 0
+    entries.sort(key=lambda path: os.path.getmtime(path) if os.path.exists(path) else 0, reverse=True)
+    removed = 0
+    for path in entries[keep:]:
+        try:
+            os.remove(path)
+            removed += 1
+        except OSError:
+            pass
+    return removed
+
+
+def _write_weekly_performance_cache(cache_path: str, payload: dict) -> bool:
+    root = os.path.dirname(cache_path) or "."
+    os.makedirs(root, exist_ok=True)
+    _prune_weekly_performance_cache(root)
+    try:
+        _write_json_cache(cache_path, payload)
+        return True
+    except OSError as error:
+        if error.errno == errno.ENOSPC:
+            _prune_weekly_performance_cache(root, keep=4)
+            try:
+                _write_json_cache(cache_path, payload)
+                return True
+            except OSError:
+                return False
+        return False
+
+
 def _weekly_performance_cache_metadata(games: List[dict], season: int, week: int, model_profiles: Tuple[str, ...]) -> dict:
     return {
         "schema_version": WEEKLY_PERFORMANCE_TREND_SCHEMA_VERSION,
@@ -3287,8 +3333,7 @@ def cached_weekly_model_performance(
     performance = weekly_model_performance(games, season, week, model_profiles)
     generated_at = datetime.now(timezone.utc).isoformat()
     performance["generated_at"] = generated_at
-    os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
-    _write_json_cache(cache_path, {
+    _write_weekly_performance_cache(cache_path, {
         "metadata": metadata,
         "performance": performance,
         "generated_at": generated_at,
@@ -3399,8 +3444,7 @@ def cached_weekly_model_performance_trend(games: List[dict], season: int, model_
     trend = weekly_model_performance_trend(games, season, model_profile)
     generated_at = datetime.now(timezone.utc).isoformat()
     trend["generated_at"] = generated_at
-    os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
-    _write_json_cache(cache_path, {
+    _write_weekly_performance_cache(cache_path, {
         "metadata": metadata,
         "trend": trend,
         "generated_at": generated_at,

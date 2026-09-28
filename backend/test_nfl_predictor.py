@@ -1181,6 +1181,26 @@ def test_weekly_model_performance_cache_reuses_and_invalidates(tmp_path, monkeyp
     assert changed != first
 
 
+def test_weekly_model_performance_returns_when_cache_write_fails(tmp_path, monkeypatch):
+    games = [
+        _history_game("2026_01_CAR_ATL", 2026, 1, "CAR", "ATL", 17, 20, spread_line=-2.5, total_line=42.5),
+    ]
+    monkeypatch.setenv("NFL_PERFORMANCE_CACHE_DIR", str(tmp_path))
+
+    def fail_write(_cache_path, _payload):
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr("nfl_predictor._write_json_cache", fail_write)
+
+    performance, cache_hit = cached_weekly_model_performance(games, 2026, 1, model_profiles=("baseline",))
+
+    assert cache_hit is False
+    assert performance["season"] == 2026
+    assert performance["week"] == 1
+    assert performance["completed_games"] == 1
+    assert performance["models"]
+
+
 def test_weekly_performance_trend_cache_reuses_and_invalidates(tmp_path, monkeypatch):
     games = [
         _history_game("2026_01_CAR_ATL", 2026, 1, "CAR", "ATL", 17, 20, spread_line=-2.5, total_line=42.5),
@@ -1197,6 +1217,25 @@ def test_weekly_performance_trend_cache_reuses_and_invalidates(tmp_path, monkeyp
     assert first == second
     assert changed_hit is False
     assert changed != first
+
+
+def test_weekly_performance_trend_returns_when_cache_write_fails(tmp_path, monkeypatch):
+    games = [
+        _history_game("2026_01_CAR_ATL", 2026, 1, "CAR", "ATL", 17, 20, spread_line=-2.5, total_line=42.5),
+    ]
+    monkeypatch.setenv("NFL_PERFORMANCE_CACHE_DIR", str(tmp_path))
+
+    def fail_write(_cache_path, _payload):
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr("nfl_predictor._write_json_cache", fail_write)
+
+    trend, cache_hit = cached_weekly_model_performance_trend(games, 2026, "baseline")
+
+    assert cache_hit is False
+    assert trend["season"] == 2026
+    assert trend["model"] == "baseline"
+    assert trend["weeks"]
 
 
 def _signal_row(margins, totals=None, market_margin=-3.0, market_total=44.0, profiles=None):
