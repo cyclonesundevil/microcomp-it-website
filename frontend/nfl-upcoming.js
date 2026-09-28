@@ -546,6 +546,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     try {
                         const status = await fetchUpcomingStatus();
                         if (requestId !== upcomingRequestId) return;
+                        if (status.status === 'failed') {
+                            stopTimers();
+                            progressPanel.hidden = true;
+                            message.textContent = status.message || 'Forecast refresh failed. Please try again shortly.';
+                            tableBody.innerHTML = '<tr><td colspan="10">Forecast refresh failed.</td></tr>';
+                            renderModelSignals([]);
+                            return;
+                        }
                         showProgress(
                             Math.max(10, Math.min(95, Number(status.progress) || 15)),
                             status.message || 'Forecast request is still waiting on the server. Keeping this progress tracker visible and retrying...',

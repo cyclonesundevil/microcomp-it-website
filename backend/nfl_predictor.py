@@ -1576,7 +1576,7 @@ def _schedule_upcoming_prediction_refresh(games: List[dict], season: Optional[in
             _write_upcoming_prediction_cache(upcoming_prediction_cache_path(), payload)
             _clear_upcoming_checkpoint()
         except Exception:
-            _set_upcoming_progress(0, f"The forecast refresh failed for season={season} week={week}. Please try again shortly.", status="computing", ready=False)
+            _set_upcoming_progress(0, f"The forecast refresh failed for season={season} week={week}. Please try again shortly.", status="failed", ready=False)
             print(f"Background upcoming cache refresh failed for season={season} week={week}")
         finally:
             global _UPCOMING_REFRESH_RUNNING
