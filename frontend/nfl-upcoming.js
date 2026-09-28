@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let startedAt = null;
     let displayedSeason = null;
     let upcomingRequestId = 0;
+    let lastProgressPercent = 0;
     const initialParams = new URLSearchParams(window.location.search);
     const initialRosterBasis = initialParams.get('roster_basis');
     let selectedRosterBasis = ['static', 'active', 'comparison'].includes(initialRosterBasis) ? initialRosterBasis : 'active';
@@ -32,12 +33,15 @@ document.addEventListener('DOMContentLoaded', () => {
         progressElapsed.textContent = `Elapsed ${Math.floor((Date.now() - startedAt) / 1000)}s`;
     }
 
-    function showProgress(percent, statusMessage) {
+    function showProgress(percent, statusMessage, options = {}) {
         if (!startedAt) {
             startedAt = Date.now();
             elapsedTimer = window.setInterval(updateElapsed, 1000);
         }
-        const safePercent = Math.max(0, Math.min(100, Number(percent) || 0));
+        const nextPercent = Math.max(0, Math.min(100, Number(percent) || 0));
+        const safePercent = options.allowBackward ? nextPercent : Math.max(lastProgressPercent, nextPercent);
+        if (!options.allowBackward && nextPercent <= lastProgressPercent && progressPanel.hidden === false) return;
+        lastProgressPercent = safePercent;
         progressPanel.hidden = false;
         progressValue.textContent = `${safePercent}%`;
         progressFill.style.width = `${safePercent}%`;
@@ -54,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function resetProgress() {
         stopTimers();
         startedAt = null;
+        lastProgressPercent = 0;
         progressElapsed.textContent = 'Elapsed 0s';
         progressValue.textContent = '0%';
         progressFill.style.width = '0%';
