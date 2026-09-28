@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let elapsedTimer = null;
     let startedAt = null;
     let displayedSeason = null;
+    let upcomingRequestId = 0;
     const initialParams = new URLSearchParams(window.location.search);
     const initialRosterBasis = initialParams.get('roster_basis');
     let selectedRosterBasis = ['static', 'active', 'comparison'].includes(initialRosterBasis) ? initialRosterBasis : 'active';
@@ -468,6 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadUpcoming(forceRefresh = false) {
+        const requestId = ++upcomingRequestId;
         resetProgress();
         const token = forceRefresh ? adminRefreshToken() : null;
         if (forceRefresh && !token) {
@@ -487,6 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     forceRefresh ? { headers: { 'X-NFL-Refresh-Token': token } } : {},
                     15000,
                 );
+                if (requestId !== upcomingRequestId) return;
                 if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load upcoming predictions');
 
                 const waitingForForecast = data.ready === false && (data.refresh_scheduled || data.status === 'computing');
@@ -498,6 +501,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         pollTimer = null;
                         poll();
                     }, 2500);
+                    return;
+                }
+                if (data.ready === false) {
+                    stopTimers();
+                    progressPanel.hidden = true;
+                    message.textContent = data.message || 'Upcoming forecast cache is not ready. Use Refresh Upcoming Predictions to rebuild it.';
+                    tableBody.innerHTML = '<tr><td colspan="10">Forecast cache is not ready.</td></tr>';
+                    if (rosterComparisonBody) rosterComparisonBody.innerHTML = '<tr><td colspan="13">Forecast cache is not ready.</td></tr>';
+                    renderModelSignals([]);
                     return;
                 }
 
@@ -527,25 +539,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, 2500);
                     return;
                 }
-                if (data.ready === false) {
-                    stopTimers();
-                    progressPanel.hidden = true;
-                    message.textContent = data.message || 'Upcoming forecast cache is not ready. Use Refresh Upcoming Predictions to rebuild it.';
-                    tableBody.innerHTML = '<tr><td colspan="10">Forecast cache is not ready.</td></tr>';
-                    if (rosterComparisonBody) rosterComparisonBody.innerHTML = '<tr><td colspan="13">Forecast cache is not ready.</td></tr>';
-                    renderModelSignals([]);
-                    return;
-                }
                 stopTimers();
             } catch (error) {
+                if (requestId !== upcomingRequestId) return;
                 if (error.name === 'AbortError') {
                     try {
                         const status = await fetchUpcomingStatus();
+                        if (requestId !== upcomingRequestId) return;
                         showProgress(
                             Math.max(10, Math.min(95, Number(status.progress) || 15)),
                             status.message || 'Forecast request is still waiting on the server. Keeping this progress tracker visible and retrying...',
                         );
                     } catch (_statusError) {
+                        if (requestId !== upcomingRequestId) return;
                         showProgress(15, 'Forecast request is still waiting on the server. Keeping this progress tracker visible and retrying...');
                     }
                     pollTimer = window.setTimeout(() => {
@@ -560,7 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 tableBody.innerHTML = '<tr><td colspan="10">Unavailable</td></tr>';
                 renderModelSignals([]);
             } finally {
-                refreshButton.disabled = false;
+                if (requestId === upcomingRequestId) refreshButton.disabled = false;
             }
         };
 
