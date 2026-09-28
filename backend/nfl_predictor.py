@@ -165,6 +165,10 @@ def _upcoming_checkpoint_path() -> str:
     return f"{upcoming_prediction_cache_path()}.checkpoint.pkl"
 
 
+def _upcoming_progress_path() -> str:
+    return f"{upcoming_prediction_cache_path()}.progress.json"
+
+
 def _upcoming_build_fingerprint(games: List[dict], upcoming: List[dict], season: Optional[int], week: Optional[int]) -> str:
     source = {
         "schema_version": UPCOMING_PREDICTION_SCHEMA_VERSION,
@@ -1548,16 +1552,49 @@ def refresh_upcoming_final_scores_in_cache() -> dict:
 
 def _set_upcoming_progress(progress: int, message: str, *, status: str = "computing", ready: bool = False) -> dict:
     global _UPCOMING_PROGRESS_STATE
-    _UPCOMING_PROGRESS_STATE = {
+    progress_path = _upcoming_progress_path()
+    normalized_progress = max(0, min(100, int(progress)))
+    previous = None
+    try:
+        with open(progress_path, encoding="utf-8") as source:
+            loaded = json.load(source)
+        previous = loaded if isinstance(loaded, dict) else None
+    except (OSError, json.JSONDecodeError):
+        previous = None
+
+    if (
+        previous
+        and previous.get("status") == "computing"
+        and status == "computing"
+        and int(previous.get("progress", 0) or 0) >= normalized_progress
+    ):
+        _UPCOMING_PROGRESS_STATE = dict(previous)
+        return dict(_UPCOMING_PROGRESS_STATE)
+
+    next_state = {
         "status": status,
         "ready": ready,
-        "progress": max(0, min(100, int(progress))),
+        "progress": normalized_progress,
         "message": message,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     }
+    _UPCOMING_PROGRESS_STATE = next_state
+    try:
+        os.makedirs(os.path.dirname(progress_path) or ".", exist_ok=True)
+        _write_json_cache(progress_path, next_state)
+    except OSError:
+        pass
     return dict(_UPCOMING_PROGRESS_STATE)
 
 
 def upcoming_prediction_status_snapshot() -> dict:
+    try:
+        with open(_upcoming_progress_path(), encoding="utf-8") as source:
+            payload = json.load(source)
+        if isinstance(payload, dict) and payload.get("status"):
+            return payload
+    except (OSError, json.JSONDecodeError):
+        pass
     return dict(_UPCOMING_PROGRESS_STATE)
 
 

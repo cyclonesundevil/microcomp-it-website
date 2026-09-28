@@ -409,6 +409,30 @@ def test_upcoming_refresh_already_running_reports_active_refresh(monkeypatch):
     assert _schedule_upcoming_prediction_refresh([], 2026, 3) is True
 
 
+def test_upcoming_progress_does_not_roll_back_for_lower_computing_update(tmp_path, monkeypatch):
+    cache_file = tmp_path / "nfl_upcoming_predictions.json"
+    monkeypatch.setattr("nfl_predictor.upcoming_prediction_cache_path", lambda: str(cache_file))
+
+    _set_upcoming_progress(42, "Scoring ATL at GB with baseline.", status="computing", ready=False)
+    rolled_back = _set_upcoming_progress(10, "Loading the next scheduled games.", status="computing", ready=False)
+    snapshot = nfl_predictor.upcoming_prediction_status_snapshot()
+
+    assert rolled_back["progress"] == 42
+    assert snapshot["progress"] == 42
+    assert snapshot["message"] == "Scoring ATL at GB with baseline."
+
+
+def test_upcoming_failed_progress_overrides_computing_update(tmp_path, monkeypatch):
+    cache_file = tmp_path / "nfl_upcoming_predictions.json"
+    monkeypatch.setattr("nfl_predictor.upcoming_prediction_cache_path", lambda: str(cache_file))
+
+    _set_upcoming_progress(42, "Scoring ATL at GB with baseline.", status="computing", ready=False)
+    failed = _set_upcoming_progress(0, "The forecast refresh failed.", status="failed", ready=False)
+
+    assert failed["status"] == "failed"
+    assert failed["progress"] == 0
+
+
 def test_upcoming_refresh_can_be_scheduled_while_cache_lock_is_held(monkeypatch):
     monkeypatch.setattr("nfl_predictor._UPCOMING_REFRESH_RUNNING", False)
     started = {"value": False}
