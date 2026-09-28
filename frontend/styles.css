@@ -3289,6 +3289,11 @@ nav a:hover:not(.btn-primary) {
     background: rgba(94, 230, 140, 0.92);
 }
 
+.postgame-signal-contrary {
+    color: #04111a;
+    background: rgba(125, 211, 252, 0.94);
+}
+
 .postgame-signal-neutral {
     color: var(--text-secondary);
     background: rgba(255, 255, 255, 0.08);

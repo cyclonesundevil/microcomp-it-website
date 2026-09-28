@@ -1377,12 +1377,14 @@ def test_summary_reports_uncertainty_and_minus_110_roi():
 
 
 def test_postgame_signal_thresholds():
-    assert postgame_signal_label(0.58, 60) == "Strong Follow"
-    assert postgame_signal_label(0.55, 40) == "Follow"
+    assert postgame_signal_label(0.58, 60) == "Positive"
+    assert postgame_signal_label(0.56, 12) == "Positive"
+    assert postgame_signal_label(0.55, 40) == "Neutral"
     assert postgame_signal_label(0.50, 80) == "Neutral"
-    assert postgame_signal_label(0.45, 40) == "Fade Watch"
-    assert postgame_signal_label(0.42, 60) == "Fade / Contrary"
-    assert postgame_signal_label(0.62, 12) == "Neutral"
+    assert postgame_signal_label(0.45, 40) == "Neutral"
+    assert postgame_signal_label(0.44, 40) == "Contrary Positive"
+    assert postgame_signal_label(0.42, 60) == "Contrary Positive"
+    assert postgame_signal_label(None, 60) == "Neutral"
 
 
 def test_betting_record_roi_and_push_handling():

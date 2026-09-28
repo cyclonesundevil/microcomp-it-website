@@ -51,8 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function signalClass(signal) {
         const value = String(signal || '').toLowerCase();
-        if (value.includes('strong') || value === 'follow') return 'postgame-signal-follow';
-        if (value.includes('fade')) return value.includes('watch') ? 'postgame-signal-watch' : 'postgame-signal-fade';
+        if (value === 'positive') return 'postgame-signal-follow';
+        if (value.includes('contrary')) return 'postgame-signal-contrary';
         return 'postgame-signal-neutral';
     }
 

@@ -3118,16 +3118,12 @@ def betting_record(wins: int, losses: int, pushes: int = 0) -> dict:
 
 
 def postgame_signal_label(win_rate: Optional[float], completed_picks: int) -> str:
-    if win_rate is None or completed_picks < 40:
+    if win_rate is None or completed_picks <= 0:
         return "Neutral"
-    if win_rate >= 0.57 and completed_picks >= 60:
-        return "Strong Follow"
-    if win_rate >= 0.54:
-        return "Follow"
-    if win_rate < 0.43 and completed_picks >= 60:
-        return "Fade / Contrary"
-    if win_rate < 0.46:
-        return "Fade Watch"
+    if win_rate > 0.55:
+        return "Positive"
+    if win_rate < 0.45:
+        return "Contrary Positive"
     return "Neutral"
 
 
