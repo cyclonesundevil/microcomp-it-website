@@ -43,6 +43,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return over >= under ? `Over ${pct(over)}` : `Under ${pct(under)}`;
     }
 
+    function modelProjectionCell(row) {
+        if (!row) return '--';
+        const favorite = row.favorite_side === 'home' ? row.home_team : row.favorite_side === 'away' ? row.away_team : null;
+        if (!favorite || !Number.isFinite(Number(row.predicted_home_margin))) {
+            return row.predicted_total === null || row.predicted_total === undefined ? '--' : `-- / ${num(row.predicted_total, 1)}`;
+        }
+        const projectedFavoriteSpread = row.favorite_side === 'home'
+            ? -Number(row.predicted_home_margin)
+            : Number(row.predicted_home_margin);
+        return `${esc(spread(favorite, projectedFavoriteSpread))} / ${num(row.predicted_total, 1)}`;
+    }
+
     function probabilityModelCell(row) {
         if (!row) return '--';
         if (row.display_suppressed) return 'Ineligible';
@@ -51,8 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ? `${pct(row.favorite_cover_probability)}${adjusted}`
             : `--${adjusted}`;
         return `
-            <strong>${favoriteProbability}</strong><br>
-            <small>${esc(totalProbabilityLabel(row))}</small>
+            <strong>${modelProjectionCell(row)}</strong><br>
+            <small>Fav ATS ${favoriteProbability}; ${esc(totalProbabilityLabel(row))}</small>
         `;
     }
 
@@ -127,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
             probabilityBody.innerHTML = '<tr><td colspan="5">No current-week probabilities available.</td></tr>';
             return;
         }
-        probabilityStatus.textContent = `Season ${esc(section.season)}, week ${esc(section.week)}. Favorite Covers means the market favorite beats the listed spread; Over and Under are model-implied total probabilities.`;
+        probabilityStatus.textContent = `Season ${esc(section.season)}, week ${esc(section.week)}. Top line matches Upcoming Week projection format; small text adds model-implied favorite ATS and total probabilities.`;
         probabilityBody.innerHTML = groupProbabilityRows(rows).map((game) => {
             return `
                 <tr>
