@@ -31,6 +31,9 @@ from nfl_predictor import (
     load_upcoming_games,
     list_teams,
     matchup_history,
+    betting_record,
+    postgame_grading_summary,
+    postgame_signal_label,
     predict_matchup,
     refresh_upcoming_final_scores_in_cache,
     run_backtest,
@@ -1371,3 +1374,40 @@ def test_summary_reports_uncertainty_and_minus_110_roi():
     assert summary["spread_losses"] == 1
     assert summary["spread_win_rate_ci95"][0] < 0.5 < summary["spread_win_rate_ci95"][1]
     assert summary["spread_roi_at_minus_110"] == pytest.approx(-0.0454545, abs=1e-7)
+
+
+def test_postgame_signal_thresholds():
+    assert postgame_signal_label(0.58, 60) == "Strong Follow"
+    assert postgame_signal_label(0.55, 40) == "Follow"
+    assert postgame_signal_label(0.50, 80) == "Neutral"
+    assert postgame_signal_label(0.45, 40) == "Fade Watch"
+    assert postgame_signal_label(0.42, 60) == "Fade / Contrary"
+    assert postgame_signal_label(0.62, 12) == "Neutral"
+
+
+def test_betting_record_roi_and_push_handling():
+    record = betting_record(3, 2, 1)
+
+    assert record["bets"] == 6
+    assert record["graded_bets"] == 5
+    assert record["win_rate"] == pytest.approx(0.6)
+    assert record["roi_at_minus_110"] == pytest.approx(((3 * (100 / 110)) - 2) / 5)
+
+
+def test_postgame_grading_partial_week_does_not_fail(tmp_path, monkeypatch):
+    games = [
+        _history_game("2026_03_CAR_ATL", 2026, 3, "CAR", "ATL", 17, 20, spread_line=2.5, total_line=42.5),
+    ]
+    scheduled = [
+        {"game_id": "2026_03_CAR_ATL", "season": 2026, "week": 3},
+        {"game_id": "2026_03_TB_ATL", "season": 2026, "week": 3},
+    ]
+    monkeypatch.setenv("NFL_PERFORMANCE_CACHE_DIR", str(tmp_path))
+
+    grading = postgame_grading_summary(games, 2026, 3, scheduled, model_profiles=("baseline",))
+
+    assert grading["partial_week"] is True
+    assert grading["completed_games"] == 1
+    assert grading["scheduled_games"] == 2
+    assert {row["market"] for row in grading["rows"]} == {"ATS", "O/U"}
+    assert all("signal" in row for row in grading["rows"])

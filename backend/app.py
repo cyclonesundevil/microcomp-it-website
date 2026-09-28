@@ -34,7 +34,7 @@ from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from quart import Response
 from nfl_live_data import live_scoreboard
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _availability_adjustments_signature, _games_source_signature, _has_all_upcoming_models, _has_valid_upcoming_games, _nfl_week_rollover_hour, _nfl_week_rollover_zone, _resolve_upcoming_cache_target, _rsm_artifact, _schedule_upcoming_prediction_refresh, apply_upcoming_availability_adjustments, cached_backtest, cached_matchup_history, cached_upcoming_predictions, cached_weekly_model_performance, cached_weekly_model_performance_trend, dashboard_snapshot, default_spread_threshold, default_total_threshold, experimental_market_probabilities, find_upcoming_scheduled_match, games_cache_info, list_teams, load_games, load_upcoming_availability_adjustments, model_status_labels, predict_matchup, refresh_upcoming_final_scores_in_cache, summarize_by_season, upcoming_prediction_cache_path, upcoming_prediction_status_snapshot, warm_matchup_history_cache
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _availability_adjustments_signature, _games_source_signature, _has_all_upcoming_models, _has_valid_upcoming_games, _nfl_week_rollover_hour, _nfl_week_rollover_zone, _resolve_upcoming_cache_target, _rsm_artifact, _schedule_upcoming_prediction_refresh, apply_upcoming_availability_adjustments, cached_backtest, cached_matchup_history, cached_upcoming_predictions, cached_weekly_model_performance, cached_weekly_model_performance_trend, dashboard_snapshot, default_spread_threshold, default_total_threshold, experimental_market_probabilities, find_upcoming_scheduled_match, games_cache_info, list_teams, load_games, load_upcoming_availability_adjustments, load_upcoming_games, model_status_labels, postgame_game_results, postgame_grading_summary, predict_matchup, refresh_upcoming_final_scores_in_cache, summarize_by_season, upcoming_prediction_cache_path, upcoming_prediction_status_snapshot, warm_matchup_history_cache
 from rsm.stage8_evaluation import DEFAULT_OUTCOME_STORE, DEFAULT_TOTAL_OBSERVATION_STORE, TOTAL_MODEL_VERSION, capture_total_observation, evaluation_report, record_outcome, total_evaluation_report
 from rsm.stage8_shadow import DEFAULT_STORE as RSM_DEFAULT_STORE, capture_observation, line_movements
 
@@ -2295,6 +2295,11 @@ async def nfl_experimental_models_page():
     return response
 
 
+@app.route("/nfl-postgame-grading")
+async def nfl_postgame_grading_page():
+    return await send_from_directory(app.static_folder, "nfl-postgame-grading.html")
+
+
 @app.route("/api/nfl/experimental-models")
 @app.route("/api/v1/nfl/experimental-models")
 async def nfl_experimental_models():
@@ -2532,6 +2537,37 @@ async def nfl_week_performance_trend():
         return jsonify({"success": False, "error": str(error)}), 400
     except Exception as error:
         app.logger.exception("Weekly NFL model performance trend failed")
+        return jsonify({"success": False, "error": str(error)}), 502
+
+
+@app.route("/api/nfl/postgame-grading")
+@app.route("/api/v1/nfl/postgame-grading")
+async def nfl_postgame_grading():
+    try:
+        requested_week = request.args.get("week")
+        requested_season = request.args.get("season")
+        games, cache = await load_nfl_games_for_request()
+        if not games:
+            return jsonify({"success": False, "error": "No completed NFL games are available for postgame grading."}), 404
+        season = int(requested_season) if requested_season else max(game["season"] for game in games)
+        season_games = [game for game in games if game["season"] == season]
+        if not season_games:
+            return jsonify({"success": False, "error": f"No completed NFL games are available for season {season}."}), 404
+        week = int(requested_week) if requested_week else max(game["week"] for game in season_games)
+        scheduled_games = await asyncio.to_thread(load_upcoming_games, season, week)
+        grading = await asyncio.to_thread(postgame_grading_summary, games, season, week, scheduled_games)
+        game_results = await asyncio.to_thread(postgame_game_results, games, season, week)
+        return jsonify({
+            "success": True,
+            "source": GAMES_URL,
+            "cache": cache,
+            "grading": grading,
+            "game_results": game_results,
+        })
+    except ValueError as error:
+        return jsonify({"success": False, "error": str(error)}), 400
+    except Exception as error:
+        app.logger.exception("NFL postgame grading failed")
         return jsonify({"success": False, "error": str(error)}), 502
 
 

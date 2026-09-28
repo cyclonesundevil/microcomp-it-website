@@ -3264,6 +3264,46 @@ nav a:hover:not(.btn-primary) {
     background: rgba(255, 255, 255, 0.08);
 }
 
+.postgame-controls input {
+    min-height: 42px;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-color);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.postgame-signal {
+    display: inline-flex;
+    align-items: center;
+    min-width: 92px;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 0.28rem 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.postgame-signal-follow {
+    color: #04110a;
+    background: rgba(94, 230, 140, 0.92);
+}
+
+.postgame-signal-neutral {
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.postgame-signal-watch {
+    color: #101018;
+    background: rgba(255, 210, 120, 0.92);
+}
+
+.postgame-signal-fade {
+    color: #220608;
+    background: rgba(255, 138, 138, 0.92);
+}
+
 .model-signal-metrics {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));

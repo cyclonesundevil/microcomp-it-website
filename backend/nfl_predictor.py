@@ -3100,6 +3100,37 @@ def score_binary(correct: int, pushes: int, bets: int) -> Optional[float]:
     return correct / graded
 
 
+def betting_record(wins: int, losses: int, pushes: int = 0) -> dict:
+    graded = wins + losses
+    bets = graded + pushes
+    win_rate = wins / graded if graded > 0 else None
+    net_units = wins * (100 / 110) - losses
+    return {
+        "wins": wins,
+        "losses": losses,
+        "pushes": pushes,
+        "bets": bets,
+        "graded_bets": graded,
+        "win_rate": win_rate,
+        "net_units_at_minus_110": net_units,
+        "roi_at_minus_110": net_units / graded if graded > 0 else None,
+    }
+
+
+def postgame_signal_label(win_rate: Optional[float], completed_picks: int) -> str:
+    if win_rate is None or completed_picks < 40:
+        return "Neutral"
+    if win_rate >= 0.57 and completed_picks >= 60:
+        return "Strong Follow"
+    if win_rate >= 0.54:
+        return "Follow"
+    if win_rate < 0.43 and completed_picks >= 60:
+        return "Fade / Contrary"
+    if win_rate < 0.46:
+        return "Fade Watch"
+    return "Neutral"
+
+
 def wilson_interval(correct: int, attempts: int, z: float = 1.96) -> Tuple[Optional[float], Optional[float]]:
     if attempts <= 0:
         return None, None
@@ -3450,6 +3481,138 @@ def cached_weekly_model_performance_trend(games: List[dict], season: int, model_
         "generated_at": generated_at,
     })
     return trend, False
+
+
+def _empty_market_totals() -> dict:
+    return {"wins": 0, "losses": 0, "pushes": 0}
+
+
+def _add_market_week(totals: dict, week_row: dict, market: str) -> None:
+    prefix = "spread" if market == "ATS" else "total"
+    totals["wins"] += int(week_row.get(f"{prefix}_wins") or 0)
+    totals["losses"] += int(week_row.get(f"{prefix}_losses") or 0)
+    totals["pushes"] += int(week_row.get(f"{prefix}_pushes") or 0)
+
+
+def _market_record_from_weeks(weeks: List[dict], market: str) -> dict:
+    totals = _empty_market_totals()
+    for week_row in weeks:
+        _add_market_week(totals, week_row, market)
+    return betting_record(totals["wins"], totals["losses"], totals["pushes"])
+
+
+def postgame_grading_summary(
+    games: List[dict],
+    season: int,
+    week: int,
+    scheduled_games: Optional[List[dict]] = None,
+    model_profiles: Tuple[str, ...] = MODEL_PROFILES,
+) -> dict:
+    weekly_performance, weekly_cache_hit = cached_weekly_model_performance(games, season, week, model_profiles)
+    scheduled_week_games = scheduled_games if scheduled_games is not None else []
+    scheduled_count = len(scheduled_week_games)
+    completed_games = int(weekly_performance.get("completed_games") or 0)
+    partial_week = scheduled_count > completed_games if scheduled_count else False
+    rows = []
+    trend_cache_hits = {}
+
+    for model_profile in model_profiles:
+        trend, trend_cache_hit = cached_weekly_model_performance_trend(games, season, model_profile)
+        trend_cache_hits[model_profile] = trend_cache_hit
+        trend_weeks = [
+            row for row in trend.get("weeks", [])
+            if int(row.get("week") or 0) <= week
+        ]
+        week_rows = [row for row in trend_weeks if int(row.get("week") or 0) == week]
+        week_row = week_rows[0] if week_rows else {}
+        last_three_weeks = trend_weeks[-3:]
+        for market in ("ATS", "O/U"):
+            week_record = _market_record_from_weeks([week_row] if week_row else [], market)
+            season_record = _market_record_from_weeks(trend_weeks, market)
+            last_three_record = _market_record_from_weeks(last_three_weeks, market)
+            rows.append({
+                "model": model_profile,
+                "market": market,
+                "week": week_record,
+                "season": season_record,
+                "last_3_weeks": last_three_record,
+                "completed_picks": season_record["graded_bets"],
+                "signal": postgame_signal_label(season_record["win_rate"], season_record["graded_bets"]),
+            })
+
+    return {
+        "season": season,
+        "week": week,
+        "completed_games": completed_games,
+        "scheduled_games": scheduled_count or None,
+        "partial_week": partial_week,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "weekly_cache_hit": weekly_cache_hit,
+        "trend_cache_hits": trend_cache_hits,
+        "rows": rows,
+    }
+
+
+def postgame_game_results(
+    games: List[dict],
+    season: int,
+    week: int,
+    model_profiles: Tuple[str, ...] = MODEL_PROFILES,
+) -> List[dict]:
+    target_games = [
+        game for game in games
+        if game["season"] == season and game["week"] == week
+    ]
+    by_game = {
+        game["game_id"]: {
+            "game_id": game["game_id"],
+            "season": game["season"],
+            "week": game["week"],
+            "gameday": game.get("gameday"),
+            "away_team": game["away_team"],
+            "home_team": game["home_team"],
+            "away_score": game["away_score"],
+            "home_score": game["home_score"],
+            "spread_line": game["spread_line"],
+            "total_line": game["total_line"],
+            "models": {},
+        }
+        for game in target_games
+    }
+    target_ids = set(by_game)
+
+    for model_profile in model_profiles:
+        model = create_model(model_profile)
+        for game in games:
+            eligible = True
+            if model_profile == "rothstein_plus":
+                eligible = is_rothstein_plus_eligible(model, game)
+            try:
+                pred_margin, pred_total = model.predict(game)
+            except ValueError:
+                pred_margin, pred_total = None, None
+
+            if game.get("game_id") in target_ids:
+                spread_edge = pred_margin - game["spread_line"] if pred_margin is not None else None
+                total_edge = pred_total - game["total_line"] if pred_total is not None else None
+                spread_pick = side_from_edge(spread_edge, default_spread_threshold(model_profile)) if spread_edge is not None and eligible and model_supports_spread_picks(model_profile) else None
+                if _is_rsm_family(model_profile):
+                    total_pick = total_from_edge(total_edge, 0.0) if total_edge is not None else None
+                else:
+                    total_pick = total_from_edge(total_edge, default_total_threshold(model_profile)) if total_edge is not None and eligible and model_supports_totals(model_profile) else None
+                by_game[game["game_id"]]["models"][model_profile] = {
+                    "spread_pick": spread_pick,
+                    "spread_result": _grade_spread_pick(game, spread_pick),
+                    "total_pick": total_pick,
+                    "total_result": _grade_total_pick(game, total_pick),
+                    "pred_margin": pred_margin,
+                    "pred_total": pred_total,
+                }
+
+            if not _is_rsm_family(model_profile) and pred_margin is not None and pred_total is not None:
+                model.update(game, pred_margin, pred_total)
+
+    return list(by_game.values())
 
 
 def run_backtest(
