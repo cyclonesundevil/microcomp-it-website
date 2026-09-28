@@ -173,6 +173,10 @@ def _upcoming_checkpoint_enabled() -> bool:
     return os.getenv("NFL_UPCOMING_CHECKPOINTS", "").strip().lower() in {"1", "true", "yes"}
 
 
+def _upcoming_full_history_training_enabled() -> bool:
+    return os.getenv("NFL_UPCOMING_FULL_HISTORY", "").strip().lower() in {"1", "true", "yes"}
+
+
 def _upcoming_build_fingerprint(games: List[dict], upcoming: List[dict], season: Optional[int], week: Optional[int]) -> str:
     source = {
         "schema_version": UPCOMING_PREDICTION_SCHEMA_VERSION,
@@ -1349,8 +1353,8 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
         return attach_model_signals(payload)
 
     current_season = max(game["season"] for game in games)
-    historical_games = [game for game in games if game["season"] < current_season]
     current_season_games = [game for game in games if game["season"] == current_season]
+    historical_games = [game for game in games if game["season"] < current_season] if _upcoming_full_history_training_enabled() else current_season_games
     availability_adjustments = load_upcoming_availability_adjustments()
     total_model_steps = len(MODEL_PROFILES)
     total_game_steps = len(upcoming) * len(MODEL_PROFILES)
@@ -1570,10 +1574,16 @@ def _set_upcoming_progress(progress: int, message: str, *, status: str = "comput
     except (OSError, json.JSONDecodeError):
         previous = None
 
+    previous_updated_at = _parse_progress_timestamp(previous.get("updated_at")) if previous else None
+    previous_is_fresh = (
+        previous_updated_at is not None
+        and (datetime.now(timezone.utc) - previous_updated_at).total_seconds() <= 10 * 60
+    )
     if (
         previous
         and previous.get("status") == "computing"
         and status == "computing"
+        and previous_is_fresh
         and int(previous.get("progress", 0) or 0) >= normalized_progress
     ):
         _UPCOMING_PROGRESS_STATE = dict(previous)
@@ -1595,11 +1605,29 @@ def _set_upcoming_progress(progress: int, message: str, *, status: str = "comput
     return dict(_UPCOMING_PROGRESS_STATE)
 
 
+def _parse_progress_timestamp(value) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
 def upcoming_prediction_status_snapshot() -> dict:
     try:
         with open(_upcoming_progress_path(), encoding="utf-8") as source:
             payload = json.load(source)
         if isinstance(payload, dict) and payload.get("status"):
+            if payload.get("status") == "computing":
+                updated_at = _parse_progress_timestamp(payload.get("updated_at"))
+                if updated_at is not None and (datetime.now(timezone.utc) - updated_at).total_seconds() > 10 * 60:
+                    stale = dict(payload)
+                    stale["status"] = "failed"
+                    stale["ready"] = False
+                    stale["message"] = "Forecast generation stalled before completion. Please refresh to restart the rebuild."
+                    return stale
             return payload
     except (OSError, json.JSONDecodeError):
         pass

@@ -433,6 +433,69 @@ def test_upcoming_failed_progress_overrides_computing_update(tmp_path, monkeypat
     assert failed["progress"] == 0
 
 
+def test_upcoming_status_marks_stale_computing_progress_failed(tmp_path, monkeypatch):
+    cache_file = tmp_path / "nfl_upcoming_predictions.json"
+    monkeypatch.setattr("nfl_predictor.upcoming_prediction_cache_path", lambda: str(cache_file))
+    stale_time = "2026-09-28T18:00:00+00:00"
+    progress_path = tmp_path / "nfl_upcoming_predictions.json.progress.json"
+    progress_path.write_text(json.dumps({
+        "status": "computing",
+        "ready": False,
+        "progress": 42,
+        "message": "Scoring ATL at GB with baseline.",
+        "updated_at": stale_time,
+    }), encoding="utf-8")
+
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            value = datetime(2026, 9, 28, 18, 15, tzinfo=ZoneInfo("UTC"))
+            return value if tz else value.replace(tzinfo=None)
+
+    monkeypatch.setattr("nfl_predictor.datetime", FixedDateTime)
+
+    snapshot = nfl_predictor.upcoming_prediction_status_snapshot()
+
+    assert snapshot["status"] == "failed"
+    assert "stalled" in snapshot["message"]
+
+
+def test_upcoming_build_uses_current_season_training_by_default(monkeypatch):
+    games = [
+        {"season": 2025, "week": 1, "game_id": "old", "away_team": "A", "home_team": "B", "away_score": 10.0, "home_score": 14.0, "spread_line": -1.0, "total_line": 40.0, "actual_margin": 4.0, "actual_total": 24.0, "away_rest": 7.0, "home_rest": 7.0, "div_game": False, "roof": "", "temp": None, "wind": None},
+        {"season": 2026, "week": 1, "game_id": "new", "away_team": "A", "home_team": "B", "away_score": 17.0, "home_score": 20.0, "spread_line": -2.0, "total_line": 42.0, "actual_margin": 3.0, "actual_total": 37.0, "away_rest": 7.0, "home_rest": 7.0, "div_game": False, "roof": "", "temp": None, "wind": None},
+    ]
+    upcoming = [{"game_id": "upcoming", "season": 2026, "week": 2, "away_team": "A", "home_team": "B", "spread_line": -2.0, "total_line": 42.0, "home_rest": 7.0, "away_rest": 7.0, "div_game": False, "roof": "", "temp": None, "wind": None}]
+    seen_lengths = []
+
+    class DummyModel:
+        def predict(self, _game):
+            return 1.0, 42.0
+
+        def update(self, *_args):
+            return None
+
+    def fake_load_or_train(rows, profile):
+        seen_lengths.append((profile, len(rows), {row["season"] for row in rows}))
+        return DummyModel()
+
+    monkeypatch.delenv("NFL_UPCOMING_FULL_HISTORY", raising=False)
+    monkeypatch.setattr("nfl_predictor.load_upcoming_games", lambda season=None, week=None: upcoming)
+    monkeypatch.setattr("nfl_predictor._load_or_train_historical_model", fake_load_or_train)
+    monkeypatch.setattr("nfl_predictor.train_model", lambda rows, model_profile="baseline": DummyModel())
+    monkeypatch.setattr("nfl_predictor.create_model", lambda profile: DummyModel())
+    monkeypatch.setattr("nfl_predictor._write_upcoming_checkpoint", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr("nfl_predictor._clear_upcoming_checkpoint", lambda: None)
+    monkeypatch.setattr("nfl_predictor._set_upcoming_progress", lambda *args, **kwargs: {})
+    monkeypatch.setattr("nfl_predictor.attach_model_signals", lambda payload: payload)
+    monkeypatch.setattr("nfl_predictor.predict_matchup", lambda *args, **kwargs: {"model": args[5], "pred_margin": 1.0, "pred_total": 42.0})
+
+    nfl_predictor._build_upcoming_prediction_cache(games, 2026, 2)
+
+    assert seen_lengths
+    assert all(length == 1 and seasons == {2026} for _profile, length, seasons in seen_lengths)
+
+
 def test_upcoming_refresh_can_be_scheduled_while_cache_lock_is_held(monkeypatch):
     monkeypatch.setattr("nfl_predictor._UPCOMING_REFRESH_RUNNING", False)
     started = {"value": False}
