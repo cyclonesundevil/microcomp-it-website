@@ -30,20 +30,55 @@ document.addEventListener('DOMContentLoaded', () => {
         rsm_stage7c: 'RSM',
         rsm_plus: 'RSM+'
     }[model] || model);
-    const probabilityLean = (row) => {
-        if (row.display_suppressed) return 'Unavailable';
-        const parts = [];
-        if (Number.isFinite(Number(row.favorite_cover_probability))) {
-            const atsLabel = Number(row.favorite_cover_probability) >= 0.5
-                ? `${row.favorite_team || 'Favorite'} ATS`
-                : 'Underdog ATS';
-            parts.push(`${atsLabel} (${pct(Math.max(Number(row.favorite_cover_probability), 1 - Number(row.favorite_cover_probability)))})`);
-        }
-        if (Number.isFinite(Number(row.over_probability))) {
-            const totalSide = Number(row.over_probability) >= 0.5 ? 'Over' : 'Under';
-            parts.push(`${totalSide} (${pct(Math.max(Number(row.over_probability), Number(row.under_probability)))})`);
-        }
-        return parts.length ? parts.join(' / ') : 'No line signal';
+    const probabilityModels = ['rothstein_plus', 'rsm_stage7c', 'rsm_plus'];
+
+    function probabilityGameKey(row) {
+        return row.game_id || `${row.away_team}-${row.home_team}-${row.gameday || ''}`;
+    }
+
+    function totalProbabilityLabel(row) {
+        if (!Number.isFinite(Number(row.over_probability))) return '--';
+        const over = Number(row.over_probability);
+        const under = Number(row.under_probability);
+        return over >= under ? `Over ${pct(over)}` : `Under ${pct(under)}`;
+    }
+
+    function probabilityModelCell(row) {
+        if (!row) return '--';
+        if (row.display_suppressed) return 'Ineligible';
+        const adjusted = row.availability_adjusted ? ' *' : '';
+        const favoriteProbability = Number.isFinite(Number(row.favorite_cover_probability))
+            ? `${pct(row.favorite_cover_probability)}${adjusted}`
+            : `--${adjusted}`;
+        return `
+            <strong>${favoriteProbability}</strong><br>
+            <small>${esc(totalProbabilityLabel(row))}</small>
+        `;
+    }
+
+    function marketProbabilityCell(row) {
+        if (!row) return '--';
+        return `${esc(spread(row.favorite_team, row.favorite_spread))} / ${num(row.market_total, 1)}`;
+    }
+
+    function groupProbabilityRows(rows) {
+        const grouped = new Map();
+        rows.forEach((row) => {
+            const key = probabilityGameKey(row);
+            if (!grouped.has(key)) {
+                grouped.set(key, {
+                    game_id: row.game_id,
+                    away_team: row.away_team,
+                    home_team: row.home_team,
+                    gameday: row.gameday,
+                    gametime: row.gametime,
+                    market_row: row,
+                    models: {}
+                });
+            }
+            grouped.get(key).models[row.model] = row;
+        });
+        return Array.from(grouped.values());
     };
 
     function apiUrl(path) {
@@ -89,27 +124,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const rows = Array.isArray(section?.rows) ? section.rows : [];
         if (!rows.length) {
             probabilityStatus.textContent = 'No current-week probability rows are available yet.';
-            probabilityBody.innerHTML = '<tr><td colspan="8">No current-week probabilities available.</td></tr>';
+            probabilityBody.innerHTML = '<tr><td colspan="5">No current-week probabilities available.</td></tr>';
             return;
         }
         probabilityStatus.textContent = `Season ${esc(section.season)}, week ${esc(section.week)}. Favorite Covers means the market favorite beats the listed spread; Over and Under are model-implied total probabilities.`;
-        probabilityBody.innerHTML = rows.map((row) => {
-            const unavailable = row.display_suppressed || row.favorite_cover_probability === null || row.favorite_cover_probability === undefined;
-            const totalUnavailable = row.display_suppressed || row.over_probability === null || row.over_probability === undefined;
-            const adjusted = row.availability_adjusted ? ' *' : '';
+        probabilityBody.innerHTML = groupProbabilityRows(rows).map((game) => {
             return `
                 <tr>
                     <td>
-                        <strong>${esc(row.away_team)} at ${esc(row.home_team)}</strong><br>
-                        <small>${esc(row.gameday || '--')} ${esc(row.gametime || '')}</small>
+                        ${esc(game.away_team)} at ${esc(game.home_team)}<br>
+                        <small>${esc(game.gameday || '--')} ${esc(game.gametime || '')}</small>
                     </td>
-                    <td><strong>${esc(modelLabel(row.model))}</strong>${adjusted}</td>
-                    <td>${esc(spread(row.favorite_team, row.favorite_spread))}</td>
-                    <td>${unavailable ? 'Unavailable' : pct(row.favorite_cover_probability)}</td>
-                    <td>${num(row.market_total, 1)}</td>
-                    <td>${totalUnavailable ? 'Unavailable' : pct(row.over_probability)}</td>
-                    <td>${totalUnavailable ? 'Unavailable' : pct(row.under_probability)}</td>
-                    <td>${esc(probabilityLean(row))}<br><small>ATS edge ${signed(row.spread_edge)} / total edge ${signed(row.total_edge)}</small></td>
+                    <td>${marketProbabilityCell(game.market_row)}</td>
+                    ${probabilityModels.map((model) => `<td title="${esc(modelLabel(model))}">${probabilityModelCell(game.models[model])}</td>`).join('')}
                 </tr>
             `;
         }).join('');
@@ -197,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             status.textContent = error.message;
             probabilityStatus.textContent = 'Unable to load current-week probabilities.';
-            probabilityBody.innerHTML = '<tr><td colspan="8">Unavailable</td></tr>';
+            probabilityBody.innerHTML = '<tr><td colspan="5">Unavailable</td></tr>';
             liveModelsBody.innerHTML = '<tr><td colspan="6">Unable to load protected model inventory.</td></tr>';
         }
     }
