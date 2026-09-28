@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
     const secret = params.get('secret') || '';
     const status = document.getElementById('experimental-status');
+    const probabilityStatus = document.getElementById('probability-status');
+    const probabilityBody = document.getElementById('probability-body');
     const liveModelsBody = document.getElementById('live-models-body');
     const probeBody = document.getElementById('probe-body');
     const pgpGrid = document.getElementById('pgp-grid');
@@ -18,6 +20,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const num = (value, digits = 2) => Number.isFinite(Number(value)) ? Number(value).toFixed(digits) : '--';
     const pct = (value) => Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(1)}%` : '--';
     const signed = (value) => Number.isFinite(Number(value)) ? `${Number(value) >= 0 ? '+' : ''}${Number(value).toFixed(1)}` : '--';
+    const spread = (team, line) => {
+        if (!team && Number(line) === 0) return "Pick'em";
+        if (!team || !Number.isFinite(Number(line))) return '--';
+        return `${team} ${Number(line).toFixed(1)}`;
+    };
+    const modelLabel = (model) => ({
+        rothstein_plus: 'Rothstein+',
+        rsm_stage7c: 'RSM',
+        rsm_plus: 'RSM+'
+    }[model] || model);
+    const probabilityLean = (row) => {
+        if (row.display_suppressed) return 'Unavailable';
+        const parts = [];
+        if (Number.isFinite(Number(row.favorite_cover_probability))) {
+            const atsLabel = Number(row.favorite_cover_probability) >= 0.5
+                ? `${row.favorite_team || 'Favorite'} ATS`
+                : 'Underdog ATS';
+            parts.push(`${atsLabel} (${pct(Math.max(Number(row.favorite_cover_probability), 1 - Number(row.favorite_cover_probability)))})`);
+        }
+        if (Number.isFinite(Number(row.over_probability))) {
+            const totalSide = Number(row.over_probability) >= 0.5 ? 'Over' : 'Under';
+            parts.push(`${totalSide} (${pct(Math.max(Number(row.over_probability), Number(row.under_probability)))})`);
+        }
+        return parts.length ? parts.join(' / ') : 'No line signal';
+    };
 
     function apiUrl(path) {
         const url = new URL(path, window.location.origin);
@@ -56,6 +83,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${esc(model.notes)}</td>
             </tr>
         `).join('');
+    }
+
+    function renderCurrentWeekProbabilities(section) {
+        const rows = Array.isArray(section?.rows) ? section.rows : [];
+        if (!rows.length) {
+            probabilityStatus.textContent = 'No current-week probability rows are available yet.';
+            probabilityBody.innerHTML = '<tr><td colspan="8">No current-week probabilities available.</td></tr>';
+            return;
+        }
+        probabilityStatus.textContent = `Season ${esc(section.season)}, week ${esc(section.week)}. Favorite Covers means the market favorite beats the listed spread; Over and Under are model-implied total probabilities.`;
+        probabilityBody.innerHTML = rows.map((row) => {
+            const unavailable = row.display_suppressed || row.favorite_cover_probability === null || row.favorite_cover_probability === undefined;
+            const totalUnavailable = row.display_suppressed || row.over_probability === null || row.over_probability === undefined;
+            const adjusted = row.availability_adjusted ? ' *' : '';
+            return `
+                <tr>
+                    <td>
+                        <strong>${esc(row.away_team)} at ${esc(row.home_team)}</strong><br>
+                        <small>${esc(row.gameday || '--')} ${esc(row.gametime || '')}</small>
+                    </td>
+                    <td><strong>${esc(modelLabel(row.model))}</strong>${adjusted}</td>
+                    <td>${esc(spread(row.favorite_team, row.favorite_spread))}</td>
+                    <td>${unavailable ? 'Unavailable' : pct(row.favorite_cover_probability)}</td>
+                    <td>${num(row.market_total, 1)}</td>
+                    <td>${totalUnavailable ? 'Unavailable' : pct(row.over_probability)}</td>
+                    <td>${totalUnavailable ? 'Unavailable' : pct(row.under_probability)}</td>
+                    <td>${esc(probabilityLean(row))}<br><small>ATS edge ${signed(row.spread_edge)} / total edge ${signed(row.total_edge)}</small></td>
+                </tr>
+            `;
+        }).join('');
     }
 
     function renderPgp(items) {
@@ -132,12 +189,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load experimental models');
             status.textContent = data.notes?.[0] || 'Protected model inventory loaded.';
+            renderCurrentWeekProbabilities(data.current_week_probabilities);
             renderLiveModels(data.live_experimental_models || []);
             renderPgp(data.research_models?.pgp || []);
             renderParallel(data.research_models?.parallel);
             renderRsm(data.research_models?.rsm_stage7c);
         } catch (error) {
             status.textContent = error.message;
+            probabilityStatus.textContent = 'Unable to load current-week probabilities.';
+            probabilityBody.innerHTML = '<tr><td colspan="8">Unavailable</td></tr>';
             liveModelsBody.innerHTML = '<tr><td colspan="6">Unable to load protected model inventory.</td></tr>';
         }
     }

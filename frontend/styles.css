@@ -3062,6 +3062,14 @@ nav a:hover:not(.btn-primary) {
     overflow-x: auto;
 }
 
+.experimental-help {
+    margin: 0 0 0.9rem;
+    max-width: 920px;
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+
 .experimental-table th,
 .experimental-table td {
     vertical-align: top;

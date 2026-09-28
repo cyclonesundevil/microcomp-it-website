@@ -34,7 +34,7 @@ from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from quart import Response
 from nfl_live_data import live_scoreboard
-from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _availability_adjustments_signature, _games_source_signature, _has_all_upcoming_models, _has_valid_upcoming_games, _nfl_week_rollover_hour, _nfl_week_rollover_zone, _resolve_upcoming_cache_target, _rsm_artifact, _schedule_upcoming_prediction_refresh, apply_upcoming_availability_adjustments, cached_backtest, cached_matchup_history, cached_upcoming_predictions, cached_weekly_model_performance, cached_weekly_model_performance_trend, dashboard_snapshot, default_spread_threshold, default_total_threshold, find_upcoming_scheduled_match, games_cache_info, list_teams, load_games, load_upcoming_availability_adjustments, model_status_labels, predict_matchup, refresh_upcoming_final_scores_in_cache, summarize_by_season, upcoming_prediction_cache_path, upcoming_prediction_status_snapshot, warm_matchup_history_cache
+from nfl_predictor import GAMES_URL, MODEL_PROFILES, RSM_PROFILE, GamesRefreshAlreadyRunning, RsmStage7CComparisonModel, _availability_adjustments_signature, _games_source_signature, _has_all_upcoming_models, _has_valid_upcoming_games, _nfl_week_rollover_hour, _nfl_week_rollover_zone, _resolve_upcoming_cache_target, _rsm_artifact, _schedule_upcoming_prediction_refresh, apply_upcoming_availability_adjustments, cached_backtest, cached_matchup_history, cached_upcoming_predictions, cached_weekly_model_performance, cached_weekly_model_performance_trend, dashboard_snapshot, default_spread_threshold, default_total_threshold, experimental_market_probabilities, find_upcoming_scheduled_match, games_cache_info, list_teams, load_games, load_upcoming_availability_adjustments, model_status_labels, predict_matchup, refresh_upcoming_final_scores_in_cache, summarize_by_season, upcoming_prediction_cache_path, upcoming_prediction_status_snapshot, warm_matchup_history_cache
 from rsm.stage8_evaluation import DEFAULT_OUTCOME_STORE, DEFAULT_TOTAL_OBSERVATION_STORE, TOTAL_MODEL_VERSION, capture_total_observation, evaluation_report, record_outcome, total_evaluation_report
 from rsm.stage8_shadow import DEFAULT_STORE as RSM_DEFAULT_STORE, capture_observation, line_movements
 
@@ -341,11 +341,12 @@ def _summarize_rsm_stage7c() -> dict | None:
     }
 
 
-def experimental_models_payload() -> dict:
+def experimental_models_payload(upcoming_probabilities: dict | None = None) -> dict:
     statuses = model_status_labels()
-    return {
+    payload = {
         "success": True,
         "protected": True,
+        "current_week_probabilities": upcoming_probabilities,
         "live_experimental_models": [
             {
                 "id": model,
@@ -372,6 +373,7 @@ def experimental_models_payload() -> dict:
             "PGP, DSM, and PRM are research artifacts here; they are not live production predictor profiles.",
         ],
     }
+    return payload
 
 
 def rsm_manual_write_authorized():
@@ -2286,7 +2288,11 @@ async def nfl_v1_models():
 async def nfl_experimental_models_page():
     if not admin_secret_authorized():
         return "Unauthorized. Add ?secret=YOUR_SECRET to the URL.", 401
-    return await send_from_directory(app.static_folder, "nfl-experimental-models.html")
+    response = await send_from_directory(app.static_folder, "nfl-experimental-models.html")
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 @app.route("/api/nfl/experimental-models")
@@ -2294,7 +2300,25 @@ async def nfl_experimental_models_page():
 async def nfl_experimental_models():
     if not admin_secret_authorized():
         return jsonify({"success": False, "error": "Admin token is required."}), 403
-    return jsonify(experimental_models_payload())
+    try:
+        requested_week = request.args.get("week")
+        requested_season = request.args.get("season")
+        week = int(requested_week) if requested_week else None
+        season = int(requested_season) if requested_season else None
+        games, _cache = await load_nfl_games_for_request()
+        snapshot = await asyncio.to_thread(cached_upcoming_predictions, games, season, week, False, False)
+        probabilities = await asyncio.to_thread(
+            experimental_market_probabilities,
+            snapshot,
+            games,
+            EXPERIMENTAL_LIVE_MODELS,
+        )
+        return jsonify(experimental_models_payload(probabilities))
+    except ValueError:
+        return jsonify({"success": False, "error": "season and week must be numeric when supplied."}), 400
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route("/api/nfl/experimental-models/predict")

@@ -6,6 +6,7 @@ import pytest
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import nfl_predictor
 from nfl_predictor import (
     MODEL_PROFILES,
     MarketBlendNFLModel,
@@ -25,6 +26,7 @@ from nfl_predictor import (
     cached_matchup_history,
     cached_upcoming_predictions,
     download_games,
+    experimental_market_probabilities,
     find_upcoming_scheduled_match,
     load_upcoming_games,
     list_teams,
@@ -1254,6 +1256,54 @@ def test_model_signals_surface_total_market_gap_as_opportunity():
     assert signals["opportunity_tier"] == "high"
     assert signals["max_total_market_gap"] == pytest.approx(8.0)
     assert "largest total gap is 8.0" in signals["story"]
+
+
+def test_experimental_market_probabilities_report_favorite_and_total_sides(monkeypatch):
+    monkeypatch.setattr(
+        nfl_predictor,
+        "model_residual_scales",
+        lambda _games, model, _seasons_to_test=5: {
+            "model": model,
+            "seasons": 5,
+            "games": 100,
+            "margin_residual_sd": 10.0,
+            "total_residual_sd": 10.0,
+            "fallback_used": False,
+        },
+    )
+    payload = {
+        "season": 2026,
+        "week": 3,
+        "games": [{
+            "schedule": {
+                "game_id": "2026_03_ATL_GB",
+                "season": 2026,
+                "week": 3,
+                "away_team": "ATL",
+                "home_team": "GB",
+                "spread_line": -4.0,
+                "total_line": 45.0,
+            },
+            "models": {
+                "rsm_plus": {
+                    "model": "rsm_plus",
+                    "pred_margin": -6.0,
+                    "pred_total": 48.0,
+                    "spread_edge": -2.0,
+                    "total_edge": 3.0,
+                },
+            },
+        }],
+    }
+
+    result = experimental_market_probabilities(payload, [], ("rsm_plus",))
+    row = result["rows"][0]
+
+    assert row["favorite_team"] == "ATL"
+    assert row["favorite_spread"] == pytest.approx(-4.0)
+    assert row["favorite_cover_probability"] > 0.5
+    assert row["over_probability"] > 0.5
+    assert row["under_probability"] == pytest.approx(1.0 - row["over_probability"])
 
 
 def test_model_signals_handle_missing_outputs_and_research_status_labels():

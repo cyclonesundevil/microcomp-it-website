@@ -27,6 +27,7 @@ MEAN_REVERSION_PROFILE = "mean_reversion"
 MODEL_PROFILES = ("baseline", "enhanced", "market_blend", MEAN_REVERSION_PROFILE, "rothstein", "rothstein_plus", RSM_PROFILE, RSM_PLUS_PROFILE)
 UPCOMING_PREDICTION_SCHEMA_VERSION = 5
 WEEKLY_PERFORMANCE_TREND_SCHEMA_VERSION = 1
+EXPERIMENTAL_PROBABILITY_SCHEMA_VERSION = 1
 REPORTS_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "reports"))
 DEFAULT_AVAILABILITY_ADJUSTMENTS_PATH = os.path.join(os.path.dirname(__file__), "config", "nfl_upcoming_availability_adjustments.json")
 INJURY_PROFILES = {
@@ -97,6 +98,7 @@ _UPCOMING_PROGRESS_STATE = {
     "progress": 0,
     "message": "Forecast idle.",
 }
+_MODEL_RESIDUAL_SCALE_CACHE = {}
 _REQUIRED_GAMES_COLUMNS = {
     "game_id", "season", "week", "game_type", "away_team", "home_team",
     "away_score", "home_score", "spread_line", "total_line",
@@ -463,6 +465,174 @@ def _total_outlook_label(totals: List[float], market_total: Optional[float]) -> 
     if below > len(totals) / 2:
         return "Models lean lower scoring"
     return "Totals mixed"
+
+
+def _normal_cdf(value: float) -> float:
+    return 0.5 * (1.0 + math.erf(value / math.sqrt(2.0)))
+
+
+def _residual_scale(values: List[float], fallback: float) -> float:
+    finite = [float(value) for value in values if value is not None and math.isfinite(float(value))]
+    if len(finite) < 2:
+        return fallback
+    scale = statistics.pstdev(finite)
+    return scale if scale > 0 else fallback
+
+
+def model_residual_scales(
+    games: List[dict],
+    model_profile: str,
+    seasons_to_test: int = 5,
+) -> dict:
+    """Estimate model-specific probability scales from historical residuals."""
+    cache_key = (
+        model_profile,
+        seasons_to_test,
+        _games_source_signature(),
+        len(games),
+        max((game.get("season", 0) for game in games), default=0),
+    )
+    if cache_key in _MODEL_RESIDUAL_SCALE_CACHE:
+        return dict(_MODEL_RESIDUAL_SCALE_CACHE[cache_key])
+    fallback_margin = 13.0
+    fallback_total = 14.0
+    try:
+        _summary, records = run_backtest(
+            games,
+            seasons_to_test=seasons_to_test,
+            spread_threshold=default_spread_threshold(model_profile),
+            total_threshold=default_total_threshold(model_profile),
+            model_profile=model_profile,
+        )
+    except Exception:
+        records = []
+    margin_errors = [
+        row["actual_margin"] - row["pred_margin"]
+        for row in records
+        if row.get("actual_margin") is not None and row.get("pred_margin") is not None
+    ]
+    total_errors = [
+        row["actual_total"] - row["pred_total"]
+        for row in records
+        if row.get("actual_total") is not None and row.get("pred_total") is not None
+    ]
+    scales = {
+        "model": model_profile,
+        "seasons": seasons_to_test,
+        "games": len(records),
+        "margin_residual_sd": _residual_scale(margin_errors, fallback_margin),
+        "total_residual_sd": _residual_scale(total_errors, fallback_total),
+        "fallback_used": len(margin_errors) < 2 or len(total_errors) < 2,
+    }
+    _MODEL_RESIDUAL_SCALE_CACHE[cache_key] = dict(scales)
+    return scales
+
+
+def _probability_from_edge(edge: Optional[float], scale: Optional[float]) -> Optional[float]:
+    if edge is None or scale is None:
+        return None
+    try:
+        edge_value = float(edge)
+        scale_value = float(scale)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(edge_value) or not math.isfinite(scale_value) or scale_value <= 0:
+        return None
+    return _normal_cdf(edge_value / scale_value)
+
+
+def _market_favorite_for_schedule(schedule: dict) -> dict:
+    spread_line = schedule.get("spread_line")
+    if spread_line is None:
+        return {"team": None, "side": None, "display_spread": None}
+    try:
+        market_home_margin = float(spread_line)
+    except (TypeError, ValueError):
+        return {"team": None, "side": None, "display_spread": None}
+    if market_home_margin > 0:
+        return {"team": schedule.get("home_team"), "side": "home", "display_spread": -abs(market_home_margin)}
+    if market_home_margin < 0:
+        return {"team": schedule.get("away_team"), "side": "away", "display_spread": -abs(market_home_margin)}
+    return {"team": None, "side": None, "display_spread": 0.0}
+
+
+def experimental_market_probabilities(
+    upcoming_payload: dict,
+    games: List[dict],
+    model_profiles: Tuple[str, ...],
+    seasons_to_test: int = 5,
+) -> dict:
+    """Summarize current-week favorite ATS and total probabilities for selected models."""
+    scale_by_model = {
+        model: model_residual_scales(games, model, seasons_to_test)
+        for model in model_profiles
+    }
+    rows = []
+    for game in upcoming_payload.get("games", []) if isinstance(upcoming_payload, dict) else []:
+        schedule = game.get("schedule") if isinstance(game, dict) else {}
+        models = game.get("models") if isinstance(game, dict) else {}
+        schedule = schedule if isinstance(schedule, dict) else {}
+        models = models if isinstance(models, dict) else {}
+        favorite = _market_favorite_for_schedule(schedule)
+        market_home_margin = schedule.get("spread_line")
+        market_total = schedule.get("total_line")
+        for model in model_profiles:
+            prediction = models.get(model) if isinstance(models.get(model), dict) else {}
+            scales = scale_by_model.get(model, {})
+            home_cover_probability = _probability_from_edge(
+                prediction.get("spread_edge"),
+                scales.get("margin_residual_sd"),
+            )
+            favorite_cover_probability = None
+            if home_cover_probability is not None:
+                favorite_cover_probability = (
+                    home_cover_probability
+                    if favorite.get("side") == "home"
+                    else 1.0 - home_cover_probability
+                    if favorite.get("side") == "away"
+                    else None
+                )
+            over_probability = _probability_from_edge(
+                prediction.get("total_edge"),
+                scales.get("total_residual_sd"),
+            )
+            rows.append({
+                "game_id": schedule.get("game_id"),
+                "season": schedule.get("season"),
+                "week": schedule.get("week"),
+                "gameday": schedule.get("gameday"),
+                "gametime": schedule.get("gametime"),
+                "away_team": schedule.get("away_team"),
+                "home_team": schedule.get("home_team"),
+                "model": model,
+                "eligible": prediction.get("eligible"),
+                "display_suppressed": bool(prediction.get("display_suppressed")),
+                "market_home_margin": market_home_margin,
+                "market_total": market_total,
+                "favorite_team": favorite.get("team"),
+                "favorite_side": favorite.get("side"),
+                "favorite_spread": favorite.get("display_spread"),
+                "predicted_home_margin": prediction.get("pred_margin"),
+                "predicted_total": prediction.get("pred_total"),
+                "spread_edge": prediction.get("spread_edge"),
+                "total_edge": prediction.get("total_edge"),
+                "favorite_cover_probability": favorite_cover_probability,
+                "over_probability": over_probability,
+                "under_probability": 1.0 - over_probability if over_probability is not None else None,
+                "probability_scales": scales,
+                "availability_adjusted": bool(prediction.get("availability_adjusted")),
+                "notes": prediction.get("model_notes") or [],
+            })
+    return {
+        "schema_version": EXPERIMENTAL_PROBABILITY_SCHEMA_VERSION,
+        "season": upcoming_payload.get("season") if isinstance(upcoming_payload, dict) else None,
+        "week": upcoming_payload.get("week") if isinstance(upcoming_payload, dict) else None,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source_generated_at": upcoming_payload.get("generated_at") if isinstance(upcoming_payload, dict) else None,
+        "models": list(model_profiles),
+        "scale_method": f"Normal CDF of model-market edge using each model's last {seasons_to_test} completed-season residual standard deviation.",
+        "rows": rows,
+    }
 
 
 def _model_signal_story(

@@ -35,12 +35,43 @@
             <p class="science-kicker">Admin Research Surface</p>
             <h1>NFL Experimental Models</h1>
             <p id="experimental-status">Loading protected model inventory...</p>
+            <p class="experimental-version">Experimental page version: current-week probability board v2</p>
+        </section>
+
+        <section class="experimental-panel">
+            <div class="section-heading">
+                <h2>Current Week Probability Board</h2>
+                <p id="probability-status">Loading favorite ATS and total probabilities...</p>
+            </div>
+            <p class="experimental-help">
+                Auto-loaded from the current NFL week. Each row is one scheduled game and one experimental model.
+                The Run button below does not change this board.
+            </p>
+            <div class="experimental-table-wrap">
+                <table class="nfl-table experimental-table">
+                    <thead>
+                        <tr>
+                            <th>Game</th>
+                            <th>Model</th>
+                            <th>Favorite Spread</th>
+                            <th>Favorite Covers</th>
+                            <th>O/U Line</th>
+                            <th>Over</th>
+                            <th>Under</th>
+                            <th>Lean</th>
+                        </tr>
+                    </thead>
+                    <tbody id="probability-body">
+                        <tr><td colspan="8">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </section>
 
         <section class="experimental-panel">
             <div class="section-heading">
                 <h2>Live Experimental Profiles</h2>
-                <p>Profiles registered in the production predictor model registry.</p>
+                <p>Reference list only. These are the experimental models included in the probability board and probe.</p>
             </div>
             <div class="experimental-table-wrap">
                 <table class="nfl-table experimental-table">
@@ -63,8 +94,8 @@
 
         <section class="experimental-panel">
             <div class="section-heading">
-                <h2>Experimental Matchup Probe</h2>
-                <p>Protected comparison across live experimental profiles only.</p>
+                <h2>Manual Matchup Probe</h2>
+                <p>Runs only this section. It does not update the current-week probability board above.</p>
             </div>
             <div class="experimental-controls">
                 <label>Away <input id="exp-away" type="text" value="KC" maxlength="3"></label>
@@ -76,6 +107,9 @@
                     Run
                 </button>
             </div>
+            <p class="experimental-help">
+                Use this for a custom away/home/spread/total scenario. The table below is separate from the current-week board.
+            </p>
             <div class="experimental-table-wrap">
                 <table class="nfl-table experimental-table">
                     <thead>
@@ -120,7 +154,7 @@
         </section>
     </main>
 
-    <script src="/nfl-experimental-models.js?v=1.0"></script>
+    <script src="/nfl-experimental-models.js?v=2.0"></script>
 </body>
 
 </html>
