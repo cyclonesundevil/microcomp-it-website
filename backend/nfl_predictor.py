@@ -3514,6 +3514,7 @@ def postgame_grading_summary(
     completed_games = int(weekly_performance.get("completed_games") or 0)
     partial_week = scheduled_count > completed_games if scheduled_count else False
     rows = []
+    algorithm_rows = []
     trend_cache_hits = {}
 
     for model_profile in model_profiles:
@@ -3526,19 +3527,25 @@ def postgame_grading_summary(
         week_rows = [row for row in trend_weeks if int(row.get("week") or 0) == week]
         week_row = week_rows[0] if week_rows else {}
         last_three_weeks = trend_weeks[-3:]
+        algorithm_row = {"model": model_profile, "indicators": {}}
         for market in ("ATS", "O/U"):
             week_record = _market_record_from_weeks([week_row] if week_row else [], market)
             season_record = _market_record_from_weeks(trend_weeks, market)
             last_three_record = _market_record_from_weeks(last_three_weeks, market)
-            rows.append({
-                "model": model_profile,
+            indicator = {
                 "market": market,
                 "week": week_record,
                 "season": season_record,
                 "last_3_weeks": last_three_record,
                 "completed_picks": season_record["graded_bets"],
                 "signal": postgame_signal_label(season_record["win_rate"], season_record["graded_bets"]),
+            }
+            rows.append({
+                "model": model_profile,
+                **indicator,
             })
+            algorithm_row["indicators"]["ats" if market == "ATS" else "over_under"] = indicator
+        algorithm_rows.append(algorithm_row)
 
     return {
         "season": season,
@@ -3550,6 +3557,7 @@ def postgame_grading_summary(
         "weekly_cache_hit": weekly_cache_hit,
         "trend_cache_hits": trend_cache_hits,
         "rows": rows,
+        "algorithms": algorithm_rows,
     }
 
 

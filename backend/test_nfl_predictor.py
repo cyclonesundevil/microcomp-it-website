@@ -1411,3 +1411,7 @@ def test_postgame_grading_partial_week_does_not_fail(tmp_path, monkeypatch):
     assert grading["scheduled_games"] == 2
     assert {row["market"] for row in grading["rows"]} == {"ATS", "O/U"}
     assert all("signal" in row for row in grading["rows"])
+    assert grading["algorithms"][0]["model"] == "baseline"
+    assert set(grading["algorithms"][0]["indicators"]) == {"ats", "over_under"}
+    assert grading["algorithms"][0]["indicators"]["ats"]["market"] == "ATS"
+    assert grading["algorithms"][0]["indicators"]["over_under"]["market"] == "O/U"

@@ -67,23 +67,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderSummary(grading) {
-        const rows = Array.isArray(grading?.rows) ? grading.rows : [];
+        const rows = Array.isArray(grading?.algorithms) ? grading.algorithms : [];
         if (!rows.length) {
-            summaryBody.innerHTML = '<tr><td colspan="10">No postgame grading rows are available.</td></tr>';
+            const legacyRows = Array.isArray(grading?.rows) ? grading.rows : [];
+            if (legacyRows.length) {
+                renderLegacySummary(legacyRows);
+                return;
+            }
+            summaryBody.innerHTML = '<tr><td colspan="11">No postgame grading rows are available.</td></tr>';
             return;
         }
         summaryBody.innerHTML = rows.map((row) => `
             <tr>
                 <td>${escapeHtml(modelLabels[row.model] || row.model)}</td>
-                <td>${escapeHtml(row.market)}</td>
-                <td>${escapeHtml(formatRecord(row.week))}</td>
-                <td>${formatPercent(row.week?.win_rate)}</td>
-                <td>${escapeHtml(formatRecord(row.season))}</td>
-                <td>${formatPercent(row.season?.win_rate)}</td>
-                <td>${escapeHtml(formatRecord(row.last_3_weeks))} <small>${formatPercent(row.last_3_weeks?.win_rate)}</small></td>
-                <td>${formatPercent(row.season?.roi_at_minus_110)}</td>
-                <td>${Number(row.completed_picks || 0)}</td>
-                <td><span class="postgame-signal ${signalClass(row.signal)}">${escapeHtml(row.signal)}</span></td>
+                ${indicatorCells(row.indicators?.ats)}
+                ${indicatorCells(row.indicators?.over_under)}
+            </tr>
+        `).join('');
+    }
+
+    function indicatorCells(indicator) {
+        if (!indicator) {
+            return '<td>--</td><td>--</td><td>--</td><td>--</td><td>--</td>';
+        }
+        return `
+            <td>${escapeHtml(formatRecord(indicator.week))}<br><small>${formatPercent(indicator.week?.win_rate)}</small></td>
+            <td>${escapeHtml(formatRecord(indicator.season))}<br><small>${formatPercent(indicator.season?.win_rate)}</small></td>
+            <td>${escapeHtml(formatRecord(indicator.last_3_weeks))}<br><small>${formatPercent(indicator.last_3_weeks?.win_rate)}</small></td>
+            <td>${formatPercent(indicator.season?.roi_at_minus_110)}</td>
+            <td><span class="postgame-signal ${signalClass(indicator.signal)}">${escapeHtml(indicator.signal)}</span><br><small>${Number(indicator.completed_picks || 0)} picks</small></td>
+        `;
+    }
+
+    function renderLegacySummary(rows) {
+        summaryBody.innerHTML = rows.map((row) => `
+            <tr>
+                <td>${escapeHtml(modelLabels[row.model] || row.model)} ${escapeHtml(row.market)}</td>
+                ${indicatorCells(row)}
+                <td colspan="5">--</td>
             </tr>
         `).join('');
     }
@@ -125,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (weekSelect.value) params.set('week', weekSelect.value);
         message.textContent = 'Loading postgame grading...';
         partialMessage.textContent = '';
-        summaryBody.innerHTML = '<tr><td colspan="10">Loading...</td></tr>';
+        summaryBody.innerHTML = '<tr><td colspan="11">Loading...</td></tr>';
         detailBody.innerHTML = '<tr><td colspan="11">Loading...</td></tr>';
         refreshButton.disabled = true;
         try {
@@ -144,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderDetails(data.game_results || []);
         } catch (error) {
             message.textContent = `Unable to load postgame grading: ${error.message}`;
-            summaryBody.innerHTML = '<tr><td colspan="10">Unavailable</td></tr>';
+            summaryBody.innerHTML = '<tr><td colspan="11">Unavailable</td></tr>';
             detailBody.innerHTML = '<tr><td colspan="11">Unavailable</td></tr>';
         } finally {
             refreshButton.disabled = false;
