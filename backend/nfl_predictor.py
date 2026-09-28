@@ -182,6 +182,7 @@ def _upcoming_build_fingerprint(games: List[dict], upcoming: List[dict], season:
         "schema_version": UPCOMING_PREDICTION_SCHEMA_VERSION,
         "season": season,
         "week": week,
+        "full_history_training": _upcoming_full_history_training_enabled(),
         "availability_adjustments_signature": _availability_adjustments_signature(),
         "games": [
             (game.get("season"), game.get("week"), game.get("game_id"), game.get("away_score"), game.get("home_score"), game.get("spread_line"), game.get("total_line"))
@@ -1388,7 +1389,8 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
 
     current_season = max(game["season"] for game in games)
     current_season_games = [game for game in games if game["season"] == current_season]
-    historical_games = [game for game in games if game["season"] < current_season] if _upcoming_full_history_training_enabled() else current_season_games
+    full_history_training = _upcoming_full_history_training_enabled()
+    historical_games = [game for game in games if game["season"] < current_season] if full_history_training else current_season_games
     availability_adjustments = load_upcoming_availability_adjustments()
     total_model_steps = len(MODEL_PROFILES)
     total_game_steps = len(upcoming) * len(MODEL_PROFILES)
@@ -1419,10 +1421,13 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
                 # These profiles intentionally model only the current season.
                 trained_models[model] = train_model(current_season_games, model)
             else:
-                trained_models[model] = _load_or_train_historical_model(historical_games, model)
-                for game in current_season_games:
-                    predicted_margin, predicted_total = trained_models[model].predict(game)
-                    trained_models[model].update(game, predicted_margin, predicted_total)
+                if full_history_training:
+                    trained_models[model] = _load_or_train_historical_model(historical_games, model)
+                    for game in current_season_games:
+                        predicted_margin, predicted_total = trained_models[model].predict(game)
+                        trained_models[model].update(game, predicted_margin, predicted_total)
+                else:
+                    trained_models[model] = train_model(current_season_games, model)
             completion = progress_floor + ((index + 1) / total_model_steps) * 30
             _set_upcoming_progress(int(completion), f"Training model {index + 1} of {total_model_steps}: {model}.", status="computing", ready=False)
         rows = []

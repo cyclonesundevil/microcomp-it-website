@@ -467,7 +467,7 @@ def test_upcoming_build_uses_current_season_training_by_default(monkeypatch):
         {"season": 2026, "week": 1, "game_id": "new", "away_team": "A", "home_team": "B", "away_score": 17.0, "home_score": 20.0, "spread_line": -2.0, "total_line": 42.0, "actual_margin": 3.0, "actual_total": 37.0, "away_rest": 7.0, "home_rest": 7.0, "div_game": False, "roof": "", "temp": None, "wind": None},
     ]
     upcoming = [{"game_id": "upcoming", "season": 2026, "week": 2, "away_team": "A", "home_team": "B", "spread_line": -2.0, "total_line": 42.0, "home_rest": 7.0, "away_rest": 7.0, "div_game": False, "roof": "", "temp": None, "wind": None}]
-    seen_lengths = []
+    trained_lengths = []
 
     class DummyModel:
         def predict(self, _game):
@@ -476,14 +476,14 @@ def test_upcoming_build_uses_current_season_training_by_default(monkeypatch):
         def update(self, *_args):
             return None
 
-    def fake_load_or_train(rows, profile):
-        seen_lengths.append((profile, len(rows), {row["season"] for row in rows}))
+    def fake_train(rows, model_profile="baseline"):
+        trained_lengths.append((model_profile, len(rows), {row["season"] for row in rows}))
         return DummyModel()
 
     monkeypatch.delenv("NFL_UPCOMING_FULL_HISTORY", raising=False)
     monkeypatch.setattr("nfl_predictor.load_upcoming_games", lambda season=None, week=None: upcoming)
-    monkeypatch.setattr("nfl_predictor._load_or_train_historical_model", fake_load_or_train)
-    monkeypatch.setattr("nfl_predictor.train_model", lambda rows, model_profile="baseline": DummyModel())
+    monkeypatch.setattr("nfl_predictor._load_or_train_historical_model", lambda *_args, **_kwargs: pytest.fail("default upcoming rebuild should not use historical model cache"))
+    monkeypatch.setattr("nfl_predictor.train_model", fake_train)
     monkeypatch.setattr("nfl_predictor.create_model", lambda profile: DummyModel())
     monkeypatch.setattr("nfl_predictor._write_upcoming_checkpoint", lambda *_args, **_kwargs: None)
     monkeypatch.setattr("nfl_predictor._clear_upcoming_checkpoint", lambda: None)
@@ -493,8 +493,8 @@ def test_upcoming_build_uses_current_season_training_by_default(monkeypatch):
 
     nfl_predictor._build_upcoming_prediction_cache(games, 2026, 2)
 
-    assert seen_lengths
-    assert all(length == 1 and seasons == {2026} for _profile, length, seasons in seen_lengths)
+    assert trained_lengths
+    assert all(length == 1 and seasons == {2026} for _profile, length, seasons in trained_lengths)
 
 
 def test_historical_model_cache_write_failure_returns_trained_model(tmp_path, monkeypatch):
