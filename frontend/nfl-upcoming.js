@@ -40,7 +40,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const nextPercent = Math.max(0, Math.min(100, Number(percent) || 0));
         const safePercent = options.allowBackward ? nextPercent : Math.max(lastProgressPercent, nextPercent);
-        if (!options.allowBackward && nextPercent <= lastProgressPercent && progressPanel.hidden === false) return;
+        if (!options.allowBackward && nextPercent <= lastProgressPercent && progressPanel.hidden === false) {
+            if (statusMessage) message.textContent = statusMessage;
+            return;
+        }
         lastProgressPercent = safePercent;
         progressPanel.hidden = false;
         progressValue.textContent = `${safePercent}%`;
@@ -62,6 +65,16 @@ document.addEventListener('DOMContentLoaded', () => {
         progressElapsed.textContent = 'Elapsed 0s';
         progressValue.textContent = '0%';
         progressFill.style.width = '0%';
+    }
+
+    function showForecastFailure(statusMessage) {
+        stopTimers();
+        progressPanel.hidden = true;
+        message.textContent = statusMessage || 'Forecast refresh failed. Please refresh to restart the rebuild.';
+        cacheStatus.textContent = 'Forecast cache status: rebuild failed or stalled.';
+        tableBody.innerHTML = '<tr><td colspan="10">Forecast refresh failed. Refresh the page to restart the rebuild.</td></tr>';
+        if (rosterComparisonBody) rosterComparisonBody.innerHTML = '<tr><td colspan="13">Forecast refresh failed. Refresh the page to restart the rebuild.</td></tr>';
+        renderModelSignals([]);
     }
 
     async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 15000) {
@@ -403,6 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function shouldTrackBackgroundRefresh(data) {
         if (!data) return false;
+        if (data.status === 'failed') return false;
         if (data.ready === false) return true;
         if (data.cache_target_mismatch) return true;
         if (data.refresh_scheduled && data.status === 'computing') return true;
@@ -498,6 +512,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load upcoming predictions');
 
                 const waitingForForecast = data.ready === false && (data.refresh_scheduled || data.status === 'computing');
+                if (data.status === 'failed') {
+                    showForecastFailure(data.message);
+                    return;
+                }
                 if (waitingForForecast || (data.status === 'computing' && !data.cache_hit)) {
                     showProgress(Math.max(10, Math.min(95, Number(data.progress) || 15)), data.message || 'Forecast is still being computed.');
                     tableBody.innerHTML = '<tr><td colspan="10">Forecast is still being computed...</td></tr>';
@@ -552,11 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const status = await fetchUpcomingStatus();
                         if (requestId !== upcomingRequestId) return;
                         if (status.status === 'failed') {
-                            stopTimers();
-                            progressPanel.hidden = true;
-                            message.textContent = status.message || 'Forecast refresh failed. Please try again shortly.';
-                            tableBody.innerHTML = '<tr><td colspan="10">Forecast refresh failed.</td></tr>';
-                            renderModelSignals([]);
+                            showForecastFailure(status.message || 'Forecast refresh failed. Please try again shortly.');
                             return;
                         }
                         showProgress(
