@@ -1011,10 +1011,14 @@ def _build_all_matchup_history(games: List[dict], model_profile: str) -> Dict[st
         if model_profile == "rothstein_plus":
             eligible = is_rothstein_plus_eligible(model, game)
 
-        pred_margin, pred_total = model.predict(game)
+        try:
+            pred_margin, pred_total = model.predict(game)
+        except ValueError:
+            pred_margin, pred_total = None, None
         row = _cacheable_matchup_row(game, model_profile, eligible, pred_margin, pred_total)
         pairs.setdefault(_history_pair_key(game["away_team"], game["home_team"]), []).append(row)
-        model.update(game, pred_margin, pred_total)
+        if pred_margin is not None or pred_total is not None:
+            model.update(game, pred_margin, pred_total)
 
     for pair_rows in pairs.values():
         pair_rows.sort(key=lambda row: (row["season"], row["week"], row.get("gameday") or ""))

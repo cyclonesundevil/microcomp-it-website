@@ -497,6 +497,40 @@ def test_upcoming_build_uses_current_season_training_by_default(monkeypatch):
     assert all(length == 1 and seasons == {2026} for _profile, length, seasons in trained_lengths)
 
 
+def test_matchup_history_warmup_keeps_unavailable_model_rows(monkeypatch):
+    games = [{
+        "season": 2026,
+        "week": 1,
+        "gameday": "2026-09-13",
+        "game_id": "missing-rsm",
+        "away_team": "ATL",
+        "home_team": "GB",
+        "away_score": 17.0,
+        "home_score": 20.0,
+        "spread_line": -2.5,
+        "total_line": 44.0,
+        "actual_margin": 3.0,
+        "actual_total": 37.0,
+    }]
+
+    class MissingSnapshotModel:
+        def predict(self, _game):
+            raise ValueError("RSM snapshot ratings are unavailable for one or both teams")
+
+        def update(self, *_args):
+            raise AssertionError("unavailable model rows should not update model state")
+
+    monkeypatch.setattr("nfl_predictor.create_model", lambda _profile: MissingSnapshotModel())
+
+    pairs = nfl_predictor._build_all_matchup_history(games, "rsm_plus")
+    rows = pairs[nfl_predictor._history_pair_key("ATL", "GB")]
+
+    assert len(rows) == 1
+    assert rows[0]["model_available"] is False
+    assert rows[0]["pred_margin"] is None
+    assert rows[0]["spread_pick"] is None
+
+
 def test_historical_model_cache_write_failure_returns_trained_model(tmp_path, monkeypatch):
     games = [{"season": 2026, "week": 1, "game_id": "new", "away_score": 17.0, "home_score": 20.0}]
     trained = object()
