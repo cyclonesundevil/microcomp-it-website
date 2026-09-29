@@ -777,6 +777,45 @@ def _prune_historical_model_cache(root: str, keep: int = 8) -> int:
     return removed
 
 
+def _prune_generated_nfl_cache(root: str, keep: int = 24, protected_paths: Tuple[str, ...] = ()) -> int:
+    protected = {os.path.abspath(path) for path in protected_paths}
+    generated_prefixes = (
+        "nfl_history_",
+        "nfl_weekly_performance",
+        "nfl_backtest",
+    )
+    generated_markers = (
+        "_historical_model_",
+        ".checkpoint.",
+        ".progress.",
+    )
+    try:
+        entries = []
+        for name in os.listdir(root):
+            path = os.path.join(root, name)
+            if os.path.abspath(path) in protected or not os.path.isfile(path):
+                continue
+            is_temporary = name.endswith(".tmp") or ".tmp." in name
+            is_generated = (
+                name.startswith(generated_prefixes)
+                or any(marker in name for marker in generated_markers)
+            )
+            if is_temporary or is_generated:
+                entries.append(path)
+    except OSError:
+        return 0
+
+    entries.sort(key=lambda path: os.path.getmtime(path) if os.path.exists(path) else 0, reverse=True)
+    removed = 0
+    for path in entries[max(0, keep):]:
+        try:
+            os.remove(path)
+            removed += 1
+        except OSError:
+            pass
+    return removed
+
+
 def _write_model_cache(cache_path: str, model) -> None:
     temporary_path = f"{cache_path}.{os.getpid()}.{time.time_ns()}.tmp"
     try:
@@ -1484,12 +1523,16 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
 
 
 def _write_upcoming_prediction_cache(cache_path: str, payload: dict) -> None:
-    temporary_path = f"{cache_path}.{os.getpid()}.{time.time_ns()}.tmp"
-    with open(temporary_path, "w", encoding="utf-8") as target:
-        json.dump(payload, target, separators=(",", ":"))
-        target.flush()
-        os.fsync(target.fileno())
-    os.replace(temporary_path, cache_path)
+    root = os.path.dirname(cache_path) or "."
+    os.makedirs(root, exist_ok=True)
+    _prune_generated_nfl_cache(root, protected_paths=(cache_path,))
+    try:
+        _write_json_cache(cache_path, payload)
+    except OSError as error:
+        if getattr(error, "errno", None) != errno.ENOSPC:
+            raise
+        _prune_generated_nfl_cache(root, keep=0, protected_paths=(cache_path,))
+        _write_json_cache(cache_path, payload)
 
 
 _UPCOMING_SCORE_REFRESH_STABLE_FIELDS = (

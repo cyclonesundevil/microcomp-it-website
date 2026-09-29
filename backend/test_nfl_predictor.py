@@ -559,6 +559,51 @@ def test_write_model_cache_cleans_temp_file_on_failure(tmp_path, monkeypatch):
     assert not list(tmp_path.glob("*.tmp"))
 
 
+def test_upcoming_cache_write_retries_after_pruning_generated_cache(tmp_path, monkeypatch):
+    cache_path = tmp_path / "nfl_upcoming_predictions.json"
+    attempts = []
+    prunes = []
+
+    def fake_write(path, payload):
+        attempts.append((path, payload))
+        if len(attempts) == 1:
+            raise OSError(errno.ENOSPC, "No space left on device")
+
+    def fake_prune(root, keep=24, protected_paths=()):
+        prunes.append((root, keep, tuple(protected_paths)))
+        return 1
+
+    monkeypatch.setattr("nfl_predictor._write_json_cache", fake_write)
+    monkeypatch.setattr("nfl_predictor._prune_generated_nfl_cache", fake_prune)
+
+    nfl_predictor._write_upcoming_prediction_cache(str(cache_path), {"games": []})
+
+    assert len(attempts) == 2
+    assert prunes == [
+        (str(tmp_path), 24, (str(cache_path),)),
+        (str(tmp_path), 0, (str(cache_path),)),
+    ]
+
+
+def test_prune_generated_nfl_cache_preserves_protected_main_cache(tmp_path):
+    protected = tmp_path / "nfl_upcoming_predictions.json"
+    protected.write_text("{}", encoding="utf-8")
+    generated = tmp_path / "nfl_history_all_baseline_deadbeef.json"
+    generated.write_text("{}", encoding="utf-8")
+    temporary = tmp_path / "nfl_upcoming_predictions.json.123.456.tmp"
+    temporary.write_text("{}", encoding="utf-8")
+    source_like = tmp_path / "nfl_games.csv"
+    source_like.write_text("source", encoding="utf-8")
+
+    removed = nfl_predictor._prune_generated_nfl_cache(str(tmp_path), keep=0, protected_paths=(str(protected),))
+
+    assert removed == 2
+    assert protected.exists()
+    assert source_like.exists()
+    assert not generated.exists()
+    assert not temporary.exists()
+
+
 def test_upcoming_refresh_can_be_scheduled_while_cache_lock_is_held(monkeypatch):
     monkeypatch.setattr("nfl_predictor._UPCOMING_REFRESH_RUNNING", False)
     started = {"value": False}
