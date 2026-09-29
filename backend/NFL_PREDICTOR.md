@@ -74,7 +74,7 @@ Force-refresh the website API cache from a browser or script:
 
 ## Production refresh cadence
 
-Production refreshes the nflverse feed through `.github/workflows/nfl-data-refresh.yml`.
+Production refreshes the nflverse feed only through `.github/workflows/nfl-data-refresh.yml`.
 Nightly scheduled runs use the lightweight final-score endpoint so completed
 Thursday, Sunday, and Monday games can be added to the active-week table without
 rerunning every algorithm. The weekly full refresh/rebuild runs Tuesday evening
@@ -103,10 +103,11 @@ America/Los_Angeles by default using `NFL_WEEK_ROLLOVER_TIMEZONE` and
 `NFL_WEEK_ROLLOVER_HOUR`.
 
 On app startup the service immediately reconciles the upcoming-board cache once
-in the background, then schedules the weekly full rebuild and nightly final-score
-refresh against the configured clock times rather than simply sleeping fixed
-24-hour intervals from process start. This protects deployments from continuing
-to serve a board that was generated under an older rollover rule.
+in the background if the persisted cache is missing or invalid. It does not run
+its own recurring refresh loop; the GitHub Actions workflow is the single
+scheduled executor for weekly full rebuilds and nightly final-score refreshes.
+This avoids duplicate scheduled production refreshes while still allowing a
+deployment to heal a missing cache.
 
 If a cached board is still for the previous week after rollover, the API keeps
 serving that last valid board with a cache-target warning while it schedules a

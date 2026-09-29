@@ -11,7 +11,9 @@ BACKEND_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BACKEND_DIR))
 
 import app as app_module
+import nfl_mobile_contract
 import nfl_predictor
+import nfl_refresh_service
 from app import app
 from nfl_predictor import GamesRefreshAlreadyRunning, _set_upcoming_progress
 
@@ -540,41 +542,61 @@ class NflRefreshRouteTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(nfl_predictor.model_supports_totals("rothstein_plus"))
         self.assertFalse(nfl_predictor.model_supports_totals("rsm_stage7c"))
 
-    def test_start_daily_upcoming_cache_refresh_loop_starts_background_thread(self):
-        with patch.object(app_module.threading, "Thread") as mock_thread:
-            app_module.start_daily_upcoming_cache_refresh_loop()
-
-        self.assertTrue(mock_thread.called)
-        self.assertTrue(mock_thread.call_args.kwargs["daemon"])
-
     def test_upcoming_prediction_cache_prefers_render_persistent_disk(self):
         with patch.object(nfl_predictor.os.path, "isdir", return_value=True), \
             patch.dict(os.environ, {"NFL_UPCOMING_CACHE_PATH": ""}, clear=False):
             self.assertEqual(nfl_predictor.upcoming_prediction_cache_path(), "/data/nfl_upcoming_predictions.json")
 
-    def test_weekly_upcoming_loop_does_not_rebuild_immediately_on_startup(self):
-        captured = {}
+    def test_mobile_contract_maps_market_favorite_and_algorithm_shape(self):
+        payload = nfl_mobile_contract.mobile_upcoming_payload({
+            "season": 2026,
+            "week": 3,
+            "generated_at": "2026-09-15T13:00:00+00:00",
+            "games": [{
+                "schedule": {
+                    "game_id": "2026_03_SEA_ARI",
+                    "season": 2026,
+                    "week": 3,
+                    "away_team": "SEA",
+                    "home_team": "ARI",
+                    "spread_line": -3.5,
+                    "total_line": 40.5,
+                    "gameday": "2026-09-20",
+                    "gametime": "16:25",
+                },
+                "models": {"baseline": {"pred_margin": -4.0, "pred_total": 42.0}},
+            }],
+        }, {"stale": False})
 
-        class CapturingThread:
-            def __init__(self, *args, **kwargs):
-                captured["target"] = kwargs["target"]
-                captured["daemon"] = kwargs["daemon"]
+        self.assertEqual(payload["client_contract"], "nfl-mobile-1")
+        self.assertEqual(payload["football_week_start"], "2026-09-15")
+        self.assertEqual(payload["games"][0]["market"]["favorite"]["team"], "SEA")
+        self.assertEqual(payload["games"][0]["algorithms"]["baseline"]["market_favorite_relative_spread"], -4.0)
 
-            def start(self):
-                pass
+    def test_refresh_service_reconciles_missing_startup_cache_once(self):
+        calls = []
 
-        with patch.object(app_module.threading, "Thread", CapturingThread):
-            app_module._DAILY_UPCOMING_CACHE_REFRESH_RUNNING = False
-            app_module.start_daily_upcoming_cache_refresh_loop()
+        def load_games(refresh=False):
+            calls.append(("load_games", refresh))
+            return [{"season": 2026, "week": 3}]
 
-        with patch.object(app_module.time, "sleep", side_effect=KeyboardInterrupt) as sleep, \
-            patch.object(app_module, "refresh_upcoming_prediction_cache_now", side_effect=AssertionError("startup should sleep before rebuilding")):
-            with self.assertRaises(KeyboardInterrupt):
-                captured["target"]()
+        def schedule_refresh(games, season, week):
+            calls.append(("schedule_refresh", games, season, week))
+            return True
 
-        self.assertTrue(captured["daemon"])
-        self.assertEqual(sleep.call_count, 1)
-        app_module._DAILY_UPCOMING_CACHE_REFRESH_RUNNING = False
+        result = nfl_refresh_service.reconcile_startup_upcoming_cache(
+            lambda: None,
+            lambda snapshot: snapshot is None,
+            lambda _season, _week: (2026, 3),
+            load_games,
+            schedule_refresh,
+        )
+
+        self.assertTrue(result)
+        self.assertEqual(calls, [
+            ("load_games", False),
+            ("schedule_refresh", [{"season": 2026, "week": 3}], 2026, 3),
+        ])
 
     def test_startup_valid_upcoming_cache_does_not_schedule_rebuild(self):
         snapshot = {
