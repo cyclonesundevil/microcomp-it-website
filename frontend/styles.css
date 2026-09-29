@@ -3359,6 +3359,83 @@ nav a:hover:not(.btn-primary) {
     background: rgba(255, 138, 138, 0.92);
 }
 
+.postgame-detail-table {
+    min-width: 1120px;
+    table-layout: fixed;
+}
+
+.postgame-detail-table th,
+.postgame-detail-table td {
+    vertical-align: middle;
+}
+
+.postgame-detail-table th:nth-child(1),
+.postgame-detail-table td:nth-child(1) {
+    width: 96px;
+}
+
+.postgame-detail-table th:nth-child(2),
+.postgame-detail-table td:nth-child(2) {
+    width: 72px;
+    white-space: nowrap;
+}
+
+.postgame-detail-table th:nth-child(3),
+.postgame-detail-table td:nth-child(3) {
+    width: 116px;
+    white-space: nowrap;
+}
+
+.postgame-detail-table th:nth-child(n+4),
+.postgame-detail-table td:nth-child(n+4) {
+    width: 104px;
+}
+
+.postgame-result-stack {
+    display: grid;
+    gap: 0.32rem;
+    align-items: start;
+}
+
+.postgame-result {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 68px;
+    gap: 0.45rem;
+    border-radius: 6px;
+    padding: 0.24rem 0.42rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.postgame-result b {
+    font-size: 0.68rem;
+    letter-spacing: 0;
+}
+
+.postgame-result-win {
+    color: #04110a;
+    background: rgba(94, 230, 140, 0.88);
+}
+
+.postgame-result-loss {
+    color: #220608;
+    background: rgba(255, 138, 138, 0.88);
+}
+
+.postgame-result-push {
+    color: #101018;
+    background: rgba(255, 210, 120, 0.9);
+}
+
+.postgame-result-none {
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
 .model-signal-metrics {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));

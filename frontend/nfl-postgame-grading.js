@@ -49,6 +49,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return result;
     }
 
+    function resultClass(result) {
+        if (result === 'win') return 'postgame-result-win';
+        if (result === 'loss') return 'postgame-result-loss';
+        if (result === 'push') return 'postgame-result-push';
+        return 'postgame-result-none';
+    }
+
     function signalClass(signal) {
         const value = String(signal || '').toLowerCase();
         if (value === 'positive') return 'postgame-signal-follow';
@@ -119,9 +126,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function modelResultCell(modelResult) {
         if (!modelResult) return '--';
-        const ats = modelResult.spread_pick ? `ATS ${resultLabel(modelResult.spread_result)}` : 'ATS --';
-        const total = modelResult.total_pick ? `O/U ${resultLabel(modelResult.total_result)}` : 'O/U --';
-        return `${escapeHtml(ats)}<br><small>${escapeHtml(total)}</small>`;
+        const atsResult = modelResult.spread_pick ? modelResult.spread_result : null;
+        const totalResult = modelResult.total_pick ? modelResult.total_result : null;
+        return `
+            <div class="postgame-result-stack">
+                <span class="postgame-result ${resultClass(atsResult)}"><b>ATS</b> ${escapeHtml(resultLabel(atsResult))}</span>
+                <span class="postgame-result ${resultClass(totalResult)}"><b>O/U</b> ${escapeHtml(resultLabel(totalResult))}</span>
+            </div>
+        `;
     }
 
     function renderDetails(games) {
