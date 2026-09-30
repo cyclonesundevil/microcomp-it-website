@@ -25,6 +25,8 @@ from .stage6_diagnostics import run_stage6_diagnostics
 from .stage7a_diagnostics import run_stage7a_diagnostics
 from .stage7b_candidate import run_stage7b
 from .stage7c_anomaly import run_stage7c
+from .total_gap_audit import run_audit as run_total_gap_audit, write_outputs as write_total_gap_outputs
+from .total_inversion_audit import run_audit as run_total_inversion_audit, write_outputs as write_total_inversion_outputs
 from .stage8_shadow import (
     DEFAULT_STORE,
     capture_observation,
@@ -114,6 +116,8 @@ def main() -> None:
     stage7b = subparsers.add_parser("stage7b-candidate", help="Build the structural RSM-v2 candidate on development seasons")
     stage7b.add_argument("--rebuild-features", action="store_true")
     subparsers.add_parser("stage7c-anomaly", help="Evaluate frozen selective market-disagreement rules on 2023")
+    subparsers.add_parser("total-gap-audit", help="Audit saved RSM totals by market-minus-RSM gap buckets")
+    subparsers.add_parser("total-inversion-audit", help="Audit saved RSM O/U results with inverted selections")
     stage8_init = subparsers.add_parser("stage8-shadow-init", help="Initialize the research-only prospective shadow ledger")
     stage8_init.add_argument("--store", type=Path, default=DEFAULT_STORE)
     stage8_capture = subparsers.add_parser("stage8-shadow-capture", help="Append one timestamped pre-kickoff shadow observation")
@@ -254,6 +258,21 @@ def main() -> None:
             "frozen_rules": summary["frozen_rules"],
             "validation": summary["validation"],
             "production_ready": summary["production_ready"],
+        }, indent=2))
+    elif args.command == "total-gap-audit":
+        summary = run_total_gap_audit()
+        write_total_gap_outputs(summary)
+        print(json.dumps({
+            "ten_year_point_in_time_supported": summary["ten_year_point_in_time_supported"],
+            "periods": [row for row in summary["rows"] if row["group"] == "period"],
+            "total_gap_buckets": [row for row in summary["rows"] if row["group"] == "total_gap_bucket"],
+        }, indent=2))
+    elif args.command == "total-inversion-audit":
+        summary = run_total_inversion_audit()
+        write_total_inversion_outputs(summary)
+        print(json.dumps({
+            "ten_year_point_in_time_supported": summary["ten_year_point_in_time_supported"],
+            "periods": [row for row in summary["rows"] if row["group"] == "period"],
         }, indent=2))
     elif args.command == "stage8-shadow-init":
         reports_root = Path(__file__).resolve().parents[2] / "reports"

@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "NFL Predictor",
+    "slug": "nfl-predictor",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "package": "com.microcompit.nflpredictor"
+    },
+    "extra": {
+      "apiBaseUrl": "https://www.microcompit.com"
+    }
+  }
+}
