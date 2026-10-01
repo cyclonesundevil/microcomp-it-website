@@ -3160,6 +3160,8 @@ def dashboard_snapshot(
 ) -> dict:
     if model_profile == RSM_PROFILE:
         return rsm_dashboard_snapshot(games, playoff_mode, injury_team, injury_impact, injury_position)
+    if model_profile == CURRENT_SEASON_MATRIX_PROFILE:
+        return current_season_matrix_dashboard_snapshot(games, playoff_mode, injury_team, injury_impact, injury_position)
 
     if model_profile in {"market_blend", MEAN_REVERSION_PROFILE, "rothstein", "rothstein_plus"}:
         model_profile = "baseline"
@@ -3291,6 +3293,117 @@ def dashboard_snapshot(
             "average_expected_points": statistics.mean(row["expected_points"] for row in rows),
             "average_expected_allowed": statistics.mean(row["expected_allowed"] for row in rows),
             "average_neutral_win_probability": statistics.mean(row["neutral_win_probability"] for row in rows),
+            "team_count": len(rows),
+        },
+    }
+
+
+def current_season_matrix_dashboard_snapshot(
+    games: List[dict],
+    playoff_mode: bool = False,
+    injury_team: Optional[str] = None,
+    injury_impact: float = 0.0,
+    injury_position: str = "general",
+) -> dict:
+    latest_season = max(game["season"] for game in games)
+    season_games = [game for game in games if game["season"] == latest_season]
+    completed_week = max(game["week"] for game in season_games)
+    history_floor = latest_season - 5
+    model = CurrentSeasonMatrixNFLModel()
+    model.fit_completed_games([game for game in games if history_floor <= int(game.get("season", 0)) <= latest_season])
+    teams = list_teams(games, current_only=True)
+    injury_team = (injury_team or "").strip().upper()
+    injury_impact = max(0.0, min(10.0, injury_impact))
+    injury_position = (injury_position or "general").strip().lower()
+    injury_profile = INJURY_PROFILES.get(injury_position, INJURY_PROFILES["general"])
+    if injury_position not in INJURY_PROFILES:
+        injury_position = "general"
+    if injury_team not in teams:
+        injury_team = None
+
+    rows = []
+    for team in teams:
+        state = model.team(team)
+        recent_margin = _mean(state.recent_margins)
+        league_team_points = model.mean_total / 2
+        expected_points = max(12.0, min(38.0, league_team_points + state.offense - state.defense_allowed * 0.20))
+        expected_allowed = max(12.0, min(38.0, league_team_points + state.defense_allowed - state.offense * 0.12))
+        expected_point_edge = expected_points - expected_allowed
+        stability = min(1.0, state.games / max(1, completed_week))
+        injury_adjustment = injury_impact if injury_team == team else 0.0
+        if injury_adjustment:
+            expected_points = max(8.0, expected_points - injury_adjustment * injury_profile["offense_factor"])
+            expected_allowed = min(42.0, expected_allowed + injury_adjustment * injury_profile["allowed_factor"])
+            expected_point_edge = expected_points - expected_allowed
+        if playoff_mode:
+            strength = state.margin_rating * 0.82 + recent_margin * 0.85 + expected_point_edge * 0.40 + stability * 0.45
+        else:
+            strength = state.margin_rating + 0.42 * recent_margin + 0.18 * (state.offense - state.defense_allowed)
+        strength -= injury_adjustment * injury_profile["strength_factor"]
+        neutral_win_probability = 1 / (1 + math.exp(-strength / 6.5))
+        rows.append({
+            "team": team,
+            "games": state.games,
+            "strength_rating": strength,
+            "margin_rating": state.margin_rating,
+            "offense_rating": state.offense,
+            "defense_allowed_rating": state.defense_allowed,
+            "recent_margin": recent_margin,
+            "expected_point_edge": expected_point_edge,
+            "stability": stability,
+            "injury_adjustment": injury_adjustment,
+            "injury_position": injury_position if injury_adjustment else None,
+            "injury_label": injury_profile["label"] if injury_adjustment else None,
+            "expected_points": expected_points,
+            "expected_allowed": expected_allowed,
+            "neutral_win_probability": neutral_win_probability,
+        })
+
+    rows.sort(key=lambda row: row["strength_rating"], reverse=True)
+    if rows:
+        strengths = [row["strength_rating"] for row in rows]
+        high = max(strengths)
+        low = min(strengths)
+        spread = high - low if high != low else 1.0
+        for index, row in enumerate(rows, start=1):
+            normalized = (row["strength_rating"] - low) / spread
+            rank_factor = 1 - ((index - 1) / max(1, len(rows) - 1))
+            recent_factor = max(0, min(1, 0.5 + row["recent_margin"] / 18))
+            if playoff_mode:
+                edge_factor = max(0, min(1, 0.5 + row["expected_point_edge"] / 18))
+                playoff_odds = 0.04 + 0.58 * normalized + 0.20 * recent_factor + 0.12 * edge_factor + 0.06 * row["stability"]
+            else:
+                playoff_odds = 0.08 + 0.78 * normalized + 0.1 * rank_factor + 0.04 * recent_factor
+            row["rank"] = index
+            row["playoff_odds"] = max(0.02, min(0.98, playoff_odds))
+
+    return {
+        "season": latest_season,
+        "completed_week": completed_week,
+        "model": CURRENT_SEASON_MATRIX_PROFILE,
+        "playoff_mode": playoff_mode,
+        "injury": {
+            "team": injury_team,
+            "impact": injury_impact,
+            "position": injury_position,
+            "label": injury_profile["label"],
+            "offense_factor": injury_profile["offense_factor"],
+            "allowed_factor": injury_profile["allowed_factor"],
+            "strength_factor": injury_profile["strength_factor"],
+            "applied": bool(injury_team and injury_impact),
+        },
+        "teams": rows,
+        "top_teams": rows[:8],
+        "mode_notes": [
+            "CS Matrix current-season ratings",
+            "Opponent-adjusted iterative strength",
+            "Market-line context included",
+            "Early-season sample can be volatile",
+        ],
+        "league": {
+            "average_expected_points": statistics.mean(row["expected_points"] for row in rows) if rows else None,
+            "average_expected_allowed": statistics.mean(row["expected_allowed"] for row in rows) if rows else None,
+            "average_neutral_win_probability": statistics.mean(row["neutral_win_probability"] for row in rows) if rows else None,
             "team_count": len(rows),
         },
     }

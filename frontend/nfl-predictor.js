@@ -404,16 +404,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const topTeams = dashboard.top_teams || teams.slice(0, 8);
         const top = teams[0];
         const isRsm = dashboard.model === 'rsm_stage7c';
+        const isCsMatrix = dashboard.model === 'current_season_matrix';
 
-        dashboardContextHeader.textContent = isRsm ? 'Roster Confidence' : 'Recent Margin Avg (4)';
+        dashboardContextHeader.textContent = isRsm ? 'Roster Confidence' : isCsMatrix ? 'Current Season Margin Avg' : 'Recent Margin Avg (4)';
 
         dashboardMessage.textContent = dashboard.playoff_mode
             ? `${dashboard.season} playoff mode after week ${dashboard.completed_week}. Neutral-site, recent-form, and expected-point-edge weights are emphasized.`
-            : `${dashboard.season} model rating dashboard after week ${dashboard.completed_week}. These are rating-derived proxies, not standings, preseason odds, or official league playoff probabilities.`;
+            : isCsMatrix
+                ? `${dashboard.season} CS Matrix dashboard after week ${dashboard.completed_week}. Ratings use completed current-season games with opponent adjustment and market-line context.`
+                : `${dashboard.season} model rating dashboard after week ${dashboard.completed_week}. These are rating-derived proxies, not standings, preseason odds, or official league playoff probabilities.`;
         const injuryNote = dashboard.injury?.applied
             ? [`Injury adjustment: ${dashboard.injury.team} ${dashboard.injury.label}, ${Number(dashboard.injury.impact).toFixed(1)} impact points`]
             : [];
-        const recentMarginNote = isRsm ? [] : [
+        const recentMarginNote = isRsm ? [] : isCsMatrix ? [
+            'CS Matrix ratings are current-season opponent-adjusted estimates; small samples can move quickly.',
+        ] : [
             'Rankings are current model ratings after completed games, but early-season ratings retain prior-season/model baseline inertia.',
             'Recent Margin Avg (4) is a rolling four-game average; early-season values can carry over from the prior season until four current-season games are available.',
         ];

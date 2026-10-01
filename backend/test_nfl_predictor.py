@@ -1102,6 +1102,26 @@ def test_current_season_matrix_chronological_prediction_does_not_use_future_game
     assert leaked_total != pytest.approx(baseline_total)
 
 
+def test_current_season_matrix_dashboard_uses_cs_matrix_state():
+    games = [
+        _history_game("2025_01_AAA_BBB", 2025, 1, "AAA", "BBB", 17, 24, spread_line=3.0, total_line=42.0),
+        _history_game("2025_01_CCC_DDD", 2025, 1, "CCC", "DDD", 28, 14, spread_line=-1.0, total_line=44.0),
+        _history_game("2026_01_AAA_CCC", 2026, 1, "AAA", "CCC", 31, 17, spread_line=-2.0, total_line=45.0),
+        _history_game("2026_01_BBB_DDD", 2026, 1, "BBB", "DDD", 13, 27, spread_line=2.5, total_line=43.0),
+        _history_game("2026_02_CCC_BBB", 2026, 2, "CCC", "BBB", 20, 23, spread_line=1.5, total_line=44.0),
+        _history_game("2026_02_DDD_AAA", 2026, 2, "DDD", "AAA", 10, 28, spread_line=4.5, total_line=42.0),
+    ]
+
+    snapshot = nfl_predictor.dashboard_snapshot(games, model_profile="current_season_matrix")
+
+    assert snapshot["model"] == "current_season_matrix"
+    assert snapshot["league"]["team_count"] == 4
+    assert snapshot["teams"]
+    assert snapshot["top_teams"][0]["rank"] == 1
+    assert any("CS Matrix" in note for note in snapshot["mode_notes"])
+    assert all(team["games"] >= 1 for team in snapshot["teams"])
+
+
 def test_upcoming_availability_adjustment_applies_team_downgrade_after_prediction():
     prediction = {
         "model": "baseline",
