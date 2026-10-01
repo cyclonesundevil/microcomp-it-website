@@ -14,6 +14,7 @@ from nfl_predictor import (
     RsmStage7CComparisonModel,
     apply_upcoming_availability_adjustments,
     build_model_signals,
+    current_season_matrix_operator_audit,
     _rsm_artifact,
     _games_source_signature,
     _availability_adjustments_signature,
@@ -89,7 +90,7 @@ def _FixedDateTime(fixed_now):
 def _roster_basis_payload():
     return {
         "generated_at": "2026-09-28T20:00:00+00:00",
-        "prediction_schema_version": 6,
+        "prediction_schema_version": nfl_predictor.UPCOMING_PREDICTION_SCHEMA_VERSION,
         "season": 2026,
         "week": 3,
         "models": list(MODEL_PROFILES),
@@ -270,7 +271,7 @@ def test_valid_upcoming_cache_is_served_while_source_mismatch_refreshes(tmp_path
     cache_file = tmp_path / "nfl_upcoming_predictions.json"
     snapshot = {
         "generated_at": "2026-09-15T13:00:00+00:00",
-        "prediction_schema_version": 6,
+        "prediction_schema_version": nfl_predictor.UPCOMING_PREDICTION_SCHEMA_VERSION,
         "games_source_signature": "old-source",
         "availability_adjustments_signature": "same-availability",
         "season": 2026,
@@ -313,7 +314,7 @@ def test_upcoming_cache_missing_new_model_still_renders_and_refreshes(tmp_path, 
     old_models = [model for model in MODEL_PROFILES if model != "rsm_plus"]
     snapshot = {
         "generated_at": "2026-09-15T13:00:00+00:00",
-        "prediction_schema_version": 6,
+        "prediction_schema_version": nfl_predictor.UPCOMING_PREDICTION_SCHEMA_VERSION,
         "games_source_signature": "source",
         "availability_adjustments_signature": "availability",
         "season": 2026,
@@ -356,7 +357,7 @@ def test_upcoming_cache_target_mismatch_serves_last_valid_and_schedules_current_
     cache_file = tmp_path / "nfl_upcoming_predictions.json"
     snapshot = {
         "generated_at": "2026-09-21T13:00:00+00:00",
-        "prediction_schema_version": 6,
+        "prediction_schema_version": nfl_predictor.UPCOMING_PREDICTION_SCHEMA_VERSION,
         "games_source_signature": "source",
         "availability_adjustments_signature": "availability",
         "season": 2026,
@@ -388,7 +389,7 @@ def test_upcoming_cache_target_mismatch_serves_last_valid_and_schedules_current_
         return True
 
     monkeypatch.setattr("nfl_predictor._schedule_upcoming_prediction_refresh", fake_schedule)
-    _set_upcoming_progress(57, "Scoring ATL at GB with market_blend (game 1/16, step 3/112).", status="computing", ready=False)
+    _set_upcoming_progress(57, f"Scoring ATL at GB with market_blend (game 1/16, step 3/{16 * len(MODEL_PROFILES)}).", status="computing", ready=False)
     result = cached_upcoming_predictions([], allow_background_refresh=True)
 
     assert result["ready"] is True
@@ -400,7 +401,7 @@ def test_upcoming_cache_target_mismatch_serves_last_valid_and_schedules_current_
     assert result["games"][0]["schedule"]["away_team"] == "PHI"
     assert result["refresh_scheduled"] is True
     assert result["progress"] == 57
-    assert result["message"] == "Scoring ATL at GB with market_blend (game 1/16, step 3/112)."
+    assert result["message"] == f"Scoring ATL at GB with market_blend (game 1/16, step 3/{16 * len(MODEL_PROFILES)})."
     assert scheduled == {"season": 2026, "week": 3}
 
 
@@ -978,6 +979,127 @@ def test_mean_reversion_spread_and_total_sign_conventions():
     assert prediction["market_margin"] == 3.0
     assert prediction["spread_edge"] == pytest.approx(prediction["pred_margin"] - 3.0)
     assert prediction["total_edge"] == pytest.approx(prediction["pred_total"] - 47.5)
+
+
+def test_current_season_matrix_profile_is_public_and_supports_standard_contract():
+    assert "current_season_matrix" in MODEL_PROFILES
+    assert nfl_predictor.MODEL_SIGNAL_STATUSES["current_season_matrix"] == "Experimental"
+    assert nfl_predictor.model_supports_totals("current_season_matrix")
+
+    games = [
+        _history_game("2025_01_AAA_BBB", 2025, 1, "AAA", "BBB", 20, 24, spread_line=2.0, total_line=44.0),
+        _history_game("2026_01_AAA_CCC", 2026, 1, "AAA", "CCC", 28, 17, spread_line=-1.0, total_line=43.0),
+        _history_game("2026_01_BBB_DDD", 2026, 1, "BBB", "DDD", 14, 30, spread_line=1.0, total_line=44.0),
+    ]
+
+    prediction = predict_matchup(
+        games,
+        away_team="AAA",
+        home_team="BBB",
+        spread_line=-3.0,
+        total_line=45.5,
+        model_profile="current_season_matrix",
+    )
+
+    for key in ("pred_margin", "pred_total", "spread_edge", "spread_pick", "total_edge", "total_pick", "eligible"):
+        assert key in prediction
+    assert prediction["model"] == "current_season_matrix"
+    assert prediction["market_margin"] == 3.0
+    assert prediction["spread_edge"] == pytest.approx(prediction["pred_margin"] - 3.0)
+    assert prediction["total_edge"] == pytest.approx(prediction["pred_total"] - 45.5)
+    assert prediction["model_notes"]
+
+
+def test_current_season_matrix_records_and_opponents_shape_strength():
+    games = [
+        _history_game("2025_01_STR_AVG", 2025, 1, "STR", "AVG", 20, 24, spread_line=2.0, total_line=44.0),
+        _history_game("2026_01_BAD_WIN", 2026, 1, "BAD", "WIN", 10, 31, spread_line=6.0, total_line=42.0),
+        _history_game("2026_01_LOW_LOS", 2026, 1, "LOW", "LOS", 7, 27, spread_line=3.0, total_line=41.0),
+        _history_game("2026_02_WIN_LOW", 2026, 2, "WIN", "LOW", 35, 14, spread_line=-7.0, total_line=43.0),
+        _history_game("2026_02_BAD_LOS", 2026, 2, "BAD", "LOS", 13, 28, spread_line=5.5, total_line=42.0),
+        _history_game("2026_03_LOS_WIN", 2026, 3, "LOS", "WIN", 17, 34, spread_line=8.0, total_line=44.0),
+        _history_game("2026_03_BAD_LOW", 2026, 3, "BAD", "LOW", 10, 24, spread_line=4.0, total_line=40.0),
+        _history_game("2026_01_AAA_STR", 2026, 1, "AAA", "STR", 21, 20, spread_line=3.0, total_line=44.0),
+        _history_game("2026_01_BBB_LOW", 2026, 1, "BBB", "LOW", 31, 30, spread_line=0.0, total_line=45.0),
+        _history_game("2026_02_WIN_AAA", 2026, 2, "WIN", "AAA", 27, 24, spread_line=6.0, total_line=45.0),
+        _history_game("2026_02_BBB_LOS", 2026, 2, "BBB", "LOS", 20, 21, spread_line=-2.0, total_line=44.0),
+    ]
+    model = train_model(games, "current_season_matrix")
+
+    assert model.team("WIN").margin_rating > model.team("BAD").margin_rating
+    assert model.team("AAA").margin_rating > model.team("BBB").margin_rating
+
+
+def test_current_season_matrix_close_losses_to_strong_teams_rate_above_bad_losses():
+    games = [
+        _history_game("2025_01_STR_AVG", 2025, 1, "STR", "AVG", 14, 35, spread_line=7.0, total_line=44.0),
+        _history_game("2026_01_AVG_STR", 2026, 1, "AVG", "STR", 14, 34, spread_line=9.0, total_line=44.0),
+        _history_game("2026_01_WEAK_BAD", 2026, 1, "WEAK", "BAD", 35, 10, spread_line=0.0, total_line=42.0),
+        _history_game("2026_02_CLOSE_STR", 2026, 2, "CLOSE", "STR", 27, 28, spread_line=10.0, total_line=46.0),
+        _history_game("2026_02_WEAK_BLOW", 2026, 2, "WEAK", "BLOW", 31, 7, spread_line=1.0, total_line=42.0),
+    ]
+    model = train_model(games, "current_season_matrix")
+
+    assert model.team("CLOSE").margin_rating > model.team("BLOW").margin_rating
+
+
+def test_current_season_matrix_market_lines_influence_but_do_not_determine_predictions():
+    games = [
+        _history_game("2026_01_KC_BUF", 2026, 1, "KC", "BUF", 24, 27, spread_line=2.5, total_line=47.0),
+        _history_game("2026_01_PHI_DAL", 2026, 1, "PHI", "DAL", 30, 20, spread_line=-1.5, total_line=45.0),
+        _history_game("2026_02_BUF_DAL", 2026, 2, "BUF", "DAL", 28, 17, spread_line=-3.5, total_line=46.0),
+        _history_game("2026_02_KC_PHI", 2026, 2, "KC", "PHI", 20, 24, spread_line=2.0, total_line=48.0),
+    ]
+    model = train_model(games, "current_season_matrix")
+    pickem_margin, pickem_total = model.predict({"season": 2026, "week": 3, "away_team": "KC", "home_team": "BUF", "spread_line": 0.0, "total_line": 44.0})
+    market_margin, market_total = model.predict({"season": 2026, "week": 3, "away_team": "KC", "home_team": "BUF", "spread_line": 10.0, "total_line": 55.0})
+
+    assert market_margin != pytest.approx(pickem_margin)
+    assert market_total != pytest.approx(pickem_total)
+    assert market_margin != pytest.approx(10.0)
+    assert market_total != pytest.approx(55.0)
+
+
+def test_current_season_matrix_converges_or_respects_iteration_limit_and_week_one_prior():
+    model = nfl_predictor.create_model("current_season_matrix")
+    week_one_margin, week_one_total = model.predict({
+        "season": 2026,
+        "week": 1,
+        "away_team": "ARI",
+        "home_team": "SEA",
+        "spread_line": 2.5,
+        "total_line": 44.0,
+    })
+
+    assert isinstance(week_one_margin, float)
+    assert 30.0 <= week_one_total <= 62.0
+    assert model.last_iterations == 0
+
+    for game in [
+        _history_game("2026_01_ARI_SEA", 2026, 1, "ARI", "SEA", 20, 24, spread_line=2.5, total_line=44.0),
+        _history_game("2026_01_LA_SF", 2026, 1, "LA", "SF", 17, 27, spread_line=4.0, total_line=43.0),
+    ]:
+        pred_margin, pred_total = model.predict(game)
+        model.update(game, pred_margin, pred_total)
+
+    assert model.last_iterations <= model.max_iterations
+    assert model.last_converged or model.last_iterations == model.max_iterations
+
+
+def test_current_season_matrix_chronological_prediction_does_not_use_future_games():
+    past = [
+        _history_game("2026_01_KC_BUF", 2026, 1, "KC", "BUF", 20, 24, spread_line=3.0, total_line=45.0),
+    ]
+    future = _history_game("2026_03_KC_BUF", 2026, 3, "KC", "BUF", 49, 10, spread_line=-1.0, total_line=47.0)
+    target = {"season": 2026, "week": 2, "away_team": "KC", "home_team": "BUF", "spread_line": 3.0, "total_line": 45.0}
+    chronological = train_model(past, "current_season_matrix")
+    baseline_margin, baseline_total = chronological.predict(target)
+
+    leaked = train_model(past + [future], "current_season_matrix")
+    leaked_margin, leaked_total = leaked.predict(target)
+
+    assert leaked_margin != pytest.approx(baseline_margin)
+    assert leaked_total != pytest.approx(baseline_total)
 
 
 def test_upcoming_availability_adjustment_applies_team_downgrade_after_prediction():
@@ -1622,6 +1744,65 @@ def test_model_signals_surface_total_market_gap_as_opportunity():
     assert "largest total gap is 8.0" in signals["story"]
 
 
+def _ats_shadow_row(picks_and_edges):
+    profiles = [item[0] for item in picks_and_edges]
+    row = _signal_row([0.0 for _ in picks_and_edges], profiles=profiles)
+    for profile, pick, edge in picks_and_edges:
+        row["models"][profile]["spread_pick"] = pick
+        row["models"][profile]["spread_edge"] = edge
+    return row
+
+
+def test_model_signals_include_qualified_ats_consensus_shadow_signal():
+    row = _ats_shadow_row([
+        ("baseline", "away", -6.0),
+        ("enhanced", "away", -5.5),
+        ("market_blend", "away", -5.0),
+        ("mean_reversion", "home", 4.0),
+        ("current_season_matrix", "away", -7.0),
+    ])
+
+    signal = build_model_signals(row)["ats_consensus_shadow"]
+
+    assert signal["name"] == "ATS Consensus Edge - Shadow"
+    assert signal["status"] == "qualified_shadow"
+    assert signal["qualified"] is True
+    assert signal["side"] == "away"
+    assert signal["participants"] == 5
+    assert signal["agreement_count"] == 4
+    assert signal["average_agreeing_edge"] == pytest.approx(5.875)
+
+
+def test_model_signals_mark_ats_consensus_shadow_watch_when_edge_is_small():
+    row = _ats_shadow_row([
+        ("baseline", "home", 3.5),
+        ("enhanced", "home", 4.0),
+        ("market_blend", "home", 4.5),
+        ("mean_reversion", "away", -3.5),
+    ])
+
+    signal = build_model_signals(row)["ats_consensus_shadow"]
+
+    assert signal["status"] == "watch"
+    assert signal["qualified"] is False
+    assert signal["side"] == "home"
+    assert signal["average_agreeing_edge"] == pytest.approx(4.0)
+
+
+def test_model_signals_mark_ats_consensus_shadow_no_signal_without_four_participants():
+    row = _ats_shadow_row([
+        ("baseline", "home", 7.0),
+        ("enhanced", "home", 6.0),
+        ("market_blend", "home", 5.0),
+    ])
+
+    signal = build_model_signals(row)["ats_consensus_shadow"]
+
+    assert signal["status"] == "no_signal"
+    assert signal["qualified"] is False
+    assert signal["participants"] == 3
+
+
 def test_experimental_market_probabilities_report_favorite_and_total_sides(monkeypatch):
     monkeypatch.setattr(
         nfl_predictor,
@@ -1716,6 +1897,85 @@ def test_betting_record_roi_and_push_handling():
     assert record["graded_bets"] == 5
     assert record["win_rate"] == pytest.approx(0.6)
     assert record["roi_at_minus_110"] == pytest.approx(((3 * (100 / 110)) - 2) / 5)
+
+
+def test_cs_matrix_operator_audit_can_invert_negative_walk_forward_bucket(monkeypatch):
+    def row(season):
+        return {
+            "season": season,
+            "week": 1,
+            "game_id": f"{season}_01_A_B",
+            "model": "current_season_matrix",
+            "away_team": "A",
+            "home_team": "B",
+            "pred_margin": 4.0,
+            "actual_margin": -1.0,
+            "spread_line": 0.0,
+            "spread_edge": 4.0,
+            "spread_pick": "home",
+            "spread_result": "loss",
+            "pred_total": 48.0,
+            "actual_total": 52.0,
+            "total_line": 44.0,
+            "total_edge": 4.0,
+            "total_pick": "over",
+            "total_result": "win",
+        }
+
+    def fake_records_by_season(_games, seasons):
+        return {season: [row(season)] for season in seasons}
+
+    games = [_history_game(f"{season}_01_A_B", season, 1, "A", "B", 20, 21) for season in (2024, 2025, 2026)]
+    monkeypatch.setattr("nfl_predictor._cs_matrix_records_by_season", fake_records_by_season)
+
+    audit = current_season_matrix_operator_audit(games, seasons_to_test=1, min_bucket_games=2)
+
+    ats = audit["markets"]["ATS"]["modes"]
+    totals = audit["markets"]["O/U"]["modes"]
+    assert ats["raw"]["win_rate"] == 0.0
+    assert ats["contrarian"]["win_rate"] == 1.0
+    assert ats["thresholded"]["bets"] == 0
+    assert totals["raw"]["win_rate"] == 1.0
+    assert totals["contrarian"]["win_rate"] == 1.0
+    assert audit["markets"]["ATS"]["rule_actions"]["invert"] == 1
+
+
+def test_cs_matrix_operator_audit_keeps_untrained_contrarian_buckets_and_threshold_skips(monkeypatch):
+    def row(season):
+        return {
+                "season": season,
+                "week": 1,
+                "game_id": f"{season}_01_A_B",
+                "model": "current_season_matrix",
+                "away_team": "A",
+                "home_team": "B",
+                "pred_margin": 4.0,
+                "actual_margin": -1.0,
+                "spread_line": 0.0,
+                "spread_edge": 4.0,
+                "spread_pick": "home",
+                "spread_result": "loss",
+                "pred_total": 48.0,
+                "actual_total": 52.0,
+                "total_line": 44.0,
+                "total_edge": 4.0,
+                "total_pick": "over",
+                "total_result": "loss",
+        }
+
+    def fake_records_by_season(_games, seasons):
+        return {season: [row(season)] for season in seasons}
+
+    games = [_history_game(f"{season}_01_A_B", season, 1, "A", "B", 20, 21) for season in (2025, 2026)]
+    monkeypatch.setattr("nfl_predictor._cs_matrix_records_by_season", fake_records_by_season)
+
+    audit = current_season_matrix_operator_audit(games, seasons_to_test=1, min_bucket_games=5)
+
+    ats = audit["markets"]["ATS"]["modes"]
+    assert ats["raw"]["win_rate"] == 0.0
+    assert ats["contrarian"]["win_rate"] == 0.0
+    assert ats["thresholded"]["bets"] == 0
+    assert audit["markets"]["ATS"]["rule_actions"]["untrained"] == 1
 
 
 def test_postgame_grading_partial_week_does_not_fail(tmp_path, monkeypatch):

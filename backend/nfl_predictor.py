@@ -13,12 +13,21 @@ import tempfile
 import threading
 import time
 import urllib.request
-from datetime import datetime, time as datetime_time, timedelta, timezone
+from datetime import datetime, timezone
 from collections import Counter
 from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Dict, List, Optional, Tuple
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from cache_io import atomic_write_json, atomic_write_pickle
+from nfl_week import (
+    NFL_WEEK_ROLLOVER_HOUR,
+    NFL_WEEK_ROLLOVER_TIMEZONE,
+    current_nfl_schedule_week as _current_nfl_schedule_week,
+    nfl_week_rollover_hour as _nfl_week_rollover_hour,
+    nfl_week_rollover_zone as _nfl_week_rollover_zone,
+    parse_gameday as _parse_gameday,
+    tuesday_rollover_before as _tuesday_rollover_before,
+)
 
 
 GAMES_URL = "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv"
@@ -26,8 +35,14 @@ DEFAULT_CACHE_PATH = os.path.join(os.path.dirname(__file__), "data", "nfl_games.
 RSM_PROFILE = "rsm_stage7c"
 RSM_PLUS_PROFILE = "rsm_plus"
 MEAN_REVERSION_PROFILE = "mean_reversion"
-MODEL_PROFILES = ("baseline", "enhanced", "market_blend", MEAN_REVERSION_PROFILE, "rothstein", "rothstein_plus", RSM_PROFILE, RSM_PLUS_PROFILE)
-UPCOMING_PREDICTION_SCHEMA_VERSION = 6
+CURRENT_SEASON_MATRIX_PROFILE = "current_season_matrix"
+MODEL_PROFILES = ("baseline", "enhanced", "market_blend", MEAN_REVERSION_PROFILE, CURRENT_SEASON_MATRIX_PROFILE, "rothstein", "rothstein_plus", RSM_PROFILE, RSM_PLUS_PROFILE)
+MATCHUP_HISTORY_WARMUP_PROFILES = tuple(model for model in MODEL_PROFILES if model != CURRENT_SEASON_MATRIX_PROFILE)
+ATS_CONSENSUS_SHADOW_MODELS = ("baseline", "enhanced", "market_blend", MEAN_REVERSION_PROFILE, CURRENT_SEASON_MATRIX_PROFILE, "rothstein")
+ATS_CONSENSUS_MIN_PARTICIPANTS = 4
+ATS_CONSENSUS_MIN_AGREE = 3
+ATS_CONSENSUS_MIN_AVG_EDGE = 5.0
+UPCOMING_PREDICTION_SCHEMA_VERSION = 7
 WEEKLY_PERFORMANCE_TREND_SCHEMA_VERSION = 1
 EXPERIMENTAL_PROBABILITY_SCHEMA_VERSION = 1
 REPORTS_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "reports"))
@@ -111,6 +126,7 @@ MODEL_SIGNAL_STATUSES = {
     "enhanced": "Production",
     "market_blend": "Production",
     MEAN_REVERSION_PROFILE: "Production",
+    CURRENT_SEASON_MATRIX_PROFILE: "Experimental",
     "rothstein": "Production",
     "rothstein_plus": "Experimental",
     RSM_PROFILE: "Experimental",
@@ -118,10 +134,6 @@ MODEL_SIGNAL_STATUSES = {
     "dsm": "Research only",
     "prm": "Research only",
 }
-NFL_WEEK_ROLLOVER_TIMEZONE = "America/Los_Angeles"
-NFL_WEEK_ROLLOVER_HOUR = 21
-
-
 def upcoming_prediction_cache_path() -> str:
     configured = os.getenv("NFL_UPCOMING_CACHE_PATH", "").strip()
     if configured:
@@ -373,8 +385,9 @@ def build_model_signals(upcoming_row: dict, model_profiles: Tuple[str, ...] = MO
         model_count=model_count,
         missing_count=missing_count,
     )
+    ats_consensus_shadow = build_ats_consensus_shadow_signal(upcoming_row)
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "disclaimer": "Model Signals are matchup comparison tools, not betting recommendations.",
         "agreement_label": agreement_label,
         "market_alignment_label": market_alignment_label,
@@ -393,7 +406,66 @@ def build_model_signals(upcoming_row: dict, model_profiles: Tuple[str, ...] = MO
         "model_statuses": model_status_labels(model_profiles),
         "included_models": usable,
         "missing_models": missing_models,
+        "ats_consensus_shadow": ats_consensus_shadow,
         "story": story,
+    }
+
+
+def build_ats_consensus_shadow_signal(upcoming_row: dict) -> dict:
+    models = upcoming_row.get("models") or {}
+    participants = []
+    for model in ATS_CONSENSUS_SHADOW_MODELS:
+        prediction = models.get(model)
+        if not isinstance(prediction, dict) or prediction.get("display_suppressed"):
+            continue
+        pick = prediction.get("spread_pick")
+        edge = _to_float(prediction.get("spread_edge"))
+        if pick not in {"home", "away"} or edge is None:
+            continue
+        participants.append({
+            "model": model,
+            "pick": pick,
+            "edge": edge,
+            "abs_edge": abs(edge),
+        })
+
+    pick_counts = Counter(item["pick"] for item in participants)
+    if pick_counts:
+        side, agree_count = pick_counts.most_common(1)[0]
+        tied = list(pick_counts.values()).count(agree_count) > 1
+    else:
+        side, agree_count, tied = None, 0, False
+    agreeing = [item for item in participants if item["pick"] == side]
+    avg_edge = statistics.mean(item["abs_edge"] for item in agreeing) if agreeing else None
+    qualified = (
+        side is not None
+        and not tied
+        and len(participants) >= ATS_CONSENSUS_MIN_PARTICIPANTS
+        and agree_count >= ATS_CONSENSUS_MIN_AGREE
+        and avg_edge is not None
+        and avg_edge >= ATS_CONSENSUS_MIN_AVG_EDGE
+    )
+    watch = (
+        side is not None
+        and not tied
+        and len(participants) >= ATS_CONSENSUS_MIN_PARTICIPANTS
+        and agree_count >= ATS_CONSENSUS_MIN_AGREE
+        and not qualified
+    )
+    return {
+        "name": "ATS Consensus Edge - Shadow",
+        "status": "qualified_shadow" if qualified else "watch" if watch else "no_signal",
+        "qualified": qualified,
+        "market": "ATS",
+        "side": side,
+        "participants": len(participants),
+        "agreement_count": agree_count,
+        "min_participants": ATS_CONSENSUS_MIN_PARTICIPANTS,
+        "min_agreement": ATS_CONSENSUS_MIN_AGREE,
+        "average_agreeing_edge": avg_edge,
+        "min_average_edge": ATS_CONSENSUS_MIN_AVG_EDGE,
+        "models": participants,
+        "disclaimer": "Shadow research signal only; not a betting recommendation.",
     }
 
 
@@ -707,12 +779,7 @@ def _model_signal_story(
 
 
 def _write_pickle_cache(cache_path: str, payload) -> None:
-    temporary_path = f"{cache_path}.{os.getpid()}.{time.time_ns()}.tmp"
-    with open(temporary_path, "wb") as target:
-        pickle.dump(payload, target, protocol=pickle.HIGHEST_PROTOCOL)
-        target.flush()
-        os.fsync(target.fileno())
-    os.replace(temporary_path, cache_path)
+    atomic_write_pickle(cache_path, payload)
 
 
 def _load_upcoming_checkpoint(fingerprint: str) -> Optional[dict]:
@@ -817,19 +884,7 @@ def _prune_generated_nfl_cache(root: str, keep: int = 24, protected_paths: Tuple
 
 
 def _write_model_cache(cache_path: str, model) -> None:
-    temporary_path = f"{cache_path}.{os.getpid()}.{time.time_ns()}.tmp"
-    try:
-        with open(temporary_path, "wb") as target:
-            pickle.dump(model, target, protocol=pickle.HIGHEST_PROTOCOL)
-            target.flush()
-            os.fsync(target.fileno())
-        os.replace(temporary_path, cache_path)
-    except OSError:
-        try:
-            os.remove(temporary_path)
-        except OSError:
-            pass
-        raise
+    atomic_write_pickle(cache_path, model)
 
 
 def _load_or_train_historical_model(games: List[dict], profile: str):
@@ -895,19 +950,7 @@ def _all_matchup_history_cache_path(games: List[dict], profile: str) -> str:
 
 
 def _write_json_cache(cache_path: str, payload) -> None:
-    temporary_path = f"{cache_path}.{os.getpid()}.{time.time_ns()}.tmp"
-    try:
-        with open(temporary_path, "w", encoding="utf-8") as target:
-            json.dump(payload, target, separators=(",", ":"))
-            target.flush()
-            os.fsync(target.fileno())
-        os.replace(temporary_path, cache_path)
-    except OSError:
-        try:
-            os.remove(temporary_path)
-        except OSError:
-            pass
-        raise
+    atomic_write_json(cache_path, payload, separators=(",", ":"))
 
 
 def _history_pair_key(team_a: str, team_b: str) -> str:
@@ -1195,64 +1238,10 @@ def _to_bool(value: str) -> bool:
     return str(value).strip().lower() in {"1", "true", "t", "yes", "y"}
 
 
-def _nfl_week_rollover_zone():
-    configured = os.getenv("NFL_WEEK_ROLLOVER_TIMEZONE", NFL_WEEK_ROLLOVER_TIMEZONE).strip() or NFL_WEEK_ROLLOVER_TIMEZONE
-    try:
-        return ZoneInfo(configured)
-    except ZoneInfoNotFoundError:
-        return timezone.utc
-
-
-def _nfl_week_rollover_hour() -> int:
-    try:
-        return min(23, max(0, int(os.getenv("NFL_WEEK_ROLLOVER_HOUR", str(NFL_WEEK_ROLLOVER_HOUR)))))
-    except ValueError:
-        return NFL_WEEK_ROLLOVER_HOUR
-
-
-def _parse_gameday(value: str):
-    try:
-        return datetime.strptime(str(value or "").strip(), "%Y-%m-%d").date()
-    except ValueError:
-        return None
-
-
-def _tuesday_rollover_before(gameday, rollover_zone):
-    days_since_tuesday = (gameday.weekday() - 1) % 7
-    rollover_day = gameday - timedelta(days=days_since_tuesday)
-    return datetime.combine(
-        rollover_day,
-        datetime_time(hour=_nfl_week_rollover_hour()),
-        tzinfo=rollover_zone,
-    )
-
-
 def current_nfl_schedule_week(rows: List[dict], season: Optional[int] = None, now: Optional[datetime] = None) -> int:
-    """Resolve the current NFL week from the configured Tuesday rollover time."""
-    target_season = season or max(int(row["season"]) for row in rows if row.get("season"))
-    rollover_zone = _nfl_week_rollover_zone()
-    current_time = now or datetime.now(rollover_zone)
-    if current_time.tzinfo is None:
-        current_time = current_time.replace(tzinfo=rollover_zone)
-    else:
-        current_time = current_time.astimezone(rollover_zone)
-
-    week_rollovers = []
-    for row in rows:
-        if row.get("game_type") != "REG" or int(row.get("season", 0)) != target_season or not row.get("week"):
-            continue
-        gameday = _parse_gameday(row.get("gameday"))
-        if gameday is None:
-            continue
-        week_rollovers.append((int(row["week"]), _tuesday_rollover_before(gameday, rollover_zone)))
-
-    if not week_rollovers:
-        return 1
-
-    started_weeks = [week for week, rollover_at in week_rollovers if rollover_at <= current_time]
-    if started_weeks:
-        return max(started_weeks)
-    return min(week for week, _rollover_at in week_rollovers)
+    if now is None:
+        now = datetime.now(_nfl_week_rollover_zone())
+    return _current_nfl_schedule_week(rows, season, now)
 
 
 def _bounded_recent(values: List[float], value: float, limit: int = 4) -> None:
@@ -1427,7 +1416,7 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
             "games": [],
             "market_note": "Market lines are included only when published in the schedule feed; no missing line is inferred.",
         }
-        _set_upcoming_progress(100, "No upcoming games were found in the schedule feed.", status="ready", ready=True)
+        _set_upcoming_progress(95, "No upcoming games were found in the schedule feed; finalizing forecast cache.", status="computing", ready=False)
         return attach_model_signals(payload)
 
     current_season = max(game["season"] for game in games)
@@ -1518,7 +1507,7 @@ def _build_upcoming_prediction_cache(games: List[dict], season: Optional[int], w
         "games": rows,
         "market_note": "Market lines are included only when published in the schedule feed; no missing line is inferred.",
     }
-    _set_upcoming_progress(100, "Forecast complete. The board is ready to view.", status="ready", ready=True)
+    _set_upcoming_progress(95, "Forecast scored; finalizing forecast cache.", status="computing", ready=False)
     return attach_model_signals(payload)
 
 
@@ -1639,7 +1628,7 @@ def refresh_upcoming_final_scores_in_cache() -> dict:
         }
 
 
-def _set_upcoming_progress(progress: int, message: str, *, status: str = "computing", ready: bool = False) -> dict:
+def _set_upcoming_progress(progress: int, message: str, *, status: str = "computing", ready: bool = False, allow_backward: bool = False) -> dict:
     global _UPCOMING_PROGRESS_STATE
     progress_path = _upcoming_progress_path()
     normalized_progress = max(0, min(100, int(progress)))
@@ -1660,6 +1649,7 @@ def _set_upcoming_progress(progress: int, message: str, *, status: str = "comput
         previous
         and previous.get("status") == "computing"
         and status == "computing"
+        and not allow_backward
         and previous_is_fresh
         and int(previous.get("progress", 0) or 0) >= normalized_progress
     ):
@@ -1672,6 +1662,7 @@ def _set_upcoming_progress(progress: int, message: str, *, status: str = "comput
         "progress": normalized_progress,
         "message": message,
         "updated_at": datetime.now(timezone.utc).isoformat(),
+        "pid": os.getpid(),
     }
     _UPCOMING_PROGRESS_STATE = next_state
     try:
@@ -1711,20 +1702,47 @@ def upcoming_prediction_status_snapshot() -> dict:
     return dict(_UPCOMING_PROGRESS_STATE)
 
 
+def _recent_upcoming_refresh_in_progress(max_age_seconds: int = 10 * 60) -> bool:
+    progress = upcoming_prediction_status_snapshot()
+    if progress.get("status") != "computing":
+        return False
+    progress_pid = progress.get("pid")
+    if progress_pid is None:
+        return False
+    try:
+        progress_pid = int(progress_pid)
+        if progress_pid == os.getpid() and not _UPCOMING_REFRESH_RUNNING:
+            return False
+        if progress_pid != os.getpid():
+            try:
+                os.kill(progress_pid, 0)
+            except OSError:
+                return False
+    except (TypeError, ValueError):
+        return False
+    updated_at = _parse_progress_timestamp(progress.get("updated_at"))
+    if updated_at is None:
+        return True
+    return (datetime.now(timezone.utc) - updated_at).total_seconds() <= max_age_seconds
+
+
 def _schedule_upcoming_prediction_refresh(games: List[dict], season: Optional[int], week: Optional[int]) -> bool:
     global _UPCOMING_REFRESH_RUNNING
     with _UPCOMING_PREDICTION_LOCK:
         if _UPCOMING_REFRESH_RUNNING:
             return True
+        if _recent_upcoming_refresh_in_progress():
+            return True
         _UPCOMING_REFRESH_RUNNING = True
 
-    _set_upcoming_progress(10, "Scheduling the forecast refresh and preparing the weekly model run.", status="computing", ready=False)
+    _set_upcoming_progress(10, "Scheduling the forecast refresh and preparing the weekly model run.", status="computing", ready=False, allow_backward=True)
 
     def _refresh_worker() -> None:
         try:
             payload = _build_upcoming_prediction_cache(games, season, week)
             _write_upcoming_prediction_cache(upcoming_prediction_cache_path(), payload)
             _clear_upcoming_checkpoint()
+            _set_upcoming_progress(100, "Forecast complete. The board is ready to view.", status="ready", ready=True)
         except Exception:
             _set_upcoming_progress(0, f"The forecast refresh failed for season={season} week={week}. Please try again shortly.", status="failed", ready=False)
             print(f"Background upcoming cache refresh failed for season={season} week={week}")
@@ -2012,6 +2030,7 @@ def cached_upcoming_predictions(
         payload = _build_upcoming_prediction_cache(games, target_season, target_week)
         _write_upcoming_prediction_cache(cache_path, payload)
         _clear_upcoming_checkpoint()
+        _set_upcoming_progress(100, "Forecast complete. The board is ready to view.", status="ready", ready=True)
         return _upcoming_response(payload, cache_hit=False, cache_age_seconds=0.0, cache_ttl_seconds=ttl_seconds, refresh_scheduled=False, status="ready", ready=True, progress=100, message="Forecast ready.")
 
 
@@ -2407,6 +2426,246 @@ class MeanReversionNFLModel:
         self.mean_total += 0.01 * (float(game["actual_total"]) - self.mean_total)
 
 
+@dataclass
+class CurrentSeasonMatrixNFLModel:
+    """Current-season opponent-adjusted model with market lines as context."""
+
+    mean_total: float = 44.0
+    total_games: int = 0
+    hfa_margin: float = 1.4
+    hfa_points: float = 0.7
+    market_margin_weight: float = 0.28
+    market_total_weight: float = 0.22
+    opponent_weight: float = 0.36
+    max_iterations: int = 16
+    convergence_tolerance: float = 0.001
+    completed_games: List[dict] = field(default_factory=list)
+    teams: Dict[str, TeamState] = field(default_factory=dict)
+    last_iterations: int = 0
+    last_converged: bool = True
+    last_max_delta: float = 0.0
+    _last_refresh_key: Optional[Tuple[int, int]] = None
+
+    def team(self, abbr: str) -> TeamState:
+        if abbr not in self.teams:
+            self.teams[abbr] = TeamState()
+        return self.teams[abbr]
+
+    def _team_margin(self, game: dict, team: str) -> float:
+        margin = float(game["actual_margin"])
+        return margin if team == game["home_team"] else -margin
+
+    def _team_market_margin(self, game: dict, team: str) -> float:
+        spread = _to_float(game.get("spread_line"))
+        if spread is None:
+            return 0.0
+        return spread if team == game["home_team"] else -spread
+
+    def _team_points(self, game: dict, team: str) -> Tuple[float, float]:
+        if team == game["home_team"]:
+            return float(game["home_score"]), float(game["away_score"])
+        return float(game["away_score"]), float(game["home_score"])
+
+    def _prior_metrics(self, team: str, season: int) -> dict:
+        rows = [game for game in self.completed_games if int(game.get("season", 0)) < season and team in {game.get("away_team"), game.get("home_team")}]
+        if not rows:
+            return {"strength": 0.0, "offense": 0.0, "defense_allowed": 0.0, "games": 0}
+        weighted_strength = 0.0
+        weighted_offense = 0.0
+        weighted_defense = 0.0
+        total_weight = 0.0
+        league_team_points = self.mean_total / 2
+        for game in rows:
+            age = max(1, season - int(game.get("season", season - 1)))
+            weight = 1.0 / age
+            margin = self._team_margin(game, team)
+            market_perf = margin - self._team_market_margin(game, team)
+            points_for, points_against = self._team_points(game, team)
+            weighted_strength += weight * (0.45 * margin + 0.25 * market_perf)
+            weighted_offense += weight * (points_for - league_team_points)
+            weighted_defense += weight * (points_against - league_team_points)
+            total_weight += weight
+        return {
+            "strength": _bounded(weighted_strength / total_weight, -12.0, 12.0),
+            "offense": _bounded(weighted_offense / total_weight, -10.0, 10.0),
+            "defense_allowed": _bounded(weighted_defense / total_weight, -10.0, 10.0),
+            "games": len(rows),
+        }
+
+    def _current_rows(self, season: int) -> List[dict]:
+        return [game for game in self.completed_games if int(game.get("season", 0)) == season]
+
+    def _season_teams(self, rows: List[dict], season: int) -> List[str]:
+        teams = set(self.teams)
+        for game in rows:
+            teams.add(game["away_team"])
+            teams.add(game["home_team"])
+        for game in self.completed_games:
+            if int(game.get("season", 0)) < season:
+                teams.add(game["away_team"])
+                teams.add(game["home_team"])
+        return sorted(teams)
+
+    def _rows_by_team(self, rows: List[dict]) -> Dict[str, List[dict]]:
+        by_team: Dict[str, List[dict]] = {}
+        for game in rows:
+            by_team.setdefault(game["away_team"], []).append(game)
+            by_team.setdefault(game["home_team"], []).append(game)
+        return by_team
+
+    def _refresh_team_states(self, season: int) -> None:
+        rows = self._current_rows(season)
+        refresh_key = (season, len(rows))
+        if self._last_refresh_key == refresh_key:
+            return
+        teams = self._season_teams(rows, season)
+        if not teams:
+            return
+        rows_by_team = self._rows_by_team(rows)
+        priors = {team: self._prior_metrics(team, season) for team in teams}
+        ratings = {team: priors[team]["strength"] for team in teams}
+        league_team_points = self.mean_total / 2
+        self.last_converged = False
+        self.last_iterations = 0
+        self.last_max_delta = 0.0
+
+        for iteration in range(1, self.max_iterations + 1):
+            next_ratings = {}
+            max_delta = 0.0
+            for team in teams:
+                team_rows = rows_by_team.get(team, [])
+                prior = priors[team]
+                if not team_rows:
+                    next_ratings[team] = prior["strength"]
+                    continue
+                wins = 0
+                margins = []
+                market_performances = []
+                opponent_ratings = []
+                for game in team_rows:
+                    margin = self._team_margin(game, team)
+                    opponent = game["away_team"] if team == game["home_team"] else game["home_team"]
+                    wins += 1 if margin > 0 else 0
+                    margins.append(margin)
+                    market_performances.append(margin - self._team_market_margin(game, team))
+                    opponent_ratings.append(ratings.get(opponent, priors.get(opponent, {}).get("strength", 0.0)))
+                games_played = len(team_rows)
+                record_score = ((wins / games_played) - 0.5) * 12.0
+                raw_strength = (
+                    record_score
+                    + 0.34 * statistics.mean(margins)
+                    + 0.24 * statistics.mean(market_performances)
+                    + self.opponent_weight * statistics.mean(opponent_ratings)
+                )
+                prior_weight = max(0.18, min(0.65, 1.0 / (games_played + 1)))
+                next_value = _bounded(prior_weight * prior["strength"] + (1.0 - prior_weight) * raw_strength, -18.0, 18.0)
+                next_ratings[team] = next_value
+                max_delta = max(max_delta, abs(next_value - ratings.get(team, 0.0)))
+            ratings = next_ratings
+            self.last_iterations = iteration
+            self.last_max_delta = max_delta
+            if max_delta <= self.convergence_tolerance:
+                self.last_converged = True
+                break
+
+        for team in teams:
+            team_rows = rows_by_team.get(team, [])
+            prior = priors[team]
+            state = self.team(team)
+            state.margin_rating = ratings.get(team, prior["strength"])
+            state.home_margin_rating = state.margin_rating
+            state.away_margin_rating = state.margin_rating
+            state.games = len(team_rows)
+            if team_rows:
+                points_for = []
+                points_against = []
+                recent_margins = []
+                recent_totals = []
+                for game in sorted(team_rows, key=lambda row: (int(row.get("week", 0)), row.get("gameday") or "", row.get("game_id") or "")):
+                    pf, pa = self._team_points(game, team)
+                    points_for.append(pf)
+                    points_against.append(pa)
+                    recent_margins.append(self._team_margin(game, team))
+                    recent_totals.append(float(game["actual_total"]))
+                games_played = len(team_rows)
+                prior_weight = max(0.18, min(0.65, 1.0 / (games_played + 1)))
+                state.offense = prior_weight * prior["offense"] + (1.0 - prior_weight) * (statistics.mean(points_for) - league_team_points)
+                state.defense_allowed = prior_weight * prior["defense_allowed"] + (1.0 - prior_weight) * (statistics.mean(points_against) - league_team_points)
+                state.recent_margins = recent_margins[-4:]
+                state.recent_totals = recent_totals[-4:]
+                state.recent_points_for = points_for[-4:]
+                state.recent_points_allowed = points_against[-4:]
+            else:
+                state.offense = prior["offense"]
+                state.defense_allowed = prior["defense_allowed"]
+                state.recent_margins = []
+                state.recent_totals = []
+                state.recent_points_for = []
+                state.recent_points_allowed = []
+        self._last_refresh_key = refresh_key
+
+    def predict(self, game: dict) -> Tuple[float, float]:
+        season = int(game["season"])
+        self._refresh_team_states(season)
+        away = self.team(game["away_team"])
+        home = self.team(game["home_team"])
+        rest_diff = float(game.get("home_rest", 7.0) or 7.0) - float(game.get("away_rest", 7.0) or 7.0)
+        div_adjustment = -0.25 if game.get("div_game") else 0.0
+        model_margin = self.hfa_margin + home.margin_rating - away.margin_rating + 0.04 * rest_diff + div_adjustment
+        market_margin = _to_float(game.get("spread_line"))
+        if market_margin is not None:
+            predicted_margin = market_margin + (1.0 - self.market_margin_weight) * (model_margin - market_margin)
+        else:
+            predicted_margin = model_margin
+
+        model_total = self.mean_total + home.offense + away.offense + home.defense_allowed + away.defense_allowed
+        total_line = _to_float(game.get("total_line"))
+        if total_line is not None:
+            predicted_total = total_line + (1.0 - self.market_total_weight) * (model_total - total_line)
+        else:
+            predicted_total = model_total
+        return predicted_margin, _bounded(predicted_total, 30.0, 62.0)
+
+    def update(self, game: dict, predicted_margin: float, predicted_total: float) -> None:
+        self.completed_games.append(dict(game))
+        self.total_games += 1
+        actual_total = _to_float(game.get("actual_total"))
+        if actual_total is not None:
+            self.mean_total += 0.01 * (actual_total - self.mean_total)
+        self._last_refresh_key = None
+
+    def fit_completed_games(self, games: List[dict]) -> None:
+        self.completed_games = []
+        self.teams = {}
+        self.mean_total = 44.0
+        self.total_games = 0
+        self._last_refresh_key = None
+        for game in games:
+            self.completed_games.append(dict(game))
+            self.total_games += 1
+            actual_total = _to_float(game.get("actual_total"))
+            if actual_total is not None:
+                self.mean_total += 0.01 * (actual_total - self.mean_total)
+        self.finalize_training()
+
+    def finalize_training(self) -> None:
+        if self.completed_games:
+            self._refresh_team_states(max(int(game["season"]) for game in self.completed_games))
+
+    def model_notes(self, game: dict) -> List[str]:
+        season = int(game["season"])
+        current_games = [row for row in self._current_rows(season) if game.get("away_team") in {row.get("away_team"), row.get("home_team")} or game.get("home_team") in {row.get("away_team"), row.get("home_team")}]
+        notes = [
+            "Current Season Matrix uses completed current-season games, opponent-adjusted iterative ratings, and market spread/total context.",
+        ]
+        if not current_games:
+            notes.append("Week 1/zero current-season sample: using historical priors and league baseline until completed games are available.")
+        elif len(current_games) < 6:
+            notes.append("Early-season sample is small, so ratings are more volatile.")
+        notes.append(f"Strength matrix {'converged' if self.last_converged else 'stopped at max iterations'} after {self.last_iterations} iterations.")
+        return notes
+
+
 @lru_cache(maxsize=1)
 def _rsm_artifact() -> dict:
     path = os.path.join(REPORTS_ROOT, "rsm-v2-candidate-stage7b.json")
@@ -2684,6 +2943,8 @@ def create_model(profile: str):
         return MarketBlendNFLModel()
     if profile == MEAN_REVERSION_PROFILE:
         return MeanReversionNFLModel()
+    if profile == CURRENT_SEASON_MATRIX_PROFILE:
+        return CurrentSeasonMatrixNFLModel()
     if profile in {"rothstein", "rothstein_plus"}:
         return RothsteinNFLModel()
     if profile == RSM_PROFILE:
@@ -2704,6 +2965,8 @@ def default_spread_threshold(model_profile: str) -> float:
         return 2.0
     if model_profile == MEAN_REVERSION_PROFILE:
         return 4.0
+    if model_profile == CURRENT_SEASON_MATRIX_PROFILE:
+        return 3.0
     if model_profile == "market_blend":
         return 3.0
     return 6.0
@@ -2715,6 +2978,8 @@ def default_total_threshold(model_profile: str) -> float:
     if model_profile in {"rothstein", "rothstein_plus"}:
         return 4.0
     if model_profile == MEAN_REVERSION_PROFILE:
+        return 2.0
+    if model_profile == CURRENT_SEASON_MATRIX_PROFILE:
         return 2.0
     return 1.5
 
@@ -3318,6 +3583,9 @@ def predict_matchup(
         rsm_notes = rsm_plus_notes
     elif model_profile != RSM_PROFILE:
         rsm_notes = []
+    model_notes = rsm_notes if _is_rsm_family(model_profile) else []
+    if hasattr(model, "model_notes"):
+        model_notes = model.model_notes(game)
 
     prediction = {
         "model": model_profile,
@@ -3341,7 +3609,7 @@ def predict_matchup(
         "lineup_confidence": rsm_details["lineup_confidence"] if rsm_details else "not_applicable",
         "total_model_version": rsm_details["total_model_version"] if rsm_details else None,
         "latest_training_season": max(g["season"] for g in games),
-        "model_notes": rsm_notes if _is_rsm_family(model_profile) else [],
+        "model_notes": model_notes,
     }
     if model_profile == RSM_PLUS_PROFILE and rsm_details:
         prediction.update({
@@ -3391,6 +3659,9 @@ def predict_upcoming_with_trained_model(
     eligible = True
     if model_profile == "rothstein_plus":
         eligible = is_rothstein_plus_eligible(trained_model, game)
+    model_notes = []
+    if hasattr(trained_model, "model_notes"):
+        model_notes = trained_model.model_notes(game)
     prediction = {
         "model": model_profile,
         "away_team": scheduled.get("away_team"),
@@ -3425,7 +3696,7 @@ def predict_upcoming_with_trained_model(
         "lineup_confidence": rsm_details["lineup_confidence"] if rsm_details else "not_applicable",
         "total_model_version": rsm_details["total_model_version"] if rsm_details else None,
         "latest_training_season": scheduled.get("season"),
-        "model_notes": [],
+        "model_notes": model_notes,
     }
     if model_profile == RSM_PLUS_PROFILE and rsm_details:
         prediction.update({
@@ -3550,6 +3821,289 @@ def summarize_by_season(records: List[dict]) -> List[Tuple[int, dict]]:
     return [(season, summarize([r for r in records if r["season"] == season])) for season in seasons]
 
 
+def _opposite_pick(pick: Optional[str]) -> Optional[str]:
+    return {
+        "home": "away",
+        "away": "home",
+        "over": "under",
+        "under": "over",
+    }.get(pick)
+
+
+def _edge_bucket(edge: Optional[float]) -> str:
+    if edge is None:
+        return "unknown"
+    value = abs(float(edge))
+    if value < 1.5:
+        return "0-1.5"
+    if value < 3.0:
+        return "1.5-3"
+    if value < 5.0:
+        return "3-5"
+    return "5+"
+
+
+def _market_spread_bucket(spread_line: Optional[float]) -> str:
+    if spread_line is None:
+        return "unknown"
+    value = abs(float(spread_line))
+    if value < 3.0:
+        return "short"
+    if value < 7.0:
+        return "medium"
+    return "large"
+
+
+def _total_line_bucket(total_line: Optional[float]) -> str:
+    if total_line is None:
+        return "unknown"
+    value = float(total_line)
+    if value < 42.0:
+        return "low"
+    if value < 47.0:
+        return "medium"
+    return "high"
+
+
+def _predicted_total_bucket(predicted_total: Optional[float]) -> str:
+    if predicted_total is None:
+        return "unknown"
+    value = float(predicted_total)
+    if value < 42.0:
+        return "low_pred"
+    if value < 47.0:
+        return "mid_pred"
+    return "high_pred"
+
+
+def _ats_pick_context(row: dict) -> str:
+    pick = row.get("spread_pick")
+    spread_line = row.get("spread_line")
+    if not pick or spread_line is None:
+        return "unknown"
+    market_home_favored = float(spread_line) > 0
+    if abs(float(spread_line)) < 1e-9:
+        return "pickem"
+    pick_is_home = pick == "home"
+    pick_is_favorite = pick_is_home == market_home_favored
+    return "favorite" if pick_is_favorite else "underdog"
+
+
+def _week_phase(week: Optional[int]) -> str:
+    try:
+        value = int(week)
+    except (TypeError, ValueError):
+        return "unknown"
+    if value <= 4:
+        return "early"
+    if value <= 12:
+        return "mid"
+    return "late"
+
+
+def _operator_bucket_key(row: dict, market: str) -> Tuple[str, ...]:
+    if market == "ATS":
+        return (
+            str(row.get("spread_pick") or "none"),
+            _ats_pick_context(row),
+            _edge_bucket(row.get("spread_edge")),
+            _market_spread_bucket(row.get("spread_line")),
+            _week_phase(row.get("week")),
+        )
+    return (
+        str(row.get("total_pick") or "none"),
+        _edge_bucket(row.get("total_edge")),
+        _total_line_bucket(row.get("total_line")),
+        _predicted_total_bucket(row.get("pred_total")),
+        _week_phase(row.get("week")),
+    )
+
+
+def _market_result(row: dict, market: str, pick: Optional[str]) -> Optional[str]:
+    if market == "ATS":
+        game = {
+            "actual_margin": row.get("actual_margin"),
+            "spread_line": row.get("spread_line"),
+        }
+        return _grade_spread_pick(game, pick)
+    game = {
+        "actual_total": row.get("actual_total"),
+        "total_line": row.get("total_line"),
+    }
+    return _grade_total_pick(game, pick)
+
+
+def _operator_summary(rows: List[dict], market: str) -> dict:
+    if market == "ATS":
+        wins = sum(1 for row in rows if row.get("spread_result") == "win")
+        losses = sum(1 for row in rows if row.get("spread_result") == "loss")
+        pushes = sum(1 for row in rows if row.get("spread_result") == "push")
+    else:
+        wins = sum(1 for row in rows if row.get("total_result") == "win")
+        losses = sum(1 for row in rows if row.get("total_result") == "loss")
+        pushes = sum(1 for row in rows if row.get("total_result") == "push")
+    return betting_record(wins, losses, pushes)
+
+
+def _bucket_stats(rows: List[dict], market: str, min_bucket_games: int) -> Dict[Tuple[str, ...], dict]:
+    grouped: Dict[Tuple[str, ...], List[dict]] = {}
+    for row in rows:
+        pick = row.get("spread_pick") if market == "ATS" else row.get("total_pick")
+        if pick:
+            grouped.setdefault(_operator_bucket_key(row, market), []).append(row)
+
+    stats = {}
+    for key, bucket_rows in grouped.items():
+        record = _operator_summary(bucket_rows, market)
+        supported = record["graded_bets"] >= min_bucket_games and record["win_rate"] is not None
+        stats[key] = {
+            **record,
+            "supported": supported,
+            "operator": (
+                "keep" if supported and record["win_rate"] >= 0.5
+                else "invert" if supported
+                else "untrained"
+            ),
+        }
+    return stats
+
+
+def _apply_market_operator(row: dict, market: str, mode: str, rule: Optional[dict]) -> dict:
+    output = dict(row)
+    pick_field = "spread_pick" if market == "ATS" else "total_pick"
+    result_field = "spread_result" if market == "ATS" else "total_result"
+    raw_pick = output.get(pick_field)
+    action = rule.get("operator") if rule else "untrained"
+
+    if not raw_pick:
+        output[pick_field] = None
+        output[result_field] = None
+        output["operator_action"] = "no_pick"
+        return output
+
+    if mode == "raw":
+        output["operator_action"] = "raw"
+        return output
+
+    if mode == "thresholded":
+        if action == "keep":
+            output["operator_action"] = "kept"
+        else:
+            output[pick_field] = None
+            output[result_field] = None
+            output["operator_action"] = "skipped_untrained" if action == "untrained" else "skipped_negative_bucket"
+        return output
+
+    if mode == "contrarian" and action == "invert":
+        flipped = _opposite_pick(raw_pick)
+        output[pick_field] = flipped
+        output[result_field] = _market_result(row, market, flipped)
+        output["operator_action"] = "inverted"
+        return output
+
+    output["operator_action"] = "kept" if action == "keep" else "kept_untrained"
+    return output
+
+
+def _cs_matrix_records_by_season(games: List[dict], seasons: List[int]) -> Dict[int, List[dict]]:
+    records_by_season = {}
+    for season in seasons:
+        model = CurrentSeasonMatrixNFLModel()
+        prior_games = [game for game in games if int(game.get("season", 0)) < season]
+        model.fit_completed_games(prior_games)
+        season_rows = []
+        for week in sorted({int(game["week"]) for game in games if game["season"] == season}):
+            week_games = [game for game in games if game["season"] == season and int(game["week"]) == week]
+            for game in week_games:
+                try:
+                    pred_margin, pred_total = model.predict(game)
+                except ValueError:
+                    pred_margin, pred_total = None, None
+                spread_edge = pred_margin - game["spread_line"] if pred_margin is not None else None
+                total_edge = pred_total - game["total_line"] if pred_total is not None else None
+                spread_pick = side_from_edge(spread_edge, default_spread_threshold(CURRENT_SEASON_MATRIX_PROFILE)) if spread_edge is not None else None
+                total_pick = total_from_edge(total_edge, default_total_threshold(CURRENT_SEASON_MATRIX_PROFILE)) if total_edge is not None else None
+                season_rows.append({
+                    "season": game["season"],
+                    "week": game["week"],
+                    "game_id": game["game_id"],
+                    "model": CURRENT_SEASON_MATRIX_PROFILE,
+                    "away_team": game["away_team"],
+                    "home_team": game["home_team"],
+                    "pred_margin": pred_margin,
+                    "actual_margin": game["actual_margin"],
+                    "spread_line": game["spread_line"],
+                    "spread_edge": spread_edge,
+                    "spread_pick": spread_pick,
+                    "spread_result": _grade_spread_pick(game, spread_pick),
+                    "pred_total": pred_total,
+                    "actual_total": game["actual_total"],
+                    "total_line": game["total_line"],
+                    "total_edge": total_edge,
+                    "total_pick": total_pick,
+                    "total_result": _grade_total_pick(game, total_pick),
+                })
+            for game in week_games:
+                model.update(game, 0.0, 44.0)
+        records_by_season[season] = season_rows
+    return records_by_season
+
+
+def current_season_matrix_operator_audit(
+    games: List[dict],
+    seasons_to_test: int = 5,
+    min_bucket_games: int = 20,
+) -> dict:
+    """Walk-forward audit for thresholding or inverting CS Matrix ATS/O/U picks."""
+    completed_seasons = sorted({game["season"] for game in games})
+    target_seasons = completed_seasons[-seasons_to_test:]
+    records_by_season = _cs_matrix_records_by_season(games, completed_seasons)
+    modes = ("raw", "thresholded", "contrarian")
+    markets = ("ATS", "O/U")
+    output = {
+        "model": CURRENT_SEASON_MATRIX_PROFILE,
+        "seasons_tested": target_seasons,
+        "min_bucket_games": min_bucket_games,
+        "markets": {},
+    }
+
+    for market in markets:
+        mode_rows = {mode: [] for mode in modes}
+        rule_rows = []
+        for season in target_seasons:
+            training_rows = [
+                row
+                for prior_season in completed_seasons
+                if prior_season < season
+                for row in records_by_season.get(prior_season, [])
+            ]
+            rules = _bucket_stats(training_rows, market, min_bucket_games)
+            season_rows = records_by_season.get(season, [])
+            for row in season_rows:
+                key = _operator_bucket_key(row, market)
+                rule = rules.get(key)
+                if row.get("spread_pick" if market == "ATS" else "total_pick"):
+                    rule_rows.append({
+                        "season": season,
+                        "key": key,
+                        "operator": rule.get("operator") if rule else "untrained",
+                        "prior_graded_bets": rule.get("graded_bets", 0) if rule else 0,
+                        "prior_win_rate": rule.get("win_rate") if rule else None,
+                    })
+                for mode in modes:
+                    mode_rows[mode].append(_apply_market_operator(row, market, mode, rule))
+
+        output["markets"][market] = {
+            "modes": {
+                mode: _operator_summary(rows, market)
+                for mode, rows in mode_rows.items()
+            },
+            "rule_actions": dict(Counter(row["operator"] for row in rule_rows)),
+            "rules_sampled": len(rule_rows),
+        }
+    return output
+
+
 def _grade_spread_pick(game: dict, spread_pick: Optional[str]) -> Optional[str]:
     if not spread_pick:
         return None
@@ -3572,6 +4126,23 @@ def _grade_total_pick(game: dict, total_pick: Optional[str]) -> Optional[str]:
     return "loss"
 
 
+def _is_before_week(game: dict, season: int, week: int) -> bool:
+    game_season = int(game.get("season", 0))
+    game_week = int(game.get("week", 0))
+    return game_season < season or (game_season == season and game_week < week)
+
+
+def _train_model_before_week(games: List[dict], season: int, week: int, model_profile: str):
+    training_games = [game for game in games if _is_before_week(game, season, week)]
+    if _is_rsm_family(model_profile):
+        return create_model(model_profile)
+    if model_profile == CURRENT_SEASON_MATRIX_PROFILE:
+        model = create_model(model_profile)
+        model.fit_completed_games(training_games)
+        return model
+    return train_model(training_games, model_profile)
+
+
 def weekly_model_performance(games: List[dict], season: int, week: int, model_profiles: Tuple[str, ...] = MODEL_PROFILES) -> dict:
     """Grade each model on completed games for one week using chronological pregame predictions."""
     completed_week_games = [
@@ -3580,9 +4151,9 @@ def weekly_model_performance(games: List[dict], season: int, week: int, model_pr
     ]
     rows = []
     for model_profile in model_profiles:
-        model = create_model(model_profile)
+        model = _train_model_before_week(games, season, week, model_profile)
         records = []
-        for game in games:
+        for game in completed_week_games:
             eligible = True
             if model_profile == "rothstein_plus":
                 eligible = is_rothstein_plus_eligible(model, game)
@@ -3591,27 +4162,23 @@ def weekly_model_performance(games: List[dict], season: int, week: int, model_pr
             except ValueError:
                 pred_margin, pred_total = None, None
 
-            if game["season"] == season and game["week"] == week:
-                spread_edge = pred_margin - game["spread_line"] if pred_margin is not None else None
-                total_edge = pred_total - game["total_line"] if pred_total is not None else None
-                spread_pick = side_from_edge(spread_edge, default_spread_threshold(model_profile)) if spread_edge is not None and eligible and model_supports_spread_picks(model_profile) else None
-                if _is_rsm_family(model_profile):
-                    total_pick = total_from_edge(total_edge, 0.0) if total_edge is not None else None
-                else:
-                    total_pick = total_from_edge(total_edge, default_total_threshold(model_profile)) if total_edge is not None and eligible and model_supports_totals(model_profile) else None
-                records.append({
-                    "pred_margin": pred_margin,
-                    "actual_margin": game["actual_margin"],
-                    "pred_total": pred_total,
-                    "actual_total": game["actual_total"],
-                    "spread_pick": spread_pick,
-                    "spread_result": _grade_spread_pick(game, spread_pick),
-                    "total_pick": total_pick,
-                    "total_result": _grade_total_pick(game, total_pick),
-                })
-
-            if not _is_rsm_family(model_profile) and pred_margin is not None and pred_total is not None:
-                model.update(game, pred_margin, pred_total)
+            spread_edge = pred_margin - game["spread_line"] if pred_margin is not None else None
+            total_edge = pred_total - game["total_line"] if pred_total is not None else None
+            spread_pick = side_from_edge(spread_edge, default_spread_threshold(model_profile)) if spread_edge is not None and eligible and model_supports_spread_picks(model_profile) else None
+            if _is_rsm_family(model_profile):
+                total_pick = total_from_edge(total_edge, 0.0) if total_edge is not None else None
+            else:
+                total_pick = total_from_edge(total_edge, default_total_threshold(model_profile)) if total_edge is not None and eligible and model_supports_totals(model_profile) else None
+            records.append({
+                "pred_margin": pred_margin,
+                "actual_margin": game["actual_margin"],
+                "pred_total": pred_total,
+                "actual_total": game["actual_total"],
+                "spread_pick": spread_pick,
+                "spread_result": _grade_spread_pick(game, spread_pick),
+                "total_pick": total_pick,
+                "total_result": _grade_total_pick(game, total_pick),
+            })
 
         summary = summarize(records)
         rows.append({
@@ -3752,6 +4319,42 @@ def _weekly_performance_trend_cache_path(games: List[dict], season: int, model_p
 
 
 def _model_week_records(games: List[dict], season: int, model_profile: str) -> Dict[int, List[dict]]:
+    if model_profile == CURRENT_SEASON_MATRIX_PROFILE:
+        records_by_week: Dict[int, List[dict]] = {}
+        season_weeks = sorted({int(game["week"]) for game in games if game["season"] == season})
+        for target_week in season_weeks:
+            model = _train_model_before_week(games, season, target_week, model_profile)
+            for game in [row for row in games if row["season"] == season and row["week"] == target_week]:
+                try:
+                    pred_margin, pred_total = model.predict(game)
+                except ValueError:
+                    pred_margin, pred_total = None, None
+                spread_edge = pred_margin - game["spread_line"] if pred_margin is not None else None
+                total_edge = pred_total - game["total_line"] if pred_total is not None else None
+                spread_pick = side_from_edge(spread_edge, default_spread_threshold(model_profile)) if spread_edge is not None and model_supports_spread_picks(model_profile) else None
+                total_pick = total_from_edge(total_edge, default_total_threshold(model_profile)) if total_edge is not None and model_supports_totals(model_profile) else None
+                records_by_week.setdefault(target_week, []).append({
+                    "season": game["season"],
+                    "week": game["week"],
+                    "game_id": game["game_id"],
+                    "model": model_profile,
+                    "away_team": game["away_team"],
+                    "home_team": game["home_team"],
+                    "pred_margin": pred_margin,
+                    "actual_margin": game["actual_margin"],
+                    "spread_line": game["spread_line"],
+                    "spread_edge": spread_edge,
+                    "pred_total": pred_total,
+                    "actual_total": game["actual_total"],
+                    "total_line": game["total_line"],
+                    "total_edge": total_edge,
+                    "spread_pick": spread_pick,
+                    "spread_result": _grade_spread_pick(game, spread_pick),
+                    "total_pick": total_pick,
+                    "total_result": _grade_total_pick(game, total_pick),
+                })
+        return records_by_week
+
     model = create_model(model_profile)
     records_by_week: Dict[int, List[dict]] = {}
     for game in games:
@@ -3772,10 +4375,20 @@ def _model_week_records(games: List[dict], season: int, model_profile: str) -> D
             else:
                 total_pick = total_from_edge(total_edge, default_total_threshold(model_profile)) if total_edge is not None and eligible and model_supports_totals(model_profile) else None
             records_by_week.setdefault(game["week"], []).append({
+                "season": game["season"],
+                "week": game["week"],
+                "game_id": game["game_id"],
+                "model": model_profile,
+                "away_team": game["away_team"],
+                "home_team": game["home_team"],
                 "pred_margin": pred_margin,
                 "actual_margin": game["actual_margin"],
+                "spread_line": game["spread_line"],
+                "spread_edge": spread_edge,
                 "pred_total": pred_total,
                 "actual_total": game["actual_total"],
+                "total_line": game["total_line"],
+                "total_edge": total_edge,
                 "spread_pick": spread_pick,
                 "spread_result": _grade_spread_pick(game, spread_pick),
                 "total_pick": total_pick,
@@ -3951,8 +4564,8 @@ def postgame_game_results(
     target_ids = set(by_game)
 
     for model_profile in model_profiles:
-        model = create_model(model_profile)
-        for game in games:
+        model = _train_model_before_week(games, season, week, model_profile)
+        for game in target_games:
             eligible = True
             if model_profile == "rothstein_plus":
                 eligible = is_rothstein_plus_eligible(model, game)
@@ -3961,25 +4574,21 @@ def postgame_game_results(
             except ValueError:
                 pred_margin, pred_total = None, None
 
-            if game.get("game_id") in target_ids:
-                spread_edge = pred_margin - game["spread_line"] if pred_margin is not None else None
-                total_edge = pred_total - game["total_line"] if pred_total is not None else None
-                spread_pick = side_from_edge(spread_edge, default_spread_threshold(model_profile)) if spread_edge is not None and eligible and model_supports_spread_picks(model_profile) else None
-                if _is_rsm_family(model_profile):
-                    total_pick = total_from_edge(total_edge, 0.0) if total_edge is not None else None
-                else:
-                    total_pick = total_from_edge(total_edge, default_total_threshold(model_profile)) if total_edge is not None and eligible and model_supports_totals(model_profile) else None
-                by_game[game["game_id"]]["models"][model_profile] = {
-                    "spread_pick": spread_pick,
-                    "spread_result": _grade_spread_pick(game, spread_pick),
-                    "total_pick": total_pick,
-                    "total_result": _grade_total_pick(game, total_pick),
-                    "pred_margin": pred_margin,
-                    "pred_total": pred_total,
-                }
-
-            if not _is_rsm_family(model_profile) and pred_margin is not None and pred_total is not None:
-                model.update(game, pred_margin, pred_total)
+            spread_edge = pred_margin - game["spread_line"] if pred_margin is not None else None
+            total_edge = pred_total - game["total_line"] if pred_total is not None else None
+            spread_pick = side_from_edge(spread_edge, default_spread_threshold(model_profile)) if spread_edge is not None and eligible and model_supports_spread_picks(model_profile) else None
+            if _is_rsm_family(model_profile):
+                total_pick = total_from_edge(total_edge, 0.0) if total_edge is not None else None
+            else:
+                total_pick = total_from_edge(total_edge, default_total_threshold(model_profile)) if total_edge is not None and eligible and model_supports_totals(model_profile) else None
+            by_game[game["game_id"]]["models"][model_profile] = {
+                "spread_pick": spread_pick,
+                "spread_result": _grade_spread_pick(game, spread_pick),
+                "total_pick": total_pick,
+                "total_result": _grade_total_pick(game, total_pick),
+                "pred_margin": pred_margin,
+                "pred_total": pred_total,
+            }
 
     return list(by_game.values())
 
@@ -4211,6 +4820,26 @@ def print_threshold_sweep(games: List[dict], thresholds: List[float], model_prof
             )
 
 
+def print_cs_matrix_operator_audit(audit: dict) -> None:
+    print("\nCS Matrix operator audit")
+    print("------------------------")
+    print(f"Test seasons: {', '.join(str(season) for season in audit['seasons_tested'])}")
+    print(f"Minimum prior bucket support: {audit['min_bucket_games']} graded picks")
+    for market, market_audit in audit["markets"].items():
+        print(f"\n{market}")
+        print("Mode         Bets  Graded  W-L-P       Win rate  ROI -110")
+        for mode, record in market_audit["modes"].items():
+            print(
+                f"{mode:<12} "
+                f"{record['bets']:<5} "
+                f"{record['graded_bets']:<7} "
+                f"{record['wins']}-{record['losses']}-{record['pushes']:<7} "
+                f"{format_pct(record['win_rate']):<9} "
+                f"{format_pct(record['roi_at_minus_110'])}"
+            )
+        print(f"Walk-forward rule actions: {market_audit['rule_actions']}")
+
+
 def write_records(path: str, records: List[dict]) -> None:
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     fieldnames = [
@@ -4249,6 +4878,8 @@ def main() -> None:
     parser.add_argument("--by-season", action="store_true", help="Print per-season results for each window")
     parser.add_argument("--sweep", action="store_true", help="Print a threshold sweep for 5- and 10-year windows")
     parser.add_argument("--compare-models", action="store_true", help="Compare baseline and enhanced model profiles")
+    parser.add_argument("--cs-operator-audit", action="store_true", help="Audit raw, thresholded, and contrarian CS Matrix operators")
+    parser.add_argument("--operator-min-bucket", type=int, default=20, help="Minimum prior graded picks per operator bucket")
     parser.add_argument("--export", help="Write the largest backtest window to a CSV file")
     args = parser.parse_args()
 
@@ -4261,6 +4892,15 @@ def main() -> None:
     active_total_threshold = args.total_threshold if args.total_threshold is not None else default_total_threshold(args.model)
     print(f"Spread pick threshold: {active_spread_threshold:.1f} points")
     print(f"Total pick threshold:  {active_total_threshold:.1f} points")
+
+    if args.cs_operator_audit and not any((args.compare_models, args.sweep, args.export, args.by_season)):
+        audit = current_season_matrix_operator_audit(
+            games,
+            seasons_to_test=max(args.seasons),
+            min_bucket_games=args.operator_min_bucket,
+        )
+        print_cs_matrix_operator_audit(audit)
+        return
 
     if args.compare_models:
         print("\nModel comparison")
@@ -4307,6 +4947,14 @@ def main() -> None:
 
     if args.sweep:
         print_threshold_sweep(games, thresholds=[0, 1, 1.5, 2, 3, 4, 5, 7, 10], model_profile=args.model)
+
+    if args.cs_operator_audit:
+        audit = current_season_matrix_operator_audit(
+            games,
+            seasons_to_test=max(args.seasons),
+            min_bucket_games=args.operator_min_bucket,
+        )
+        print_cs_matrix_operator_audit(audit)
 
 
 if __name__ == "__main__":
