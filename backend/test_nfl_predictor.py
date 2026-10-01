@@ -1122,6 +1122,39 @@ def test_current_season_matrix_dashboard_uses_cs_matrix_state():
     assert all(team["games"] >= 1 for team in snapshot["teams"])
 
 
+def test_current_season_matrix_backtest_uses_fast_season_records():
+    games = [
+        _history_game("2024_01_AAA_BBB", 2024, 1, "AAA", "BBB", 17, 24, spread_line=3.0, total_line=42.0),
+        _history_game("2024_01_CCC_DDD", 2024, 1, "CCC", "DDD", 28, 14, spread_line=-1.0, total_line=44.0),
+        _history_game("2025_01_AAA_CCC", 2025, 1, "AAA", "CCC", 31, 17, spread_line=-2.0, total_line=45.0),
+        _history_game("2025_01_BBB_DDD", 2025, 1, "BBB", "DDD", 13, 27, spread_line=2.5, total_line=43.0),
+        _history_game("2026_01_CCC_BBB", 2026, 1, "CCC", "BBB", 20, 23, spread_line=1.5, total_line=44.0),
+        _history_game("2026_01_DDD_AAA", 2026, 1, "DDD", "AAA", 10, 28, spread_line=4.5, total_line=42.0),
+    ]
+
+    summary, records = run_backtest(games, seasons_to_test=2, model_profile="current_season_matrix")
+
+    assert summary["games"] == 4
+    assert {row["model"] for row in records} == {"current_season_matrix"}
+    assert all("spread_edge" in row and "total_edge" in row for row in records)
+
+
+def test_current_season_matrix_matchup_history_returns_model_rows():
+    games = [
+        _history_game("2024_01_AAA_BBB", 2024, 1, "AAA", "BBB", 17, 24, spread_line=3.0, total_line=42.0),
+        _history_game("2025_01_AAA_CCC", 2025, 1, "AAA", "CCC", 31, 17, spread_line=-2.0, total_line=45.0),
+        _history_game("2025_01_BBB_DDD", 2025, 1, "BBB", "DDD", 13, 27, spread_line=2.5, total_line=43.0),
+        _history_game("2026_01_BBB_AAA", 2026, 1, "BBB", "AAA", 20, 23, spread_line=-1.5, total_line=44.0),
+    ]
+
+    rows = nfl_predictor.matchup_history(games, "AAA", "BBB", "current_season_matrix")
+
+    assert [row["season"] for row in rows] == [2024, 2026]
+    assert all(row["model"] == "current_season_matrix" for row in rows)
+    assert all(row["selected_home_spread"] is not None for row in rows)
+    assert all(row["model_available"] for row in rows)
+
+
 def test_upcoming_availability_adjustment_applies_team_downgrade_after_prediction():
     prediction = {
         "model": "baseline",

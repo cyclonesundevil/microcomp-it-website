@@ -1086,6 +1086,20 @@ def _build_all_matchup_history(games: List[dict], model_profile: str) -> Dict[st
         for pair_rows in pairs.values():
             pair_rows.sort(key=lambda row: (row["season"], row["week"], row.get("gameday") or ""))
         return pairs
+    if model_profile == CURRENT_SEASON_MATRIX_PROFILE:
+        seasons = sorted({int(game["season"]) for game in games})
+        for row in _cs_matrix_flat_records(games, seasons, history_years=5):
+            history_row = _cacheable_matchup_row(
+                row,
+                CURRENT_SEASON_MATRIX_PROFILE,
+                True,
+                row.get("pred_margin"),
+                row.get("pred_total"),
+            )
+            pairs.setdefault(_history_pair_key(row["away_team"], row["home_team"]), []).append(history_row)
+        for pair_rows in pairs.values():
+            pair_rows.sort(key=lambda row: (row["season"], row["week"], row.get("gameday") or ""))
+        return pairs
 
     model = create_model(model_profile)
     for game in games:
@@ -3486,6 +3500,29 @@ def rsm_dashboard_snapshot(
 def matchup_history(games: List[dict], away_team: str, home_team: str, model_profile: str = "baseline") -> List[dict]:
     if model_profile == RSM_PROFILE:
         return rsm_matchup_history(games, away_team, home_team)
+    if model_profile == CURRENT_SEASON_MATRIX_PROFILE:
+        selected = {away_team, home_team}
+        seasons = sorted({
+            int(game["season"])
+            for game in games
+            if {game["away_team"], game["home_team"]} == selected
+        })
+        rows = []
+        for row in _cs_matrix_flat_records(games, seasons, history_years=5):
+            if {row["away_team"], row["home_team"]} != selected:
+                continue
+            selected_home_spread = row["spread_line"] if row["home_team"] == home_team else -row["spread_line"]
+            history_row = _cacheable_matchup_row(
+                row,
+                CURRENT_SEASON_MATRIX_PROFILE,
+                True,
+                row.get("pred_margin"),
+                row.get("pred_total"),
+            )
+            history_row["selected_home_spread"] = selected_home_spread
+            rows.append(history_row)
+        rows.sort(key=lambda item: (item["season"], item["week"], item.get("gameday") or ""))
+        return rows
 
     selected = {away_team, home_team}
     model = create_model(model_profile)
@@ -4118,11 +4155,16 @@ def _apply_market_operator(row: dict, market: str, mode: str, rule: Optional[dic
     return output
 
 
-def _cs_matrix_records_by_season(games: List[dict], seasons: List[int]) -> Dict[int, List[dict]]:
+def _cs_matrix_records_by_season(games: List[dict], seasons: List[int], history_years: Optional[int] = None) -> Dict[int, List[dict]]:
     records_by_season = {}
     for season in seasons:
         model = CurrentSeasonMatrixNFLModel()
-        prior_games = [game for game in games if int(game.get("season", 0)) < season]
+        history_floor = season - history_years if history_years else None
+        prior_games = [
+            game for game in games
+            if int(game.get("season", 0)) < season
+            and (history_floor is None or int(game.get("season", 0)) >= history_floor)
+        ]
         model.fit_completed_games(prior_games)
         season_rows = []
         for week in sorted({int(game["week"]) for game in games if game["season"] == season}):
@@ -4143,6 +4185,9 @@ def _cs_matrix_records_by_season(games: List[dict], seasons: List[int]) -> Dict[
                     "model": CURRENT_SEASON_MATRIX_PROFILE,
                     "away_team": game["away_team"],
                     "home_team": game["home_team"],
+                    "gameday": game.get("gameday"),
+                    "away_score": game["away_score"],
+                    "home_score": game["home_score"],
                     "pred_margin": pred_margin,
                     "actual_margin": game["actual_margin"],
                     "spread_line": game["spread_line"],
@@ -4160,6 +4205,15 @@ def _cs_matrix_records_by_season(games: List[dict], seasons: List[int]) -> Dict[
                 model.update(game, 0.0, 44.0)
         records_by_season[season] = season_rows
     return records_by_season
+
+
+def _cs_matrix_flat_records(games: List[dict], seasons: List[int], history_years: Optional[int] = None) -> List[dict]:
+    records_by_season = _cs_matrix_records_by_season(games, seasons, history_years=history_years)
+    return [
+        row
+        for season in seasons
+        for row in records_by_season.get(season, [])
+    ]
 
 
 def current_season_matrix_operator_audit(
@@ -4715,6 +4769,11 @@ def run_backtest(
 ) -> Tuple[dict, List[dict]]:
     if model_profile == RSM_PROFILE:
         records = rsm_backtest_records(games, seasons_to_test)
+        return summarize(records), records
+    if model_profile == CURRENT_SEASON_MATRIX_PROFILE:
+        completed_seasons = sorted({g["season"] for g in games})
+        test_seasons = completed_seasons[-seasons_to_test:]
+        records = _cs_matrix_flat_records(games, test_seasons, history_years=5)
         return summarize(records), records
 
     if spread_threshold is None:
