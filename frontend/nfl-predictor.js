@@ -5,6 +5,16 @@ document.addEventListener('DOMContentLoaded', () => {
         model: 'market_blend',
         playoffMode: false
     };
+    const modelLabels = {
+        baseline: 'Baseline',
+        enhanced: 'Enhanced',
+        market_blend: 'Market Blend',
+        mean_reversion: 'Mean Reversion',
+        current_season_matrix: 'CS Matrix',
+        rothstein: 'Rothstein',
+        rothstein_plus: 'Rothstein+',
+        rsm_stage7c: 'RSM - Experimental'
+    };
 
     const message = document.getElementById('nfl-message');
     const spreadRate = document.getElementById('spread-rate');
@@ -39,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const injuryImpact = document.getElementById('injury-impact');
     const injuryImpactValue = document.getElementById('injury-impact-value');
     const matchupLabel = document.getElementById('matchup-label');
+    const matchupModel = document.getElementById('matchup-model');
     const matchupMargin = document.getElementById('matchup-margin');
     const matchupTotal = document.getElementById('matchup-total');
     const spreadPick = document.getElementById('spread-pick');
@@ -88,6 +99,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (value === null || value === undefined) return '--';
         const number = Number(value);
         return number >= 0 ? `+${number.toFixed(1)}` : number.toFixed(1);
+    }
+
+    function modelLabel(model) {
+        return modelLabels[model] || model || 'Unknown';
+    }
+
+    function updateMatchupModelLabel(model = state.model) {
+        if (matchupModel) matchupModel.textContent = modelLabel(model);
     }
 
     function marketFavoriteSpreadCell(homeMargin, marketHomeMargin, homeTeam, awayTeam, totalValue) {
@@ -351,6 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const homeBy = prediction.pred_margin;
         const total = prediction.pred_total;
         const rsm = prediction.model === 'rsm_stage7c';
+        updateMatchupModelLabel(prediction.model);
         const favorite = prediction.winner_pick === 'home'
             ? prediction.home_team
             : prediction.winner_pick === 'away' ? prediction.away_team : (rsm ? null : homeBy >= 0 ? prediction.home_team : prediction.away_team);
@@ -382,6 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function applyModelPresentation() {
         const rsm = state.model === 'rsm_stage7c';
+        updateMatchupModelLabel();
         if (rsmRecordForm) rsmRecordForm.hidden = !rsm;
         if (rsm) {
             spreadLine.value = '';
@@ -509,6 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadPrediction() {
+        updateMatchupModelLabel();
         matchupLabel.textContent = 'Calculating matchup...';
         const params = new URLSearchParams({
             away_team: awayTeam.value,
@@ -648,6 +670,11 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('[data-model]').forEach((item) => item.classList.remove('active'));
             button.classList.add('active');
             applyModelPresentation();
+            matchupLabel.textContent = `Selected ${modelLabel(state.model)}. Run matchup to refresh.`;
+            matchupMargin.textContent = '--';
+            matchupTotal.textContent = 'Projected total: --';
+            spreadPick.textContent = '--';
+            totalPick.textContent = '--';
             refreshAll();
         });
     });
