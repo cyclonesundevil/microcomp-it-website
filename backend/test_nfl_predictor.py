@@ -1010,6 +1010,41 @@ def test_current_season_matrix_profile_is_public_and_supports_standard_contract(
     assert prediction["model_notes"]
 
 
+def test_current_season_matrix_matchup_uses_bounded_training_window(monkeypatch):
+    games = [
+        _history_game("2019_01_CLE_PIT", 2019, 1, "CLE", "PIT", 3, 45, spread_line=-2.5, total_line=38.5),
+        _history_game("2021_01_CLE_BAL", 2021, 1, "CLE", "BAL", 21, 17, spread_line=3.0, total_line=43.0),
+        _history_game("2022_01_PIT_CIN", 2022, 1, "PIT", "CIN", 20, 24, spread_line=2.0, total_line=42.0),
+        _history_game("2026_01_CLE_BAL", 2026, 1, "CLE", "BAL", 28, 20, spread_line=1.5, total_line=41.0),
+        _history_game("2026_01_PIT_CIN", 2026, 1, "PIT", "CIN", 17, 14, spread_line=2.5, total_line=39.5),
+    ]
+    captured = {}
+    real_train_model = nfl_predictor.train_model
+
+    def capture_training(training_games, model_profile="baseline"):
+        if model_profile == "current_season_matrix":
+            captured["seasons"] = sorted({game["season"] for game in training_games})
+        return real_train_model(training_games, model_profile)
+
+    monkeypatch.setattr(nfl_predictor, "train_model", capture_training)
+
+    prediction = nfl_predictor.predict_matchup(
+        games,
+        away_team="CLE",
+        home_team="PIT",
+        spread_line=-2.5,
+        total_line=38.5,
+        model_profile="current_season_matrix",
+    )
+
+    assert captured["seasons"] == [2021, 2022, 2026]
+    assert prediction["model"] == "current_season_matrix"
+    assert prediction["market_margin"] == 2.5
+    assert prediction["spread_edge"] == pytest.approx(prediction["pred_margin"] - 2.5)
+    assert prediction["total_edge"] == pytest.approx(prediction["pred_total"] - 38.5)
+    assert prediction["model_notes"]
+
+
 def test_current_season_matrix_records_and_opponents_shape_strength():
     games = [
         _history_game("2025_01_STR_AVG", 2025, 1, "STR", "AVG", 20, 24, spread_line=2.0, total_line=44.0),

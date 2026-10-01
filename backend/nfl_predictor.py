@@ -3119,8 +3119,27 @@ def stabilize_rothstein_upcoming_prediction(
     return guarded
 
 
+def _current_season_matrix_training_games(
+    games: List[dict],
+    target_season: Optional[int] = None,
+    history_years: int = 5,
+) -> List[dict]:
+    if not games:
+        return []
+    if target_season is None:
+        target_season = max(int(game["season"]) for game in games)
+    history_floor = target_season - history_years
+    return [
+        game for game in games
+        if history_floor <= int(game.get("season", 0)) <= target_season
+    ]
+
+
 def train_model(games: List[dict], model_profile: str = "baseline") -> OnlineNFLModel:
     model = create_model(model_profile)
+    if model_profile == CURRENT_SEASON_MATRIX_PROFILE:
+        model.fit_completed_games(games)
+        return model
     for game in games:
         pred_margin, pred_total = model.predict(game)
         model.update(game, pred_margin, pred_total)
@@ -3322,9 +3341,8 @@ def current_season_matrix_dashboard_snapshot(
     latest_season = max(game["season"] for game in games)
     season_games = [game for game in games if game["season"] == latest_season]
     completed_week = max(game["week"] for game in season_games)
-    history_floor = latest_season - 5
     model = CurrentSeasonMatrixNFLModel()
-    model.fit_completed_games([game for game in games if history_floor <= int(game.get("season", 0)) <= latest_season])
+    model.fit_completed_games(_current_season_matrix_training_games(games, latest_season, history_years=5))
     teams = list_teams(games, current_only=True)
     injury_team = (injury_team or "").strip().upper()
     injury_impact = max(0.0, min(10.0, injury_impact))
@@ -3655,13 +3673,20 @@ def predict_matchup(
     if away_team == home_team:
         raise ValueError("away_team and home_team must be different")
 
+    latest_season = max(int(g["season"]) for g in games)
+    latest_week = max(int(g["week"]) for g in games if int(g["season"]) == latest_season)
+
     if trained_model is not None:
         model = trained_model
     elif _is_rsm_family(model_profile):
         model = create_model(model_profile)
+    elif model_profile == CURRENT_SEASON_MATRIX_PROFILE:
+        model = train_model(
+            _current_season_matrix_training_games(games, latest_season, history_years=5),
+            model_profile=model_profile,
+        )
     elif model_profile in {"rothstein", "rothstein_plus"}:
-        current_season = max(g["season"] for g in games)
-        training_games = [g for g in games if g["season"] == current_season]
+        training_games = [g for g in games if int(g["season"]) == latest_season]
         model = train_model(training_games, model_profile=model_profile)
     else:
         training_games = games
@@ -3677,8 +3702,8 @@ def predict_matchup(
     if effective_total_line is None and not _is_rsm_family(model_profile):
         effective_total_line = 44.5
     game = {
-        "season": max(g["season"] for g in games),
-        "week": max(g["week"] for g in games if g["season"] == max(item["season"] for item in games)) + 1,
+        "season": latest_season,
+        "week": latest_week + 1,
         "away_team": away_team,
         "home_team": home_team,
         "spread_line": market_margin,
@@ -3758,7 +3783,7 @@ def predict_matchup(
         "market_observed_at": market_observed_at or None,
         "lineup_confidence": rsm_details["lineup_confidence"] if rsm_details else "not_applicable",
         "total_model_version": rsm_details["total_model_version"] if rsm_details else None,
-        "latest_training_season": max(g["season"] for g in games),
+        "latest_training_season": latest_season,
         "model_notes": model_notes,
     }
     if model_profile == RSM_PLUS_PROFILE and rsm_details:
@@ -4305,7 +4330,7 @@ def _train_model_before_week(games: List[dict], season: int, week: int, model_pr
         return create_model(model_profile)
     if model_profile == CURRENT_SEASON_MATRIX_PROFILE:
         model = create_model(model_profile)
-        model.fit_completed_games(training_games)
+        model.fit_completed_games(_current_season_matrix_training_games(training_games, season, history_years=5))
         return model
     return train_model(training_games, model_profile)
 
