@@ -10,6 +10,7 @@
     <script src="theme.js?v=1.2"></script>
     <script src="analytics.js?v=1.2"></script>
     <link rel="stylesheet" href="styles.css?v=3.2">
+    <link rel="stylesheet" href="nfl.css?v=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -61,6 +62,7 @@
                     <button data-model="enhanced">Enhanced</button>
                     <button class="active" data-model="market_blend">Market Blend</button>
                     <button data-model="mean_reversion">Mean Reversion</button>
+                    <button data-model="current_season_matrix">CS Matrix</button>
                     <button data-model="rothstein">Rothstein</button>
                     <button data-model="rothstein_plus">Rothstein+</button>
                     <button data-model="rsm_stage7c">RSM — Experimental</button>
@@ -71,7 +73,7 @@
         <section class="nfl-dashboard-section">
             <div class="section-heading">
                 <h2>NFL Prediction Dashboard</h2>
-                <p>Current model state across all teams: strength ratings, expected points, win probability, and model playoff odds.</p>
+                <p>Current model rating state across all teams. Early-season ranks can still reflect prior-season baseline and model strength until more current-season games are played.</p>
             </div>
 
             <div class="dashboard-controls" aria-label="Dashboard mode">
@@ -129,9 +131,9 @@
                     <small id="dashboard-top-rating">--</small>
                 </div>
                 <div class="nfl-metric">
-                    <span>Best Playoff Odds</span>
+                    <span>Top Rating Proxy</span>
                     <strong id="dashboard-top-playoff">--</strong>
-                    <small>Model-derived, not official odds</small>
+                    <small>Not standings or official odds</small>
                 </div>
             </div>
 
@@ -148,8 +150,8 @@
                             <th>Strength</th>
                             <th>Expected Pts</th>
                             <th>Allowed Pts</th>
-                            <th>Win Prob</th>
-                            <th>Model Playoff Odds</th>
+                            <th>Neutral-Field Win Proxy</th>
+                            <th>Rating-Based Playoff Proxy</th>
                             <th>Injury Adj</th>
                             <th id="dashboard-context-header">Recent Margin Avg (4)</th>
                         </tr>
@@ -341,7 +343,7 @@
             <div>
                 <i class="fa-solid fa-chart-simple"></i>
                 <h3>Research Modes</h3>
-                <p>Market Blend shrinks projections toward the closing line. Mean Reversion uses prior two-year PF/PA anchors plus current-season-to-date form. Rothstein+ adds a midseason and QB-continuity filter.</p>
+                <p>Market Blend shrinks projections toward the closing line. Mean Reversion uses prior two-year PF/PA anchors plus current-season-to-date form. CS Matrix iterates opponent-adjusted current-season strength with market-line context. Rothstein+ adds a midseason and QB-continuity filter.</p>
             </div>
             <div>
                 <i class="fa-solid fa-flask"></i>

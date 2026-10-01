@@ -194,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.ready === false || data.status === 'computing') {
                     const progress = Math.max(10, Math.min(95, Number(data.progress) || 15));
                     setUpcomingProgress(progress, data.message || 'Forecast is still being computed.');
-                    upcomingTableBody.innerHTML = '<tr><td colspan="9">Forecast is still being computed...</td></tr>';
+                    upcomingTableBody.innerHTML = '<tr><td colspan="10">Forecast is still being computed...</td></tr>';
                     if (!pollTimer) {
                         pollTimer = window.setTimeout(() => {
                             pollTimer = null;
@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     stopUpcomingProgressTimer();
                     upcomingProgress.hidden = true;
                     upcomingMessage.textContent = data.message || 'No upcoming games were found in the schedule feed.';
-                    upcomingTableBody.innerHTML = '<tr><td colspan="9">No upcoming games were found in the schedule feed.</td></tr>';
+                    upcomingTableBody.innerHTML = '<tr><td colspan="10">No upcoming games were found in the schedule feed.</td></tr>';
                     return;
                 }
 
@@ -225,13 +225,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 if (invalidGame) {
                     upcomingMessage.textContent = 'The cached forecast is invalid and is being rebuilt.';
-                    upcomingTableBody.innerHTML = '<tr><td colspan="9">Forecast data is invalid. Refreshing the forecast...</td></tr>';
+                    upcomingTableBody.innerHTML = '<tr><td colspan="10">Forecast data is invalid. Refreshing the forecast...</td></tr>';
                     return;
                 }
                 upcomingTableBody.innerHTML = data.games.map((game) => {
                     const schedule = game.schedule;
                     const market = upcomingMarketCell(schedule);
-                    return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small></td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'mean_reversion', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${upcomingModelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
+                    return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small></td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'mean_reversion', 'current_season_matrix', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${upcomingModelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
                 }).join('');
             } catch (error) {
                 if (pollTimer) {
@@ -239,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     pollTimer = null;
                 }
                 upcomingMessage.textContent = `Unable to load upcoming games: ${error.message}`;
-                upcomingTableBody.innerHTML = '<tr><td colspan="9">Unavailable</td></tr>';
+                upcomingTableBody.innerHTML = '<tr><td colspan="10">Unavailable</td></tr>';
                 if (upcomingProgress) {
                     stopUpcomingProgressTimer();
                     upcomingProgress.hidden = true;
@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         setUpcomingProgress(10, forceRefresh ? 'Admin refresh requested; rebuilding the all-model projection board...' : 'Loading the cached all-model projection board...');
-        upcomingTableBody.innerHTML = '<tr><td colspan="9">Forecast is still being computed...</td></tr>';
+        upcomingTableBody.innerHTML = '<tr><td colspan="10">Forecast is still being computed...</td></tr>';
         await fetchUpcomingStatus();
     }
 
@@ -409,11 +409,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         dashboardMessage.textContent = dashboard.playoff_mode
             ? `${dashboard.season} playoff mode after week ${dashboard.completed_week}. Neutral-site, recent-form, and expected-point-edge weights are emphasized.`
-            : `${dashboard.season} model dashboard after week ${dashboard.completed_week}. Playoff odds are model-derived, not official league odds.`;
+            : `${dashboard.season} model rating dashboard after week ${dashboard.completed_week}. These are rating-derived proxies, not standings, preseason odds, or official league playoff probabilities.`;
         const injuryNote = dashboard.injury?.applied
             ? [`Injury adjustment: ${dashboard.injury.team} ${dashboard.injury.label}, ${Number(dashboard.injury.impact).toFixed(1)} impact points`]
             : [];
-        const recentMarginNote = isRsm ? [] : ['Recent Margin Avg (4) is a rolling four-game average; early-season values can carry over from the prior season until four current-season games are available.'];
+        const recentMarginNote = isRsm ? [] : [
+            'Rankings are current model ratings after completed games, but early-season ratings retain prior-season/model baseline inertia.',
+            'Recent Margin Avg (4) is a rolling four-game average; early-season values can carry over from the prior season until four current-season games are available.',
+        ];
         dashboardNotes.innerHTML = [...(dashboard.mode_notes || []), ...injuryNote, ...recentMarginNote].map((note) => `<span>${note}</span>`).join('');
         dashboardTeamCount.textContent = String(dashboard.league.team_count || teams.length);
         dashboardSeason.textContent = `Season ${dashboard.season}, week ${dashboard.completed_week}`;
@@ -427,9 +430,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span>#${team.rank} ${team.team}</span>
                 <strong>${signed(team.strength_rating)}</strong>
                 <div class="dashboard-bars">
-                    <label>Win probability <b>${pct(team.neutral_win_probability)}</b></label>
+                    <label>Neutral-field win proxy <b>${pct(team.neutral_win_probability)}</b></label>
                     <div><i style="width:${Math.round(team.neutral_win_probability * 100)}%"></i></div>
-                    <label>Playoff odds <b>${pct(team.playoff_odds)}</b></label>
+                    <label>Rating playoff proxy <b>${pct(team.playoff_odds)}</b></label>
                     <div><i style="width:${Math.round(team.playoff_odds * 100)}%"></i></div>
                 </div>
             </div>
