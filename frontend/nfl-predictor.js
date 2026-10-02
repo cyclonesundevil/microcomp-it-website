@@ -165,6 +165,36 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     }
 
+    function rosterFreshnessText(context) {
+        if (!context) return 'roster intelligence unavailable';
+        const cacheAge = context.cache_age_seconds === null || context.cache_age_seconds === undefined
+            ? 'unknown cache age'
+            : ageLabel(Number(context.cache_age_seconds));
+        const ttl = context.cache_ttl_seconds === null || context.cache_ttl_seconds === undefined
+            ? 'TTL unavailable'
+            : `refresh TTL ${ageLabel(Number(context.cache_ttl_seconds)).replace(' ago', '')}`;
+        const generatedAt = context.generated_at
+            ? new Date(context.generated_at).toLocaleString()
+            : 'unknown scan time';
+        return `roster scan ${cacheAge}; generated ${generatedAt}; ${ttl}`;
+    }
+
+    function rosterEventsForTeams(context, teams) {
+        const selected = new Set(teams.filter(Boolean));
+        return (Array.isArray(context?.events) ? context.events : [])
+            .filter((event) => selected.has(event.team))
+            .slice(0, 3);
+    }
+
+    function upcomingRosterNote(context, schedule) {
+        const events = rosterEventsForTeams(context, [schedule.away_team, schedule.home_team]);
+        if (!events.length) return '<small class="upcoming-roster-note">No high-impact roster alerts.</small>';
+        return `<small class="upcoming-roster-note">${events.map((event) => {
+            const source = event.source_type ? event.source_type.replaceAll('_', ' ') : 'source';
+            return `${escapeHtml(event.team || '')} ${escapeHtml(event.position || '')} ${escapeHtml(event.player || '')}: ${escapeHtml(event.event_type || 'ROSTER_EVENT')} (${escapeHtml(source)}, ${escapeHtml(event.confidence || 'medium')})`;
+        }).join('<br>')}</small>`;
+    }
+
     function setUpcomingProgress(percent, message) {
         if (!upcomingProgress) return;
         if (!upcomingProgressStartedAt) {
@@ -248,7 +278,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 upcomingProgress.hidden = true;
                 stopUpcomingProgressTimer();
-                upcomingMessage.textContent = `Season ${data.season}, week ${data.week}. Each cell shows the market favorite's spread / total. Rothstein values may be stabilized early in the season and Rothstein+ is hidden when ineligible.`;
+                const rosterContext = data.roster_context;
+                const rosterEventCount = Array.isArray(rosterContext?.events) ? rosterContext.events.length : 0;
+                upcomingMessage.textContent = `Season ${data.season}, week ${data.week}. Known Active basis. ${rosterFreshnessText(rosterContext)}. ${rosterEventCount} high-impact roster alert${rosterEventCount === 1 ? '' : 's'} surfaced below.`;
                 const invalidGame = data.games.find((game) => {
                     const schedule = game?.schedule;
                     return !schedule?.away_team || !schedule?.home_team;
@@ -261,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 upcomingTableBody.innerHTML = data.games.map((game) => {
                     const schedule = game.schedule;
                     const market = upcomingMarketCell(schedule);
-                    return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small></td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'mean_reversion', 'current_season_matrix', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${upcomingModelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
+                    return `<tr><td>${escapeHtml(schedule.away_team)} at ${escapeHtml(schedule.home_team)}<br><small>${escapeHtml(schedule.gameday || '--')} ${escapeHtml(schedule.gametime || '')}</small>${upcomingRosterNote(rosterContext, schedule)}</td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'mean_reversion', 'current_season_matrix', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${upcomingModelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
                 }).join('');
             } catch (error) {
                 if (pollTimer) {

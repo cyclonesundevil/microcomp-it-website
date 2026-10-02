@@ -60,3 +60,52 @@ class NflRosterRouteTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(payload["success"])
         self.assertEqual(payload["prediction"]["roster_context"]["events"][0]["event_type"], "QB1_OUT")
         self.assertIn("Baker Mayfield", payload["prediction"]["roster_context"]["summary"][0])
+
+    async def test_upcoming_board_includes_roster_context(self):
+        client = app.test_client()
+        games = [{"season": 2026, "week": 1, "away_team": "GB", "home_team": "TB"}]
+        upcoming_payload = {
+            "ready": True,
+            "status": "ready",
+            "season": 2026,
+            "week": 4,
+            "games": [{
+                "schedule": {
+                    "game_id": "2026_04_GB_TB",
+                    "away_team": "GB",
+                    "home_team": "TB",
+                    "spread_line": 2.5,
+                    "total_line": 43.5,
+                },
+                "models": {},
+            }],
+        }
+        roster_context = {
+            "teams": ["GB", "TB"],
+            "generated_at": "2026-10-02T12:00:00Z",
+            "cache_age_seconds": 60,
+            "cache_ttl_seconds": 1800,
+            "events": [{
+                "event_type": "QB1_OUT",
+                "team": "TB",
+                "player": "Baker Mayfield",
+                "position": "QB",
+                "description": "TB QB Baker Mayfield is unavailable or did not practice.",
+                "source_type": "official_injury_report",
+                "confidence": "high",
+            }],
+        }
+
+        async def fake_load_games():
+            return games, {"cache_hit": True}
+
+        with patch.object(app_module, "load_nfl_games_for_request", side_effect=fake_load_games), \
+            patch.object(app_module, "cached_upcoming_predictions", return_value=upcoming_payload), \
+            patch.object(nfl_routes, "roster_context_for_teams", return_value=roster_context):
+            response = await client.get("/api/nfl/upcoming?scope=upcoming")
+
+        payload = await response.get_json()
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["roster_context"]["teams"], ["GB", "TB"])
+        self.assertEqual(payload["roster_context"]["events"][0]["event_type"], "QB1_OUT")

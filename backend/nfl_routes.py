@@ -534,6 +534,16 @@ def register_nfl_routes(app, context):
             games, cache = await load_nfl_games_for_request()
             snapshot = await asyncio.to_thread(cached_upcoming_predictions, games, season, week, force_refresh, True)
             snapshot = await asyncio.to_thread(upcoming_predictions_for_roster_basis, snapshot, roster_basis)
+            upcoming_teams = sorted({
+                team
+                for game in snapshot.get("games", [])
+                for team in (
+                    (game.get("schedule") or {}).get("away_team"),
+                    (game.get("schedule") or {}).get("home_team"),
+                )
+                if team
+            })
+            snapshot["roster_context"] = await asyncio.to_thread(roster_context_for_teams, upcoming_teams, force_refresh)
             return jsonify({"success": True, "source": GAMES_URL, "cache": cache, **snapshot})
         except ValueError as error:
             return api_error(str(error), 400)
