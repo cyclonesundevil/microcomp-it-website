@@ -26,6 +26,40 @@ HIGH_IMPACT_EVENTS = {
     "UNIT_CLUSTER_INJURY",
 }
 IMPACT_POSITIONS = {"QB", "RB", "WR", "TE", "T", "G", "C", "OT", "OG", "OL", "CB", "S", "SAF", "DB", "EDGE", "DE", "DL", "DT", "OLB", "LB"}
+DEFAULT_OFFICIAL_INJURY_REPORT_URLS = {
+    "ARI": "https://www.azcardinals.com/team/injury-report/",
+    "ATL": "https://www.atlantafalcons.com/team/injury-report/",
+    "BAL": "https://www.baltimoreravens.com/team/injury-report/",
+    "BUF": "https://www.buffalobills.com/team/injury-report/",
+    "CAR": "https://www.panthers.com/team/injury-report/",
+    "CHI": "https://www.chicagobears.com/team/injury-report/",
+    "CIN": "https://www.bengals.com/team/injury-report/",
+    "CLE": "https://www.clevelandbrowns.com/team/injury-report/",
+    "DAL": "https://www.dallascowboys.com/team/injury-report/",
+    "DEN": "https://www.denverbroncos.com/team/injury-report/",
+    "DET": "https://www.detroitlions.com/team/injury-report/",
+    "GB": "https://www.packers.com/team/injury-report/",
+    "HOU": "https://www.houstontexans.com/team/injury-report/",
+    "IND": "https://www.colts.com/team/injury-report/",
+    "JAX": "https://www.jaguars.com/team/injury-report/",
+    "KC": "https://www.chiefs.com/team/injury-report/",
+    "LA": "https://www.therams.com/team/injury-report/",
+    "LAC": "https://www.chargers.com/team/injury-report/",
+    "LV": "https://www.raiders.com/team/injury-report/",
+    "MIA": "https://www.miamidolphins.com/team/injury-report/",
+    "MIN": "https://www.vikings.com/team/injury-report/",
+    "NE": "https://www.patriots.com/team/injury-report/",
+    "NO": "https://www.neworleanssaints.com/team/injury-report/",
+    "NYG": "https://www.giants.com/team/injury-report/",
+    "NYJ": "https://www.newyorkjets.com/team/injury-report/",
+    "PHI": "https://www.philadelphiaeagles.com/team/injury-report/",
+    "PIT": "https://www.steelers.com/team/injury-report/",
+    "SEA": "https://www.seahawks.com/team/injury-report/",
+    "SF": "https://www.49ers.com/team/injury-report/",
+    "TB": "https://www.buccaneers.com/team/injury-report/",
+    "TEN": "https://www.tennesseetitans.com/team/injury-report/",
+    "WAS": "https://www.commanders.com/team/injury-report/",
+}
 
 
 @dataclass(frozen=True)
@@ -76,12 +110,20 @@ def roster_cache_root() -> Path:
     return data_root / "nfl_roster"
 
 
-def roster_snapshot_path() -> Path:
-    return roster_cache_root() / "roster_snapshot.json"
+def _team_cache_key(teams: Optional[Iterable[str]] = None) -> str:
+    selected = sorted({team.upper() for team in teams or [] if team})
+    if not selected:
+        return "all"
+    digest = hashlib.sha1(",".join(selected).encode("utf-8")).hexdigest()[:12]
+    return f"teams_{digest}"
 
 
-def roster_previous_snapshot_path() -> Path:
-    return roster_cache_root() / "roster_snapshot.previous.json"
+def roster_snapshot_path(teams: Optional[Iterable[str]] = None) -> Path:
+    return roster_cache_root() / f"roster_snapshot.{_team_cache_key(teams)}.json"
+
+
+def roster_previous_snapshot_path(teams: Optional[Iterable[str]] = None) -> Path:
+    return roster_cache_root() / f"roster_snapshot.{_team_cache_key(teams)}.previous.json"
 
 
 def roster_context_ttl_seconds(now: Optional[datetime] = None) -> int:
@@ -372,11 +414,17 @@ class NFLVerseRosterProvider(RosterProvider):
         return output
 
 
-def configured_roster_providers() -> list[RosterProvider]:
+def configured_roster_providers(teams: Optional[Iterable[str]] = None) -> list[RosterProvider]:
     providers: list[RosterProvider] = []
+    selected = {team.upper() for team in teams or [] if team}
     injury_urls = _json_env_mapping("NFL_OFFICIAL_INJURY_REPORT_URLS")
     transaction_urls = _json_env_mapping("NFL_OFFICIAL_TRANSACTION_URLS")
     nflverse_urls = [url.strip() for url in os.getenv("NFLVERSE_ROSTER_URLS", "").split(",") if url.strip()]
+    if not injury_urls and os.getenv("NFL_ROSTER_DISABLE_DEFAULT_INJURY_REPORTS", "").strip().lower() not in {"1", "true", "yes"}:
+        injury_urls = dict(DEFAULT_OFFICIAL_INJURY_REPORT_URLS)
+    if selected:
+        injury_urls = {team: url for team, url in injury_urls.items() if team in selected}
+        transaction_urls = {team: url for team, url in transaction_urls.items() if team in selected}
     if not nflverse_urls and os.getenv("NFL_ROSTER_DISABLE_DEFAULT_NFLVERSE", "").strip().lower() not in {"1", "true", "yes"}:
         season = datetime.now(timezone.utc).year
         nflverse_urls = [f"https://github.com/nflverse/nflverse-data/releases/download/rosters/roster_{season}.csv"]
@@ -392,8 +440,9 @@ def configured_roster_providers() -> list[RosterProvider]:
 def build_roster_snapshot(
     providers: Optional[list[RosterProvider]] = None,
     previous_snapshot: Optional[dict] = None,
+    teams: Optional[Iterable[str]] = None,
 ) -> dict:
-    providers = configured_roster_providers() if providers is None else providers
+    providers = configured_roster_providers(teams) if providers is None else providers
     provider_errors = []
     observations: list[RosterObservation] = []
     for provider in providers:
@@ -565,10 +614,11 @@ def refresh_roster_snapshot(
     providers: Optional[list[RosterProvider]] = None,
     force: bool = False,
     ttl_seconds: Optional[int] = None,
+    teams: Optional[Iterable[str]] = None,
 ) -> dict:
-    path = roster_snapshot_path()
+    path = roster_snapshot_path(teams)
     ttl_seconds = roster_context_ttl_seconds() if ttl_seconds is None else ttl_seconds
-    cached = load_cached_roster_snapshot()
+    cached = read_json_or_none(path)
     if cached and not force:
         age = max(0.0, time.time() - path.stat().st_mtime) if path.exists() else None
         if age is not None and age <= ttl_seconds:
@@ -577,13 +627,13 @@ def refresh_roster_snapshot(
             cached["cache_ttl_seconds"] = ttl_seconds
             return cached
 
-    previous = cached or read_json_or_none(roster_previous_snapshot_path()) or {}
-    snapshot = build_roster_snapshot(providers, previous)
+    previous = cached or read_json_or_none(roster_previous_snapshot_path(teams)) or {}
+    snapshot = build_roster_snapshot(providers, previous, teams)
     snapshot["cache_hit"] = False
     snapshot["cache_age_seconds"] = 0.0
     snapshot["cache_ttl_seconds"] = ttl_seconds
     if cached:
-        atomic_write_json(roster_previous_snapshot_path(), cached, indent=2, sort_keys=True)
+        atomic_write_json(roster_previous_snapshot_path(teams), cached, indent=2, sort_keys=True)
     atomic_write_json(path, snapshot, indent=2, sort_keys=True)
     return snapshot
 
@@ -594,7 +644,7 @@ def roster_context_for_teams(
     providers: Optional[list[RosterProvider]] = None,
 ) -> dict:
     selected = {team.upper() for team in teams if team}
-    snapshot = refresh_roster_snapshot(providers=providers, force=force)
+    snapshot = refresh_roster_snapshot(providers=providers, force=force, teams=selected)
     events = [event for event in snapshot.get("events", []) if event.get("team") in selected and event.get("event_type") in HIGH_IMPACT_EVENTS]
     observations = [row for row in snapshot.get("observations", []) if row.get("team") in selected]
     events.sort(key=lambda row: (row.get("confidence") != "high", row.get("team", ""), row.get("event_type", ""), row.get("player", "")))

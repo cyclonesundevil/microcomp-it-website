@@ -454,11 +454,53 @@
     line-height: 1.45;
 }
 
-.upcoming-roster-note {
-    display: block;
-    margin-top: 0.45rem;
+.upcoming-roster-hover {
+    position: relative;
+    display: inline-flex;
+    margin-top: 0.5rem;
+    padding: 0.18rem 0.45rem;
+    border: 1px solid rgba(255, 199, 89, 0.28);
+    border-radius: 999px;
     color: var(--text-secondary);
-    line-height: 1.35;
+    cursor: help;
+    font-size: 0.74rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.upcoming-roster-tooltip {
+    position: absolute;
+    z-index: 20;
+    left: 0;
+    top: calc(100% + 0.45rem);
+    display: none;
+    width: min(320px, 72vw);
+    padding: 0.85rem;
+    border: 1px solid rgba(255, 199, 89, 0.34);
+    border-radius: 8px;
+    background: rgba(7, 10, 20, 0.98);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.38);
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.45;
+    text-transform: none;
+}
+
+.upcoming-roster-tooltip b,
+.upcoming-roster-tooltip span {
+    display: block;
+}
+
+.upcoming-roster-tooltip b {
+    margin-bottom: 0.45rem;
+    color: var(--text-primary);
+}
+
+.upcoming-roster-hover:hover .upcoming-roster-tooltip,
+.upcoming-roster-hover:focus .upcoming-roster-tooltip,
+.upcoming-roster-hover:focus-within .upcoming-roster-tooltip {
+    display: block;
 }
 
 .history-panel {

@@ -131,6 +131,26 @@ def test_roster_context_cache_reuses_fresh_snapshot(tmp_path, monkeypatch):
     assert second["events"][0]["event_type"] == "QB1_OUT"
 
 
+def test_default_official_injury_provider_is_configured(monkeypatch):
+    monkeypatch.delenv("NFL_OFFICIAL_INJURY_REPORT_URLS", raising=False)
+    monkeypatch.setenv("NFL_ROSTER_DISABLE_DEFAULT_NFLVERSE", "1")
+
+    providers = roster.configured_roster_providers(["TB"])
+
+    injury_provider = next(provider for provider in providers if provider.source_type == "official_injury_report")
+    assert injury_provider.team_urls == {"TB": "https://www.buccaneers.com/team/injury-report/"}
+
+
+def test_roster_context_cache_is_keyed_by_requested_teams(tmp_path, monkeypatch):
+    monkeypatch.setattr(roster, "roster_cache_root", lambda: tmp_path)
+
+    tb_path = roster.roster_snapshot_path(["TB"])
+    gb_path = roster.roster_snapshot_path(["GB"])
+
+    assert tb_path != gb_path
+    assert tb_path.name.startswith("roster_snapshot.teams_")
+
+
 def test_matchup_prediction_metadata_can_include_roster_context_shape():
     context = {
         "teams": ["GB", "TB"],

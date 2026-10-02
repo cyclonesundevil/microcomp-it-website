@@ -186,13 +186,41 @@ document.addEventListener('DOMContentLoaded', () => {
             .slice(0, 3);
     }
 
+    function gameHasAppliedAvailabilityAdjustment(game) {
+        return Object.values(game.models || {}).some((prediction) => prediction?.availability_adjusted);
+    }
+
     function upcomingRosterNote(context, schedule) {
         const events = rosterEventsForTeams(context, [schedule.away_team, schedule.home_team]);
-        if (!events.length) return '<small class="upcoming-roster-note">No high-impact roster alerts.</small>';
-        return `<small class="upcoming-roster-note">${events.map((event) => {
+        if (!events.length) return '';
+        return events.map((event) => {
             const source = event.source_type ? event.source_type.replaceAll('_', ' ') : 'source';
-            return `${escapeHtml(event.team || '')} ${escapeHtml(event.position || '')} ${escapeHtml(event.player || '')}: ${escapeHtml(event.event_type || 'ROSTER_EVENT')} (${escapeHtml(source)}, ${escapeHtml(event.confidence || 'medium')})`;
-        }).join('<br>')}</small>`;
+            const observedAt = event.observed_at
+                ? `, observed ${new Date(event.observed_at).toLocaleString()}`
+                : '';
+            return `${escapeHtml(event.team || '')} ${escapeHtml(event.position || '')} ${escapeHtml(event.player || '')}: ${escapeHtml(event.event_type || 'ROSTER_EVENT')} (${escapeHtml(source)}, ${escapeHtml(event.confidence || 'medium')}${escapeHtml(observedAt)})`;
+        }).join('<br>');
+    }
+
+    function upcomingRosterHover(context, game) {
+        const schedule = game.schedule || {};
+        const events = rosterEventsForTeams(context, [schedule.away_team, schedule.home_team]);
+        const applied = gameHasAppliedAvailabilityAdjustment(game);
+        const status = applied
+            ? 'These cells include approved availability adjustments.'
+            : events.length
+                ? 'Detected roster alerts are shown here but are not applied to these algorithm cells.'
+                : 'No high-impact roster alerts detected for this matchup.';
+        const eventText = upcomingRosterNote(context, schedule);
+        return `
+            <span class="upcoming-roster-hover" tabindex="0" aria-label="Roster changes for ${escapeHtml(schedule.away_team || '')} at ${escapeHtml(schedule.home_team || '')}">
+                roster
+                <span class="upcoming-roster-tooltip" role="tooltip">
+                    <b>${escapeHtml(status)}</b>
+                    <span>${eventText || 'No roster changes to show.'}</span>
+                </span>
+            </span>
+        `;
     }
 
     function setUpcomingProgress(percent, message) {
@@ -280,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 stopUpcomingProgressTimer();
                 const rosterContext = data.roster_context;
                 const rosterEventCount = Array.isArray(rosterContext?.events) ? rosterContext.events.length : 0;
-                upcomingMessage.textContent = `Season ${data.season}, week ${data.week}. Known Active basis. ${rosterFreshnessText(rosterContext)}. ${rosterEventCount} high-impact roster alert${rosterEventCount === 1 ? '' : 's'} surfaced below.`;
+                upcomingMessage.textContent = `Season ${data.season}, week ${data.week}. Known Active means approved availability adjustments are included when present; detected roster alerts are available from each game's roster hover. ${rosterFreshnessText(rosterContext)}. ${rosterEventCount} high-impact roster alert${rosterEventCount === 1 ? '' : 's'} detected.`;
                 const invalidGame = data.games.find((game) => {
                     const schedule = game?.schedule;
                     return !schedule?.away_team || !schedule?.home_team;
@@ -293,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 upcomingTableBody.innerHTML = data.games.map((game) => {
                     const schedule = game.schedule;
                     const market = upcomingMarketCell(schedule);
-                    return `<tr><td>${escapeHtml(schedule.away_team)} at ${escapeHtml(schedule.home_team)}<br><small>${escapeHtml(schedule.gameday || '--')} ${escapeHtml(schedule.gametime || '')}</small>${upcomingRosterNote(rosterContext, schedule)}</td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'mean_reversion', 'current_season_matrix', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${upcomingModelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
+                    return `<tr><td>${escapeHtml(schedule.away_team)} at ${escapeHtml(schedule.home_team)}<br><small>${escapeHtml(schedule.gameday || '--')} ${escapeHtml(schedule.gametime || '')}</small>${upcomingRosterHover(rosterContext, game)}</td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'mean_reversion', 'current_season_matrix', 'rothstein', 'rothstein_plus', 'rsm_stage7c'].map((model) => `<td>${upcomingModelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
                 }).join('');
             } catch (error) {
                 if (pollTimer) {
