@@ -381,19 +381,31 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!rosterContext) return;
         const events = Array.isArray(context?.events) ? context.events : [];
         const errors = Array.isArray(context?.provider_errors) ? context.provider_errors : [];
-        if (!events.length && !errors.length) {
+        if (!context) {
             rosterContext.hidden = true;
             rosterContext.innerHTML = '';
             return;
         }
         rosterContext.hidden = false;
+        const cacheAge = context.cache_age_seconds === null || context.cache_age_seconds === undefined
+            ? 'unknown cache age'
+            : ageLabel(Number(context.cache_age_seconds));
+        const ttl = context.cache_ttl_seconds === null || context.cache_ttl_seconds === undefined
+            ? 'TTL unavailable'
+            : `refresh TTL ${ageLabel(Number(context.cache_ttl_seconds)).replace(' ago', '')}`;
+        const generatedAt = context.generated_at
+            ? new Date(context.generated_at).toLocaleString()
+            : 'unknown scan time';
         const eventRows = events.slice(0, 5).map((event) => {
             const source = event.source_type ? event.source_type.replaceAll('_', ' ') : 'source';
             const confidence = event.confidence || 'medium';
+            const observedAt = event.observed_at
+                ? ` Observed ${new Date(event.observed_at).toLocaleString()}.`
+                : '';
             return `
                 <li>
                     <b>${escapeHtml(event.team || '')} ${escapeHtml(event.position || '')} ${escapeHtml(event.player || '')}</b>
-                    <span>${escapeHtml(event.description || event.event_type || 'Roster event')} Source: ${escapeHtml(source)}; confidence: ${escapeHtml(confidence)}.</span>
+                    <span>${escapeHtml(event.description || event.event_type || 'Roster event')} Source: ${escapeHtml(source)}; confidence: ${escapeHtml(confidence)}.${escapeHtml(observedAt)}</span>
                 </li>
             `;
         }).join('');
@@ -402,6 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
             : '';
         rosterContext.innerHTML = `
             <span>Roster context</span>
+            <small class="roster-context-freshness">Roster scan ${escapeHtml(cacheAge)}; generated ${escapeHtml(generatedAt)}; ${escapeHtml(ttl)}.</small>
             <ul>${eventRows || '<li><span>No high-impact roster alerts for this matchup.</span></li>'}</ul>
             ${errorNote}
         `;

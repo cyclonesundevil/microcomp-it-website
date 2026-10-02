@@ -425,6 +425,11 @@
     text-transform: uppercase;
 }
 
+.roster-context-freshness {
+    display: block;
+    margin-bottom: 0.85rem;
+}
+
 .roster-context ul {
     display: grid;
     gap: 0.65rem;
