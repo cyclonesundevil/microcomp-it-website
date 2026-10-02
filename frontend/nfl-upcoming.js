@@ -337,10 +337,65 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('<br>');
     }
 
+    function rosterFreshnessText(context) {
+        if (!context) return 'roster intelligence unavailable';
+        const age = context.cache_age_seconds === null || context.cache_age_seconds === undefined
+            ? 'unknown cache age'
+            : formatCacheAge(context.cache_age_seconds);
+        const generatedAt = context.generated_at ? formatDateTime(context.generated_at) : 'unknown scan time';
+        return `Roster scan ${age || 'just refreshed'}; generated ${generatedAt}.`;
+    }
+
+    function rosterEventsForTeams(context, teams) {
+        const selected = new Set((teams || []).filter(Boolean));
+        return (Array.isArray(context?.events) ? context.events : [])
+            .filter((event) => selected.has(event.team))
+            .slice(0, 4);
+    }
+
+    function gameHasAppliedAvailabilityAdjustment(game) {
+        return Object.values(game.models || {}).some((prediction) => prediction?.availability_adjusted);
+    }
+
+    function upcomingRosterEventText(context, schedule) {
+        const events = rosterEventsForTeams(context, [schedule.away_team, schedule.home_team]);
+        if (!events.length) return '';
+        return events.map((event) => {
+            const source = event.source_type ? event.source_type.replaceAll('_', ' ') : 'source';
+            const observedAt = event.observed_at ? `, observed ${formatDateTime(event.observed_at)}` : '';
+            return `${escapeHtml(event.team || '')} ${escapeHtml(event.position || '')} ${escapeHtml(event.player || '')}: ${escapeHtml(event.event_type || 'ROSTER_EVENT')} (${escapeHtml(source)}, ${escapeHtml(event.confidence || 'medium')}${escapeHtml(observedAt)})`;
+        }).join('<br>');
+    }
+
+    function upcomingRosterHover(context, game) {
+        const schedule = game.schedule || {};
+        const events = rosterEventsForTeams(context, [schedule.away_team, schedule.home_team]);
+        const applied = gameHasAppliedAvailabilityAdjustment(game);
+        const status = applied
+            ? 'These cells include approved availability adjustments.'
+            : events.length
+                ? 'Detected roster alerts are shown here but are not applied to these algorithm cells.'
+                : 'No high-impact roster alerts detected for this matchup.';
+        const eventText = upcomingRosterEventText(context, schedule);
+        return `
+            <span class="upcoming-roster-hover" tabindex="0" aria-label="Roster changes for ${escapeHtml(schedule.away_team || '')} at ${escapeHtml(schedule.home_team || '')}">
+                roster
+                <span class="upcoming-roster-tooltip" role="tooltip">
+                    <b>${escapeHtml(status)}</b>
+                    <span>${eventText || 'No roster changes to show.'}</span>
+                </span>
+            </span>
+        `;
+    }
+
     function renderGames(data) {
         if (upcomingBoardWrap) upcomingBoardWrap.hidden = data.roster_basis === 'comparison';
         if (rosterComparisonPanel) rosterComparisonPanel.hidden = data.roster_basis !== 'comparison';
-        if (rosterBasisMessage) rosterBasisMessage.textContent = rosterBasisNote(data);
+        const rosterContext = data.roster_context;
+        const rosterEventCount = Array.isArray(rosterContext?.events) ? rosterContext.events.length : 0;
+        if (rosterBasisMessage) {
+            rosterBasisMessage.textContent = `${rosterBasisNote(data)} ${rosterFreshnessText(rosterContext)} ${rosterEventCount} high-impact roster alert${rosterEventCount === 1 ? '' : 's'} detected. Use each game's roster hover for details.`;
+        }
         if (!data.games.length) {
             progressPanel.hidden = true;
             message.textContent = data.message || 'No upcoming games were found in the schedule feed.';
@@ -364,12 +419,12 @@ document.addEventListener('DOMContentLoaded', () => {
             : 'Forecast board rebuild timestamp unavailable.';
         message.textContent = data.cache_target_mismatch
             ? `${data.message} Each cell shows the market favorite's spread / total.`
-            : `Season ${data.season}, week ${data.week}. Each cell shows the market favorite's spread / total. Rothstein values may be stabilized early in the season and Rothstein+ is hidden when ineligible.`;
+            : `Season ${data.season}, week ${data.week}. Known Active includes approved availability adjustments when present; detected roster alerts are in each game's roster hover.`;
         tableBody.innerHTML = data.games.map((game) => {
             const schedule = game.schedule;
             const market = marketCell(schedule);
             const status = schedule.is_completed ? `<br><small>Final: ${schedule.away_team} ${schedule.away_score}, ${schedule.home_team} ${schedule.home_score}</small>` : '';
-            return `<tr><td>${schedule.away_team} at ${schedule.home_team}<br><small>${schedule.gameday || '--'} ${schedule.gametime || ''}</small>${status}</td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'mean_reversion', 'current_season_matrix', 'rothstein', 'rothstein_plus', 'rsm_stage7c', 'rsm_plus'].map((model) => `<td>${modelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
+            return `<tr><td>${escapeHtml(schedule.away_team)} at ${escapeHtml(schedule.home_team)}<br><small>${escapeHtml(schedule.gameday || '--')} ${escapeHtml(schedule.gametime || '')}</small>${status}${upcomingRosterHover(rosterContext, game)}</td><td>${market}</td>${['baseline', 'enhanced', 'market_blend', 'mean_reversion', 'current_season_matrix', 'rothstein', 'rothstein_plus', 'rsm_stage7c', 'rsm_plus'].map((model) => `<td>${modelCell(game.models[model], schedule)}</td>`).join('')}</tr>`;
         }).join('');
         renderModelSignals(data.games);
     }
