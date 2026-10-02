@@ -311,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
             prediction.away_team,
             prediction.pred_total,
         );
-        return prediction.availability_adjusted ? `${cell} *` : cell;
+        return `${cell}${prediction.availability_adjusted ? ' *' : ''}${prediction.rsm_roster_overlay_applied ? ' [R]' : ''}`;
     }
 
     function marketCell(schedule) {
@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function gameHasAppliedAvailabilityAdjustment(game) {
-        return Object.values(game.models || {}).some((prediction) => prediction?.availability_adjusted);
+        return Object.values(game.models || {}).some((prediction) => prediction?.availability_adjusted || prediction?.rsm_roster_overlay_applied);
     }
 
     function upcomingRosterEventText(context, schedule) {
@@ -371,8 +371,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const schedule = game.schedule || {};
         const events = rosterEventsForTeams(context, [schedule.away_team, schedule.home_team]);
         const applied = gameHasAppliedAvailabilityAdjustment(game);
-        const status = applied
-            ? 'These cells include approved availability adjustments.'
+        const hasRsmOverlay = Object.values(game.models || {}).some((prediction) => prediction?.rsm_roster_overlay_applied);
+        const status = hasRsmOverlay
+            ? 'RSM/RSM+ cells include a roster-strength overlay from these alerts; non-RSM cells are unchanged.'
+            : applied
+                ? 'These cells include approved availability adjustments.'
             : events.length
                 ? 'Detected roster alerts are shown here but are not applied to these algorithm cells.'
                 : 'No high-impact roster alerts detected for this matchup.';

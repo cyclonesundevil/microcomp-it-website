@@ -310,6 +310,100 @@ def apply_upcoming_availability_adjustments(prediction: dict, scheduled: dict, a
     return adjusted
 
 
+def _rsm_roster_event_adjustment(event: dict) -> Optional[dict]:
+    event_type = event.get("event_type")
+    position = str(event.get("position") or "").upper()
+    source_type = str(event.get("source_type") or "")
+    if source_type not in {"official_injury_report", "official_transaction"}:
+        return None
+    if event_type == "QB1_OUT":
+        return {"margin_delta": -4.0, "total_delta": -1.5, "reason": "QB unavailable"}
+    if event_type == "LIMITED_TO_DNP" and position == "QB":
+        return {"margin_delta": -2.0, "total_delta": -0.75, "reason": "QB downgraded to DNP"}
+    if event_type == "UNIT_CLUSTER_INJURY":
+        unit = position.lower()
+        if unit == "ol":
+            return {"margin_delta": -1.0, "total_delta": -0.5, "reason": "offensive line cluster injury"}
+        if unit in {"front", "secondary"}:
+            return {"margin_delta": -0.75, "total_delta": 0.0, "reason": f"{unit} cluster injury"}
+        return {"margin_delta": -0.5, "total_delta": -0.25, "reason": "unit cluster injury"}
+    if event_type == "PLAYER_TO_IR" and source_type == "official_transaction":
+        if position == "QB":
+            return {"margin_delta": -4.0, "total_delta": -1.5, "reason": "QB moved to IR"}
+        if position in {"WR", "RB", "TE", "OT", "OL", "C", "G"}:
+            return {"margin_delta": -0.75, "total_delta": -0.35, "reason": "offensive contributor moved to IR"}
+        if position in {"CB", "S", "SAF", "DB", "EDGE", "DE", "DT", "DL", "LB", "OLB"}:
+            return {"margin_delta": -0.5, "total_delta": 0.0, "reason": "defensive contributor moved to IR"}
+    return None
+
+
+def apply_rsm_roster_context_overlay(prediction: dict, scheduled: dict, roster_context: Optional[dict]) -> dict:
+    """Apply prospective roster-intelligence events to RSM-family display projections only."""
+    if not prediction or not _is_rsm_family(prediction.get("model")):
+        return prediction
+    if prediction.get("pred_margin") is None and prediction.get("pred_total") is None:
+        return prediction
+    events = roster_context.get("events", []) if isinstance(roster_context, dict) else []
+    if not events:
+        return prediction
+
+    teams = {scheduled.get("away_team"), scheduled.get("home_team")}
+    margin_delta = 0.0
+    total_delta = 0.0
+    applied_events = []
+    for event in events:
+        team = event.get("team")
+        if team not in teams:
+            continue
+        adjustment = _rsm_roster_event_adjustment(event)
+        if not adjustment:
+            continue
+        team_delta = adjustment["margin_delta"]
+        if team == scheduled.get("home_team"):
+            margin_delta += team_delta
+        elif team == scheduled.get("away_team"):
+            margin_delta -= team_delta
+        total_delta += adjustment["total_delta"]
+        applied_events.append({
+            "event_type": event.get("event_type"),
+            "team": team,
+            "player": event.get("player"),
+            "position": event.get("position"),
+            "source_type": event.get("source_type"),
+            "confidence": event.get("confidence"),
+            "reason": adjustment["reason"],
+            "team_margin_delta": team_delta,
+            "total_delta": adjustment["total_delta"],
+        })
+
+    if not applied_events:
+        return prediction
+
+    adjusted = dict(prediction)
+    adjusted["raw_pred_margin_before_rsm_roster_overlay"] = prediction.get("pred_margin")
+    adjusted["raw_pred_total_before_rsm_roster_overlay"] = prediction.get("pred_total")
+    adjusted["pred_margin"] = prediction["pred_margin"] + margin_delta if prediction.get("pred_margin") is not None else None
+    adjusted["pred_total"] = prediction["pred_total"] + total_delta if prediction.get("pred_total") is not None else None
+    adjusted["rsm_roster_overlay_applied"] = True
+    adjusted["rsm_roster_margin_delta"] = margin_delta
+    adjusted["rsm_roster_total_delta"] = total_delta
+    adjusted["rsm_roster_events"] = applied_events
+
+    market_margin = adjusted.get("market_margin")
+    total_line = adjusted.get("total_line")
+    adjusted["spread_edge"] = adjusted["pred_margin"] - market_margin if adjusted.get("pred_margin") is not None and market_margin is not None else None
+    adjusted["total_edge"] = adjusted["pred_total"] - total_line if adjusted.get("pred_total") is not None and total_line is not None else None
+    pred_margin = adjusted.get("pred_margin")
+    adjusted["winner_pick"] = "home" if pred_margin is not None and pred_margin > 0 else "away" if pred_margin is not None and pred_margin < 0 else None
+    adjusted["spread_pick"] = side_from_edge(adjusted["spread_edge"], threshold=adjusted["spread_threshold"]) if adjusted.get("spread_edge") is not None else None
+    adjusted["total_pick"] = total_from_edge(adjusted["total_edge"], threshold=0.0) if adjusted.get("total_edge") is not None else None
+    notes = list(adjusted.get("model_notes") or [])
+    notes.append("RSM roster overlay applied from official roster intelligence events; market-aware non-RSM models are unchanged.")
+    adjusted["model_notes"] = notes
+    adjusted["lineup_confidence"] = "MEDIUM" if any(event.get("confidence") == "high" for event in applied_events) else adjusted.get("lineup_confidence", "LOW")
+    return adjusted
+
+
 def upcoming_availability_adjustment_count(season: Optional[int] = None, week: Optional[int] = None) -> int:
     count = 0
     for adjustment in load_upcoming_availability_adjustments():

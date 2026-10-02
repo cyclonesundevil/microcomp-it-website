@@ -77,7 +77,23 @@ class NflRosterRouteTests(unittest.IsolatedAsyncioTestCase):
                     "spread_line": 2.5,
                     "total_line": 43.5,
                 },
-                "models": {},
+                "models": {
+                    "market_blend": {
+                        "model": "market_blend",
+                        "pred_margin": 2.0,
+                        "pred_total": 43.0,
+                    },
+                    "rsm_stage7c": {
+                        "model": "rsm_stage7c",
+                        "pred_margin": 2.0,
+                        "pred_total": 43.0,
+                        "market_margin": 2.5,
+                        "total_line": 43.5,
+                        "spread_threshold": 0.0,
+                        "total_threshold": 999.0,
+                        "model_notes": [],
+                    },
+                },
             }],
         }
         roster_context = {
@@ -109,3 +125,6 @@ class NflRosterRouteTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(payload["success"])
         self.assertEqual(payload["roster_context"]["teams"], ["GB", "TB"])
         self.assertEqual(payload["roster_context"]["events"][0]["event_type"], "QB1_OUT")
+        self.assertFalse(payload["games"][0]["models"]["market_blend"].get("rsm_roster_overlay_applied", False))
+        self.assertTrue(payload["games"][0]["models"]["rsm_stage7c"]["rsm_roster_overlay_applied"])
+        self.assertEqual(payload["games"][0]["models"]["rsm_stage7c"]["rsm_roster_margin_delta"], -4.0)

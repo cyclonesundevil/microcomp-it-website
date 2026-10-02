@@ -12,6 +12,7 @@ from nfl_predictor import (
     MODEL_PROFILES,
     MarketBlendNFLModel,
     RsmStage7CComparisonModel,
+    apply_rsm_roster_context_overlay,
     apply_upcoming_availability_adjustments,
     build_model_signals,
     current_season_matrix_operator_audit,
@@ -1226,6 +1227,45 @@ def test_upcoming_availability_adjustment_applies_team_downgrade_after_predictio
     assert adjusted["raw_pred_margin_before_availability"] == 5.0
     assert adjusted["availability_adjusted"] is True
     assert adjusted["availability_adjustments"][0]["team"] == "ATL"
+
+
+def test_rsm_roster_context_overlay_applies_only_to_rsm_family():
+    scheduled = {"away_team": "GB", "home_team": "TB", "spread_line": 2.5, "total_line": 43.5}
+    roster_context = {
+        "events": [{
+            "event_type": "QB1_OUT",
+            "team": "TB",
+            "player": "Baker Mayfield",
+            "position": "QB",
+            "source_type": "official_injury_report",
+            "confidence": "high",
+        }]
+    }
+    rsm_prediction = {
+        "model": "rsm_stage7c",
+        "pred_margin": 2.0,
+        "pred_total": 43.0,
+        "market_margin": 2.5,
+        "total_line": 43.5,
+        "spread_threshold": 0.0,
+        "total_threshold": 999.0,
+        "model_notes": [],
+    }
+    market_prediction = dict(rsm_prediction, model="market_blend")
+
+    adjusted = apply_rsm_roster_context_overlay(rsm_prediction, scheduled, roster_context)
+    unchanged = apply_rsm_roster_context_overlay(market_prediction, scheduled, roster_context)
+
+    assert adjusted["rsm_roster_overlay_applied"] is True
+    assert adjusted["rsm_roster_margin_delta"] == pytest.approx(-4.0)
+    assert adjusted["rsm_roster_total_delta"] == pytest.approx(-1.5)
+    assert adjusted["pred_margin"] == pytest.approx(-2.0)
+    assert adjusted["pred_total"] == pytest.approx(41.5)
+    assert adjusted["spread_edge"] == pytest.approx(-4.5)
+    assert adjusted["spread_pick"] == "away"
+    assert adjusted["total_pick"] == "under"
+    assert adjusted["lineup_confidence"] == "MEDIUM"
+    assert unchanged == market_prediction
 
 
 def test_upcoming_availability_adjustment_preserves_market_favorite_sign_convention():

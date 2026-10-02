@@ -23,6 +23,7 @@ from nfl_predictor import (
     GamesRefreshAlreadyRunning,
     RsmStage7CComparisonModel,
     _rsm_artifact,
+    apply_rsm_roster_context_overlay,
     apply_upcoming_availability_adjustments,
     cached_backtest,
     cached_matchup_history,
@@ -507,6 +508,10 @@ def register_nfl_routes(app, context):
                     "week": scheduled_upcoming.get("week"),
                 }
             roster_context = await asyncio.to_thread(roster_context_for_teams, [away_team, home_team])
+            prediction = await asyncio.to_thread(apply_rsm_roster_context_overlay, prediction, {
+                "away_team": away_team,
+                "home_team": home_team,
+            }, roster_context)
             prediction["roster_context"] = roster_context
             return jsonify({"success": True, "source": GAMES_URL, "cache": cache, "prediction": prediction})
         except ValueError as e:
@@ -543,7 +548,14 @@ def register_nfl_routes(app, context):
                 )
                 if team
             })
-            snapshot["roster_context"] = await asyncio.to_thread(roster_context_for_teams, upcoming_teams, force_refresh)
+            roster_context = await asyncio.to_thread(roster_context_for_teams, upcoming_teams, force_refresh)
+            for game in snapshot.get("games", []):
+                schedule = game.get("schedule") or {}
+                models = game.get("models") or {}
+                for profile in ("rsm_stage7c", "rsm_plus"):
+                    if isinstance(models.get(profile), dict):
+                        models[profile] = apply_rsm_roster_context_overlay(models[profile], schedule, roster_context)
+            snapshot["roster_context"] = roster_context
             return jsonify({"success": True, "source": GAMES_URL, "cache": cache, **snapshot})
         except ValueError as error:
             return api_error(str(error), 400)
