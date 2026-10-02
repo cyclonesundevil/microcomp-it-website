@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const matchupTotal = document.getElementById('matchup-total');
     const spreadPick = document.getElementById('spread-pick');
     const totalPick = document.getElementById('total-pick');
+    const rosterContext = document.getElementById('roster-context');
     const matchupNote = document.getElementById('matchup-note');
     const rsmRecordForm = document.getElementById('rsm-record-form');
     const rsmKickoff = document.getElementById('rsm-kickoff');
@@ -103,6 +104,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function modelLabel(model) {
         return modelLabels[model] || model || 'Unknown';
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[character]));
     }
 
     function updateMatchupModelLabel(model = state.model) {
@@ -366,6 +377,36 @@ document.addEventListener('DOMContentLoaded', () => {
         return prediction.model === 'rsm_stage7c' ? 'No directional projection' : 'No edge';
     }
 
+    function renderRosterContext(context) {
+        if (!rosterContext) return;
+        const events = Array.isArray(context?.events) ? context.events : [];
+        const errors = Array.isArray(context?.provider_errors) ? context.provider_errors : [];
+        if (!events.length && !errors.length) {
+            rosterContext.hidden = true;
+            rosterContext.innerHTML = '';
+            return;
+        }
+        rosterContext.hidden = false;
+        const eventRows = events.slice(0, 5).map((event) => {
+            const source = event.source_type ? event.source_type.replaceAll('_', ' ') : 'source';
+            const confidence = event.confidence || 'medium';
+            return `
+                <li>
+                    <b>${escapeHtml(event.team || '')} ${escapeHtml(event.position || '')} ${escapeHtml(event.player || '')}</b>
+                    <span>${escapeHtml(event.description || event.event_type || 'Roster event')} Source: ${escapeHtml(source)}; confidence: ${escapeHtml(confidence)}.</span>
+                </li>
+            `;
+        }).join('');
+        const errorNote = errors.length
+            ? `<small>${errors.length} roster provider${errors.length === 1 ? '' : 's'} unavailable; showing cached/available context.</small>`
+            : '';
+        rosterContext.innerHTML = `
+            <span>Roster context</span>
+            <ul>${eventRows || '<li><span>No high-impact roster alerts for this matchup.</span></li>'}</ul>
+            ${errorNote}
+        `;
+    }
+
     function renderPrediction(prediction) {
         const homeBy = prediction.pred_margin;
         const total = prediction.pred_total;
@@ -383,6 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
             : `Projected total: ${total.toFixed(1)} points`;
         spreadPick.textContent = pickText('spread', prediction.spread_pick, prediction);
         totalPick.textContent = pickText('total', prediction.total_pick, prediction);
+        renderRosterContext(prediction.roster_context);
         const totalEdge = prediction.total_edge === null || prediction.total_edge === undefined
             ? 'n/a'
             : prediction.total_edge.toFixed(1);
@@ -649,6 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 matchupTotal.textContent = 'Projected total: --';
                 spreadPick.textContent = '--';
                 totalPick.textContent = '--';
+                renderRosterContext(null);
                 historyNote.textContent = `Unable to load historical lines: ${error.message}`;
                 historyTableBody.innerHTML = '<tr><td colspan="11">No history available.</td></tr>';
             }
@@ -675,6 +718,7 @@ document.addEventListener('DOMContentLoaded', () => {
             matchupTotal.textContent = 'Projected total: --';
             spreadPick.textContent = '--';
             totalPick.textContent = '--';
+            renderRosterContext(null);
             refreshAll();
         });
     });
@@ -721,6 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             matchupLabel.textContent = `Unable to predict matchup: ${error.message}`;
             historyNote.textContent = `Unable to load historical lines: ${error.message}`;
+            renderRosterContext(null);
         }
     });
 
