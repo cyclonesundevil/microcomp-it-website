@@ -28,6 +28,7 @@ from nfl_week import (
     parse_gameday as _parse_gameday,
     tuesday_rollover_before as _tuesday_rollover_before,
 )
+from nfl_roster_monitor import canonical_team_code
 
 
 GAMES_URL = "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv"
@@ -347,21 +348,23 @@ def apply_rsm_roster_context_overlay(prediction: dict, scheduled: dict, roster_c
     if not events:
         return prediction
 
-    teams = {scheduled.get("away_team"), scheduled.get("home_team")}
+    away_team = scheduled.get("away_team")
+    home_team = scheduled.get("home_team")
+    teams = {canonical_team_code(away_team), canonical_team_code(home_team)}
     margin_delta = 0.0
     total_delta = 0.0
     applied_events = []
     for event in events:
-        team = event.get("team")
+        team = canonical_team_code(event.get("team"))
         if team not in teams:
             continue
         adjustment = _rsm_roster_event_adjustment(event)
         if not adjustment:
             continue
         team_delta = adjustment["margin_delta"]
-        if team == scheduled.get("home_team"):
+        if team == canonical_team_code(home_team):
             margin_delta += team_delta
-        elif team == scheduled.get("away_team"):
+        elif team == canonical_team_code(away_team):
             margin_delta -= team_delta
         total_delta += adjustment["total_delta"]
         applied_events.append({

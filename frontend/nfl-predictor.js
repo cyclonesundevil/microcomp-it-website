@@ -5,6 +5,13 @@ document.addEventListener('DOMContentLoaded', () => {
         model: 'market_blend',
         playoffMode: false
     };
+    const teamCodeAliases = {
+        ARZ: 'ARI',
+        JAC: 'JAX',
+        LAR: 'LA',
+        STL: 'LA',
+        WSH: 'WAS',
+    };
     const modelLabels = {
         baseline: 'Baseline',
         enhanced: 'Enhanced',
@@ -15,6 +22,11 @@ document.addEventListener('DOMContentLoaded', () => {
         rothstein_plus: 'Rothstein+',
         rsm_stage7c: 'RSM - Experimental'
     };
+
+    function canonicalTeamCode(team) {
+        const code = String(team || '').trim().toUpperCase();
+        return teamCodeAliases[code] || code;
+    }
 
     const message = document.getElementById('nfl-message');
     const spreadRate = document.getElementById('spread-rate');
@@ -180,10 +192,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function rosterEventsForTeams(context, teams) {
-        const selected = new Set(teams.filter(Boolean));
-        return (Array.isArray(context?.events) ? context.events : [])
-            .filter((event) => selected.has(event.team))
-            .slice(0, 3);
+        const allEvents = Array.isArray(context?.events) ? context.events : [];
+        const selected = (teams || []).filter(Boolean);
+        const selectedCanonical = new Set(selected.map(canonicalTeamCode));
+        const eventsByTeam = new Map(selected.map((team) => [canonicalTeamCode(team), []]));
+        allEvents.forEach((event) => {
+            const code = canonicalTeamCode(event.team);
+            if (!selectedCanonical.has(code)) return;
+            if (!eventsByTeam.has(code)) eventsByTeam.set(code, []);
+            eventsByTeam.get(code).push(event);
+        });
+        const balanced = [];
+        selected.forEach((team) => {
+            balanced.push(...(eventsByTeam.get(canonicalTeamCode(team)) || []).slice(0, 3));
+        });
+        return balanced.slice(0, 6);
     }
 
     function gameHasAppliedAvailabilityAdjustment(game) {

@@ -1268,6 +1268,35 @@ def test_rsm_roster_context_overlay_applies_only_to_rsm_family():
     assert unchanged == market_prediction
 
 
+def test_rsm_roster_context_overlay_matches_alias_team_codes():
+    scheduled = {"away_team": "SEA", "home_team": "LAR"}
+    roster_context = {
+        "events": [{
+            "event_type": "QB1_OUT",
+            "team": "LA",
+            "player": "Starter",
+            "position": "QB",
+            "source_type": "official_injury_report",
+            "confidence": "high",
+        }],
+    }
+    prediction = {
+        "model": "rsm_stage7c",
+        "pred_margin": 3.0,
+        "pred_total": 44.0,
+        "market_margin": 2.5,
+        "total_line": 43.5,
+        "spread_threshold": 0.0,
+        "total_threshold": 999.0,
+        "model_notes": [],
+    }
+
+    adjusted = apply_rsm_roster_context_overlay(prediction, scheduled, roster_context)
+
+    assert adjusted["rsm_roster_overlay_applied"] is True
+    assert adjusted["pred_margin"] == pytest.approx(-1.0)
+
+
 def test_upcoming_availability_adjustment_preserves_market_favorite_sign_convention():
     prediction = {
         "model": "mean_reversion",

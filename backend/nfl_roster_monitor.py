@@ -16,6 +16,14 @@ from cache_io import atomic_write_json, read_json_or_none
 
 
 ROSTER_CONTEXT_SCHEMA_VERSION = 1
+TEAM_CODE_ALIASES = {
+    "ARZ": "ARI",
+    "JAC": "JAX",
+    "LA": "LA",
+    "LAR": "LA",
+    "STL": "LA",
+    "WSH": "WAS",
+}
 HIGH_IMPACT_EVENTS = {
     "QB1_OUT",
     "STARTER_CHANGED",
@@ -102,6 +110,11 @@ def utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def canonical_team_code(team: Optional[str]) -> str:
+    code = (team or "").strip().upper()
+    return TEAM_CODE_ALIASES.get(code, code)
+
+
 def roster_cache_root() -> Path:
     configured = os.getenv("NFL_ROSTER_CACHE_DIR", "").strip()
     if configured:
@@ -111,7 +124,7 @@ def roster_cache_root() -> Path:
 
 
 def _team_cache_key(teams: Optional[Iterable[str]] = None) -> str:
-    selected = sorted({team.upper() for team in teams or [] if team})
+    selected = sorted({canonical_team_code(team) for team in teams or [] if team})
     if not selected:
         return "all"
     digest = hashlib.sha1(",".join(selected).encode("utf-8")).hexdigest()[:12]
@@ -416,7 +429,7 @@ class NFLVerseRosterProvider(RosterProvider):
 
 def configured_roster_providers(teams: Optional[Iterable[str]] = None) -> list[RosterProvider]:
     providers: list[RosterProvider] = []
-    selected = {team.upper() for team in teams or [] if team}
+    selected = {canonical_team_code(team) for team in teams or [] if team}
     injury_urls = _json_env_mapping("NFL_OFFICIAL_INJURY_REPORT_URLS")
     transaction_urls = _json_env_mapping("NFL_OFFICIAL_TRANSACTION_URLS")
     nflverse_urls = [url.strip() for url in os.getenv("NFLVERSE_ROSTER_URLS", "").split(",") if url.strip()]
@@ -643,13 +656,15 @@ def roster_context_for_teams(
     force: bool = False,
     providers: Optional[list[RosterProvider]] = None,
 ) -> dict:
-    selected = {team.upper() for team in teams if team}
+    requested = {team.upper() for team in teams if team}
+    selected = {canonical_team_code(team) for team in requested}
     snapshot = refresh_roster_snapshot(providers=providers, force=force, teams=selected)
     events = [event for event in snapshot.get("events", []) if event.get("team") in selected and event.get("event_type") in HIGH_IMPACT_EVENTS]
     observations = [row for row in snapshot.get("observations", []) if row.get("team") in selected]
     events.sort(key=lambda row: (row.get("confidence") != "high", row.get("team", ""), row.get("event_type", ""), row.get("player", "")))
     return {
-        "teams": sorted(selected),
+        "teams": sorted(requested or selected),
+        "canonical_teams": sorted(selected),
         "generated_at": snapshot.get("generated_at"),
         "observation_hash": snapshot.get("observation_hash"),
         "cache_hit": snapshot.get("cache_hit", False),

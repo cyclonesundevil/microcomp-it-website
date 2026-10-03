@@ -28,6 +28,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedRosterBasis = ['static', 'active', 'comparison'].includes(initialRosterBasis) ? initialRosterBasis : 'active';
     let rosterBasisExplicit = ['static', 'active', 'comparison'].includes(initialRosterBasis);
 
+    const teamCodeAliases = {
+        ARZ: 'ARI',
+        JAC: 'JAX',
+        LAR: 'LA',
+        STL: 'LA',
+        WSH: 'WAS',
+    };
+
+    function canonicalTeamCode(team) {
+        const code = String(team || '').trim().toUpperCase();
+        return teamCodeAliases[code] || code;
+    }
+
     function updateElapsed() {
         if (!startedAt || !progressElapsed) return;
         progressElapsed.textContent = `Elapsed ${Math.floor((Date.now() - startedAt) / 1000)}s`;
@@ -347,10 +360,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function rosterEventsForTeams(context, teams) {
-        const selected = new Set((teams || []).filter(Boolean));
-        return (Array.isArray(context?.events) ? context.events : [])
-            .filter((event) => selected.has(event.team))
-            .slice(0, 4);
+        const allEvents = Array.isArray(context?.events) ? context.events : [];
+        const selected = (teams || []).filter(Boolean);
+        const selectedCanonical = new Set(selected.map(canonicalTeamCode));
+        const eventsByTeam = new Map(selected.map((team) => [canonicalTeamCode(team), []]));
+        allEvents.forEach((event) => {
+            const code = canonicalTeamCode(event.team);
+            if (!selectedCanonical.has(code)) return;
+            if (!eventsByTeam.has(code)) eventsByTeam.set(code, []);
+            eventsByTeam.get(code).push(event);
+        });
+        const balanced = [];
+        selected.forEach((team) => {
+            balanced.push(...(eventsByTeam.get(canonicalTeamCode(team)) || []).slice(0, 3));
+        });
+        return balanced.slice(0, 6);
     }
 
     function gameHasAppliedAvailabilityAdjustment(game) {

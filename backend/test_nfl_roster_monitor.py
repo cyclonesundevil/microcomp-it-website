@@ -141,6 +141,17 @@ def test_default_official_injury_provider_is_configured(monkeypatch):
     assert injury_provider.team_urls == {"TB": "https://www.buccaneers.com/team/injury-report/"}
 
 
+def test_roster_context_accepts_alias_team_codes(tmp_path, monkeypatch):
+    monkeypatch.delenv("NFL_OFFICIAL_INJURY_REPORT_URLS", raising=False)
+    monkeypatch.setenv("NFL_ROSTER_DISABLE_DEFAULT_NFLVERSE", "1")
+    monkeypatch.setattr(roster, "roster_cache_root", lambda: tmp_path)
+
+    providers = roster.configured_roster_providers(["LAR", "WSH"])
+    injury_provider = next(provider for provider in providers if provider.source_type == "official_injury_report")
+
+    assert set(injury_provider.team_urls) == {"LA", "WAS"}
+
+
 def test_roster_context_cache_is_keyed_by_requested_teams(tmp_path, monkeypatch):
     monkeypatch.setattr(roster, "roster_cache_root", lambda: tmp_path)
 
