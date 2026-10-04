@@ -15,7 +15,7 @@ from typing import Callable, Iterable, Optional
 from cache_io import atomic_write_json, read_json_or_none
 
 
-ROSTER_CONTEXT_SCHEMA_VERSION = 1
+ROSTER_CONTEXT_SCHEMA_VERSION = 2
 TEAM_CODE_ALIASES = {
     "ARZ": "ARI",
     "JAC": "JAX",
@@ -23,6 +23,40 @@ TEAM_CODE_ALIASES = {
     "LAR": "LA",
     "STL": "LA",
     "WSH": "WAS",
+}
+TEAM_NAME_TO_CODE = {
+    "arizona cardinals": "ARI",
+    "atlanta falcons": "ATL",
+    "baltimore ravens": "BAL",
+    "buffalo bills": "BUF",
+    "carolina panthers": "CAR",
+    "chicago bears": "CHI",
+    "cincinnati bengals": "CIN",
+    "cleveland browns": "CLE",
+    "dallas cowboys": "DAL",
+    "denver broncos": "DEN",
+    "detroit lions": "DET",
+    "green bay packers": "GB",
+    "houston texans": "HOU",
+    "indianapolis colts": "IND",
+    "jacksonville jaguars": "JAX",
+    "kansas city chiefs": "KC",
+    "las vegas raiders": "LV",
+    "los angeles chargers": "LAC",
+    "los angeles rams": "LA",
+    "miami dolphins": "MIA",
+    "minnesota vikings": "MIN",
+    "new england patriots": "NE",
+    "new orleans saints": "NO",
+    "new york giants": "NYG",
+    "new york jets": "NYJ",
+    "philadelphia eagles": "PHI",
+    "pittsburgh steelers": "PIT",
+    "san francisco 49ers": "SF",
+    "seattle seahawks": "SEA",
+    "tampa bay buccaneers": "TB",
+    "tennessee titans": "TEN",
+    "washington commanders": "WAS",
 }
 HIGH_IMPACT_EVENTS = {
     "QB1_OUT",
@@ -85,6 +119,8 @@ class RosterObservation:
     confidence: str = "medium"
 
     def normalized_key(self) -> str:
+        if self.source_type == "official_injury_report":
+            return f"{self.team}|{_norm_name(self.player)}|{self.source_type}"
         return f"{self.team}|{_norm_name(self.player)}|{self.position}|{self.source_type}"
 
 
@@ -190,6 +226,39 @@ def _split_table_row(line: str) -> list[str]:
     return [_norm(cell) for cell in line.strip().strip("|").split("|")]
 
 
+def _strip_tags(value: str) -> str:
+    return _norm(re.sub(r"<[^>]+>", " ", html.unescape(value)))
+
+
+def _team_code_from_club_name(value: str) -> str:
+    return TEAM_NAME_TO_CODE.get(_norm(value).lower(), "")
+
+
+def _injury_report_html_sections(content: str) -> list[tuple[str, list[list[str]]]]:
+    marker = "nfl-o-injury-report__container"
+    if marker not in content or "nfl-o-injury-report__club-name" not in content:
+        return []
+    sections: list[tuple[str, list[list[str]]]] = []
+    chunks = re.split(r'(?=<[^>]+class="[^"]*nfl-o-injury-report__container[^"]*")', content)
+    for chunk in chunks:
+        if marker not in chunk:
+            continue
+        club_match = re.search(
+            r'class="[^"]*nfl-o-injury-report__club-name[^"]*"[^>]*>(.*?)</span>',
+            chunk,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if not club_match:
+            continue
+        section_team = _team_code_from_club_name(_strip_tags(club_match.group(1)))
+        if not section_team:
+            continue
+        rows = [row for row in html_table_rows(chunk) if len(row) >= 6]
+        if rows:
+            sections.append((section_team, rows))
+    return sections
+
+
 class _TableParser(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -231,42 +300,46 @@ def parse_official_injury_report(
     observed_at: Optional[str] = None,
 ) -> list[RosterObservation]:
     observed_at = observed_at or utc_now_iso()
-    rows: list[list[str]] = []
-    lines = [html.unescape(line) for line in content.splitlines()]
-    for line in lines:
-        if "|" not in line:
-            continue
-        cells = _split_table_row(line)
-        if len(cells) >= 6 and not set(cells) <= {"---", ""}:
-            rows.append(cells)
-    rows.extend(row for row in html_table_rows(content) if len(row) >= 6)
+    parsed_sections = _injury_report_html_sections(content)
+    if not parsed_sections:
+        rows: list[list[str]] = []
+        lines = [html.unescape(line) for line in content.splitlines()]
+        for line in lines:
+            if "|" not in line:
+                continue
+            cells = _split_table_row(line)
+            if len(cells) >= 6 and not set(cells) <= {"---", ""}:
+                rows.append(cells)
+        rows.extend(row for row in html_table_rows(content) if len(row) >= 6)
+        parsed_sections = [(canonical_team_code(team), rows)]
 
     observations: list[RosterObservation] = []
-    for cells in rows:
-        headerish = " ".join(cells).lower()
-        if "player" in headerish and "injury" in headerish:
-            continue
-        if cells[0].startswith("---"):
-            continue
-        player, position, injury = cells[0], cells[1], cells[2]
-        practice_cells = cells[3:-1] if len(cells) > 6 else cells[3:]
-        game_status = cells[-1] if len(cells) >= 7 else ""
-        practice_status = next((_norm(cell).upper() for cell in reversed(practice_cells) if _norm(cell) and _norm(cell) != "(-)"), "")
-        if not player or not position or not injury:
-            continue
-        observations.append(RosterObservation(
-            team=team.upper(),
-            player=player,
-            position=position.upper(),
-            roster_status="active",
-            injury_status=_norm(game_status if game_status and game_status not in {"(-)", "UNSPECIFIED"} else injury),
-            practice_status=practice_status,
-            expected_role=_infer_expected_role(position, player, practice_status, game_status),
-            source_url=source_url,
-            source_type="official_injury_report",
-            observed_at=observed_at,
-            confidence="high",
-        ))
+    for section_team, rows in parsed_sections:
+        for cells in rows:
+            headerish = " ".join(cells).lower()
+            if "player" in headerish and "injury" in headerish:
+                continue
+            if cells[0].startswith("---"):
+                continue
+            player, position, injury = cells[0], cells[1], cells[2]
+            practice_cells = cells[3:-1] if len(cells) > 6 else cells[3:]
+            game_status = cells[-1] if len(cells) >= 7 else ""
+            practice_status = next((_norm(cell).upper() for cell in reversed(practice_cells) if _norm(cell) and _norm(cell) != "(-)"), "")
+            if not player or not position or not injury:
+                continue
+            observations.append(RosterObservation(
+                team=canonical_team_code(section_team),
+                player=player,
+                position=position.upper(),
+                roster_status="active",
+                injury_status=_norm(game_status if game_status and game_status not in {"(-)", "UNSPECIFIED"} else injury),
+                practice_status=practice_status,
+                expected_role=_infer_expected_role(position, player, practice_status, game_status),
+                source_url=source_url,
+                source_type="official_injury_report",
+                observed_at=observed_at,
+                confidence="high",
+            ))
     return observations
 
 
@@ -611,7 +684,10 @@ def _dedupe_events(events: list[RosterEvent]) -> list[RosterEvent]:
     seen = set()
     output = []
     for event in events:
-        key = (event.event_type, event.team, _norm_name(event.player), event.position, event.source_type)
+        if event.source_type == "official_injury_report":
+            key = (event.event_type, event.team, _norm_name(event.player), event.source_type)
+        else:
+            key = (event.event_type, event.team, _norm_name(event.player), event.position, event.source_type)
         if key in seen:
             continue
         seen.add(key)
@@ -632,6 +708,8 @@ def refresh_roster_snapshot(
     path = roster_snapshot_path(teams)
     ttl_seconds = roster_context_ttl_seconds() if ttl_seconds is None else ttl_seconds
     cached = read_json_or_none(path)
+    if cached and cached.get("schema_version") != ROSTER_CONTEXT_SCHEMA_VERSION:
+        cached = None
     if cached and not force:
         age = max(0.0, time.time() - path.stat().st_mtime) if path.exists() else None
         if age is not None and age <= ttl_seconds:
@@ -661,6 +739,7 @@ def roster_context_for_teams(
     snapshot = refresh_roster_snapshot(providers=providers, force=force, teams=selected)
     events = [event for event in snapshot.get("events", []) if event.get("team") in selected and event.get("event_type") in HIGH_IMPACT_EVENTS]
     observations = [row for row in snapshot.get("observations", []) if row.get("team") in selected]
+    events, suppressed_conflicts = _suppress_cross_team_event_conflicts(events)
     events.sort(key=lambda row: (row.get("confidence") != "high", row.get("team", ""), row.get("event_type", ""), row.get("player", "")))
     return {
         "teams": sorted(requested or selected),
@@ -671,10 +750,50 @@ def roster_context_for_teams(
         "cache_age_seconds": snapshot.get("cache_age_seconds"),
         "cache_ttl_seconds": snapshot.get("cache_ttl_seconds"),
         "provider_errors": snapshot.get("provider_errors", []),
+        "suppressed_conflicts": suppressed_conflicts,
         "events": events,
         "observations": observations,
         "summary": roster_context_summary(events),
     }
+
+
+def _suppress_cross_team_event_conflicts(events: list[dict]) -> tuple[list[dict], list[dict]]:
+    by_player: dict[tuple[str, str, str], set[str]] = {}
+    for event in events:
+        player = event.get("player") or ""
+        if "," in player:
+            continue
+        key = (
+            _norm_name(player),
+            event.get("event_type") or "",
+            event.get("source_type") or "",
+        )
+        if not key[0]:
+            continue
+        by_player.setdefault(key, set()).add(canonical_team_code(event.get("team")))
+
+    conflict_keys = {key for key, teams in by_player.items() if len(teams) > 1}
+    if not conflict_keys:
+        return events, []
+
+    conflict_players = {key[0] for key in conflict_keys}
+    filtered = []
+    suppressed = []
+    for event in events:
+        player_names = [_norm_name(name) for name in str(event.get("player") or "").split(",")]
+        is_conflict = any(name in conflict_players for name in player_names if name)
+        if is_conflict:
+            suppressed.append({
+                "event_type": event.get("event_type"),
+                "team": event.get("team"),
+                "player": event.get("player"),
+                "position": event.get("position"),
+                "source_type": event.get("source_type"),
+                "reason": "same player attributed to multiple selected teams",
+            })
+            continue
+        filtered.append(event)
+    return filtered, suppressed
 
 
 def roster_context_summary(events: list[dict]) -> list[str]:
