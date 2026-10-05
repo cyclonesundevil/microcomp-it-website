@@ -712,6 +712,30 @@
     min-width: 95px;
 }
 
+.kalshi-matrix-table th:first-child,
+.kalshi-matrix-table td:first-child {
+    min-width: 150px;
+}
+
+.kalshi-matrix-table th:not(:first-child),
+.kalshi-matrix-table td:not(:first-child) {
+    min-width: 170px;
+}
+
+.kalshi-matrix-table td {
+    line-height: 1.45;
+}
+
+.kalshi-matrix-table small {
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.kalshi-game-cell,
+.kalshi-benchmark-cell {
+    white-space: nowrap;
+}
+
 .experimental-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));

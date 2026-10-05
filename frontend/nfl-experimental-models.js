@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         rsm_stage7c: 'RSM',
         rsm_plus: 'RSM+'
     };
+    const kalshiMatrixModels = ['current_season_matrix', 'rsm_stage7c', 'rsm_plus', 'market_blend'];
 
     function probabilityGameKey(row) {
         return row.game_id || `${row.away_team}-${row.home_team}-${row.gameday || ''}`;
@@ -267,6 +268,59 @@ document.addEventListener('DOMContentLoaded', () => {
             : `${esc(row.away_team)} ${pct(away)}`;
     }
 
+    function kalshiGameKey(row) {
+        return row.game_id || `${row.away_team}-${row.home_team}-${row.gameday || ''}`;
+    }
+
+    function groupKalshiRows(rows) {
+        const grouped = new Map();
+        rows.forEach((row) => {
+            const key = kalshiGameKey(row);
+            if (!grouped.has(key)) {
+                grouped.set(key, {
+                    game_id: row.game_id,
+                    away_team: row.away_team,
+                    home_team: row.home_team,
+                    gameday: row.gameday,
+                    gametime: row.gametime,
+                    kalshi_row: row,
+                    models: {}
+                });
+            }
+            grouped.get(key).models[row.model] = row;
+        });
+        return Array.from(grouped.values());
+    }
+
+    function kalshiBenchmarkCell(row) {
+        if (!row) return '--';
+        const home = `${esc(row.home_team)} ${pct(row.kalshi_home_win_probability)}`;
+        const away = `${esc(row.away_team)} ${pct(row.kalshi_away_win_probability)}`;
+        return `
+            <strong>${kalshiSideLabel(row, 'kalshi')}</strong><br>
+            <small>${home}; ${away}</small>
+        `;
+    }
+
+    function kalshiModelComparisonCell(row) {
+        if (!row) return '--';
+        const edge = row.recommended_side === 'home_win'
+            ? row.home_edge
+            : row.recommended_side === 'away_win'
+                ? row.away_edge
+                : Math.max(row.home_edge || 0, row.away_edge || 0);
+        const signal = row.recommended_side
+            ? `${esc(row.recommended_team)} ${pct(edge)} vs Kalshi`
+            : 'No signal vs Kalshi';
+        const pl = Number.isFinite(Number(row.simulated_profit)) ? `; P/L ${signed(row.simulated_profit)}` : '';
+        return `
+            <strong>Model prob: ${kalshiSideLabel(row, 'model')}</strong><br>
+            <small>Edge vs Kalshi: ${signed(row.home_edge)} home; ${signed(row.away_edge)} away</small><br>
+            <small>Signal: ${signal}</small><br>
+            <small>cal n=${esc(row.calibration_sample_size ?? 0)} ${esc(row.calibration_confidence || 'low')}${esc(pl)}</small>
+        `;
+    }
+
     function renderKalshiEdgeRows() {
         const threshold = Number(kalshiThresholdFilter?.value || 0.03);
         const model = kalshiModelFilter?.value || '';
@@ -277,20 +331,12 @@ document.addEventListener('DOMContentLoaded', () => {
             kalshiEdgeBody.innerHTML = '<tr><td colspan="6">No Kalshi edge rows at this filter. Import snapshots or change filters.</td></tr>';
             return;
         }
-        kalshiEdgeBody.innerHTML = rows.map((row) => {
-            const edge = row.recommended_side === 'home_win' ? row.home_edge : row.recommended_side === 'away_win' ? row.away_edge : Math.max(row.home_edge || 0, row.away_edge || 0);
-            const signal = row.recommended_side
-                ? `${esc(row.recommended_team)} at ${pct(edge)} edge`
-                : 'No trade';
-            const pl = Number.isFinite(Number(row.simulated_profit)) ? `; P/L ${signed(row.simulated_profit)}` : '';
+        kalshiEdgeBody.innerHTML = groupKalshiRows(rows).map((game) => {
             return `
                 <tr>
-                    <td>${esc(row.away_team)} at ${esc(row.home_team)}<br><small>${esc(row.gameday || '--')} ${esc(row.gametime || '')}</small></td>
-                    <td>${esc(kalshiModelLabels[row.model] || row.model)}<br><small>cal n=${esc(row.calibration_sample_size ?? 0)} ${esc(row.calibration_confidence || 'low')}</small></td>
-                    <td>${kalshiSideLabel(row, 'kalshi')}</td>
-                    <td>${kalshiSideLabel(row, 'model')}</td>
-                    <td>${signed(row.home_edge)} home<br><small>${signed(row.away_edge)} away</small></td>
-                    <td><strong>${signal}</strong><br><small>${esc(row.roster_overlay_applied ? 'Roster overlay applied' : 'No roster overlay')}${esc(pl)}</small></td>
+                    <td class="kalshi-game-cell">${esc(game.away_team)} at ${esc(game.home_team)}<br><small>${esc(game.gameday || '--')} ${esc(game.gametime || '')}</small></td>
+                    <td class="kalshi-benchmark-cell">${kalshiBenchmarkCell(game.kalshi_row)}</td>
+                    ${kalshiMatrixModels.map((modelId) => `<td title="${esc(kalshiModelLabels[modelId] || modelId)}">${kalshiModelComparisonCell(game.models[modelId])}</td>`).join('')}
                 </tr>
             `;
         }).join('');

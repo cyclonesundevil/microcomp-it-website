@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#03050a">
     <script src="/theme.js?v=1.2"></script>
     <link rel="stylesheet" href="/styles.css?v=3.3">
-    <link rel="stylesheet" href="/nfl.css?v=1.0">
+    <link rel="stylesheet" href="/nfl.css?v=1.1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -36,7 +36,7 @@
             <p class="science-kicker">Admin Research Surface</p>
             <h1>NFL Experimental Models</h1>
             <p id="experimental-status">Loading protected model inventory...</p>
-            <p class="experimental-version">Experimental page version: Kalshi Edge Lab v2.3</p>
+            <p class="experimental-version">Experimental page version: Kalshi Edge Lab v2.4</p>
         </section>
 
         <section class="experimental-panel">
@@ -104,15 +104,15 @@
             </div>
             <div id="kalshi-summary" class="experimental-summary-row"></div>
             <div class="experimental-table-wrap">
-                <table class="nfl-table experimental-table">
+                <table class="nfl-table upcoming-table experimental-table kalshi-matrix-table">
                     <thead>
                         <tr>
                             <th>Game</th>
-                            <th>Model</th>
-                            <th>Kalshi</th>
-                            <th>Model Prob</th>
-                            <th>Edge</th>
-                            <th>Signal</th>
+                            <th>Kalshi<br><small>moneyline probability</small></th>
+                            <th>CS Matrix<br><small>prob / edge / signal</small></th>
+                            <th>RSM<br><small>prob / edge / signal</small></th>
+                            <th>RSM+<br><small>prob / edge / signal</small></th>
+                            <th>Market Blend<br><small>prob / edge / signal</small></th>
                         </tr>
                     </thead>
                     <tbody id="kalshi-edge-body">
@@ -220,7 +220,7 @@
         </section>
     </main>
 
-    <script src="/nfl-experimental-models.js?v=2.3"></script>
+    <script src="/nfl-experimental-models.js?v=2.4"></script>
 </body>
 
 </html>
