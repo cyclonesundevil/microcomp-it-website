@@ -1,6 +1,9 @@
 import math
 import os
 import time
+import json
+import urllib.parse
+import urllib.request
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,6 +17,73 @@ KALSHI_EDGE_SCHEMA_VERSION = 1
 DEFAULT_MODELS = ("current_season_matrix", "rsm_stage7c", "rsm_plus")
 BENCHMARK_MODELS = ("market_blend",)
 EDGE_THRESHOLDS = (0.03, 0.05, 0.07)
+KALSHI_NFL_GAME_SERIES = "KXNFLGAME"
+KALSHI_TEAM_ALIASES = {
+    "arizona": "ARI",
+    "arizona cardinals": "ARI",
+    "atlanta": "ATL",
+    "atlanta falcons": "ATL",
+    "baltimore": "BAL",
+    "baltimore ravens": "BAL",
+    "buffalo": "BUF",
+    "buffalo bills": "BUF",
+    "carolina": "CAR",
+    "carolina panthers": "CAR",
+    "chicago": "CHI",
+    "chicago bears": "CHI",
+    "cincinnati": "CIN",
+    "cincinnati bengals": "CIN",
+    "cleveland": "CLE",
+    "cleveland browns": "CLE",
+    "dallas": "DAL",
+    "dallas cowboys": "DAL",
+    "denver": "DEN",
+    "denver broncos": "DEN",
+    "detroit": "DET",
+    "detroit lions": "DET",
+    "green bay": "GB",
+    "green bay packers": "GB",
+    "houston": "HOU",
+    "houston texans": "HOU",
+    "indianapolis": "IND",
+    "indianapolis colts": "IND",
+    "jacksonville": "JAX",
+    "jacksonville jaguars": "JAX",
+    "kansas city": "KC",
+    "kansas city chiefs": "KC",
+    "las vegas": "LV",
+    "las vegas raiders": "LV",
+    "los angeles c": "LAC",
+    "los angeles chargers": "LAC",
+    "los angeles r": "LA",
+    "los angeles rams": "LA",
+    "miami": "MIA",
+    "miami dolphins": "MIA",
+    "minnesota": "MIN",
+    "minnesota vikings": "MIN",
+    "new england": "NE",
+    "new england patriots": "NE",
+    "new orleans": "NO",
+    "new orleans saints": "NO",
+    "new york g": "NYG",
+    "new york giants": "NYG",
+    "new york j": "NYJ",
+    "new york jets": "NYJ",
+    "philadelphia": "PHI",
+    "philadelphia eagles": "PHI",
+    "pittsburgh": "PIT",
+    "pittsburgh steelers": "PIT",
+    "san francisco": "SF",
+    "san francisco 49ers": "SF",
+    "seattle": "SEA",
+    "seattle seahawks": "SEA",
+    "tampa bay": "TB",
+    "tampa bay buccaneers": "TB",
+    "tennessee": "TEN",
+    "tennessee titans": "TEN",
+    "washington": "WAS",
+    "washington commanders": "WAS",
+}
 
 
 def utc_now_iso() -> str:
@@ -32,6 +102,10 @@ def kalshi_snapshot_store_path() -> Path:
     return kalshi_data_root() / "kalshi_moneyline_snapshots.json"
 
 
+def kalshi_api_base_url() -> str:
+    return os.getenv("KALSHI_API_BASE_URL", "https://external-api.kalshi.com").rstrip("/")
+
+
 def _to_float(value) -> Optional[float]:
     if value in (None, ""):
         return None
@@ -39,6 +113,14 @@ def _to_float(value) -> Optional[float]:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _dollar_value(row: dict, *names: str) -> Optional[float]:
+    for name in names:
+        value = _to_float(row.get(name))
+        if value is not None:
+            return value
+    return None
 
 
 def _norm_market_type(value: object) -> str:
@@ -52,13 +134,20 @@ def _mid_price(row: dict) -> Optional[float]:
     explicit = _to_float(row.get("kalshi_mid_price") or row.get("mid") or row.get("mid_price") or row.get("price"))
     if explicit is not None:
         return explicit / 100.0 if explicit > 1 else explicit
-    bid = _to_float(row.get("kalshi_yes_bid") or row.get("yes_bid") or row.get("bid"))
-    ask = _to_float(row.get("kalshi_yes_ask") or row.get("yes_ask") or row.get("ask"))
+    bid = _dollar_value(row, "kalshi_yes_bid", "yes_bid", "bid", "yes_bid_dollars")
+    ask = _dollar_value(row, "kalshi_yes_ask", "yes_ask", "ask", "yes_ask_dollars")
     if bid is None or ask is None:
-        return None
+        last_price = _dollar_value(row, "last_price_dollars", "last_price")
+        return last_price / 100.0 if last_price is not None and last_price > 1 else last_price
     bid = bid / 100.0 if bid > 1 else bid
     ask = ask / 100.0 if ask > 1 else ask
     return (bid + ask) / 2.0
+
+
+def _kalshi_team_code(value: object) -> str:
+    raw = str(value or "").strip().lower()
+    raw = raw.removeprefix("yes ").removesuffix(" wins").strip()
+    return canonical_team_code(KALSHI_TEAM_ALIASES.get(raw, ""))
 
 
 def _contract_side(row: dict) -> str:
@@ -118,8 +207,8 @@ def normalize_kalshi_snapshot(row: dict, defaults: Optional[dict] = None) -> dic
         "home_team": home,
         "market_type": _norm_market_type(merged.get("market_type")),
         "contract_side": _contract_side({**merged, "away_team": away, "home_team": home}),
-        "kalshi_yes_bid": _to_float(merged.get("kalshi_yes_bid") or merged.get("yes_bid") or merged.get("bid")),
-        "kalshi_yes_ask": _to_float(merged.get("kalshi_yes_ask") or merged.get("yes_ask") or merged.get("ask")),
+        "kalshi_yes_bid": _dollar_value(merged, "kalshi_yes_bid", "yes_bid", "bid", "yes_bid_dollars"),
+        "kalshi_yes_ask": _dollar_value(merged, "kalshi_yes_ask", "yes_ask", "ask", "yes_ask_dollars"),
         "kalshi_mid_price": mid,
         "kalshi_implied_probability": implied,
         "volume": _to_float(merged.get("volume")),
@@ -133,6 +222,126 @@ def normalize_kalshi_snapshot(row: dict, defaults: Optional[dict] = None) -> dic
     if normalized["market_type"] != "moneyline":
         normalized["experimental_warning"] = "Only moneyline markets are analyzed in the current Kalshi Edge Lab."
     return normalized
+
+
+def _kalshi_api_get(path: str, params: Optional[dict] = None, timeout: int = 20) -> dict:
+    query = urllib.parse.urlencode({key: value for key, value in (params or {}).items() if value not in (None, "")})
+    url = f"{kalshi_api_base_url()}{path}{'?' + query if query else ''}"
+    with urllib.request.urlopen(url, timeout=timeout) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def fetch_kalshi_nfl_game_markets(max_pages: int = 5, limit: int = 200) -> list[dict]:
+    markets: list[dict] = []
+    cursor = ""
+    for _page in range(max_pages):
+        payload = _kalshi_api_get("/trade-api/v2/markets", {
+            "series_ticker": KALSHI_NFL_GAME_SERIES,
+            "limit": limit,
+            "status": "open",
+            "cursor": cursor,
+        })
+        markets.extend(payload.get("markets") or [])
+        cursor = payload.get("cursor") or ""
+        if not cursor:
+            break
+    return markets
+
+
+def _schedule_lookup(upcoming_games: Iterable[dict]) -> dict[frozenset[str], dict]:
+    lookup = {}
+    for game in upcoming_games or []:
+        schedule = game.get("schedule") if isinstance(game.get("schedule"), dict) else game
+        away = canonical_team_code(schedule.get("away_team"))
+        home = canonical_team_code(schedule.get("home_team"))
+        if away and home:
+            lookup[frozenset({away, home})] = schedule
+    return lookup
+
+
+def _team_from_kalshi_market(market: dict) -> str:
+    for field in ("yes_sub_title", "title"):
+        code = _kalshi_team_code(market.get(field))
+        if code:
+            return code
+    return ""
+
+
+def _snapshot_from_kalshi_market(market: dict, schedule: dict, observed_at: str) -> Optional[dict]:
+    team = _team_from_kalshi_market(market)
+    away = canonical_team_code(schedule.get("away_team"))
+    home = canonical_team_code(schedule.get("home_team"))
+    if team not in {away, home}:
+        return None
+    return normalize_kalshi_snapshot({
+        "season": schedule.get("season"),
+        "week": schedule.get("week"),
+        "game_id": schedule.get("game_id"),
+        "away_team": away,
+        "home_team": home,
+        "contract_side": "home_win" if team == home else "away_win",
+        "yes_bid_dollars": market.get("yes_bid_dollars"),
+        "yes_ask_dollars": market.get("yes_ask_dollars"),
+        "last_price_dollars": market.get("last_price_dollars"),
+        "volume": market.get("volume_fp"),
+        "liquidity": market.get("liquidity_dollars"),
+        "observed_at": observed_at,
+        "kickoff_at": market.get("occurrence_datetime") or market.get("expected_expiration_time") or "",
+        "source_url": f"https://kalshi.com/markets/{market.get('ticker', '')}",
+        "market_id": market.get("ticker"),
+    })
+
+
+def generate_kalshi_snapshots_from_api(upcoming_games: Iterable[dict], markets: Optional[list[dict]] = None) -> dict:
+    observed_at = utc_now_iso()
+    markets = fetch_kalshi_nfl_game_markets() if markets is None else markets
+    schedule_by_teams = _schedule_lookup(upcoming_games)
+    grouped: dict[str, list[dict]] = defaultdict(list)
+    for market in markets:
+        if not str(market.get("ticker") or "").startswith(KALSHI_NFL_GAME_SERIES):
+            continue
+        expiration_value = str(market.get("expiration_value") or "").lower()
+        if expiration_value and expiration_value != "winner":
+            continue
+        status = str(market.get("status") or "").lower()
+        if status and status not in {"active", "open"}:
+            continue
+        team = _team_from_kalshi_market(market)
+        if not team:
+            continue
+        grouped[str(market.get("event_ticker") or "")].append({**market, "_team": team})
+
+    snapshots = []
+    unmatched = []
+    for event_ticker, event_markets in grouped.items():
+        teams = {market.get("_team") for market in event_markets if market.get("_team")}
+        schedule = schedule_by_teams.get(frozenset(teams))
+        if not schedule:
+            unmatched.append({"event_ticker": event_ticker, "teams": sorted(teams)})
+            continue
+        for market in event_markets:
+            snapshot = _snapshot_from_kalshi_market(market, schedule, observed_at)
+            if snapshot:
+                snapshots.append(snapshot)
+    return {
+        "success": True,
+        "observed_at": observed_at,
+        "fetched_markets": len(markets),
+        "generated_snapshots": len(snapshots),
+        "unmatched_events": unmatched[:25],
+        "snapshots": snapshots,
+    }
+
+
+def refresh_kalshi_snapshots_from_api(upcoming_games: Iterable[dict]) -> dict:
+    generated = generate_kalshi_snapshots_from_api(upcoming_games)
+    imported = import_kalshi_snapshots({"snapshots": generated["snapshots"]})
+    return {
+        **generated,
+        "imported": imported.get("imported", 0),
+        "total_snapshots": imported.get("total_snapshots", 0),
+        "store_path": imported.get("store_path"),
+    }
 
 
 def _extract_snapshot_rows(payload) -> tuple[list[dict], dict]:

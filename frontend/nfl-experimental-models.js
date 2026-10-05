@@ -113,6 +113,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return url.toString();
     }
 
+    function selectedWeekApiUrl(path) {
+        const url = new URL(apiUrl(path));
+        ['season', 'week'].forEach((key) => {
+            const value = params.get(key);
+            if (value) url.searchParams.set(key, value);
+        });
+        return url.toString();
+    }
+
     function metricTable(rows, columns) {
         if (!Array.isArray(rows) || !rows.length) return '<p class="nfl-message">No metrics available.</p>';
         return `
@@ -323,6 +332,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function refreshKalshiFromApi() {
+        kalshiStatus.textContent = 'Fetching Kalshi NFL markets...';
+        try {
+            const response = await fetch(selectedWeekApiUrl('/api/nfl/experimental/kalshi-edge/refresh'), {
+                method: 'POST'
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.error || 'Kalshi API refresh failed');
+            kalshiStatus.textContent = `Fetched ${data.fetched_markets} Kalshi markets; imported ${data.imported} snapshots.`;
+            await loadKalshiEdge();
+        } catch (error) {
+            kalshiStatus.textContent = error.message;
+        }
+    }
+
     async function loadInventory() {
         try {
             const response = await fetch(apiUrl('/api/nfl/experimental-models'));
@@ -376,6 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('exp-run').addEventListener('click', runProbe);
     document.getElementById('kalshi-refresh')?.addEventListener('click', loadKalshiEdge);
+    document.getElementById('kalshi-api-refresh')?.addEventListener('click', refreshKalshiFromApi);
     document.getElementById('kalshi-import')?.addEventListener('click', importKalshiSnapshot);
     kalshiModelFilter?.addEventListener('change', renderKalshiEdgeRows);
     kalshiThresholdFilter?.addEventListener('change', renderKalshiEdgeRows);

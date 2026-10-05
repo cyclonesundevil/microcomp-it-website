@@ -110,6 +110,81 @@ def test_import_kalshi_snapshots_uses_local_store(tmp_path, monkeypatch):
     assert kalshi_edge.read_kalshi_snapshots()[0]["contract_side"] == "away_win"
 
 
+def test_generate_kalshi_snapshots_from_api_markets_matches_schedule():
+    schedule = [{
+        "season": 2026,
+        "week": 5,
+        "game_id": "2026_05_BAL_ATL",
+        "away_team": "BAL",
+        "home_team": "ATL",
+    }]
+    markets = [
+        {
+            "ticker": "KXNFLGAME-26OCT11BALATL-BAL",
+            "event_ticker": "KXNFLGAME-26OCT11BALATL",
+            "title": "Baltimore wins",
+            "yes_sub_title": "Baltimore",
+            "expiration_value": "winner",
+            "yes_bid_dollars": "0.6500",
+            "yes_ask_dollars": "0.6600",
+            "last_price_dollars": "0.6500",
+            "volume_fp": "100.00",
+            "liquidity_dollars": "200.00",
+            "occurrence_datetime": "2026-10-11T17:00:00Z",
+        },
+        {
+            "ticker": "KXNFLGAME-26OCT11BALATL-ATL",
+            "event_ticker": "KXNFLGAME-26OCT11BALATL",
+            "title": "Atlanta wins",
+            "yes_sub_title": "Atlanta",
+            "expiration_value": "winner",
+            "yes_bid_dollars": "0.3400",
+            "yes_ask_dollars": "0.3600",
+            "last_price_dollars": "0.3500",
+        },
+    ]
+
+    result = kalshi_edge.generate_kalshi_snapshots_from_api(schedule, markets=markets)
+
+    assert result["generated_snapshots"] == 2
+    by_side = {row["contract_side"]: row for row in result["snapshots"]}
+    assert by_side["away_win"]["market_id"] == "KXNFLGAME-26OCT11BALATL-BAL"
+    assert by_side["home_win"]["kalshi_mid_price"] == pytest.approx(0.35)
+
+
+def test_refresh_kalshi_snapshots_from_api_imports_generated_rows(tmp_path, monkeypatch):
+    monkeypatch.setattr(kalshi_edge, "kalshi_data_root", lambda: tmp_path)
+    monkeypatch.setattr(kalshi_edge, "fetch_kalshi_nfl_game_markets", lambda: [{
+        "ticker": "KXNFLGAME-26OCT11CHIGB-GB",
+        "event_ticker": "KXNFLGAME-26OCT11CHIGB",
+        "title": "Green Bay wins",
+        "yes_sub_title": "Green Bay",
+        "expiration_value": "winner",
+        "yes_bid_dollars": "0.4100",
+        "yes_ask_dollars": "0.4200",
+    }, {
+        "ticker": "KXNFLGAME-26OCT11CHIGB-CHI",
+        "event_ticker": "KXNFLGAME-26OCT11CHIGB",
+        "title": "Chicago wins",
+        "yes_sub_title": "Chicago",
+        "expiration_value": "winner",
+        "yes_bid_dollars": "0.5800",
+        "yes_ask_dollars": "0.5900",
+    }])
+
+    result = kalshi_edge.refresh_kalshi_snapshots_from_api([{
+        "season": 2026,
+        "week": 5,
+        "game_id": "2026_05_CHI_GB",
+        "away_team": "CHI",
+        "home_team": "GB",
+    }])
+
+    assert result["generated_snapshots"] == 2
+    assert result["imported"] == 2
+    assert len(kalshi_edge.read_kalshi_snapshots()) == 2
+
+
 @pytest.mark.anyio
 async def test_kalshi_edge_import_route_is_admin_protected(tmp_path, monkeypatch):
     previous_secret = os.environ.get("ADMIN_SECRET")
@@ -132,6 +207,36 @@ async def test_kalshi_edge_import_route_is_admin_protected(tmp_path, monkeypatch
     assert blocked.status_code == 403
     assert allowed.status_code == 200
     assert payload["imported"] == 1
+
+
+@pytest.mark.anyio
+async def test_kalshi_edge_refresh_route_generates_snapshots(monkeypatch):
+    previous_secret = os.environ.get("ADMIN_SECRET")
+    os.environ["ADMIN_SECRET"] = "test-admin-secret"
+    client = app.test_client()
+    games = [{"season": 2026, "week": 5}]
+    snapshot = {
+        "season": 2026,
+        "week": 5,
+        "games": [{
+            "schedule": {"season": 2026, "week": 5, "game_id": "2026_05_BAL_ATL", "away_team": "BAL", "home_team": "ATL"},
+            "models": {},
+        }],
+    }
+    try:
+        with patch.object(__import__("app"), "load_nfl_games_for_request", new=AsyncMock(return_value=(games, {}))), \
+            patch.object(__import__("app"), "cached_upcoming_predictions", return_value=snapshot), \
+            patch("nfl_routes.refresh_kalshi_snapshots_from_api", return_value={"success": True, "fetched_markets": 2, "generated_snapshots": 2, "imported": 2}):
+            response = await client.post("/api/nfl/experimental/kalshi-edge/refresh?secret=test-admin-secret")
+            payload = await response.get_json()
+    finally:
+        if previous_secret is None:
+            os.environ.pop("ADMIN_SECRET", None)
+        else:
+            os.environ["ADMIN_SECRET"] = previous_secret
+
+    assert response.status_code == 200
+    assert payload["imported"] == 2
 
 
 @pytest.mark.anyio

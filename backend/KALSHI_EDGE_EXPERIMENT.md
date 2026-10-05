@@ -26,6 +26,30 @@ Use the protected experimental page or `POST /api/nfl/experimental/kalshi-edge/i
 
 Supported moneyline sides are `home_win` and `away_win`. Prices may be supplied as `price`, `mid_price`, `kalshi_mid_price`, or bid/ask fields. Spread and total markets are intentionally not analyzed until their contract mapping is explicit.
 
+## Automatic Kalshi API refresh
+
+The protected experimental page also exposes **Fetch From Kalshi API**, backed by:
+
+```text
+POST /api/nfl/experimental/kalshi-edge/refresh
+```
+
+The refresh reads Kalshi `KXNFLGAME` markets from the Trade API, matches paired `Team wins` contracts to the current NFL Predictor schedule, normalizes those contracts into the same snapshot shape above, and imports them into the local Kalshi Edge Lab store. Add `season` and `week` query parameters to refresh a specific slate, for example:
+
+```text
+POST /api/nfl/experimental/kalshi-edge/refresh?season=2026&week=5
+```
+
+Useful environment variables:
+
+```env
+KALSHI_API_BASE_URL=https://external-api.kalshi.com
+KALSHI_API_KEY=your-key-id
+KALSHI_API_SECRET=backend\kalshi-private-key.key
+```
+
+The current moneyline refresh uses public market-data endpoints, but the key variables are kept available for authenticated Kalshi calls when needed.
+
 ## Interpretation
 
 The lab calibrates model home-margin projections into straight-up win probabilities, compares them to Kalshi implied probabilities, and flags trades only when the configured edge threshold is met. Simulated P/L assumes buying YES at the imported mid price, with fees set to zero until fee logic is explicitly modeled.

@@ -52,6 +52,7 @@ from experimental.kalshi_edge import (
     DEFAULT_MODELS as KALSHI_EDGE_MODELS,
     import_kalshi_snapshots,
     kalshi_edge_report,
+    refresh_kalshi_snapshots_from_api,
 )
 from qb_availability_audit import (
     DEFAULT_MNF_JSON_REPORT,
@@ -504,6 +505,31 @@ def register_nfl_routes(app, context):
         except Exception as e:
             traceback.print_exc()
             return api_error(str(e), 400)
+
+
+    @app.route("/api/nfl/experimental/kalshi-edge/refresh", methods=["POST"])
+    @app.route("/api/v1/nfl/experimental/kalshi-edge/refresh", methods=["POST"])
+    async def nfl_experimental_kalshi_edge_refresh():
+        if not admin_secret_authorized():
+            return api_error("Admin token is required.", 403)
+        try:
+            requested_week = request.args.get("week")
+            requested_season = request.args.get("season")
+            week = int(requested_week) if requested_week else None
+            season = int(requested_season) if requested_season else None
+            games, _cache = await load_nfl_games_for_request()
+            snapshot = await asyncio.to_thread(cached_upcoming_predictions, games, season, week, False, False)
+            upcoming_games = [
+                game.get("schedule") if isinstance(game.get("schedule"), dict) else game
+                for game in snapshot.get("games", [])
+            ]
+            result = await asyncio.to_thread(refresh_kalshi_snapshots_from_api, upcoming_games)
+            return jsonify(result)
+        except ValueError:
+            return api_error("season and week must be numeric when supplied.", 400)
+        except Exception as e:
+            traceback.print_exc()
+            return api_error(str(e), 502)
 
 
     @app.route("/api/nfl/dashboard")
