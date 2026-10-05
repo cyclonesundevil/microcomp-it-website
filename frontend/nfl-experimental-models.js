@@ -9,6 +9,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const pgpGrid = document.getElementById('pgp-grid');
     const parallelModels = document.getElementById('parallel-models');
     const rsmStage7c = document.getElementById('rsm-stage7c');
+    const kalshiStatus = document.getElementById('kalshi-status');
+    const kalshiSummary = document.getElementById('kalshi-summary');
+    const kalshiEdgeBody = document.getElementById('kalshi-edge-body');
+    const kalshiModelFilter = document.getElementById('kalshi-model-filter');
+    const kalshiThresholdFilter = document.getElementById('kalshi-threshold-filter');
+    const kalshiImportJson = document.getElementById('kalshi-import-json');
+    const kalshiImportStatus = document.getElementById('kalshi-import-status');
+    let kalshiReport = null;
 
     const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
         '&': '&amp;',
@@ -31,6 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
         rsm_plus: 'RSM+'
     }[model] || model);
     const probabilityModels = ['rothstein_plus', 'rsm_stage7c', 'rsm_plus'];
+    const kalshiModelLabels = {
+        current_season_matrix: 'CS Matrix',
+        market_blend: 'Market Blend',
+        rsm_stage7c: 'RSM',
+        rsm_plus: 'RSM+'
+    };
 
     function probabilityGameKey(row) {
         return row.game_id || `${row.away_team}-${row.home_team}-${row.gameday || ''}`;
@@ -222,6 +236,93 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
+    function renderKalshiSummary(report) {
+        const backtest = report?.backtest || {};
+        const calibrations = Object.values(report?.calibrations || {});
+        const lowConfidence = calibrations.filter((item) => item.fallback_used).length;
+        kalshiSummary.innerHTML = `
+            <div><span>Snapshots</span><strong>${esc(report?.snapshot_count ?? 0)}</strong></div>
+            <div><span>Latest Import</span><strong>${esc(report?.latest_import_observed_at || 'None')}</strong></div>
+            <div><span>Trades</span><strong>${esc(backtest.trades_triggered ?? 0)}</strong></div>
+            <div><span>ROI</span><strong>${pct(backtest.roi)}</strong></div>
+            <div><span>Low-Cal Models</span><strong>${esc(lowConfidence)}</strong></div>
+        `;
+    }
+
+    function kalshiSideLabel(row, prefix) {
+        const home = row[`${prefix}_home_win_probability`];
+        const away = row[`${prefix}_away_win_probability`];
+        if (!Number.isFinite(Number(home)) || !Number.isFinite(Number(away))) return '--';
+        return Number(home) >= Number(away)
+            ? `${esc(row.home_team)} ${pct(home)}`
+            : `${esc(row.away_team)} ${pct(away)}`;
+    }
+
+    function renderKalshiEdgeRows() {
+        const threshold = Number(kalshiThresholdFilter?.value || 0.03);
+        const model = kalshiModelFilter?.value || '';
+        const rows = (kalshiReport?.rows || [])
+            .filter((row) => Number(row.threshold) === threshold)
+            .filter((row) => !model || row.model === model);
+        if (!rows.length) {
+            kalshiEdgeBody.innerHTML = '<tr><td colspan="6">No Kalshi edge rows at this filter. Import snapshots or change filters.</td></tr>';
+            return;
+        }
+        kalshiEdgeBody.innerHTML = rows.map((row) => {
+            const edge = row.recommended_side === 'home_win' ? row.home_edge : row.recommended_side === 'away_win' ? row.away_edge : Math.max(row.home_edge || 0, row.away_edge || 0);
+            const signal = row.recommended_side
+                ? `${esc(row.recommended_team)} at ${pct(edge)} edge`
+                : 'No trade';
+            const pl = Number.isFinite(Number(row.simulated_profit)) ? `; P/L ${signed(row.simulated_profit)}` : '';
+            return `
+                <tr>
+                    <td>${esc(row.away_team)} at ${esc(row.home_team)}<br><small>${esc(row.gameday || '--')} ${esc(row.gametime || '')}</small></td>
+                    <td>${esc(kalshiModelLabels[row.model] || row.model)}<br><small>cal n=${esc(row.calibration_sample_size ?? 0)} ${esc(row.calibration_confidence || 'low')}</small></td>
+                    <td>${kalshiSideLabel(row, 'kalshi')}</td>
+                    <td>${kalshiSideLabel(row, 'model')}</td>
+                    <td>${signed(row.home_edge)} home<br><small>${signed(row.away_edge)} away</small></td>
+                    <td><strong>${signal}</strong><br><small>${esc(row.roster_overlay_applied ? 'Roster overlay applied' : 'No roster overlay')}${esc(pl)}</small></td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    async function loadKalshiEdge() {
+        if (!kalshiStatus || !kalshiEdgeBody) return;
+        kalshiStatus.textContent = 'Loading Kalshi Edge Lab...';
+        try {
+            const response = await fetch(apiUrl('/api/nfl/experimental/kalshi-edge'));
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load Kalshi edge analysis');
+            kalshiReport = data;
+            kalshiStatus.textContent = `Season ${data.season}, week ${data.week}. ${data.warning}`;
+            renderKalshiSummary(data);
+            renderKalshiEdgeRows();
+        } catch (error) {
+            kalshiStatus.textContent = error.message;
+            kalshiSummary.innerHTML = '';
+            kalshiEdgeBody.innerHTML = '<tr><td colspan="6">Kalshi Edge Lab unavailable.</td></tr>';
+        }
+    }
+
+    async function importKalshiSnapshot() {
+        kalshiImportStatus.textContent = 'Importing...';
+        try {
+            const payload = JSON.parse(kalshiImportJson.value || '{}');
+            const response = await fetch(apiUrl('/api/nfl/experimental/kalshi-edge/import'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.error || 'Import failed');
+            kalshiImportStatus.textContent = `Imported ${data.imported}; ${data.total_snapshots} stored.`;
+            await loadKalshiEdge();
+        } catch (error) {
+            kalshiImportStatus.textContent = error.message;
+        }
+    }
+
     async function loadInventory() {
         try {
             const response = await fetch(apiUrl('/api/nfl/experimental-models'));
@@ -233,6 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPgp(data.research_models?.pgp || []);
             renderParallel(data.research_models?.parallel);
             renderRsm(data.research_models?.rsm_stage7c);
+            loadKalshiEdge();
         } catch (error) {
             status.textContent = error.message;
             probabilityStatus.textContent = 'Unable to load current-week probabilities.';
@@ -273,5 +375,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('exp-run').addEventListener('click', runProbe);
+    document.getElementById('kalshi-refresh')?.addEventListener('click', loadKalshiEdge);
+    document.getElementById('kalshi-import')?.addEventListener('click', importKalshiSnapshot);
+    kalshiModelFilter?.addEventListener('change', renderKalshiEdgeRows);
+    kalshiThresholdFilter?.addEventListener('change', renderKalshiEdgeRows);
     loadInventory();
 });

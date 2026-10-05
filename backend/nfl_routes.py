@@ -44,8 +44,14 @@ from nfl_predictor import (
     postgame_game_results,
     postgame_grading_summary,
     predict_matchup,
+    run_backtest,
     upcoming_prediction_status_snapshot,
     upcoming_predictions_for_roster_basis,
+)
+from experimental.kalshi_edge import (
+    DEFAULT_MODELS as KALSHI_EDGE_MODELS,
+    import_kalshi_snapshots,
+    kalshi_edge_report,
 )
 from qb_availability_audit import (
     DEFAULT_MNF_JSON_REPORT,
@@ -420,6 +426,84 @@ def register_nfl_routes(app, context):
         except Exception as e:
             traceback.print_exc()
             return api_error(str(e), 500)
+
+
+    async def _kalshi_edge_current_report():
+        requested_week = request.args.get("week")
+        requested_season = request.args.get("season")
+        week = int(requested_week) if requested_week else None
+        season = int(requested_season) if requested_season else None
+        games, _cache = await load_nfl_games_for_request()
+        snapshot = await asyncio.to_thread(cached_upcoming_predictions, games, season, week, False, False)
+        snapshot = await asyncio.to_thread(upcoming_predictions_for_roster_basis, snapshot, "active")
+        history_by_model = {}
+        for model in KALSHI_EDGE_MODELS:
+            try:
+                _summary, records = await asyncio.to_thread(
+                    run_backtest,
+                    games,
+                    3,
+                    default_spread_threshold(model),
+                    default_total_threshold(model),
+                    model,
+                )
+                history_by_model[model] = records
+            except Exception as calibration_error:
+                history_by_model[model] = []
+                app.logger.warning("Kalshi edge calibration fallback for %s: %s", model, calibration_error)
+        return await asyncio.to_thread(kalshi_edge_report, snapshot, history_by_model)
+
+
+    @app.route("/api/nfl/experimental/kalshi-edge")
+    @app.route("/api/v1/nfl/experimental/kalshi-edge")
+    async def nfl_experimental_kalshi_edge():
+        if not admin_secret_authorized():
+            return api_error("Admin token is required.", 403)
+        try:
+            return jsonify(await _kalshi_edge_current_report())
+        except ValueError:
+            return api_error("season and week must be numeric when supplied.", 400)
+        except Exception as e:
+            traceback.print_exc()
+            return api_error(str(e), 500)
+
+
+    @app.route("/api/nfl/experimental/kalshi-edge/backtest")
+    @app.route("/api/v1/nfl/experimental/kalshi-edge/backtest")
+    async def nfl_experimental_kalshi_edge_backtest():
+        if not admin_secret_authorized():
+            return api_error("Admin token is required.", 403)
+        try:
+            report = await _kalshi_edge_current_report()
+            return jsonify({
+                "success": True,
+                "experimental": True,
+                "warning": report.get("warning"),
+                "season": report.get("season"),
+                "week": report.get("week"),
+                "snapshot_count": report.get("snapshot_count"),
+                "backtest": report.get("backtest"),
+                "rows": [row for row in report.get("rows", []) if row.get("recommended_side")],
+            })
+        except ValueError:
+            return api_error("season and week must be numeric when supplied.", 400)
+        except Exception as e:
+            traceback.print_exc()
+            return api_error(str(e), 500)
+
+
+    @app.route("/api/nfl/experimental/kalshi-edge/import", methods=["POST"])
+    @app.route("/api/v1/nfl/experimental/kalshi-edge/import", methods=["POST"])
+    async def nfl_experimental_kalshi_edge_import():
+        if not admin_secret_authorized():
+            return api_error("Admin token is required.", 403)
+        try:
+            payload = await request.get_json(force=True, silent=False)
+            result = await asyncio.to_thread(import_kalshi_snapshots, payload)
+            return jsonify(result)
+        except Exception as e:
+            traceback.print_exc()
+            return api_error(str(e), 400)
 
 
     @app.route("/api/nfl/dashboard")

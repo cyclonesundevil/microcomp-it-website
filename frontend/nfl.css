@@ -755,7 +755,8 @@
     font-weight: 700;
 }
 
-.experimental-controls input {
+.experimental-controls input,
+.experimental-controls select {
     width: 100%;
     min-height: 42px;
     padding: 0.55rem 0.65rem;
@@ -763,6 +764,31 @@
     border-radius: 6px;
     color: var(--text-color);
     background: rgba(255, 255, 255, 0.06);
+}
+
+.experimental-import {
+    margin-top: 1rem;
+    color: var(--text-muted);
+}
+
+.experimental-import summary {
+    cursor: pointer;
+    font-weight: 800;
+    color: var(--text-color);
+}
+
+.experimental-import textarea {
+    width: 100%;
+    min-height: 170px;
+    margin: 0.8rem 0;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-color);
+    background: rgba(255, 255, 255, 0.06);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.86rem;
+    resize: vertical;
 }
 
 .experimental-summary-row {
