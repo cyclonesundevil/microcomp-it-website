@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const kalshiStatus = document.getElementById('kalshi-status');
     const kalshiSummary = document.getElementById('kalshi-summary');
     const kalshiEdgeBody = document.getElementById('kalshi-edge-body');
+    const kalshiTotalEdgeBody = document.getElementById('kalshi-total-edge-body');
     const kalshiModelFilter = document.getElementById('kalshi-model-filter');
     const kalshiThresholdFilter = document.getElementById('kalshi-threshold-filter');
     const kalshiImportJson = document.getElementById('kalshi-import-json');
@@ -321,6 +322,43 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
+    function kalshiTotalSideLabel(row, prefix) {
+        const over = row[`${prefix}_over_probability`];
+        const under = row[`${prefix}_under_probability`];
+        if (!Number.isFinite(Number(over)) || !Number.isFinite(Number(under))) return '--';
+        return Number(over) >= Number(under)
+            ? `Over ${pct(over)}`
+            : `Under ${pct(under)}`;
+    }
+
+    function kalshiTotalBenchmarkCell(row) {
+        if (!row) return '--';
+        return `
+            <strong>${kalshiTotalSideLabel(row, 'kalshi')}</strong><br>
+            <small>Line ${num(row.total_line, 1)}; Over ${pct(row.kalshi_over_probability)}; Under ${pct(row.kalshi_under_probability)}</small>
+        `;
+    }
+
+    function kalshiTotalModelComparisonCell(row) {
+        if (!row) return '--';
+        const edge = row.recommended_side === 'over'
+            ? row.over_edge
+            : row.recommended_side === 'under'
+                ? row.under_edge
+                : Math.max(row.over_edge || 0, row.under_edge || 0);
+        const signal = row.recommended_side
+            ? `${esc(row.recommended_side.toUpperCase())} ${pct(edge)} vs Kalshi`
+            : 'No signal vs Kalshi';
+        const pl = Number.isFinite(Number(row.simulated_profit)) ? `; P/L ${signed(row.simulated_profit)}` : '';
+        return `
+            <strong>Model prob: ${kalshiTotalSideLabel(row, 'model')}</strong><br>
+            <small>Pred total ${num(row.pred_total, 1)} vs line ${num(row.total_line, 1)}</small><br>
+            <small>Edge vs Kalshi: ${signed(row.over_edge)} over; ${signed(row.under_edge)} under</small><br>
+            <small>Signal: ${signal}</small><br>
+            <small>cal n=${esc(row.calibration_sample_size ?? 0)} ${esc(row.calibration_confidence || 'low')}${esc(pl)}</small>
+        `;
+    }
+
     function renderKalshiEdgeRows() {
         const threshold = Number(kalshiThresholdFilter?.value || 0.03);
         const model = kalshiModelFilter?.value || '';
@@ -342,6 +380,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
     }
 
+    function renderKalshiTotalRows() {
+        if (!kalshiTotalEdgeBody) return;
+        const threshold = Number(kalshiThresholdFilter?.value || 0.03);
+        const model = kalshiModelFilter?.value || '';
+        const rows = (kalshiReport?.total_rows || [])
+            .filter((row) => Number(row.threshold) === threshold)
+            .filter((row) => !model || row.model === model);
+        if (!rows.length) {
+            kalshiTotalEdgeBody.innerHTML = '<tr><td colspan="6">No Kalshi total rows at this filter. Fetch Kalshi API data or change filters.</td></tr>';
+            return;
+        }
+        kalshiTotalEdgeBody.innerHTML = groupKalshiRows(rows).map((game) => {
+            return `
+                <tr>
+                    <td class="kalshi-game-cell">${esc(game.away_team)} at ${esc(game.home_team)}<br><small>${esc(game.gameday || '--')} ${esc(game.gametime || '')}</small></td>
+                    <td class="kalshi-benchmark-cell">${kalshiTotalBenchmarkCell(game.kalshi_row)}</td>
+                    ${kalshiMatrixModels.map((modelId) => `<td title="${esc(kalshiModelLabels[modelId] || modelId)}">${kalshiTotalModelComparisonCell(game.models[modelId])}</td>`).join('')}
+                </tr>
+            `;
+        }).join('');
+    }
+
     async function loadKalshiEdge() {
         if (!kalshiStatus || !kalshiEdgeBody) return;
         kalshiStatus.textContent = 'Loading Kalshi Edge Lab...';
@@ -353,10 +413,12 @@ document.addEventListener('DOMContentLoaded', () => {
             kalshiStatus.textContent = `Season ${data.season}, week ${data.week}. ${data.warning}`;
             renderKalshiSummary(data);
             renderKalshiEdgeRows();
+            renderKalshiTotalRows();
         } catch (error) {
             kalshiStatus.textContent = error.message;
             kalshiSummary.innerHTML = '';
             kalshiEdgeBody.innerHTML = '<tr><td colspan="6">Kalshi Edge Lab unavailable.</td></tr>';
+            if (kalshiTotalEdgeBody) kalshiTotalEdgeBody.innerHTML = '<tr><td colspan="6">Kalshi Total Points unavailable.</td></tr>';
         }
     }
 
@@ -386,7 +448,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await response.json();
             if (!response.ok || !data.success) throw new Error(data.error || 'Kalshi API refresh failed');
-            kalshiStatus.textContent = `Fetched ${data.fetched_markets} Kalshi markets; imported ${data.imported} snapshots.`;
+            const errors = Array.isArray(data.fetch_errors) && data.fetch_errors.length
+                ? ` Fetch errors: ${data.fetch_errors.map((item) => item.series_ticker).join(', ')}.`
+                : '';
+            kalshiStatus.textContent = `Fetched ${data.fetched_markets} Kalshi markets; imported ${data.imported} snapshots.${errors}`;
             await loadKalshiEdge();
         } catch (error) {
             kalshiStatus.textContent = error.message;
@@ -449,6 +514,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('kalshi-api-refresh')?.addEventListener('click', refreshKalshiFromApi);
     document.getElementById('kalshi-import')?.addEventListener('click', importKalshiSnapshot);
     kalshiModelFilter?.addEventListener('change', renderKalshiEdgeRows);
+    kalshiModelFilter?.addEventListener('change', renderKalshiTotalRows);
     kalshiThresholdFilter?.addEventListener('change', renderKalshiEdgeRows);
+    kalshiThresholdFilter?.addEventListener('change', renderKalshiTotalRows);
     loadInventory();
 });

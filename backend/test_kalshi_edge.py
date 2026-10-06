@@ -31,6 +31,25 @@ def test_normalize_kalshi_snapshot_moneyline_mid_price():
     assert row["kalshi_implied_probability"] == pytest.approx(0.57)
 
 
+def test_normalize_kalshi_snapshot_total_market():
+    row = kalshi_edge.normalize_kalshi_snapshot({
+        "season": 2026,
+        "week": 5,
+        "away_team": "ATL",
+        "home_team": "NO",
+        "market_type": "total",
+        "contract_side": "over",
+        "total_line": 47.5,
+        "yes_bid_dollars": "0.5200",
+        "yes_ask_dollars": "0.5400",
+    })
+
+    assert row["market_type"] == "total"
+    assert row["contract_side"] == "over"
+    assert row["total_line"] == pytest.approx(47.5)
+    assert row["kalshi_implied_probability"] == pytest.approx(0.53)
+
+
 def test_calibrate_margin_to_win_uses_historical_records():
     records = []
     for margin in range(-14, 15):
@@ -152,9 +171,38 @@ def test_generate_kalshi_snapshots_from_api_markets_matches_schedule():
     assert by_side["home_win"]["kalshi_mid_price"] == pytest.approx(0.35)
 
 
+def test_generate_kalshi_snapshots_from_api_total_market_matches_schedule():
+    schedule = [{
+        "season": 2026,
+        "week": 5,
+        "game_id": "2026_05_ATL_NO",
+        "away_team": "ATL",
+        "home_team": "NO",
+    }]
+    markets = [{
+        "ticker": "KXNFLTOTAL-26OCT05ATLNO-47.5",
+        "event_ticker": "KXNFLTOTAL-26OCT05ATLNO",
+        "title": "Over 47.5 points",
+        "yes_sub_title": "Over 47.5 points",
+        "yes_bid_dollars": "0.5100",
+        "yes_ask_dollars": "0.5300",
+        "status": "active",
+        "occurrence_datetime": "2026-10-05T20:15:00Z",
+    }]
+
+    result = kalshi_edge.generate_kalshi_snapshots_from_api(schedule, markets=markets)
+
+    assert result["generated_snapshots"] == 1
+    snapshot = result["snapshots"][0]
+    assert snapshot["market_type"] == "total"
+    assert snapshot["contract_side"] == "over"
+    assert snapshot["total_line"] == pytest.approx(47.5)
+    assert snapshot["kalshi_mid_price"] == pytest.approx(0.52)
+
+
 def test_refresh_kalshi_snapshots_from_api_imports_generated_rows(tmp_path, monkeypatch):
     monkeypatch.setattr(kalshi_edge, "kalshi_data_root", lambda: tmp_path)
-    monkeypatch.setattr(kalshi_edge, "fetch_kalshi_nfl_game_markets", lambda: [{
+    monkeypatch.setattr(kalshi_edge, "fetch_kalshi_nfl_markets", lambda: [{
         "ticker": "KXNFLGAME-26OCT11CHIGB-GB",
         "event_ticker": "KXNFLGAME-26OCT11CHIGB",
         "title": "Green Bay wins",
@@ -183,6 +231,52 @@ def test_refresh_kalshi_snapshots_from_api_imports_generated_rows(tmp_path, monk
     assert result["generated_snapshots"] == 2
     assert result["imported"] == 2
     assert len(kalshi_edge.read_kalshi_snapshots()) == 2
+
+
+def test_kalshi_total_edge_rows_calculate_threshold_and_profit():
+    upcoming = {
+        "season": 2026,
+        "week": 5,
+        "games": [{
+            "schedule": {
+                "season": 2026,
+                "week": 5,
+                "game_id": "2026_05_ATL_NO",
+                "away_team": "ATL",
+                "home_team": "NO",
+                "home_score": 28,
+                "away_score": 24,
+            },
+            "models": {
+                "current_season_matrix": {"pred_total": 55.0},
+            },
+        }],
+    }
+    snapshots = [kalshi_edge.normalize_kalshi_snapshot({
+        "season": 2026,
+        "week": 5,
+        "game_id": "2026_05_ATL_NO",
+        "away_team": "ATL",
+        "home_team": "NO",
+        "market_type": "total",
+        "contract_side": "over",
+        "total_line": 47.5,
+        "price": 0.52,
+        "observed_at": "2026-10-05T17:26:00Z",
+    })]
+
+    rows = kalshi_edge.kalshi_total_edge_rows(
+        upcoming,
+        snapshots,
+        {"current_season_matrix": {"scale": 10.0, "sample_size": 100, "confidence": "high"}},
+        thresholds=(0.03,),
+        models=("current_season_matrix",),
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["recommended_side"] == "over"
+    assert rows[0]["total_line"] == pytest.approx(47.5)
+    assert rows[0]["simulated_profit"] == pytest.approx(0.48)
 
 
 @pytest.mark.anyio

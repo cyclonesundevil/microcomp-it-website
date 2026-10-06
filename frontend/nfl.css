@@ -698,6 +698,11 @@
     overflow-x: auto;
 }
 
+.experimental-subhead {
+    margin: 1.1rem 0 0.55rem;
+    font-size: 1rem;
+}
+
 .experimental-help {
     margin: 0 0 0.9rem;
     max-width: 920px;
