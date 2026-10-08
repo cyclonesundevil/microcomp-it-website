@@ -54,6 +54,12 @@ from experimental.kalshi_edge import (
     kalshi_edge_report,
     refresh_kalshi_snapshots_from_api,
 )
+from experimental.pregame_edge_ledger import (
+    edge_quality_report,
+    ledger_metadata,
+    read_pregame_ledger,
+    snapshot_current_board,
+)
 from qb_availability_audit import (
     DEFAULT_MNF_JSON_REPORT,
     DEFAULT_MNF_MD_REPORT,
@@ -532,6 +538,67 @@ def register_nfl_routes(app, context):
             return api_error(str(e), 502)
 
 
+    async def _pregame_ledger_upcoming_snapshot():
+        requested_week = request.args.get("week")
+        requested_season = request.args.get("season")
+        week = int(requested_week) if requested_week else None
+        season = int(requested_season) if requested_season else None
+        games, _cache = await load_nfl_games_for_request()
+        snapshot = await asyncio.to_thread(cached_upcoming_predictions, games, season, week, False, False)
+        return await asyncio.to_thread(upcoming_predictions_for_roster_basis, snapshot, "active")
+
+
+    @app.route("/api/nfl/experimental/pregame-ledger")
+    @app.route("/api/v1/nfl/experimental/pregame-ledger")
+    async def nfl_experimental_pregame_ledger():
+        if not admin_secret_authorized():
+            return api_error("Admin token is required.", 403)
+        try:
+            rows = await asyncio.to_thread(read_pregame_ledger)
+            limit = int(request.args.get("limit", "250") or 250)
+            recent = sorted(rows, key=lambda row: row.get("observed_at") or "", reverse=True)[:max(1, min(limit, 2000))]
+            return jsonify({
+                "success": True,
+                "experimental": True,
+                "metadata": ledger_metadata(rows),
+                "rows": recent,
+            })
+        except ValueError:
+            return api_error("limit must be numeric when supplied.", 400)
+        except Exception as e:
+            traceback.print_exc()
+            return api_error(str(e), 500)
+
+
+    @app.route("/api/nfl/experimental/edge-quality")
+    @app.route("/api/v1/nfl/experimental/edge-quality")
+    async def nfl_experimental_edge_quality():
+        if not admin_secret_authorized():
+            return api_error("Admin token is required.", 403)
+        try:
+            games, _cache = await load_nfl_games_for_request()
+            return jsonify(await asyncio.to_thread(edge_quality_report, games))
+        except Exception as e:
+            traceback.print_exc()
+            return api_error(str(e), 500)
+
+
+    @app.route("/api/nfl/experimental/pregame-ledger/snapshot", methods=["POST"])
+    @app.route("/api/v1/nfl/experimental/pregame-ledger/snapshot", methods=["POST"])
+    async def nfl_experimental_pregame_ledger_snapshot():
+        if not admin_secret_authorized():
+            return api_error("Admin token is required.", 403)
+        try:
+            snapshot = await _pregame_ledger_upcoming_snapshot()
+            result = await asyncio.to_thread(snapshot_current_board, snapshot, "upcoming_week")
+            return jsonify(result)
+        except ValueError:
+            return api_error("season and week must be numeric when supplied.", 400)
+        except Exception as e:
+            traceback.print_exc()
+            return api_error(str(e), 500)
+
+
     @app.route("/api/nfl/dashboard")
     @app.route("/api/v1/nfl/dashboard")
     async def nfl_dashboard():
@@ -666,7 +733,14 @@ def register_nfl_routes(app, context):
                     if isinstance(models.get(profile), dict):
                         models[profile] = apply_rsm_roster_context_overlay(models[profile], schedule, roster_context)
             snapshot["roster_context"] = roster_context
-            return jsonify({"success": True, "source": GAMES_URL, "cache": cache, **snapshot})
+            ledger_snapshot = None
+            if force_refresh:
+                try:
+                    ledger_snapshot = await asyncio.to_thread(snapshot_current_board, snapshot, "upcoming_week_refresh")
+                except Exception as ledger_error:
+                    app.logger.warning("Pregame edge ledger snapshot failed after upcoming refresh: %s", ledger_error)
+                    ledger_snapshot = {"success": False, "error": str(ledger_error)}
+            return jsonify({"success": True, "source": GAMES_URL, "cache": cache, "ledger_snapshot": ledger_snapshot, **snapshot})
         except ValueError as error:
             return api_error(str(error), 400)
         except Exception as error:

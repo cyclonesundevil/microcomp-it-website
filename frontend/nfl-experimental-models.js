@@ -17,6 +17,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const kalshiThresholdFilter = document.getElementById('kalshi-threshold-filter');
     const kalshiImportJson = document.getElementById('kalshi-import-json');
     const kalshiImportStatus = document.getElementById('kalshi-import-status');
+    const ledgerStatus = document.getElementById('ledger-status');
+    const ledgerActionStatus = document.getElementById('ledger-action-status');
+    const ledgerSummary = document.getElementById('ledger-summary');
+    const ledgerAtsBody = document.getElementById('ledger-ats-body');
+    const ledgerOuBody = document.getElementById('ledger-ou-body');
+    const ledgerAgreementBody = document.getElementById('ledger-agreement-body');
+    const ledgerClvBody = document.getElementById('ledger-clv-body');
     let kalshiReport = null;
 
     const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -402,6 +409,95 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
     }
 
+    function recordCell(row) {
+        return `${esc(row.wins ?? 0)}-${esc(row.losses ?? 0)}-${esc(row.pushes ?? 0)}`;
+    }
+
+    function edgeBucketRows(rows, marketType) {
+        const filtered = (rows || []).filter((row) => row.market_type === marketType);
+        if (!filtered.length) return '<tr><td colspan="7">No graded ledger rows yet.</td></tr>';
+        return filtered.map((row) => `
+            <tr>
+                <td>${esc(kalshiModelLabels[row.model] || modelLabel(row.model))}</td>
+                <td>${esc(row.edge_bucket)}</td>
+                <td>${esc(row.bets ?? 0)}</td>
+                <td>${recordCell(row)}</td>
+                <td>${pct(row.win_rate)}</td>
+                <td>${pct(row.roi_at_minus_110)}</td>
+                <td>${num(row.average_projection_error, 2)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderEdgeQuality(report) {
+        if (!ledgerStatus || !ledgerSummary) return;
+        const meta = report?.metadata || {};
+        ledgerStatus.textContent = `${report?.warning || 'Pregame ledger loaded.'}`;
+        ledgerSummary.innerHTML = `
+            <div><span>Rows</span><strong>${esc(meta.row_count ?? 0)}</strong></div>
+            <div><span>Games</span><strong>${esc(meta.game_count ?? 0)}</strong></div>
+            <div><span>Latest Snapshot</span><strong>${esc(meta.latest_observed_at || 'None')}</strong></div>
+        `;
+        ledgerAtsBody.innerHTML = edgeBucketRows(report?.edge_buckets, 'ATS');
+        ledgerOuBody.innerHTML = edgeBucketRows(report?.edge_buckets, 'OU');
+        const agreement = report?.agreement_groups || [];
+        ledgerAgreementBody.innerHTML = agreement.length ? agreement.map((row) => `
+            <tr>
+                <td>${esc(row.group)}</td>
+                <td>${esc(row.market_type)}</td>
+                <td>${esc(row.sample_size ?? 0)}</td>
+                <td>${recordCell(row)}</td>
+                <td>${pct(row.win_rate)}</td>
+                <td>${pct(row.roi_at_minus_110)}</td>
+                <td>${esc(row.confidence || 'low')}</td>
+            </tr>
+        `).join('') : '<tr><td colspan="7">No agreement groups yet.</td></tr>';
+        const clv = report?.clv_summary || [];
+        ledgerClvBody.innerHTML = clv.length ? clv.map((row) => `
+            <tr>
+                <td>${esc(kalshiModelLabels[row.model] || modelLabel(row.model))}</td>
+                <td>${esc(row.market_type)}</td>
+                <td>${esc(row.rows ?? 0)}</td>
+                <td>${signed(row.average_clv)}</td>
+                <td>${pct(row.positive_clv_rate)}</td>
+            </tr>
+        `).join('') : '<tr><td colspan="5">No closing-line movement captured yet.</td></tr>';
+    }
+
+    async function loadEdgeQuality() {
+        if (!ledgerStatus) return;
+        ledgerStatus.textContent = 'Loading pregame edge ledger...';
+        try {
+            const response = await fetch(apiUrl('/api/nfl/experimental/edge-quality'));
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load edge quality analysis');
+            renderEdgeQuality(data);
+        } catch (error) {
+            ledgerStatus.textContent = error.message;
+            if (ledgerSummary) ledgerSummary.innerHTML = '';
+            if (ledgerAtsBody) ledgerAtsBody.innerHTML = '<tr><td colspan="7">Pregame ledger unavailable.</td></tr>';
+            if (ledgerOuBody) ledgerOuBody.innerHTML = '<tr><td colspan="7">Pregame ledger unavailable.</td></tr>';
+            if (ledgerAgreementBody) ledgerAgreementBody.innerHTML = '<tr><td colspan="7">Pregame ledger unavailable.</td></tr>';
+            if (ledgerClvBody) ledgerClvBody.innerHTML = '<tr><td colspan="5">Pregame ledger unavailable.</td></tr>';
+        }
+    }
+
+    async function snapshotLedger() {
+        if (!ledgerActionStatus) return;
+        ledgerActionStatus.textContent = 'Snapshotting...';
+        try {
+            const response = await fetch(selectedWeekApiUrl('/api/nfl/experimental/pregame-ledger/snapshot'), {
+                method: 'POST'
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.error || 'Snapshot failed');
+            ledgerActionStatus.textContent = `Stored ${data.created_rows} rows; ${data.total_rows} total.`;
+            await loadEdgeQuality();
+        } catch (error) {
+            ledgerActionStatus.textContent = error.message;
+        }
+    }
+
     async function loadKalshiEdge() {
         if (!kalshiStatus || !kalshiEdgeBody) return;
         kalshiStatus.textContent = 'Loading Kalshi Edge Lab...';
@@ -470,6 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderParallel(data.research_models?.parallel);
             renderRsm(data.research_models?.rsm_stage7c);
             loadKalshiEdge();
+            loadEdgeQuality();
         } catch (error) {
             status.textContent = error.message;
             probabilityStatus.textContent = 'Unable to load current-week probabilities.';
@@ -513,6 +610,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('kalshi-refresh')?.addEventListener('click', loadKalshiEdge);
     document.getElementById('kalshi-api-refresh')?.addEventListener('click', refreshKalshiFromApi);
     document.getElementById('kalshi-import')?.addEventListener('click', importKalshiSnapshot);
+    document.getElementById('ledger-refresh')?.addEventListener('click', loadEdgeQuality);
+    document.getElementById('ledger-snapshot')?.addEventListener('click', snapshotLedger);
     kalshiModelFilter?.addEventListener('change', renderKalshiEdgeRows);
     kalshiModelFilter?.addEventListener('change', renderKalshiTotalRows);
     kalshiThresholdFilter?.addEventListener('change', renderKalshiEdgeRows);

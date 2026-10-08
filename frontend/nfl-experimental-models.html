@@ -36,7 +36,7 @@
             <p class="science-kicker">Admin Research Surface</p>
             <h1>NFL Experimental Models</h1>
             <p id="experimental-status">Loading protected model inventory...</p>
-            <p class="experimental-version">Experimental page version: Kalshi Edge Lab v2.5</p>
+            <p class="experimental-version">Experimental page version: Edge Ledger v1.0</p>
         </section>
 
         <section class="experimental-panel">
@@ -155,6 +155,94 @@
 
         <section class="experimental-panel">
             <div class="section-heading">
+                <h2>Pregame Edge Ledger</h2>
+                <p id="ledger-status">Loading pregame edge ledger...</p>
+            </div>
+            <p class="experimental-help">
+                Experimental record of pregame model edges, market lines, picks, roster context, and postgame grading. ATS and O/U results are graded against the captured market line.
+            </p>
+            <div class="experimental-controls">
+                <button id="ledger-snapshot" class="btn-primary" type="button">
+                    <i class="fa-solid fa-camera"></i>
+                    Snapshot Current Board
+                </button>
+                <button id="ledger-refresh" class="btn-secondary" type="button">
+                    <i class="fa-solid fa-rotate"></i>
+                    Refresh Ledger
+                </button>
+                <span id="ledger-action-status"></span>
+            </div>
+            <div id="ledger-summary" class="experimental-summary-row"></div>
+            <div class="experimental-table-wrap">
+                <h3 class="experimental-subhead">ATS by Edge Bucket</h3>
+                <table class="nfl-table experimental-table">
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Bucket</th>
+                            <th>Bets</th>
+                            <th>Record</th>
+                            <th>Win %</th>
+                            <th>ROI -110</th>
+                            <th>Avg Error</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledger-ats-body"><tr><td colspan="7">Loading...</td></tr></tbody>
+                </table>
+            </div>
+            <div class="experimental-table-wrap">
+                <h3 class="experimental-subhead">O/U by Edge Bucket</h3>
+                <table class="nfl-table experimental-table">
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Bucket</th>
+                            <th>Bets</th>
+                            <th>Record</th>
+                            <th>Win %</th>
+                            <th>ROI -110</th>
+                            <th>Avg Error</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledger-ou-body"><tr><td colspan="7">Loading...</td></tr></tbody>
+                </table>
+            </div>
+            <div class="experimental-table-wrap">
+                <h3 class="experimental-subhead">Model Agreement Groups</h3>
+                <table class="nfl-table experimental-table">
+                    <thead>
+                        <tr>
+                            <th>Group</th>
+                            <th>Market</th>
+                            <th>Sample</th>
+                            <th>Record</th>
+                            <th>Win %</th>
+                            <th>ROI -110</th>
+                            <th>Confidence</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledger-agreement-body"><tr><td colspan="7">Loading...</td></tr></tbody>
+                </table>
+            </div>
+            <div class="experimental-table-wrap">
+                <h3 class="experimental-subhead">Closing Line Value</h3>
+                <table class="nfl-table experimental-table">
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Market</th>
+                            <th>Rows</th>
+                            <th>Avg CLV</th>
+                            <th>Positive CLV</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledger-clv-body"><tr><td colspan="5">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="experimental-panel">
+            <div class="section-heading">
                 <h2>Live Experimental Profiles</h2>
                 <p>Reference list only. These are the experimental models included in the probability board and probe.</p>
             </div>
@@ -239,7 +327,7 @@
         </section>
     </main>
 
-    <script src="/nfl-experimental-models.js?v=2.5"></script>
+    <script src="/nfl-experimental-models.js?v=2.6"></script>
 </body>
 
 </html>
