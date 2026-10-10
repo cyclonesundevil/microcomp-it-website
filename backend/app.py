@@ -126,12 +126,6 @@ def rsm_total_observation_store():
 
 REPORTS_DIR = Path(base_dir).parent / "reports"
 EXPERIMENTAL_MODEL_DETAILS = {
-    "rothstein_plus": {
-        "label": "Rothstein+",
-        "family": "Production predictor experiment",
-        "surface": "Live matchup, history, backtest, upcoming board",
-        "notes": "Midseason/QB-continuity filter layered on the Rothstein profile.",
-    },
     RSM_PROFILE: {
         "label": "RSM - Experimental",
         "family": "Roster Strength Model",

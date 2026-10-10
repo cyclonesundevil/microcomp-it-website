@@ -129,7 +129,7 @@ MODEL_SIGNAL_STATUSES = {
     MEAN_REVERSION_PROFILE: "Production",
     CURRENT_SEASON_MATRIX_PROFILE: "Experimental",
     "rothstein": "Production",
-    "rothstein_plus": "Experimental",
+    "rothstein_plus": "Production",
     RSM_PROFILE: "Experimental",
     RSM_PLUS_PROFILE: "Experimental",
     "dsm": "Research only",
