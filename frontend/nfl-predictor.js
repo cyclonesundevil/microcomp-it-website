@@ -249,6 +249,12 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
+    function closeRosterTooltips(except = null) {
+        document.querySelectorAll('.upcoming-roster-hover.is-open').forEach((chip) => {
+            if (chip !== except) chip.classList.remove('is-open');
+        });
+    }
+
     function setUpcomingProgress(percent, message) {
         if (!upcomingProgress) return;
         if (!upcomingProgressStartedAt) {
@@ -933,6 +939,21 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             rsmRecordStatus.textContent = `Total not recorded: ${error.message}`;
         }
+    });
+
+    document.addEventListener('click', (event) => {
+        const chip = event.target.closest('.upcoming-roster-hover');
+        if (!chip) {
+            closeRosterTooltips();
+            return;
+        }
+        const willOpen = !chip.classList.contains('is-open');
+        closeRosterTooltips(chip);
+        chip.classList.toggle('is-open', willOpen);
+        if (!willOpen) chip.blur();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeRosterTooltips();
     });
 
     loadTeams()

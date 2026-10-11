@@ -415,6 +415,12 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
+    function closeRosterTooltips(except = null) {
+        document.querySelectorAll('.upcoming-roster-hover.is-open').forEach((chip) => {
+            if (chip !== except) chip.classList.remove('is-open');
+        });
+    }
+
     function renderGames(data) {
         if (upcomingBoardWrap) upcomingBoardWrap.hidden = data.roster_basis === 'comparison';
         if (rosterComparisonPanel) rosterComparisonPanel.hidden = data.roster_basis !== 'comparison';
@@ -698,6 +704,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     refreshButton.addEventListener('click', () => loadUpcoming(true));
+    document.addEventListener('click', (event) => {
+        const chip = event.target.closest('.upcoming-roster-hover');
+        if (!chip) {
+            closeRosterTooltips();
+            return;
+        }
+        const willOpen = !chip.classList.contains('is-open');
+        closeRosterTooltips(chip);
+        chip.classList.toggle('is-open', willOpen);
+        if (!willOpen) chip.blur();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeRosterTooltips();
+    });
     setRosterBasisButtons();
     updateRosterBasisUrl();
     loadUpcoming(false);

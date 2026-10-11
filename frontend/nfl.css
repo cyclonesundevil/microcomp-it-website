@@ -462,7 +462,7 @@
     border: 1px solid rgba(255, 199, 89, 0.28);
     border-radius: 999px;
     color: var(--text-secondary);
-    cursor: help;
+    cursor: pointer;
     font-size: 0.74rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -499,7 +499,8 @@
 
 .upcoming-roster-hover:hover .upcoming-roster-tooltip,
 .upcoming-roster-hover:focus .upcoming-roster-tooltip,
-.upcoming-roster-hover:focus-within .upcoming-roster-tooltip {
+.upcoming-roster-hover:focus-within .upcoming-roster-tooltip,
+.upcoming-roster-hover.is-open .upcoming-roster-tooltip {
     display: block;
 }
 

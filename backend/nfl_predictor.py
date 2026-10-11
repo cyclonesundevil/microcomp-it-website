@@ -3191,7 +3191,7 @@ def stabilize_rothstein_upcoming_prediction(
     guarded["total_edge"] = stabilized_total - total_line if stabilized_total is not None and total_line is not None else None
 
     eligible = bool(guarded.get("eligible"))
-    if model_profile == "rothstein_plus" and sample["confidence"] != "HIGH":
+    if model_profile == "rothstein_plus" and sample["confidence"] == "LOW":
         eligible = False
         guarded["eligible"] = False
         guarded["display_suppressed"] = True
@@ -3211,7 +3211,9 @@ def stabilize_rothstein_upcoming_prediction(
     if guarded["upcoming_stabilized"]:
         notes.append("Upcoming Rothstein projection is stabilized toward market/league baselines because same-season sample size is low.")
     if guarded.get("display_suppressed"):
-        notes.append("Rothstein+ is hidden for this upcoming game because its eligibility/data-confidence requirements are not met.")
+        notes.append("Rothstein+ is hidden for this upcoming game because its minimum data-confidence requirement is not met.")
+    elif model_profile == "rothstein_plus" and not eligible:
+        notes.append("Rothstein+ projection is active, but this matchup does not meet the stricter historical signal eligibility filter.")
     guarded["model_notes"] = notes
     return guarded
 

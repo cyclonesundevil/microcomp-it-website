@@ -1446,6 +1446,37 @@ def test_rothstein_plus_upcoming_low_confidence_is_visibly_ineligible():
     assert "hidden" in " ".join(prediction["model_notes"])
 
 
+def test_rothstein_plus_upcoming_medium_confidence_is_visible_but_signal_filtered():
+    games = [
+        _history_game("2026_01_MIN_CHI", 2026, 1, "MIN", "CHI", 24, 20),
+        _history_game("2026_01_GB_DET", 2026, 1, "GB", "DET", 17, 27),
+        _history_game("2026_02_MIN_GB", 2026, 2, "MIN", "GB", 21, 14),
+        _history_game("2026_02_CHI_DET", 2026, 2, "CHI", "DET", 13, 24),
+        _history_game("2026_03_DET_MIN", 2026, 3, "DET", "MIN", 20, 23),
+        _history_game("2026_03_CHI_GB", 2026, 3, "CHI", "GB", 16, 19),
+        _history_game("2026_04_GB_MIN", 2026, 4, "GB", "MIN", 22, 28),
+        _history_game("2026_04_DET_CHI", 2026, 4, "DET", "CHI", 31, 21),
+    ]
+    trained = train_model(games, "rothstein_plus")
+
+    prediction = predict_matchup(
+        games,
+        away_team="MIN",
+        home_team="CHI",
+        spread_line=-2.5,
+        total_line=48.5,
+        model_profile="rothstein_plus",
+        trained_model=trained,
+        upcoming_context=True,
+    )
+
+    assert prediction["data_confidence"] == "MEDIUM"
+    assert prediction["eligible"] is False
+    assert prediction.get("display_suppressed") is not True
+    assert prediction["pred_margin"] is not None
+    assert "projection is active" in " ".join(prediction["model_notes"])
+
+
 def test_upcoming_context_does_not_change_non_rothstein_models():
     games = [_graded_game(2025, "KC", "PHI"), _graded_game(2026, "KC", "PHI")]
 
