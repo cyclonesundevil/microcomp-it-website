@@ -600,7 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         dashboardTopGrid.innerHTML = topTeams.map((team) => `
             <div class="dashboard-card">
-                <span>#${team.rank} ${team.team}</span>
+                <span>#${team.rank} ${team.team} <small>(${team.record || '0-0'})</small></span>
                 <strong>${signed(team.strength_rating)}</strong>
                 <div class="dashboard-bars">
                     <label>Neutral-field win proxy <b>${pct(team.neutral_win_probability)}</b></label>
@@ -614,7 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dashboardTableBody.innerHTML = teams.map((team) => `
             <tr>
                 <td>${team.rank}</td>
-                <td>${team.team}</td>
+                <td>${team.team} <small class="team-record">(${team.record || '0-0'})</small></td>
                 <td>${signed(team.strength_rating)}</td>
                 <td>${num(team.expected_points)}</td>
                 <td>${num(team.expected_allowed)}</td>

@@ -3291,9 +3291,11 @@ def dashboard_snapshot(
     injury_position: str = "general",
 ) -> dict:
     if model_profile == RSM_PROFILE:
-        return rsm_dashboard_snapshot(games, playoff_mode, injury_team, injury_impact, injury_position)
+        snapshot = rsm_dashboard_snapshot(games, playoff_mode, injury_team, injury_impact, injury_position)
+        return _add_team_records(snapshot, games)
     if model_profile == CURRENT_SEASON_MATRIX_PROFILE:
-        return current_season_matrix_dashboard_snapshot(games, playoff_mode, injury_team, injury_impact, injury_position)
+        snapshot = current_season_matrix_dashboard_snapshot(games, playoff_mode, injury_team, injury_impact, injury_position)
+        return _add_team_records(snapshot, games)
 
     if model_profile in {"market_blend", MEAN_REVERSION_PROFILE, "rothstein", "rothstein_plus"}:
         model_profile = "baseline"
@@ -3394,7 +3396,7 @@ def dashboard_snapshot(
         row["rank"] = index
         row["playoff_odds"] = max(0.02, min(0.98, playoff_odds))
 
-    return {
+    return _add_team_records({
         "season": latest_season,
         "completed_week": completed_week,
         "model": model_profile,
@@ -3427,7 +3429,35 @@ def dashboard_snapshot(
             "average_neutral_win_probability": statistics.mean(row["neutral_win_probability"] for row in rows),
             "team_count": len(rows),
         },
-    }
+    }, games)
+
+
+def _add_team_records(snapshot: dict, games: List[dict]) -> dict:
+    records = {}
+    season = snapshot["season"]
+    for game in games:
+        if game.get("season") != season:
+            continue
+        away_score = game.get("away_score")
+        home_score = game.get("home_score")
+        if away_score is None or home_score is None:
+            continue
+        away = records.setdefault(game["away_team"], [0, 0, 0])
+        home = records.setdefault(game["home_team"], [0, 0, 0])
+        if away_score == home_score:
+            away[2] += 1
+            home[2] += 1
+        elif away_score > home_score:
+            away[0] += 1
+            home[1] += 1
+        else:
+            away[1] += 1
+            home[0] += 1
+
+    for row in snapshot["teams"]:
+        wins, losses, ties = records.get(row["team"], (0, 0, 0))
+        row["record"] = f"{wins}-{losses}-{ties}" if ties else f"{wins}-{losses}"
+    return snapshot
 
 
 def current_season_matrix_dashboard_snapshot(
