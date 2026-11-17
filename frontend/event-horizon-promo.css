@@ -1,0 +1,58 @@
+/* Companion experience: isolated from the shared simulator and site controls. */
+.horizon-preview-label {
+    color: var(--text-secondary);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+.horizon-feature {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    align-items: center;
+    gap: 24px;
+    max-width: 660px;
+    margin-top: 28px;
+    padding: 24px;
+    border: 1px solid rgba(224, 176, 111, 0.25);
+    border-radius: 14px;
+    background: linear-gradient(120deg, rgba(219, 150, 74, 0.09), rgba(13, 19, 29, 0.8));
+    color: #f4eee5;
+    text-decoration: none;
+    transition: border-color 180ms ease, background-color 180ms ease;
+}
+.horizon-feature:hover {
+    border-color: rgba(235, 188, 126, 0.65);
+    background-color: rgba(219, 150, 74, 0.06);
+}
+.horizon-feature:focus-visible { outline: 2px solid #e9b979; outline-offset: 5px; }
+.horizon-feature-orbit {
+    display: block;
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, #03050a 0 26%, #fbe2b7 28%, #cb8b4b 31%, rgba(191, 114, 53, 0.25) 38%, transparent 62%);
+    box-shadow: inset 0 0 24px rgba(232, 166, 91, 0.06);
+}
+.horizon-feature-copy { display: grid; gap: 8px; }
+.horizon-feature-label {
+    color: #d7ad77;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+.horizon-feature-copy strong { font-size: 1.18rem; line-height: 1.35; font-weight: 600; }
+.horizon-feature-description { color: #a8b3c4; font-size: 0.88rem; line-height: 1.65; }
+.horizon-feature-action { margin-top: 5px; color: #efc58e; font-size: 0.82rem; font-weight: 600; }
+.horizon-feature-action span { margin-left: 8px; }
+:root[data-theme="light"] .horizon-feature { background: #fbf5eb; border-color: #d8c3a4; color: #29231c; }
+:root[data-theme="light"] .horizon-feature-label,
+:root[data-theme="light"] .horizon-feature-action { color: #83521e; }
+:root[data-theme="light"] .horizon-feature-description { color: #555d6b; }
+@media (max-width: 600px) {
+    .horizon-feature { grid-template-columns: 52px minmax(0, 1fr); gap: 16px; padding: 20px 16px; }
+    .horizon-feature-orbit { width: 52px; height: 52px; }
+    .horizon-feature-copy strong { font-size: 1.05rem; }
+}
