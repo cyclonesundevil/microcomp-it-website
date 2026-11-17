@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event Horizon Simulator | MicroComp IT</title>
+<meta name="description" content="An immersive black hole flight simulation with gravitational lensing, an accretion disk, cockpit controls, and probe experiments. Part of the MicroComp IT Demo Lab.">
+<meta name="theme-color" content="#000000">
+<script src="analytics.js?v=1.2"></script>
+<style>
+  .simulation-nav {
+    position: fixed; inset: 0 0 auto; z-index: 100;
+    display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 10px 16px;
+    background: rgba(4, 10, 12, 0.85); border-bottom: 1px solid rgba(159, 232, 208, 0.25);
+    font-size: 12px;
+  }
+  .simulation-nav a { color: #9fe8d0; text-decoration: none; padding: 3px 0; }
+  .simulation-nav a:hover { text-decoration: underline; }
+  .simulation-nav a:focus-visible { outline: 2px solid #ffc857; outline-offset: 3px; }
+  :root { --hud: #9fe8d0; --hud-dim: #5f9c8c; --warn: #ffc857; --danger: #ff5a4d; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--hud); }
+  canvas { display: block; width: 100vw; height: 100vh; touch-action: none; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+
+  /* ---------- HUD (top-left) ---------- */
+  #hud {
+    position: fixed; top: max(7vh, 60px); left: 5vw; z-index: 20; pointer-events: none;
+    font-size: 12px; line-height: 1.55; min-width: 310px;
+    padding: 10px 14px; background: rgba(4, 10, 12, 0.55);
+    border: 1px solid rgba(159, 232, 208, 0.25); border-radius: 6px;
+    text-shadow: 0 0 6px rgba(159, 232, 208, 0.35);
+    font-variant-numeric: tabular-nums;
+  }
+  #hud .title { letter-spacing: 0.18em; font-size: 11px; color: var(--hud-dim); margin-bottom: 4px; }
+  #hud .row { display: flex; justify-content: space-between; gap: 18px; white-space: nowrap; }
+  #hud .row span:first-child { color: var(--hud-dim); }
+  #hud .sep { border-top: 1px solid rgba(159, 232, 208, 0.18); margin: 6px 0; }
+  #hud .status { margin-top: 6px; letter-spacing: 0.08em; }
+  #hud.warn  { --hud: var(--warn);   --hud-dim: #b08c40; border-color: rgba(255, 200, 87, 0.4); }
+  #hud.danger{ --hud: var(--danger); --hud-dim: #b0483f; border-color: rgba(255, 90, 77, 0.55); }
+  #hud.danger .status { animation: blink 0.8s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0.35; } }
+
+  #help {
+    position: fixed; bottom: 2.2vh; left: 50%; transform: translateX(-50%); z-index: 20;
+    font-size: 11px; color: rgba(159, 232, 208, 0.6); white-space: nowrap; pointer-events: none;
+  }
+  #help b { color: rgba(159, 232, 208, 0.95); font-weight: 600; }
+
+  /* ---------- Cockpit window frame (toggle with H) ----------
+     One rounded "window" element; its enormous box-shadow paints the frame
+     around it, so the centre of the view is never covered. */
+  #cockpit { position: fixed; inset: 0; z-index: 10; pointer-events: none; transition: opacity 0.4s; }
+  #cockpit.off { opacity: 0; }
+  #cockpit .window {
+    position: absolute; inset: 3vh 2.2vw 6.5vh 2.2vw; border-radius: 7vh / 9vh; overflow: hidden;
+    box-shadow: 0 0 0 200vmax #06080b,
+                inset 0 0 0 2px rgba(130, 150, 170, 0.28),
+                inset 0 0 60px 18px rgba(0, 0, 0, 0.85);
+  }
+  /* Faint reflections on the glass. */
+  #cockpit .glare {
+    position: absolute; inset: 0; opacity: 0.05;
+    background:
+      linear-gradient(112deg, transparent 12%, #fff 13.5%, transparent 19%, transparent 23%, #fff 24%, transparent 26%),
+      radial-gradient(ellipse at 82% 108%, #8fd 0%, transparent 28%);
+  }
+  /* Little console lights on the lower frame. */
+  #cockpit .console { position: absolute; bottom: 2.3vh; left: 4vw; display: flex; gap: 10px; }
+  #cockpit .console i { width: 6px; height: 6px; border-radius: 50%; background: #2fd6a0; box-shadow: 0 0 8px #2fd6a0; opacity: 0.8; }
+  #cockpit .console i:nth-child(2) { background: #ffc857; box-shadow: 0 0 8px #ffc857; }
+  #cockpit .console i:nth-child(3) { background: #ff5a4d; box-shadow: 0 0 8px #ff5a4d; animation: blink 1.6s steps(2) infinite; }
+
+  .lil-gui.root { z-index: 30; top: max(6vh, 60px) !important; right: 4vw !important; --width: 270px; }
+  @media (max-width: 600px) {
+    #hud { top: 100px; left: 12px; min-width: 0; max-width: calc(100vw - 52px); font-size: 10px; }
+    .lil-gui.root { right: 12px !important; --width: 230px; }
+    #help { width: calc(100% - 32px); white-space: normal; text-align: center; }
+  }
+
+  #fallback {
+    display: none; position: fixed; inset: 0; z-index: 99; background: #05070a; color: #dde;
+    align-items: center; justify-content: center; text-align: center; padding: 2rem; font-size: 15px; line-height: 1.6;
+  }
+</style>
+
+<!-- Three.js is loaded as an ES module from a CDN, pinned to an exact version. -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<nav class="simulation-nav" aria-label="Simulation navigation">
+  <a href="demo-lab.html">Demo Lab</a>
+  <a href="black-hole-playground.html">Black Hole Playground</a>
+</nav>
+<div id="fallback"><div><b>WebGL2 is not available.</b><br>This visualization ray-traces curved spacetime on the GPU and needs a browser and graphics driver with WebGL2 support.</div></div>
+
+<div id="cockpit">
+  <div class="window"><div class="glare"></div></div>
+  <div class="console"><i></i><i></i><i></i></div>
+</div>
+<div id="hud"></div>
+<div id="help">
+  <b>Drag</b> orbit · <b>Right-drag</b> look around · <b>Scroll / W S</b> distance · <b>A D</b> orbit ·
+  <b>Click disk</b> drop probe · <b>Space</b> pause · <b>H</b> cockpit · <b>R</b> recentre
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { TexturePass } from 'three/addons/postprocessing/TexturePass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import GUI from 'three/addons/libs/lil-gui.module.min.js';
+
+/* =====================================================================
+   0. WEBGL2 CHECK
+   ===================================================================== */
+if (!document.createElement('canvas').getContext('webgl2')) {
+  document.getElementById('fallback').style.display = 'flex';
+  throw new Error('WebGL2 not available');
+}
+
+/* =====================================================================
+   1. PHYSICS (SI units in JS; the shader works in units of r_s, with c = 1)
+   ===================================================================== */
+const G      = 6.67430e-11;        // gravitational constant, m^3 kg^-1 s^-2
+const C      = 299792458;          // speed of light, m/s
+const M_SUN  = 1.98847e30;         // solar mass, kg
+const BH_MASS = 70 * M_SUN;        // a heavy stellar-mass black hole
+const RS_M   = 2 * G * BH_MASS / (C * C);   // Schwarzschild radius ≈ 206.7 km
+const RS_KM  = RS_M / 1000;
+const T_UNIT = RS_M / C;           // light-crossing time of one r_s ≈ 0.69 ms
+const SHUTTLE_LENGTH = 37;         // m (Space Shuttle orbiter)
+const G0 = 9.80665;                // standard gravity, m/s^2
+
+// The companion: an O-type star in a tight X-ray binary (Cygnus X-1-like).
+// It is ~200,000 r_s away, so the shader treats it as being at infinity.
+const STAR_DISTANCE_KM = 45e6;
+const STAR_RADIUS_KM   = 6.3e6;    // ≈ 9 solar radii
+const STAR_ANG_RADIUS  = Math.asin(STAR_RADIUS_KM / STAR_DISTANCE_KM);   // ≈ 8°
+const STAR_AZIMUTH     = THREE.MathUtils.degToRad(65);   // position angle within the orbital plane
+
+// Real orbital periods here are tens of milliseconds, far too fast to watch.
+// At time scale 1× the simulation advances SIM_RATE units of r_s/c per real
+// second, i.e. roughly 1.5 ms of black-hole time per second on screen.
+const SIM_RATE = 2.2;
+
+const DISK_OUTER = 15;             // outer edge of the accretion disk, in r_s
+const FRAME_DRAG_K = 1.0;          // strength of the approximate frame-dragging term (see shader)
+
+// Prograde ISCO radius of a Kerr black hole (Bardeen 1972), returned in r_s.
+function kerrIsco(a) {
+  const z1 = 1 + Math.cbrt(1 - a * a) * (Math.cbrt(1 + a) + Math.cbrt(1 - a));
+  const z2 = Math.sqrt(3 * a * a + z1 * z1);
+  return (3 + z2 - Math.sqrt((3 - z1) * (3 + z1 + 2 * z2))) / 2;   // /2: M units → r_s units
+}
+// Kerr event-horizon radius in r_s.
+const kerrHorizon = (a) => (1 + Math.sqrt(1 - a * a)) / 2;
+
+/* =====================================================================
+   2. SHADERS
+   ===================================================================== */
+const quadVertexShader = /* glsl */`
+  void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }
+`;
+
+/* ---------------------------------------------------------------------
+   The ray marcher. For every pixel we shoot a light ray *backward* from
+   the camera and bend it with the exact Schwarzschild photon equation.
+
+   Trick: the orbit equation d²u/dφ² + u = (3/2)·r_s·u²  (u = 1/r) is what
+   a Newtonian particle would follow under the central acceleration
+        a = -(3/2) · h² · x / r⁵ ,   h = |x × v|
+   so we can integrate in ordinary 3D Cartesian coordinates and still get
+   the exact light path shape for a non-rotating black hole.
+   --------------------------------------------------------------------- */
+const blackHoleFragmentShader = /* glsl */`
+  precision highp float;
+
+  #define PI 3.14159265359
+  #define MAX_STEPS 600
+  #define ESCAPE_R 60.0        // beyond this the ray is "at infinity"
+  #define STREAM_OUT 55.0      // gas stream fades out by this radius
+  #define FLOW_T 24.0          // length of one turbulence cross-fade cycle
+  #define FLOW_T0 6.0          // pre-shear so the gas always looks wound up
+  #define FRAME_DRAG_K ${FRAME_DRAG_K.toFixed(2)}
+  #define MAX_PROBES 4
+
+  uniform vec2  uResolution;
+  uniform vec3  uCamPos, uCamRight, uCamUp, uCamFwd;
+  uniform float uTanHalfFov;
+  uniform float uTime;         // simulation time in units of r_s / c
+  uniform int   uSteps;
+  uniform float uSpin;         // dimensionless spin a (0 … 0.99)
+  uniform float uHorizon;      // capture radius
+  uniform float uIsco;         // inner edge of the stable disk
+  uniform float uDiskOuter;
+  uniform vec3  uDiskN, uDiskE1, uDiskE2;   // disk normal and two in-plane axes
+  uniform float uObsLapse;     // sqrt(1 - r_s/r) at the shuttle
+  uniform float uSkyBoost;     // blueshift brightening of starlight for a hovering observer
+  uniform vec3  uStarDir;
+  uniform float uStarAng;
+  uniform float uStarPhi;
+  uniform float uLensing, uDoppler, uDisk, uStar, uStream;
+  uniform vec4  uProbes[MAX_PROBES];        // xyz = position, w = brightness
+  uniform vec3  uProbeCol[MAX_PROBES];
+  uniform int   uProbeCount;
+
+  // ---------- hashes & value noise (no textures anywhere) ----------
+  float hash12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+  vec3  hash33(vec3 p3) { p3 = fract(p3 * vec3(.1031, .1030, .0973)); p3 += dot(p3, p3.yxz + 33.33); return fract((p3.xxy + p3.yxx) * p3.zyx); }
+  float hash13(vec3 p3) { p3 = fract(p3 * .1031); p3 += dot(p3, p3.zyx + 31.32); return fract((p3.x + p3.y) * p3.z); }
+
+  float vnoise2(vec2 p) {
+    vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+    return mix(mix(hash12(i), hash12(i + vec2(1, 0)), f.x),
+               mix(hash12(i + vec2(0, 1)), hash12(i + vec2(1, 1)), f.x), f.y);
+  }
+  float fbm2(vec2 p) {
+    float a = .5, s = 0.;
+    for (int i = 0; i < 5; i++) { s += a * vnoise2(p); p = p * 2.03 + vec2(17.3, 9.1); a *= .5; }
+    return s;
+  }
+  float vnoise3(vec3 p) {
+    vec3 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+    return mix(mix(mix(hash13(i), hash13(i + vec3(1, 0, 0)), f.x), mix(hash13(i + vec3(0, 1, 0)), hash13(i + vec3(1, 1, 0)), f.x), f.y),
+               mix(mix(hash13(i + vec3(0, 0, 1)), hash13(i + vec3(1, 0, 1)), f.x), mix(hash13(i + vec3(0, 1, 1)), hash13(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+  }
+  float fbm3(vec3 p) {
+    float a = .5, s = 0.;
+    for (int i = 0; i < 5; i++) { s += a * vnoise3(p); p = p * 2.02 + vec3(5.1, 1.7, 8.3); a *= .5; }
+    return s;
+  }
+
+  // ---------- blackbody colour (Kelvin → linear RGB, brightest channel ≈ 1) ----------
+  vec3 blackbody(float T) {
+    float t = clamp(T, 800., 40000.) / 100.;
+    float r, g, b;
+    if (t <= 66.) { r = 1.; g = clamp(0.39008157876 * log(t) - 0.63184144378, 0., 1.); }
+    else { r = clamp(1.29293618606 * pow(t - 60., -0.1332047592), 0., 1.);
+           g = clamp(1.12989086089 * pow(t - 60., -0.0755148492), 0., 1.); }
+    if (t >= 66.) b = 1.; else if (t <= 19.) b = 0.;
+    else b = clamp(0.54320678911 * log(t - 10.) - 1.19625408914, 0., 1.);
+    return pow(vec3(r, g, b), vec3(2.2));
+  }
+
+  // ---------- sky: stars, Milky Way, companion star ----------
+  const vec3 GAL_N = vec3(0.501, 0.852, 0.150);    // normal of the galactic plane
+  const vec3 GAL_C = vec3(0.587, -0.207, -0.783);  // direction of the galactic centre
+
+  // One layer of stars: space is cut into cubes and some cubes hold a star.
+  vec3 starLayer(vec3 d, float scale, float chance, float rad, float bright) {
+    vec3 p = d * scale, id = floor(p), f = p - id;
+    vec3 rnd = hash33(id);
+    if (rnd.x > chance) return vec3(0.);
+    vec3 sp = 0.3 + 0.4 * hash33(id + 71.7);
+    float core = smoothstep(rad, 0., length(f - sp));
+    float mag = (0.08 + pow(rnd.y, 5.)) * bright;
+    return blackbody(mix(3200., 16000., rnd.z * rnd.z)) * core * core * mag;
+  }
+
+  vec3 sky(vec3 d) {
+    // Milky Way band with dust lanes
+    float sinLat = dot(d, GAL_N);
+    float band = exp(-sinLat * sinLat / 0.045);
+    float toC = dot(d, GAL_C) * .5 + .5;
+    float clouds = fbm3(d * 3.5 + 11.);
+    float dust = smoothstep(0.42, 0.72, fbm3(d * 7. + vec3(3., -5., 8.))) * exp(-sinLat * sinLat / 0.012);
+    vec3 mw = mix(vec3(0.55, 0.65, 1.0), vec3(1.0, 0.82, 0.6), pow(toC, 3.));
+    mw *= band * (0.3 + 1.3 * clouds * clouds) * (0.3 + 1.4 * toC * toC) * (1. - 0.85 * dust);
+    vec3 col = mw * 0.10;
+
+    // Three star layers, denser inside the band
+    float dens = 1. + 2.5 * band * (1. - dust);
+    col += starLayer(d, 38., 0.05 * dens, 0.12, 5.0);
+    col += starLayer(d, 85., 0.10 * dens, 0.20, 1.6);
+    col += starLayer(d, 170., 0.16 * dens, 0.28, 0.5);
+
+    // Companion blue supergiant: limb-darkened disc plus a soft corona
+    if (uStar > .5) {
+      float ang = acos(clamp(dot(d, uStarDir), -1., 1.));
+      vec3 sc = vec3(0.55, 0.70, 1.0);
+      if (ang < uStarAng) {
+        float mu = sqrt(1. - ang * ang / (uStarAng * uStarAng));
+        float gran = 0.88 + 0.24 * fbm3(d * 70.);
+        col = sc * 9. * (0.35 + 0.65 * mu) * gran;
+      } else {
+        float x = (ang - uStarAng) / uStarAng;
+        col += sc * 9. * (0.22 * exp(-x * 9.) + 0.008 / (1. + x * x * 8.));
+      }
+    }
+    return col * uSkyBoost;
+  }
+
+  // ---------- photon acceleration ----------
+  vec3 accel(vec3 p, vec3 v) {
+    if (uLensing < .5) return vec3(0.);
+    float r2 = dot(p, p), r = sqrt(r2);
+    vec3 h = cross(p, v);
+    vec3 a = -1.5 * dot(h, h) * p / (r2 * r2 * r);          // exact Schwarzschild bending
+    if (uSpin > 0.) {
+      // APPROXIMATION of Kerr frame dragging: a weak-field gravitomagnetic
+      // (Lense–Thirring) force. Light moving with the spin can skim closer
+      // than light moving against it, which makes the shadow lopsided.
+      vec3 xh = p / r;
+      vec3 B = (3. * dot(uDiskN, xh) * xh - uDiskN) / (r2 * r);
+      a += uSpin * FRAME_DRAG_K * cross(v, B);
+    }
+    return a;
+  }
+
+  // ---------- frequency shift g = ν_observed / ν_emitted for orbiting gas ----------
+  // p: emission point, r: its radius, rayDir: direction of the backward-traced ray there.
+  float redshiftG(vec3 p, float r, vec3 rayDir) {
+    float rr = max(r, 1.0005);
+    vec3 rhat = p / r;
+    vec3 dl = rayDir;
+    float grav = 1.;
+    if (uLensing > .5) {
+      float lapse = sqrt(1. - 1. / rr);
+      grav = lapse / uObsLapse;                              // gravitational redshift
+      float dr = dot(rayDir, rhat);
+      dl = normalize(rhat * dr / lapse + (rayDir - dr * rhat));  // direction in the local static frame
+    }
+    float D = 1.;
+    if (uDoppler > .5) {
+      float beta = min(sqrt(0.5 / max(rr - 1., 1e-3)), 0.75);   // orbital speed seen by a static observer
+      vec3 tang = normalize(cross(uDiskN, rhat));               // prograde direction
+      D = sqrt(1. - beta * beta) / (1. - beta * dot(tang, -dl)); // relativistic Doppler factor
+    }
+    return grav * D;
+  }
+
+  // Thin-disk flux profile (Novikov–Thorne shape, slightly softened at the
+  // inner edge), normalised so its peak is ≈ 1. Inside the ISCO the gas
+  // plunges and its emission falls away toward the horizon.
+  float diskFlux(float r) {
+    if (r >= uIsco) { float s = sqrt(uIsco / r); float s3 = s * s * s; return s3 * s3 * (1. - 0.9 * s) / 0.107; }
+    return 0.93 * pow(clamp((r - 1.) / (uIsco - 1.), 0., 1.), 1.5);
+  }
+
+  float diskNoise(float r, float ang, float seed) {
+    vec2 q = r * vec2(cos(ang), sin(ang));
+    return fbm2(q * 1.6 + seed);
+  }
+
+  // ---------- accretion disk + gas stream, evaluated where a ray pierces the disk plane ----------
+  // Returns emitted light (rgb) and opacity (a).
+  vec4 shadeDisk(vec3 hit, float r, vec3 rayDir) {
+    float phi = atan(dot(hit, uDiskE2), dot(hit, uDiskE1));
+    float g = redshiftG(hit, r, rayDir);
+    float g4 = g * g * g * g;                   // beaming: observed intensity ∝ g⁴
+    vec3 emis = vec3(0.); float alpha = 0.;
+
+    if (uDisk > .5 && r < uDiskOuter) {
+      float rr = max(r, 1.02);
+      float omega = sqrt(0.5 / (rr * rr * rr));  // Keplerian angular velocity
+
+      // Turbulence carried round at the local orbital speed. Differential
+      // rotation would shear any pattern into mush, so two copies with
+      // staggered clocks are cross-faded (a "flow map").
+      float cyc = uTime / FLOW_T;
+      float p1 = fract(cyc), p2 = fract(cyc + .5);
+      float w1 = 1. - abs(2. * p1 - 1.);
+      float n1 = diskNoise(r, phi - omega * (FLOW_T0 + p1 * FLOW_T), floor(cyc) * 13.7);
+      float n2 = diskNoise(r, phi - omega * (FLOW_T0 + p2 * FLOW_T), floor(cyc + .5) * 13.7 + 37.);
+      float n = mix(n2, n1, w1);
+      float rings = (0.55 + 0.45 * vnoise2(vec2(r * 3.5, 0.5))) * (0.75 + 0.25 * vnoise2(vec2(r * 11., 3.)));
+      float density = (0.22 + 0.78 * smoothstep(0.32, 0.68, n)) * rings;
+
+      float outerFade = 1. - smoothstep(uDiskOuter * 0.7, uDiskOuter, r);
+      float flux = diskFlux(r);
+      // T ∝ flux^(1/4) (≈ r^-3/4 far out). Real temperatures here are millions
+      // of kelvin (X-rays); they are scaled into the visible range.
+      float Tn = r >= uIsco ? pow(max(flux, 1e-4), 0.25) : 0.98;
+      float I = 0.3 * pow(flux, 0.8) * density * outerFade * g4;
+      emis = blackbody(5600. * Tn * g) * I;
+      alpha = clamp(density * outerFade * 1.6, 0., 1.) * mix(0.3, 1., smoothstep(uIsco * 0.8, uIsco, r));
+    }
+
+    // Gas stream from the companion: a ribbon in the orbital plane that
+    // curves forward (prograde) and splashes into the disk's outer rim.
+    if (uStream > .5 && r > uDiskOuter * 0.6) {
+      float wind = pow(uDiskOuter / r, 1.3);
+      float dphi = mod(phi - (uStarPhi + 1.3 * wind) + PI, 2. * PI) - PI;
+      float slope = 1.69 * wind;
+      float perp = r * abs(dphi) / sqrt(1. + slope * slope);
+      float w = 0.3 + 0.03 * r;
+      float dens = exp(-perp * perp / (w * w));
+      dens *= smoothstep(uDiskOuter * 0.6, uDiskOuter * 0.95, r) * (1. - smoothstep(STREAM_OUT * 0.5, STREAM_OUT, r));
+      float flow = 0.55 + 0.45 * vnoise2(vec2(r * 1.2 + uTime * 0.25, perp * 3.));
+      float hot = exp(-pow((r - uDiskOuter) / 1.5, 2.));          // impact hot spot
+      vec3 sc = mix(vec3(1.0, 0.55, 0.35), vec3(0.75, 0.85, 1.0), hot * 0.8);
+      emis += sc * dens * flow * (0.5 + 2.5 * hot) * 1.2 * g4;
+      alpha = 1. - (1. - alpha) * (1. - dens * 0.6);
+    }
+    return vec4(emis, alpha);
+  }
+
+  void main() {
+    // Camera ray for this pixel
+    vec2 uv = gl_FragCoord.xy / uResolution * 2. - 1.;
+    uv.x *= uResolution.x / uResolution.y;
+    vec3 dir = normalize(uCamFwd + uTanHalfFov * (uv.x * uCamRight + uv.y * uCamUp));
+    vec3 pos = uCamPos;
+
+    // The shuttle hovers (a "static observer"). Its local sense of direction
+    // differs from the coordinate direction: radial distances are stretched.
+    if (uLensing > .5) {
+      float r0 = length(pos); vec3 rhat = pos / r0;
+      float dr = dot(dir, rhat);
+      dir = normalize(rhat * dr * sqrt(1. - 1. / r0) + (dir - dr * rhat));
+    }
+
+    vec3 vel = dir;
+    vec3 col = vec3(0.);
+    float trans = 1.;                 // how much light from further back still gets through
+    float hPrev = dot(pos, uDiskN);   // signed height above the disk plane
+    bool captured = false, escaped = false;
+
+    float probeDist[MAX_PROBES]; float probeTrans[MAX_PROBES];
+    for (int k = 0; k < MAX_PROBES; k++) { probeDist[k] = 1e9; probeTrans[k] = 0.; }
+
+    for (int i = 0; i < MAX_STEPS; i++) {
+      if (i >= uSteps) break;
+      float r = length(pos);
+      if (r < uHorizon) { captured = true; break; }                       // fell through the horizon
+      if (r > ESCAPE_R && dot(pos, vel) > 0.) { escaped = true; break; }  // off to infinity
+      if (trans < 0.01) break;                                            // hidden behind opaque gas
+
+      // Adaptive step: small near the hole, large far away. Velocity-Verlet.
+      float dt = max(0.1 * r / length(vel), 0.01);
+      vec3 vh = vel + accel(pos, vel) * (0.5 * dt);
+      vec3 np = pos + vh * dt;
+      vec3 nv = vh + accel(np, vh) * (0.5 * dt);
+      float hNew = dot(np, uDiskN);
+
+      // Thin glowing "atmosphere" above and below the disk, integrated
+      // analytically along this step so it never bands.
+      if (uDisk > .5 && r > uIsco * 0.8 && r < uDiskOuter) {
+        float H = 0.035 * r + 0.01;
+        float a0 = abs(hPrev), a1 = abs(hNew);
+        if (min(a0, a1) < 6. * H) {
+          float e0 = exp(-a0 / H), e1 = exp(-a1 / H);
+          float integ = hPrev * hNew < 0. ? H * (2. - e0 - e1) / max(a0 + a1, 1e-5)
+                      : (abs(a0 - a1) < 1e-4 ? e0 : H * abs(e0 - e1) / abs(a0 - a1));
+          float f = diskFlux(r) * smoothstep(uIsco * 0.8, uIsco * 1.1, r) * (1. - smoothstep(uDiskOuter * 0.7, uDiskOuter, r));
+          float g = redshiftG(pos, r, vel);
+          col += trans * blackbody(5600. * pow(max(f, 1e-4), 0.25) * g) * f * g * g * g * g * integ * length(np - pos) * 0.05;
+        }
+      }
+
+      // Did this step cross the disk plane?
+      if (hPrev * hNew < 0.) {
+        float f = hPrev / (hPrev - hNew);
+        vec3 hit = mix(pos, np, f);
+        float rh = length(hit);
+        if (rh > 1. && rh < ESCAPE_R) {
+          vec4 d = shadeDisk(hit, rh, normalize(mix(vel, nv, f)));
+          col += trans * d.rgb;
+          trans *= 1. - d.a;
+        }
+      }
+
+      // Probes: remember how close this (bent) ray passes to each one.
+      for (int k = 0; k < MAX_PROBES; k++) {
+        if (k >= uProbeCount) break;
+        vec3 ab = np - pos;
+        float t = clamp(dot(uProbes[k].xyz - pos, ab) / dot(ab, ab), 0., 1.);
+        float dd = length(uProbes[k].xyz - (pos + ab * t));
+        if (dd < probeDist[k]) { probeDist[k] = dd; probeTrans[k] = trans; }
+      }
+
+      pos = np; vel = nv; hPrev = hNew;
+    }
+
+    // Rays that got away show the sky in the direction they finally point.
+    // Rays that ran out of steps were circling the photon sphere: black.
+    if (escaped && !captured) col += trans * sky(normalize(vel));
+
+    for (int k = 0; k < MAX_PROBES; k++) {
+      if (k >= uProbeCount) break;
+      float s = 0.05, q = s * s / (probeDist[k] * probeDist[k] + s * s);
+      col += uProbeCol[k] * uProbes[k].w * probeTrans[k] * (q * sqrt(q) + 0.02 * q);
+    }
+
+    gl_FragColor = vec4(col, 1.);
+  }
+`;
+
+/* Final pass: chromatic aberration toward the frame edges, exposure,
+   ACES filmic tone mapping, sRGB encoding, and film grain. */
+const finalPassShader = {
+  uniforms: {
+    tDiffuse:  { value: null },
+    uTime:     { value: 0 },
+    uExposure: { value: 1.0 },
+  },
+  vertexShader: /* glsl */`
+    varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+  `,
+  fragmentShader: /* glsl */`
+    uniform sampler2D tDiffuse; uniform float uTime, uExposure; varying vec2 vUv;
+    // ACES filmic curve (Narkowicz fit)
+    vec3 aces(vec3 x) { return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0., 1.); }
+    float hash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+    void main() {
+      vec2 c = vUv - 0.5; float d2 = dot(c, c);
+      vec2 off = c * d2 * 0.012;                       // grows toward the corners
+      vec3 col = vec3(texture2D(tDiffuse, vUv + off).r, texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv - off).b);
+      col *= uExposure * (1. - 0.5 * d2);              // gentle vignette
+      col = pow(aces(col), vec3(1. / 2.2));
+      col += (hash(gl_FragCoord.xy + fract(uTime) * 91.7) - 0.5) * 0.035;   // film grain
+      gl_FragColor = vec4(col, 1.);
+    }
+  `,
+};
+
+/* =====================================================================
+   3. SCENE SETUP
+   ===================================================================== */
+const params = {
+  distanceKm: 800,     // target height above the event horizon
+  timeScale: 1,
+  fov: 95,             // the hole is huge from here, so the lens is wide
+  spin: 0,
+  inclination: 15,     // tilt of the disk / binary orbital plane toward the shuttle, degrees
+  lensing: true, doppler: true, disk: true, star: true, stream: true, bloom: true,
+  cockpit: true,
+  steps: 220,
+  resScale: 0.6,
+  exposure: 1.0,
+  paused: false,
+};
+const DIST_MIN = 300, DIST_MAX = 1000;
+
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+document.body.prepend(renderer.domElement);
+const canvas = renderer.domElement;
+
+// This camera is never used to draw geometry: it only carries the shuttle's
+// position and orientation, which are handed to the shader as uniforms.
+const camera = new THREE.PerspectiveCamera(params.fov, 1, 0.1, 100);
+camera.position.set(0, 0, (RS_KM + params.distanceKm) / RS_KM);
+
+const uniforms = {
+  uResolution: { value: new THREE.Vector2(1, 1) },
+  uCamPos: { value: new THREE.Vector3() }, uCamRight: { value: new THREE.Vector3() },
+  uCamUp: { value: new THREE.Vector3() }, uCamFwd: { value: new THREE.Vector3() },
+  uTanHalfFov: { value: 1 },
+  uTime: { value: 0 },
+  uSteps: { value: params.steps },
+  uSpin: { value: 0 }, uHorizon: { value: 1 }, uIsco: { value: 3 }, uDiskOuter: { value: DISK_OUTER },
+  uDiskN: { value: new THREE.Vector3() }, uDiskE1: { value: new THREE.Vector3() }, uDiskE2: { value: new THREE.Vector3() },
+  uObsLapse: { value: 1 }, uSkyBoost: { value: 1 },
+  uStarDir: { value: new THREE.Vector3() }, uStarAng: { value: STAR_ANG_RADIUS }, uStarPhi: { value: STAR_AZIMUTH },
+  uLensing: { value: 1 }, uDoppler: { value: 1 }, uDisk: { value: 1 }, uStar: { value: 1 }, uStream: { value: 1 },
+  uProbes: { value: [0, 1, 2, 3].map(() => new THREE.Vector4()) },
+  uProbeCol: { value: [0, 1, 2, 3].map(() => new THREE.Vector3()) },
+  uProbeCount: { value: 0 },
+};
+
+// Full-screen quad that runs the ray marcher.
+const quadScene = new THREE.Scene();
+const quadCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+const quad = new THREE.Mesh(
+  new THREE.PlaneGeometry(2, 2),
+  new THREE.ShaderMaterial({ uniforms, vertexShader: quadVertexShader, fragmentShader: blackHoleFragmentShader, depthTest: false, depthWrite: false })
+);
+quad.frustumCulled = false;
+quadScene.add(quad);
+
+// The ray marcher draws into this reduced-resolution HDR buffer, which the
+// post-processing chain then upscales to the full window.
+const sceneTarget = new THREE.WebGLRenderTarget(1, 1, {
+  type: THREE.HalfFloatType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false,
+});
+
+/* ---------- post-processing: HDR buffer → bloom → tone map ---------- */
+const composer = new EffectComposer(renderer);
+composer.addPass(new TexturePass(sceneTarget.texture));
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.3, 0.4, 1.2);   // strength, radius, threshold
+composer.addPass(bloomPass);
+const finalPass = new ShaderPass(finalPassShader);
+composer.addPass(finalPass);
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  renderer.setPixelRatio(dpr);
+  renderer.setSize(w, h);
+  composer.setPixelRatio(dpr);
+  composer.setSize(w, h);
+  const rw = Math.max(2, Math.floor(w * dpr * params.resScale));
+  const rh = Math.max(2, Math.floor(h * dpr * params.resScale));
+  sceneTarget.setSize(rw, rh);
+  uniforms.uResolution.value.set(rw, rh);
+  camera.aspect = w / h;
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* =====================================================================
+   4. CONTROLS
+   ===================================================================== */
+// Left-drag orbits the shuttle around the hole. Zoom is handled by us so the
+// distance can be eased and clamped in kilometres.
+const controls = new OrbitControls(camera, canvas);
+controls.enableZoom = false;
+controls.enablePan = false;
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.rotateSpeed = 0.45;
+controls.minDistance = 1.5;                       // never inside the photon sphere
+controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: null, RIGHT: null };
+
+let currentDistKm = params.distanceKm;            // eased toward params.distanceKm
+let lookYaw = 0, lookPitch = 0;                   // right-drag "turn your head" offsets
+const keys = new Set();
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  params.distanceKm = THREE.MathUtils.clamp(params.distanceKm + e.deltaY * 0.4, DIST_MIN, DIST_MAX);
+}, { passive: false });
+
+// Right-drag looks around; a left click that does not move drops a probe.
+let looking = false, downX = 0, downY = 0, downT = 0;
+canvas.addEventListener('pointerdown', (e) => {
+  if (e.button === 2) { looking = true; canvas.setPointerCapture(e.pointerId); }
+  if (e.button === 0) { downX = e.clientX; downY = e.clientY; downT = performance.now(); }
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!looking) return;
+  lookYaw   = THREE.MathUtils.clamp(lookYaw   - e.movementX * 0.003, -2.6, 2.6);
+  lookPitch = THREE.MathUtils.clamp(lookPitch - e.movementY * 0.003, -1.4, 1.4);
+});
+canvas.addEventListener('pointerup', (e) => {
+  if (e.button === 2) looking = false;
+  if (e.button === 0 && Math.hypot(e.clientX - downX, e.clientY - downY) < 5 && performance.now() - downT < 400) {
+    dropProbe(e.clientX, e.clientY);
+  }
+});
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+window.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;       // don't hijack typing in the control panel
+  const k = e.key.toLowerCase();
+  keys.add(k);
+  if (k === ' ') { params.paused = !params.paused; e.preventDefault(); }
+  if (k === 'h') { params.cockpit = !params.cockpit; applyCockpit(); }
+  if (k === 'r') { lookYaw = 0; lookPitch = 0; }
+});
+window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
+window.addEventListener('blur', () => keys.clear());
+
+const cockpitEl = document.getElementById('cockpit');
+function applyCockpit() { cockpitEl.classList.toggle('off', !params.cockpit); }
+
+/* ---------- control panel ---------- */
+const gui = new GUI({ title: 'Flight controls' });
+if (window.matchMedia('(max-width: 600px)').matches) gui.close();
+const fFlight = gui.addFolder('Shuttle');
+fFlight.add(params, 'distanceKm', DIST_MIN, DIST_MAX, 1).name('Distance (km)').listen();
+fFlight.add(params, 'timeScale', 0, 10, 0.1).name('Time scale ×');
+fFlight.add(params, 'fov', 60, 130, 1).name('Field of view °');
+fFlight.add(params, 'cockpit').name('Cockpit frame (H)').onChange(applyCockpit).listen();
+const fHole = gui.addFolder('Black hole');
+fHole.add(params, 'spin', 0, 0.99, 0.01).name('Spin a (approx.)');
+fHole.add(params, 'inclination', 3, 85, 1).name('Disk inclination °');
+const fLayers = gui.addFolder('Layers');
+fLayers.add(params, 'lensing').name('Gravitational lensing');
+fLayers.add(params, 'doppler').name('Doppler beaming');
+fLayers.add(params, 'disk').name('Accretion disk');
+fLayers.add(params, 'star').name('Companion star');
+fLayers.add(params, 'stream').name('Gas stream');
+fLayers.add(params, 'bloom').name('Bloom');
+const fQuality = gui.addFolder('Quality');
+fQuality.add(params, 'steps', 60, 500, 10).name('Ray-march steps');
+fQuality.add(params, 'resScale', 0.25, 1, 0.05).name('Resolution scale').onChange(resize);
+fQuality.add(params, 'exposure', 0.3, 3, 0.05).name('Exposure');
+fQuality.close();
+gui.add({ clear: () => { probes.length = 0; } }, 'clear').name('Clear probes');
+if (window.innerWidth < 900) gui.close();
+
+/* =====================================================================
+   5. PROBES (click the disk to drop one)
+   ===================================================================== */
+const probes = [];                 // each: { r, phi } in the disk plane, plus display state
+let probeSerial = 0;
+let lastProbeMessage = '', lastProbeMessageUntil = 0;
+
+const diskN = new THREE.Vector3(), diskE1 = new THREE.Vector3(1, 0, 0), diskE2 = new THREE.Vector3();
+const camRight = new THREE.Vector3(), camUp = new THREE.Vector3(), camFwd = new THREE.Vector3();
+
+// CPU copy of the shader's photon acceleration, used only for click picking.
+const _h = new THREE.Vector3(), _B = new THREE.Vector3(), _t = new THREE.Vector3();
+function photonAccel(p, v, out) {
+  if (!params.lensing) return out.set(0, 0, 0);
+  const r2 = p.lengthSq(), r = Math.sqrt(r2);
+  _h.crossVectors(p, v);
+  out.copy(p).multiplyScalar(-1.5 * _h.lengthSq() / (r2 * r2 * r));
+  if (params.spin > 0) {
+    const nd = diskN.dot(p) / r;
+    _B.copy(p).multiplyScalar(3 * nd / r).sub(diskN).multiplyScalar(1 / (r2 * r));
+    out.addScaledVector(_t.crossVectors(v, _B), params.spin * FRAME_DRAG_K);
+  }
+  return out;
+}
+
+// Follow the bent light ray under the cursor until it first pierces the disk.
+function traceClickToDisk(clientX, clientY) {
+  const x = (clientX / window.innerWidth) * 2 - 1, y = 1 - (clientY / window.innerHeight) * 2;
+  const tan = uniforms.uTanHalfFov.value;
+  const dir = camFwd.clone().addScaledVector(camRight, x * camera.aspect * tan).addScaledVector(camUp, y * tan).normalize();
+  const pos = camera.position.clone();
+  if (params.lensing) {
+    const r0 = pos.length(), rhat = pos.clone().divideScalar(r0), dr = dir.dot(rhat);
+    dir.addScaledVector(rhat, dr * (Math.sqrt(1 - 1 / r0) - 1)).normalize();
+  }
+  const vel = dir, a = new THREE.Vector3(), np = new THREE.Vector3();
+  let hPrev = pos.dot(diskN);
+  for (let i = 0; i < 400; i++) {
+    const r = pos.length();
+    if (r < uniforms.uHorizon.value || r > 60) return null;
+    const dt = Math.max(0.1 * r / vel.length(), 0.01);
+    vel.addScaledVector(photonAccel(pos, vel, a), 0.5 * dt);
+    np.copy(pos).addScaledVector(vel, dt);
+    vel.addScaledVector(photonAccel(np, vel, a), 0.5 * dt);
+    const hNew = np.dot(diskN);
+    if (hPrev * hNew < 0) {
+      const hit = pos.clone().lerp(np, hPrev / (hPrev - hNew)), rh = hit.length();
+      if (rh > 1.15 && rh < DISK_OUTER) return { r: rh, phi: Math.atan2(hit.dot(diskE2), hit.dot(diskE1)) };
+    }
+    pos.copy(np); hPrev = hNew;
+  }
+  return null;
+}
+
+function dropProbe(clientX, clientY) {
+  if (!params.disk) return;
+  const hit = traceClickToDisk(clientX, clientY);
+  if (!hit) return;
+  if (probes.length >= 4) probes.shift();
+  probes.push({ id: ++probeSerial, r: hit.r, phi: hit.phi });
+}
+
+// Probe motion in Schwarzschild coordinate time (what the distant shuttle sees).
+//  • Outside the ISCO: a circular Keplerian orbit with a steady inward drift
+//    (the probe brakes; real gas drifts in far more slowly).
+//  • Inside the ISCO: the exact plunge geodesic for E² = 8/9, L² = 3 r_s².
+//  Both dr/dt and dφ/dt carry the factor (1 − r_s/r), so the probe never
+//  quite reaches the horizon: it slows, reddens and freezes just outside.
+function stepProbes(dtSim, now) {
+  const obsLapse = uniforms.uObsLapse.value;
+  for (let i = probes.length - 1; i >= 0; i--) {
+    const p = probes[i];
+    let remaining = dtSim;
+    while (remaining > 1e-6) {
+      const h = Math.min(remaining, 0.05); remaining -= h;
+      const lapse2 = 1 - 1 / p.r;
+      const plunge = Math.sqrt(Math.max(0, 1 - lapse2 * (1 + 3 / (p.r * p.r)) * 9 / 8));
+      p.r -= lapse2 * (plunge + 0.06) * h;
+      p.phi += (p.r > 3 ? Math.sqrt(0.5 / p.r ** 3) : lapse2 * Math.sqrt(3) / (Math.sqrt(8 / 9) * p.r * p.r)) * h;
+    }
+    p.g = Math.sqrt(Math.max(1 - 1 / p.r, 0)) / obsLapse;     // gravitational redshift factor seen from the shuttle
+    if (p.g < 0.04) {
+      lastProbeMessage = `PROBE ${p.id}: signal lost — frozen at horizon`;
+      lastProbeMessageUntil = now + 6000;
+      probes.splice(i, 1);
+    }
+  }
+  // Hand the survivors to the shader.
+  uniforms.uProbeCount.value = probes.length;
+  probes.forEach((p, i) => {
+    uniforms.uProbes.value[i].set(0, 0, 0, 0)
+      .addScaledVector(diskE1, p.r * Math.cos(p.phi)).addScaledVector(diskE2, p.r * Math.sin(p.phi));
+    uniforms.uProbes.value[i].w = 7 * p.g ** 3;
+    // Colour slides from blue-white through orange to deep red as g falls.
+    const g = Math.min(p.g, 1), c = uniforms.uProbeCol.value[i];
+    if (g > 0.5) c.set(1, 0.6, 0.2).lerp(_t.set(0.6, 0.95, 1.0), (g - 0.5) * 2);
+    else c.set(0.9, 0.04, 0.0).lerp(_t.set(1, 0.6, 0.2), g * 2);
+  });
+}
+
+/* =====================================================================
+   6. HUD
+   ===================================================================== */
+const hudEl = document.getElementById('hud');
+const fmt = (v, d = 2) => v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+const sci = (v) => { const e = Math.floor(Math.log10(v)); return `${(v / 10 ** e).toFixed(2)}×10<sup>${e}</sup>`; };
+let fpsSmooth = 60;
+
+function updateHud(now) {
+  const rM = RS_M + currentDistKm * 1000;          // radial coordinate of the shuttle, metres
+  const x = rM / RS_M;                             // … in units of r_s
+  const lapse = Math.sqrt(1 - 1 / x);
+  const tidalG = 2 * G * BH_MASS * SHUTTLE_LENGTH / rM ** 3 / G0;       // stretch across the shuttle's length
+  const hoverG = G * BH_MASS / (rM * rM * lapse) / G0;                   // thrust needed to hover
+  const shadowDeg = 2 * THREE.MathUtils.radToDeg(Math.asin(Math.min(1, 2.598 / x * lapse)));
+  const orbitMs = 2 * Math.PI * Math.sqrt(2 * x ** 3) * T_UNIT * 1000;
+  const aboveSphere = x - 1.5;
+
+  let level = '', status = 'STATION KEEPING — NOMINAL';
+  if (x < 3.2) { level = 'danger'; status = '⚠ PHOTON SPHERE PROXIMITY'; }
+  else if (x < 4.4) { level = 'warn'; status = 'CAUTION — DEEP GRAVITY WELL'; }
+  if (params.paused) status = '❚❚ TIME PAUSED';
+  hudEl.className = level;
+
+  const row = (a, b) => `<div class="row"><span>${a}</span><span>${b}</span></div>`;
+  let html = `<div class="title">STS HORIZON · 70 M☉ · r<sub>s</sub> = ${fmt(RS_KM, 1)} km</div>`;
+  html += row('Above horizon', `${fmt(currentDistKm, 0)} km`);
+  html += row('Radius', `${fmt(x, 2)} r<sub>s</sub>`);
+  html += row('Above photon sphere', `${fmt(aboveSphere, 2)} r<sub>s</sub>`);
+  html += `<div class="sep"></div>`;
+  html += row('Time dilation', `1 s aboard = ${fmt(1 / lapse, 3)} s far away`);
+  html += row('Escape velocity', `${fmt(Math.sqrt(1 / x), 3)} c`);
+  html += row('Tidal stretch (37 m)', `${sci(tidalG)} g`);
+  html += row('Thrust to hover', `${sci(hoverG)} g`);
+  html += row('Orbit period here', `${fmt(orbitMs, 1)} ms`);
+  html += row('Shadow diameter', `${fmt(shadowDeg, 0)}° of sky`);
+  html += `<div class="sep"></div>`;
+  html += row('Slow motion', params.paused ? 'paused' : `1 s = ${fmt(SIM_RATE * params.timeScale * T_UNIT * 1000, 2)} ms`);
+  html += row('Frame rate', `${fmt(fpsSmooth, 0)} fps`);
+  for (const p of probes) {
+    const z = 1 / Math.max(p.g, 1e-3) - 1;
+    html += row(`Probe ${p.id}`, `${fmt(p.r, 3)} r<sub>s</sub> · z = ${z > 0 ? '+' : ''}${fmt(z, 2)}`);
+  }
+  if (now < lastProbeMessageUntil) html += `<div class="status">${lastProbeMessage}</div>`;
+  html += `<div class="status">${status}</div>`;
+  hudEl.innerHTML = html;
+}
+
+/* =====================================================================
+   7. ANIMATION LOOP
+   ===================================================================== */
+let simTime = 0, lastNow = performance.now(), lastHud = 0;
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min((now - lastNow) / 1000, 0.1);
+  lastNow = now;
+  fpsSmooth += (1 / Math.max(dt, 1e-3) - fpsSmooth) * 0.05;
+  const t = now / 1000;
+
+  // --- orientation of the disk / binary orbital plane ---
+  const inc = THREE.MathUtils.degToRad(params.inclination);
+  diskN.set(0, Math.cos(inc), Math.sin(inc));
+  diskE2.crossVectors(diskN, diskE1);
+
+  // --- keyboard flight ---
+  if (keys.has('w')) params.distanceKm -= 160 * dt;
+  if (keys.has('s')) params.distanceKm += 160 * dt;
+  params.distanceKm = THREE.MathUtils.clamp(params.distanceKm, DIST_MIN, DIST_MAX);
+  if (keys.has('a')) camera.position.applyAxisAngle(diskN, -0.5 * dt);
+  if (keys.has('d')) camera.position.applyAxisAngle(diskN, 0.5 * dt);
+
+  // --- eased distance, then let OrbitControls do its orbiting ---
+  currentDistKm += (params.distanceKm - currentDistKm) * (1 - Math.exp(-dt * 4));
+  const camR = (RS_KM + currentDistKm) / RS_KM;
+  camera.position.setLength(camR);
+  controls.update();
+  camera.updateMatrixWorld();
+
+  // --- camera basis, with head-turn offsets and station-keeping shake ---
+  camRight.setFromMatrixColumn(camera.matrixWorld, 0);
+  camUp.setFromMatrixColumn(camera.matrixWorld, 1);
+  camFwd.setFromMatrixColumn(camera.matrixWorld, 2).negate();
+  const close = THREE.MathUtils.clamp((DIST_MAX - currentDistKm) / (DIST_MAX - DIST_MIN), 0, 1);
+  const shake = 0.0006 + 0.004 * close * close;
+  const yaw   = lookYaw   + 0.004 * Math.sin(t * 0.31) + shake * (Math.sin(t * 13.1) + Math.sin(t * 7.3 + 1.0));
+  const pitch = lookPitch + 0.003 * Math.sin(t * 0.23 + 2.0) + shake * (Math.sin(t * 11.7 + 0.5) + Math.sin(t * 5.9));
+  camFwd.applyAxisAngle(camUp, yaw);  camRight.applyAxisAngle(camUp, yaw);
+  camFwd.applyAxisAngle(camRight, pitch);  camUp.applyAxisAngle(camRight, pitch);
+
+  // --- simulation clock ---
+  const dtSim = params.paused ? 0 : dt * params.timeScale * SIM_RATE;
+  simTime += dtSim;
+
+  // --- uniforms ---
+  const lapse = params.lensing ? Math.sqrt(1 - 1 / camR) : 1;
+  uniforms.uCamPos.value.copy(camera.position);
+  uniforms.uCamRight.value.copy(camRight); uniforms.uCamUp.value.copy(camUp); uniforms.uCamFwd.value.copy(camFwd);
+  uniforms.uTanHalfFov.value = Math.tan(THREE.MathUtils.degToRad(params.fov) / 2);
+  uniforms.uTime.value = simTime;
+  uniforms.uSteps.value = params.steps;
+  uniforms.uSpin.value = params.lensing ? params.spin : 0;
+  uniforms.uHorizon.value = params.lensing ? kerrHorizon(params.spin) : 1;
+  uniforms.uIsco.value = Math.max(kerrIsco(params.spin), 1.02);
+  uniforms.uDiskN.value.copy(diskN); uniforms.uDiskE1.value.copy(diskE1); uniforms.uDiskE2.value.copy(diskE2);
+  uniforms.uStarDir.value.set(0, 0, 0).addScaledVector(diskE1, Math.cos(STAR_AZIMUTH)).addScaledVector(diskE2, Math.sin(STAR_AZIMUTH));
+  uniforms.uObsLapse.value = lapse;
+  uniforms.uSkyBoost.value = 1 / lapse ** 3;       // starlight arrives blueshifted and brighter for a hovering observer
+  uniforms.uLensing.value = +params.lensing; uniforms.uDoppler.value = +params.doppler;
+  uniforms.uDisk.value = +params.disk; uniforms.uStar.value = +params.star; uniforms.uStream.value = +params.stream;
+  bloomPass.enabled = params.bloom;
+  finalPass.uniforms.uTime.value = t;
+  finalPass.uniforms.uExposure.value = params.exposure;
+
+  stepProbes(dtSim, now);
+
+  // --- draw: ray march into the HDR buffer, then post-process to the screen ---
+  renderer.setRenderTarget(sceneTarget);
+  renderer.render(quadScene, quadCamera);
+  renderer.setRenderTarget(null);
+  composer.render(dt);
+
+  if (now - lastHud > 120) { updateHud(now); lastHud = now; }
+}
+applyCockpit();
+requestAnimationFrame(frame);
+window.__eh = { params, uniforms, bloomPass };   // handy for poking at the scene from the console
+</script>
+</body>
+</html>
