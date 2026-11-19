@@ -29,8 +29,8 @@ export const BLACK_HOLE_MODES = Object.freeze({
     disk: Object.freeze({
         category: 'Observable appearance',
         title: 'Accretion disk',
-        badge: 'Rendered approximation',
-        description: 'A simplified view of hot orbiting material, Doppler asymmetry, the black-hole shadow, and secondary lensed disk images.',
+        badge: 'Ray-traced light · approximate spin',
+        description: 'Follow curved light paths through a luminous accretion disk, with Doppler asymmetry, a black-hole shadow, and lensed disk images.',
         interaction: 'Drag horizontally to orbit. Drag vertically—or use Observer angle—to change inclination.',
         sceneLabel: 'Rotatable accretion disk approximation around a Kerr black hole',
         rotatable: true,

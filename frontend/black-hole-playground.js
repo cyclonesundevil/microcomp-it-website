@@ -3,7 +3,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { BinaryBlackHolePhysics, C } from './binary-black-hole-physics.mjs?v=1.4';
 import { BinaryMergerRenderer, drawBinaryWaveform } from './binary-black-hole-renderer.mjs?v=1.2';
 import { BinaryWaveInstrumentRenderer } from './binary-black-hole-instruments.mjs?v=1.0';
-import { computeBlackHoleModel } from './black-hole-model.mjs?v=3.0';
+import { createBlackHoleSimulationState } from './black-hole-simulation-state.mjs';
+import { createBlackHoleExperience } from './black-hole-experience.mjs';
+import { createEventHorizonRenderer } from './event-horizon-renderer.mjs';
 import {
     ACCRETION_DISK_FRAGMENT_SHADER,
     ACCRETION_DISK_VERTEX_SHADER,
@@ -18,7 +20,7 @@ import {
     OBSERVER_ANGLE_MIN_DEGREES,
     RELATIVISTIC_DISK_FRAGMENT_SHADER,
     RELATIVISTIC_DISK_VERTEX_SHADER
-} from './black-hole-visuals.mjs?v=3.1';
+} from './black-hole-visuals.mjs?v=3.2';
 
 const container = document.getElementById('black-hole-scene');
 
@@ -33,6 +35,10 @@ if (container) {
         spin: document.getElementById('bh-spin-value'),
         angle: document.getElementById('bh-angle-value')
     };
+    const simulationState = createBlackHoleSimulationState({
+        massSolar: Number(inputs.mass.value), spin: Number(inputs.spin.value) / 100,
+        observerAngleDegrees: Number(inputs.angle.value)
+    });
     const modeButtons = document.querySelectorAll('[data-bh-mode]');
     const resetViewButton = document.getElementById('bh-reset-view');
     const animationToggle = document.getElementById('bh-animation-toggle');
@@ -191,6 +197,82 @@ if (container) {
         devicePixelRatio: window.devicePixelRatio || 1,
         reducedMotion: userPaused
     });
+
+    let rayTracer = null;
+    let rayTracerFailed = false;
+    let lastDiskWallTime = null;
+    const renderOptions = {};
+    const renderedFrames = { disk: 0, legacy: 0 };
+    // Read-only snapshots and a renderer option hook for local diagnostics.
+    window.__blackHoleIntegration = Object.freeze({
+        get snapshot() { return simulationState.get(); },
+        get rayTracer() { return rayTracer; },
+        get renderedFrames() { return { ...renderedFrames }; },
+        setRenderOptions(options) {
+            for (const key of ['steps', 'resScale', 'bloom']) {
+                if (key in options) renderOptions[key] = options[key];
+            }
+            rayTracer?.setState(renderOptions);
+            if (rayTracer && activeMode === 'disk') resize();
+        }
+    });
+
+    function ensureRayTracer() {
+        if (rayTracerFailed) return false;
+        if (!rayTracer) {
+            try {
+                rayTracer = createEventHorizonRenderer({
+                    container, renderer, camera,
+                    initialState: { inclination: 0, fov: camera.fov, star: false,
+                        stream: false, cockpit: false, ...experience.getRenderSettings(), ...renderOptions }
+                });
+                const rect = container.getBoundingClientRect();
+                rayTracer.resize({ width: Math.max(320, Math.floor(rect.width)),
+                    height: Math.max(420, Math.floor(rect.height)), pixelRatio: renderProfile.pixelRatio });
+            } catch (error) {
+                rayTracerFailed = true;
+                console.warn('Ray-traced disk unavailable; using the illustrative view.', error);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function renderRayTracedDisk(now, advanceMotion) {
+        if (!ensureRayTracer()) return false;
+        controls.update();
+        simulationState.set({
+            observerRadiusRg: 2 * camera.position.distanceTo(controls.target),
+            observerAzimuthRadians: controls.getAzimuthalAngle()
+        });
+        const previousModelTime = simulationState.get().modelTimeRs;
+        if (advanceMotion) {
+            const dt = lastDiskWallTime == null ? 0 : Math.min(0.1, Math.max(0, (now - lastDiskWallTime) / 1000));
+            simulationState.advance(dt);
+            lastDiskWallTime = now;
+        }
+        const snapshot = simulationState.get();
+        experience.update();
+        rayTracer.setState({ ...experience.getRenderSettings(), ...renderOptions, paused: userPaused });
+        rayTracer.render({ physicalState: snapshot, deltaModelTime: snapshot.modelTimeRs - previousModelTime,
+            wallTime: lastAnimatedTime / 1000, cinematicMotion: false });
+        experience.update();
+        renderedFrames.disk++;
+        container.dataset.diskRenderer = 'ray-traced';
+        return true;
+    }
+
+    const experience = createBlackHoleExperience({
+        section: container.closest('.black-hole-playground'), container,
+        getSnapshot: simulationState.get, getRenderer: () => rayTracer,
+        onDistanceChange(radiusRg) {
+            const snapshot = simulationState.get();
+            positionCameraForObserverAngle(snapshot.observerAngleDegrees, radiusRg / 2, snapshot.observerAzimuthRadians);
+            update(); renderStaticScene();
+        },
+        onResize: resize, onRedraw: renderStaticScene
+    });
+    let diskObserverView = simulationState.get();
 
     const starPositions = [];
     const starColors = [];
@@ -824,16 +906,13 @@ if (container) {
     }
 
     function state() {
-        const mass = Number(inputs.mass.value);
-        const spin = Number(inputs.spin.value) / 100;
-        const angle = Number(inputs.angle.value);
+        const snapshot = simulationState.get();
+        const mass = snapshot.massSolar;
+        const spin = snapshot.spin;
+        const angle = snapshot.observerAngleDegrees;
         const massScale = (mass - 8) / 82;
         const angleScale = normalizeObserverAngle(angle);
-        const physics = computeBlackHoleModel({
-            massSolar: mass,
-            spin,
-            observerAngleDegrees: angle
-        });
+        const physics = snapshot.physics;
         return {
             mass,
             spin,
@@ -861,7 +940,7 @@ if (container) {
 
         labels.mass.textContent = `${model.mass} solar masses`;
         labels.spin.textContent = `${model.spin.toFixed(2)} a*`;
-        labels.angle.textContent = `${model.angle} degrees`;
+        labels.angle.textContent = `${Math.round(model.angle)} degrees`;
 
         ['Horizon diameter', 'Prograde ISCO', 'ISCO clock ratio', 'ISCO grav. redshift', 'Disk brightness contrast']
             .forEach((text, index) => { readoutLabels[index].textContent = text; });
@@ -995,16 +1074,21 @@ if (container) {
             controls.target.z + Math.cos(azimuth) * radial
         );
         controls.update();
+        simulationState.set({ observerAngleDegrees: angleDegrees,
+            observerRadiusRg: 2 * distance, observerAzimuthRadians: azimuth });
         synchronizingObserver = false;
     }
 
     function syncObserverAngleFromCamera() {
         if (synchronizingObserver || handlingControlChange) return;
         handlingControlChange = true;
-        const angle = Math.round(THREE.MathUtils.radToDeg(
-            controls.getPolarAngle()
-        ));
+        const actualAngle = THREE.MathUtils.radToDeg(controls.getPolarAngle());
+        const angle = Math.round(actualAngle);
+        simulationState.set({ observerAngleDegrees: actualAngle,
+            observerRadiusRg: 2 * camera.position.distanceTo(controls.target),
+            observerAzimuthRadians: controls.getAzimuthalAngle() });
         if (Number(inputs.angle.value) === angle) {
+            if (activeMode === 'disk') update();
             const observerVector = camera.position.clone().sub(controls.target);
             const observerDiskAzimuth = Math.atan2(
                 observerVector.z,
@@ -1062,8 +1146,20 @@ if (container) {
     function setMode(mode) {
         const config = BLACK_HOLE_MODES[mode];
         if (!config) return;
+        const previousMode = activeMode;
+        if (previousMode === 'disk') diskObserverView = simulationState.get();
         modeObserverAngles[activeMode] = Number(inputs.angle.value);
         activeMode = mode;
+        if (mode === 'disk' && previousMode !== 'disk') {
+            simulationState.set({ observerAngleDegrees: diskObserverView.observerAngleDegrees,
+                observerAzimuthRadians: diskObserverView.observerAzimuthRadians,
+                observerRadiusRg: diskObserverView.observerRadiusRg });
+        }
+        experience.setMode(mode);
+        controlsPanel.classList.toggle('disk-active', mode === 'disk');
+        controls.minDistance = mode === 'disk' ? 3 : 7;
+        controls.maxDistance = mode === 'disk' ? 32 : 22;
+        lastDiskWallTime = null;
         const modeMinimumAngle = OBSERVER_ANGLE_MIN_DEGREES;
         const modeMaximumAngle = OBSERVER_ANGLE_MAX_DEGREES;
         inputs.angle.min = String(modeMinimumAngle);
@@ -1073,6 +1169,7 @@ if (container) {
             modeMinimumAngle,
             modeMaximumAngle
         ));
+        simulationState.set({ observerAngleDegrees: Number(inputs.angle.value) });
         controls.minPolarAngle = THREE.MathUtils.degToRad(modeMinimumAngle);
         controls.maxPolarAngle = THREE.MathUtils.degToRad(modeMaximumAngle);
         accretionGroup.visible = mode === 'disk';
@@ -1090,7 +1187,9 @@ if (container) {
             : 'Explore how mass and spin set the scale of a Kerr black hole and its innermost stable orbit, while viewing angle changes the simplified Doppler-brightness contrast of the disk.';
         heroScope.textContent = binaryMode
             ? 'The inspiral uses a post-Newtonian-corrected quadrupole flux, followed by a phenomenological plunge and fitted Kerr ringdown. It is an educational approximation, not numerical relativity.'
-            : 'The readouts use general-relativistic Kerr equations for an ideal prograde equatorial orbit. The 3D scene is an educational illustration, not a real-time ray trace.';
+            : mode === 'disk'
+                ? 'Kerr equations set the horizon, inner disk edge, and orbital readouts. Light paths are traced with approximate spin effects; disk colors and brightness are illustrative.'
+                : 'The readouts use general-relativistic Kerr equations for an ideal prograde equatorial orbit. This mode is an educational diagram.';
         document.querySelectorAll('[data-binary-education]').forEach((element) => {
             element.hidden = !binaryMode;
         });
@@ -1140,7 +1239,7 @@ if (container) {
     function resize() {
         const rect = container.getBoundingClientRect();
         const width = Math.max(320, Math.floor(rect.width));
-        const height = Math.max(420, Math.floor(rect.height));
+        const height = Math.max(experience.immersive ? 1 : 420, Math.floor(rect.height));
         const narrow = width < 620;
         renderProfile = getBlackHoleRenderProfile({
             width,
@@ -1150,6 +1249,10 @@ if (container) {
         renderer.setPixelRatio(renderProfile.pixelRatio);
         if (activeMode === 'binary') {
             applyBinaryCamera();
+        } else if (activeMode === 'disk') {
+            const observer = simulationState.get();
+            positionCameraForObserverAngle(observer.observerAngleDegrees,
+                observer.observerRadiusRg / 2, observer.observerAzimuthRadians);
         } else {
             positionCameraForObserverAngle(
                 Number(inputs.angle.value),
@@ -1160,6 +1263,10 @@ if (container) {
         camera.updateProjectionMatrix();
         root.scale.setScalar(activeMode === 'well' ? (narrow ? 0.72 : 0.86) : activeMode === 'binary' ? (narrow ? 0.72 : 0.86) : (narrow ? 0.76 : 0.9));
         renderer.setSize(width, height, false);
+        if (activeMode === 'disk' && rayTracer) {
+            rayTracer.setState({ ...experience.getRenderSettings(), ...renderOptions });
+            rayTracer.resize({ width, height, pixelRatio: renderProfile.pixelRatio });
+        }
         update();
         renderStaticScene();
     }
@@ -1168,6 +1275,10 @@ if (container) {
         const model = state();
         if (advanceMotion) lastAnimatedTime = now;
         const time = lastAnimatedTime * 0.001;
+        if (activeMode === 'disk' && renderRayTracedDisk(now, advanceMotion)) {
+            markRenderReady();
+            return;
+        }
 
         if (activeMode === 'binary') {
             if (advanceMotion) {
@@ -1245,6 +1356,16 @@ if (container) {
         relativisticDisk.quaternion.copy(camera.quaternion);
         lensingGroup.quaternion.copy(camera.quaternion);
         renderer.render(scene, camera);
+        renderedFrames.legacy++;
+        if (activeMode === 'disk') {
+            container.dataset.diskRenderer = 'illustrative';
+            modeSummary.badge.textContent = 'Illustrative view';
+            heroScope.textContent = 'The ray-traced view is unavailable. This illustration preserves the calculated Kerr readouts and observer controls.';
+        }
+        markRenderReady();
+    }
+
+    function markRenderReady() {
         window.__blackHoleReady = true;
         container.dataset.renderStatus = 'ready';
         container.classList.remove('context-unavailable');
@@ -1309,6 +1430,7 @@ if (container) {
 
     function setAnimationPaused(paused, message) {
         userPaused = paused;
+        lastDiskWallTime = null;
         renderProfile = getBlackHoleRenderProfile({
             width: container.getBoundingClientRect().width,
             devicePixelRatio: window.devicePixelRatio || 1,
@@ -1327,6 +1449,7 @@ if (container) {
 
     [inputs.mass, inputs.spin].forEach((input) => {
         input.addEventListener('input', () => {
+            simulationState.set({ massSolar: Number(inputs.mass.value), spin: Number(inputs.spin.value) / 100 });
             update();
             renderStaticScene();
         });
@@ -1476,6 +1599,7 @@ if (container) {
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
             stopAnimation();
+            lastDiskWallTime = null;
         } else {
             renderStaticScene();
             scheduleAnimation();
@@ -1505,6 +1629,13 @@ if (container) {
     } else {
         window.addEventListener('resize', resize);
     }
+
+    window.addEventListener('pagehide', (event) => {
+        if (event.persisted) return;
+        experience.dispose();
+        stopAnimation();
+        rayTracer?.dispose();
+    });
 
     setMode(activeMode);
     resize();

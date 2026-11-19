@@ -127,8 +127,8 @@ test('pinned Three.js runtime is served locally with a startup watchdog', () => 
     assert.match(page, /local 3D renderer did not finish starting/);
     assert.match(controller, /window\.__blackHoleReady = true/);
     assert.match(controller, /dataset\.renderStatus = 'ready'/);
-    assert.match(controller, /black-hole-visuals\.mjs\?v=3\.1/);
-    assert.match(controller, /black-hole-model\.mjs\?v=3\.0/);
+    assert.match(controller, /black-hole-visuals\.mjs\?v=3\.2/);
+    assert.match(controller, /black-hole-simulation-state\.mjs/);
     assert.match(controller, /URLSearchParams\(window\.location\.search\)/);
     assert.match(controller, /storeModeInUrl/);
     assert.match(controller, /window\.history\.replaceState/);
@@ -328,7 +328,7 @@ test('page legend distinguishes illustrative paths from calculated readouts', ()
     assert.match(page, /Doppler-brightened side/);
     assert.match(page, /receding, dimmer side/);
     assert.match(page, /lensed disk image/);
-    assert.match(page, /not a real-time ray trace/);
+    assert.match(page, /traces light paths with approximate spin effects/);
     assert.match(page, /Observable appearance/);
     assert.match(page, /Conceptual diagrams/);
     assert.match(page, /id="bh-mode-description"/);
@@ -344,7 +344,7 @@ test('page legend distinguishes illustrative paths from calculated readouts', ()
     assert.match(page, /id="bh-angle"[^>]+min="0"[^>]+max="180"/);
     assert.match(page, /id="bh-angle-ticks"/);
     assert.match(page, /value="180" label="180°"/);
-    assert.match(page, /black-hole-playground\.js\?v=4\.6/);
+    assert.match(page, /black-hole-playground\.js\?v=5\.1/);
 });
 
 test('desktop legend reserves the control panel footprint and stacks on narrow screens', () => {

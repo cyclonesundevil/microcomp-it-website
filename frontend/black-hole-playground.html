@@ -11,6 +11,7 @@
     <script src="analytics.js?v=1.2"></script>
     <link rel="stylesheet" href="styles.css?v=3.2">
     <link rel="stylesheet" href="event-horizon-promo.css?v=1.0">
+    <link rel="stylesheet" href="black-hole-experience.css?v=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -43,7 +44,7 @@
                 </p>
                 <p id="bh-hero-scope" class="black-hole-scope">
                     The readouts use general-relativistic Kerr equations for an ideal prograde equatorial orbit.
-                    The 3D scene is an educational illustration, not a real-time ray trace.
+                    The accretion-disk view traces light paths with approximate spin effects; disk colors and brightness are illustrative.
                 </p>
                 <a class="horizon-feature" href="betterBlackHole.html">
                     <span class="horizon-feature-orbit" aria-hidden="true"></span>
@@ -80,7 +81,7 @@
         </section>
 
         <section class="black-hole-playground" aria-label="Interactive black hole model">
-            <div class="black-hole-controls" aria-label="Black hole playground controls">
+            <div id="bh-controls-panel" class="black-hole-controls" aria-label="Black hole playground controls">
                 <div class="black-hole-mode-selector" aria-label="Black hole visualization mode">
                     <div>
                         <span class="black-hole-mode-category">Observable appearance</span>
@@ -142,6 +143,37 @@
                     <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
                     Reset view
                 </button>
+                <details id="bh-disk-tools" class="bh-disk-tools">
+                    <summary>Viewing &amp; rendering</summary>
+                    <div class="bh-tool-fields">
+                        <label for="bh-distance">Distance from center
+                            <span id="bh-distance-value">32 r_g</span>
+                        </label>
+                        <input id="bh-distance" type="range" min="6" max="64" step="0.25" value="32" aria-describedby="bh-distance-help">
+                        <small id="bh-distance-help">Measured in gravitational radii. Scroll over the scene to zoom.</small>
+                        <div class="bh-effect-toggles">
+                            <label><input id="bh-lensing" type="checkbox" checked> Gravitational lensing</label>
+                            <label><input id="bh-doppler" type="checkbox" checked> Doppler brightness</label>
+                        </div>
+                        <small>Compare visual effects. The calculated Kerr readouts remain the reference.</small>
+                        <label for="bh-quality">Rendering quality</label>
+                        <select id="bh-quality">
+                            <option value="performance">Performance</option>
+                            <option value="balanced" selected>Balanced</option>
+                            <option value="high">High detail</option>
+                        </select>
+                        <small id="bh-quality-help">Balanced detail and rendering cost.</small>
+                        <div class="bh-probe-actions">
+                            <button id="bh-launch-probe" type="button" disabled>Launch probe</button>
+                            <button id="bh-clear-probes" type="button" disabled>Clear probes</button>
+                        </div>
+                        <p id="bh-probe-status" role="status">Set spin to 0 to explore nonrotating probe orbits.</p>
+                        <small>Launch at 12 r_g, or click the disk. Up to four probes; trajectories are illustrative.</small>
+                    </div>
+                </details>
+                <button id="bh-enter-immersive" class="bh-immersive-launch" type="button" disabled>
+                    <i class="fa-solid fa-expand" aria-hidden="true"></i> Enter immersive view
+                </button>
                 </div>
 
                 <div id="bh-binary-controls" class="binary-merger-controls" hidden>
@@ -177,6 +209,11 @@
                 aria-describedby="bh-scene-help"
                 aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home"
             >
+                <div id="bh-cockpit" class="bh-cockpit" hidden aria-hidden="true"></div>
+                <div id="bh-cockpit-readouts" class="bh-cockpit-readouts" hidden>
+                    <span>Observer station</span>
+                    <output id="bh-cockpit-summary"></output>
+                </div>
                 <div id="bh-webgl-fallback" class="black-hole-fallback" hidden>
                     <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
                     <strong>Interactive 3D view unavailable</strong>
@@ -291,14 +328,14 @@
             <div data-single-education>
                 <i class="fa-solid fa-eye"></i>
                 <h3>Angle changes appearance</h3>
-                <p>The brightness ratio uses a simplified special-relativistic Doppler estimate. Exact images require ray tracing, radiative transfer, and a physical accretion-flow model.</p>
+                <p>The brightness readout is an idealized Doppler estimate at the ISCO. The disk view traces curved light paths, while its emission and spin effects remain approximate.</p>
             </div>
             <aside class="black-hole-method" data-single-education>
                 <h3>Model boundary</h3>
                 <p>
                     Assumptions: an uncharged Kerr black hole, dimensionless spin 0 ≤ a* &lt; 1, and a prograde
                     equatorial test particle at the ISCO. Calculations use G = c = M = 1 before converting lengths
-                    with r_g = GM/c². The colored disk, photon ring, light paths, and spacetime well are qualitative.
+                    with r_g = GM/c². The disk uses approximate light paths and illustrative emission; the wave and spacetime-well modes are teaching diagrams.
                 </p>
                 <p class="black-hole-sources">
                     Background:
@@ -321,6 +358,17 @@
             <a href="demo-lab.html">Demo Lab</a>
         </div>
     </footer>
+
+    <dialog id="bh-immersive-dialog" class="bh-immersive-dialog" aria-labelledby="bh-immersive-title">
+        <header class="bh-immersive-header">
+            <div><span>Black Hole Playground</span><h2 id="bh-immersive-title">Event Horizon</h2></div>
+            <div class="bh-immersive-actions">
+                <button id="bh-immersive-controls" type="button" aria-expanded="false" aria-controls="bh-controls-panel">Flight controls</button>
+                <button id="bh-exit-immersive" type="button" autofocus>Return to playground <span aria-hidden="true">&times;</span></button>
+            </div>
+        </header>
+        <div id="bh-immersive-slot" class="bh-immersive-slot"></div>
+    </dialog>
 
     <script type="importmap">
         {
@@ -378,7 +426,7 @@
             }
         }, 5000);
     </script>
-    <script type="module" src="black-hole-playground.js?v=4.6"></script>
+    <script type="module" src="black-hole-playground.js?v=5.1"></script>
 </body>
 
 </html>

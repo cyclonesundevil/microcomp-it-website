@@ -130,12 +130,12 @@ test('playground labels the approximation and no longer displays invented lensin
     );
 
     assert.match(page, /general-relativistic Kerr equations/i);
-    assert.match(page, /not a real-time ray trace/i);
+    assert.match(page, /traces light paths with approximate spin effects/i);
     assert.match(page, /Horizon diameter/);
     assert.match(page, /Prograde ISCO/);
     assert.match(page, /ISCO clock ratio/);
     assert.match(page, /Disk brightness contrast/);
     assert.doesNotMatch(page, /Lensing strength/);
-    assert.match(controller, /from '\.\/black-hole-model\.mjs\?v=3\.0'/);
+    assert.match(controller, /from '\.\/black-hole-simulation-state\.mjs'/);
     assert.doesNotMatch(controller, /massScale \* 2\.8/);
 });
